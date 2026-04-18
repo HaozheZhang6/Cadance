@@ -1,52 +1,74 @@
-"""L-bracket family — two perpendicular arms joined at right angle.
+"""L-bracket family — two perpendicular arms joined at right angle (EN 10056).
 
-Geometry: bounding box minus inner corner cutout, giving an L-shaped profile
-extruded to the bracket depth.  All ops are standard CadQuery box/workplane/rect/
-cutThruAll — no polyline needed.
+EN 10056 equal-leg angle sections: leg × leg × thickness (mm).
+Bracket arms correspond to angle legs; depth = bracket extrusion length.
+
+Table: (leg_mm, thick_mm) from EN 10056-1 preferred sizes.
 """
-
-import math
 
 from .base import BaseFamily
 from ..pipeline.builder import Op, Program
 
+# EN 10056-1 equal-leg angle sections — (leg_mm, thick_mm)
+_EN10056_EQ = [
+    (20, 3),
+    (25, 3),
+    (30, 3),
+    (40, 4),
+    (50, 5),
+    (60, 5),
+    (60, 6),
+    (70, 7),
+    (80, 8),
+    (90, 9),
+    (100, 10),
+    (120, 11),
+    (150, 12),
+]
+_SMALL = _EN10056_EQ[:5]  # leg 20–50
+_MID = _EN10056_EQ[2:9]  # leg 30–80
+_ALL = _EN10056_EQ
+
 
 class LBracketFamily(BaseFamily):
-    """Parametric L-bracket: two perpendicular arms, uniform thickness."""
+    """EN 10056 equal-leg angle section bracket."""
 
     name = "l_bracket"
     standard = "EN 10056"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        """Sample params for an L-bracket at given difficulty."""
-        arm1 = rng.uniform(20, 150)  # free length of horizontal arm
-        arm2 = rng.uniform(20, 150)  # free height of vertical arm
-        thick = rng.uniform(3, 15)
-        depth = rng.uniform(10, 60)  # bracket depth (perpendicular to L profile)
+        pool = (
+            _SMALL
+            if difficulty == "easy"
+            else (_MID if difficulty == "medium" else _ALL)
+        )
+        leg, thick = pool[int(rng.integers(0, len(pool)))]
+        arm1 = float(leg)
+        arm2 = float(leg)  # equal legs per EN 10056
+        depth_min = max(10.0, leg * 2)
+        depth_max = max(depth_min + 10, leg * 8)
+        depth = round(rng.uniform(depth_min, depth_max), 0)
 
         params = {
-            "arm1_length": round(arm1, 1),
-            "arm2_height": round(arm2, 1),
-            "thickness": round(thick, 1),
-            "depth": round(depth, 1),
+            "leg_size": float(leg),
+            "arm1_length": arm1,
+            "arm2_height": arm2,
+            "thickness": float(thick),
+            "depth": depth,
             "difficulty": difficulty,
         }
 
         if difficulty in ("medium", "hard"):
             max_fr = min(thick / 2 - 0.5, 5.0)
             if max_fr >= 0.5:
-                params["fillet_radius"] = round(rng.uniform(0.5, max_fr), 1)
+                params["fillet_radius"] = round(max_fr * 0.6, 1)
 
         if difficulty == "hard":
-            max_cl = min(depth / 4, 3.0)
-            if max_cl >= 0.5:
-                params["chamfer_length"] = round(rng.uniform(0.3, max_cl), 1)
-            # Mounting holes on the horizontal arm surface
-            max_hd = min(thick * 0.6, 6.0)
-            if max_hd >= 2.0:
-                params["hole_diameter"] = round(rng.uniform(2.0, max_hd), 1)
-                # Hole position along horizontal arm (from inner corner)
-                params["hole_offset_x"] = round(rng.uniform(arm1 * 0.3, arm1 * 0.7), 1)
+            # Mounting holes — standard bolt hole diameter = M_bolt ≈ 0.5 × thick
+            hole_d = round(min(thick * 0.5, 8.0), 1)
+            if hole_d >= 2.0:
+                params["hole_diameter"] = hole_d
+                params["hole_offset_x"] = round(arm1 * 0.5, 1)
 
         return params
 

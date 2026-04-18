@@ -1,15 +1,33 @@
-"""Hinge leaf — flat plate with cylindrical knuckle barrels along one edge.
+"""Hinge leaf — flat plate with cylindrical knuckle barrels (DIN 7954/7955).
 
-Shows clearly as a hinge component: flat plate + knuckle barrels + pin bore.
+DIN 7954: steel butt hinge. Dimensions from Table 1 — (W, H, T, Kd, Pd) mm.
+  W = leaf width, H = leaf height, T = leaf thickness,
+  Kd = knuckle diameter, Pd = pin diameter.
 
-Easy:   leaf plate + 2 knuckle cylinders + pin bore
-Medium: + screw holes on leaf face
-Hard:   + countersunk screw holes + fillet on leaf edges
+Easy:   leaf + 2 knuckle cylinders + pin bore (W 20–35)
+Medium: + screw holes on leaf face (W 25–60)
+Hard:   + countersunk screw holes + fillet (full range)
 """
 
 from .base import BaseFamily
 from ..pipeline.builder import Op, Program
 from ..pipeline.plane_utils import cylinder_rot_to_lateral2, plane_offset
+
+# DIN 7954 Table 1 — (leaf_W, leaf_H, leaf_T, knuckle_D, pin_D) mm
+_DIN7954 = [
+    (20, 30, 1.5, 5.0, 2.5),
+    (25, 40, 2.0, 6.0, 3.0),
+    (30, 50, 2.0, 7.0, 3.5),
+    (35, 60, 2.5, 8.0, 4.0),
+    (40, 70, 2.5, 9.0, 4.5),
+    (50, 80, 3.0, 10.0, 5.0),
+    (60, 100, 3.0, 12.0, 6.0),
+    (80, 120, 4.0, 14.0, 7.0),
+    (100, 150, 5.0, 16.0, 8.0),
+]
+_SMALL = _DIN7954[:4]  # W 20–35
+_MID = _DIN7954[1:7]  # W 25–60
+_ALL = _DIN7954
 
 
 class HingeFamily(BaseFamily):
@@ -17,23 +35,22 @@ class HingeFamily(BaseFamily):
     standard = "DIN 7954/7955"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        leaf_w = rng.uniform(25, 70)
-        leaf_h = rng.uniform(40, 120)
-        leaf_t = rng.uniform(2, 5)
-        knuckle_d = rng.uniform(
-            max(6, leaf_t * 2.5),
-            max(max(6, leaf_t * 2.5) + 1, min(14, leaf_w * 0.3)),
+        pool = (
+            _SMALL
+            if difficulty == "easy"
+            else (_MID if difficulty == "medium" else _ALL)
         )
-        pin_d = rng.uniform(2.0, knuckle_d * 0.55)
+        W, H, T, Kd, Pd = pool[int(rng.integers(0, len(pool)))]
         n_knuckles = int(rng.choice([2, 3]))
-        k_h = round(leaf_h / (n_knuckles + 0.5), 2)
+        k_h = round(H / (n_knuckles + 0.5), 2)
 
         params = {
-            "leaf_width": round(leaf_w, 1),
-            "leaf_height": round(leaf_h, 1),
-            "leaf_thickness": round(leaf_t, 1),
-            "knuckle_diameter": round(knuckle_d, 1),
-            "pin_diameter": round(pin_d, 1),
+            "leaf_size": float(W),
+            "leaf_width": float(W),
+            "leaf_height": float(H),
+            "leaf_thickness": float(T),
+            "knuckle_diameter": float(Kd),
+            "pin_diameter": float(Pd),
             "n_knuckles": n_knuckles,
             "knuckle_height": k_h,
             "difficulty": difficulty,
@@ -41,16 +58,14 @@ class HingeFamily(BaseFamily):
 
         if difficulty in ("medium", "hard"):
             n_screws = int(rng.choice([2, 3]))
-            screw_d = rng.uniform(2.5, min(5.0, leaf_w * 0.12))
+            screw_d = round(max(2.5, Pd * 0.6), 1)
             params["n_screws"] = n_screws
-            params["screw_diameter"] = round(screw_d, 1)
+            params["screw_diameter"] = screw_d
 
         if difficulty == "hard":
             params["csk_diameter"] = round(params["screw_diameter"] * 2.0, 1)
             params["csk_angle"] = 82.0
-            params["fillet_radius"] = round(
-                rng.uniform(0.5, min(1.5, leaf_t * 0.25)), 1
-            )
+            params["fillet_radius"] = round(min(1.5, T * 0.25), 1)
 
         return params
 

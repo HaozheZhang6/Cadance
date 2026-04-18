@@ -1,13 +1,30 @@
-"""Ball knob — spherical grip on a cylindrical stem.
+"""Ball knob — spherical grip on a cylindrical stem (DIN 319 ball knobs).
 
-Represents: machine handle knob, indexing plunger knob, control knob.
-Uses the `sphere` CadQuery primitive directly.
+DIN 319 ball knobs: sphere diameter D, metric thread M, stem height H_nominal.
+All (D, M, H) values from DIN 319 Table 1 (Kugelknöpfe).
 
-Easy only: sphere + cylindrical stem below.
+Easy:   sphere + plain stem (small D 16–32 mm)
+Medium: same geometry, mid range (D 25–63 mm)
+Hard:   + through bore M-thread in stem (full range D 16–80 mm)
 """
 
 from ..pipeline.builder import Op, Program
 from .base import BaseFamily
+
+# DIN 319 ball knob table — (D_ball_mm, thread_M_mm, H_stem_nominal_mm)
+_DIN319_BALL = [
+    (16, 4, 30),
+    (20, 5, 38),
+    (25, 6, 50),
+    (32, 8, 60),
+    (40, 10, 75),
+    (50, 12, 90),
+    (63, 16, 115),
+    (80, 20, 140),
+]
+_SMALL = _DIN319_BALL[:3]  # D 16–25
+_MID = _DIN319_BALL[1:6]  # D 20–50
+_ALL = _DIN319_BALL
 
 
 class BallKnobFamily(BaseFamily):
@@ -15,16 +32,29 @@ class BallKnobFamily(BaseFamily):
     standard = "DIN 319"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        ball_r = round(rng.uniform(10, 40), 1)
-        stem_r = round(rng.uniform(ball_r * 0.25, ball_r * 0.5), 1)
-        stem_h = round(rng.uniform(ball_r * 0.8, ball_r * 3), 1)
+        pool = (
+            _SMALL
+            if difficulty == "easy"
+            else (_MID if difficulty == "medium" else _ALL)
+        )
+        D, M, H = pool[int(rng.integers(0, len(pool)))]
+        ball_r = round(D / 2, 1)
+        stem_r = round(M / 2 * 1.5, 1)  # stem OD ≈ 1.5 × thread minor radius
+        stem_h = float(H)
 
-        return {
+        params = {
+            "ball_diameter": float(D),
+            "thread_m": float(M),
             "ball_radius": ball_r,
             "stem_radius": stem_r,
             "stem_height": stem_h,
             "difficulty": difficulty,
         }
+
+        if difficulty == "hard":
+            params["bore_diameter"] = float(M)  # M-thread through bore
+
+        return params
 
     def validate_params(self, params: dict) -> bool:
         ball_r = params["ball_radius"]
@@ -49,13 +79,18 @@ class BallKnobFamily(BaseFamily):
         stem_h = params["stem_height"]
 
         ops = []
-        tags = {"has_hole": False, "has_fillet": False, "has_chamfer": False}
+        tags = {
+            "has_hole": False,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
+            "rotational": True,
+        }
 
         # Sphere (ball) centred at origin
         ops.append(Op("sphere", {"radius": round(ball_r, 4)}))
 
         # Stem: cylinder pointing downward from sphere.
-        # Centre of stem at (0, 0, -(ball_r + stem_h/2)).
         stem_cz = round(-(ball_r + stem_h / 2), 4)
         ops.append(
             Op(
@@ -80,6 +115,34 @@ class BallKnobFamily(BaseFamily):
                 },
             )
         )
+
+        # Through bore (hard) — along Z axis through stem and into ball
+        bore_d = params.get("bore_diameter", 0)
+        if bore_d:
+            tags["has_hole"] = True
+            ops.append(
+                Op(
+                    "cut",
+                    {
+                        "ops": [
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": [0.0, 0.0, -(ball_r + stem_h)],
+                                    "rotate": [0, 0, 0],
+                                },
+                            },
+                            {
+                                "name": "cylinder",
+                                "args": {
+                                    "height": round(ball_r + stem_h + ball_r, 4),
+                                    "radius": round(bore_d / 2, 4),
+                                },
+                            },
+                        ]
+                    },
+                )
+            )
 
         return Program(
             family=self.name,

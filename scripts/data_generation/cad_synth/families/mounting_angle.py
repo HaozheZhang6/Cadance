@@ -1,8 +1,7 @@
-"""Mounting angle — L-bracket with bolt holes on both flanges.
+"""Mounting angle — EN 10056 equal-leg angle with bolt holes on both flanges.
 
 Same L-shape as l_bracket, but holes are the PRIMARY feature on both arms.
-Base-arm holes drilled in Z direction (through bracket depth).
-Web-arm holes drilled in Z direction at web arm x position.
+Leg dimensions from EN 10056-1 equal-leg angle section table.
 
 Easy:   L + holes on base arm only.
 Medium: + holes on web arm.
@@ -12,23 +11,48 @@ Hard:   + fillet at inner corner + extra hole row.
 from .base import BaseFamily
 from ..pipeline.builder import Op, Program
 
+# EN 10056-1 equal-leg angle sections — (leg_mm, thick_mm)
+_EN10056 = [
+    (25, 3),
+    (30, 3),
+    (40, 4),
+    (50, 5),
+    (60, 6),
+    (70, 7),
+    (80, 8),
+    (90, 9),
+    (100, 10),
+    (120, 11),
+    (150, 12),
+]
+_SMALL = _EN10056[:4]  # leg 25–50
+_MID = _EN10056[2:8]  # leg 40–90
+_ALL = _EN10056
+
 
 class MountingAngleFamily(BaseFamily):
     name = "mounting_angle"
     standard = "EN 10056"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        arm_w = round(rng.uniform(25, 100), 1)  # horizontal arm width
-        web_h = round(rng.uniform(25, 100), 1)  # vertical web height
-        thick = round(rng.uniform(4, 14), 1)  # flange thickness (both arms)
-        depth = round(rng.uniform(20, 80), 1)  # bracket depth (extrusion)
-        hole_d = round(rng.uniform(2, min(thick * 0.7, 10)), 1)
-        n_base = int(rng.choice([1, 2, 3]))  # holes on base arm
+        pool = (
+            _SMALL
+            if difficulty == "easy"
+            else (_MID if difficulty == "medium" else _ALL)
+        )
+        leg, thick = pool[int(rng.integers(0, len(pool)))]
+        arm_w = float(leg)
+        web_h = float(leg)
+        depth = round(rng.uniform(max(20.0, leg * 2), leg * 6), 0)
+        # Bolt hole diameter: < 0.7 × thick to pass validate; min 2mm
+        hole_d = round(max(2.0, min(thick * 0.6, 8.0)), 1)
+        n_base = int(rng.choice([1, 2, 3]))
 
         params = {
+            "leg_size": float(leg),
             "arm_width": arm_w,
             "web_height": web_h,
-            "thickness": thick,
+            "thickness": float(thick),
             "depth": depth,
             "hole_diameter": hole_d,
             "n_base_holes": n_base,
@@ -39,9 +63,9 @@ class MountingAngleFamily(BaseFamily):
             params["n_web_holes"] = int(rng.choice([1, 2, 3]))
 
         if difficulty == "hard":
-            max_fr = min(thick / 2 - 0.5, 5.0)
+            max_fr = min(float(thick) / 2 - 0.5, 5.0)
             if max_fr >= 0.5:
-                params["fillet_radius"] = round(rng.uniform(0.5, max_fr), 1)
+                params["fillet_radius"] = round(max_fr * 0.6, 1)
 
         return params
 
