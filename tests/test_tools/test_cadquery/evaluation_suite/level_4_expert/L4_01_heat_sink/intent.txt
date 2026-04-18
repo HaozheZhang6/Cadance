@@ -1,0 +1,1 @@
+Create an extruded aluminum heat sink. Base plate: 100mm x 60mm x 5mm. Add 8 parallel cooling fins on top: each fin is 2mm thick, 25mm tall, running the full 100mm length. Fins should be evenly spaced across the 60mm width with equal gaps between fins and from the edges.

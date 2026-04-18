@@ -1,0 +1,1 @@
+Create a hexagonal prism with a circumscribed diameter of 50mm and a height of 40mm.

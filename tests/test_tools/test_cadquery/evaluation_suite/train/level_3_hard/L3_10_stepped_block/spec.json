@@ -1,0 +1,13 @@
+{
+  "id": "L3_10",
+  "name": "Stepped Block",
+  "level": 3,
+  "expected_volume": 232000.0,
+  "expected_faces": 16,
+  "expected_edges": 36,
+  "expected_bounding_box": {
+    "x": 80.0,
+    "y": 80.0,
+    "z": 60.0
+  }
+}

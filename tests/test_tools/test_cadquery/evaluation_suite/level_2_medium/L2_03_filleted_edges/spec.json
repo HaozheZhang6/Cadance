@@ -1,0 +1,33 @@
+{
+  "id": "L2_03",
+  "name": "Block with Filleted Vertical Edges",
+  "level": 2,
+  "complexity_score": 8,
+  "complexity_breakdown": {
+    "api_breadth": 2,
+    "parameterization": 1,
+    "selection": 2,
+    "ordering": 2,
+    "ambiguity": 1
+  },
+  "dimensions": {
+    "size": 60,
+    "fillet_radius": 8
+  },
+  "skills_tested": [
+    "box",
+    "edges",
+    "fillet",
+    "edge_filter"
+  ],
+  "ambiguity": "none",
+  "notes": "Tests edge filtering with |Z selector (parallel to Z). Fillet radius must be < half edge length.",
+  "expected_volume": 212703.72,
+  "expected_faces": 10,
+  "expected_edges": 24,
+  "expected_bounding_box": {
+    "x": 60.0,
+    "y": 60.0,
+    "z": 60.0
+  }
+}

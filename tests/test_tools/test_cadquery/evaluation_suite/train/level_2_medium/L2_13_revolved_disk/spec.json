@@ -1,0 +1,13 @@
+{
+  "id": "L2_13",
+  "name": "Revolved Disk",
+  "level": 2,
+  "expected_volume": 0.0,
+  "expected_faces": 1,
+  "expected_edges": 0,
+  "expected_bounding_box": {
+    "x": 2e+100,
+    "y": 0.0,
+    "z": 2e+100
+  }
+}

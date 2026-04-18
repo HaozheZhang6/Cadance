@@ -1,0 +1,1 @@
+Create a disk by revolving a 5mm x 30mm rectangle around the Y axis, resulting in a disk with 60mm diameter and 5mm thickness.

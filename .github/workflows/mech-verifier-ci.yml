@@ -1,0 +1,83 @@
+# CI workflow for mech_verifier module
+#
+# This workflow runs tests using the root-level pyproject.toml configuration,
+# ensuring consistency between CI and local development (`uv run pytest`).
+
+name: Mech Verifier CI
+
+on:
+  push:
+    branches: ["dev", "main"]
+    paths:
+      - 'src/mech_verifier/**'
+      - 'tests/test_mech_verifier/**'
+      - 'rulepacks/mech/**'
+      - '.github/workflows/mech-verifier-ci.yml'
+  pull_request:
+    branches: ["dev", "main"]
+    paths:
+      - 'src/mech_verifier/**'
+      - 'tests/test_mech_verifier/**'
+      - 'rulepacks/mech/**'
+      - '.github/workflows/mech-verifier-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run black
+        run: uv run black --check src/mech_verifier/ tests/test_mech_verifier/
+
+      - name: Run ruff
+        run: uv run ruff check src/mech_verifier/ tests/test_mech_verifier/
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run tests with coverage
+        run: |
+          uv run pytest tests/test_mech_verifier/ \
+            --cov=src/mech_verifier \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            -v --tb=short
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mech-verifier-coverage-report
+          path: coverage.xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false
+          flags: mech-verifier

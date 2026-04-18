@@ -1,0 +1,50 @@
+[
+  {
+    "label": "22320_e9f9e6ae_0003",
+    "raw": "data/data_generation/open_source/fusion360_gallery/raw/r1.0.1/reconstruction/22320_e9f9e6ae_0003.step",
+    "bad_gen": "data/data_generation/codex_validation/run_v4_n1000_openai/run_v4_n1000_openai/generated_step/22320_e9f9e6ae_0003.step",
+    "good_gen": "data/data_generation/codex_validation/run_v4_n1000_openai/run_v4_n1000_openai/generated_step/22320_e9f9e6ae_0003_claude_fixed.step",
+    "bad_iou": 0.8302870199042521,
+    "good_iou": 1.0
+  },
+  {
+    "label": "146769_3c88fc97_0000",
+    "raw": "data/data_generation/open_source/fusion360_gallery/raw/r1.0.1_extrude_tools/extrude_tools/146769_3c88fc97_0000_0002e.step",
+    "bad_gen": "data/data_generation/codex_validation/run_v3_n1000/run_v3_n1000/generated_step/146769_3c88fc97_0000.step",
+    "good_gen": "data/data_generation/codex_validation/run_v3_n1000/run_v3_n1000/generated_step/146769_3c88fc97_0000_claude_fixed.step",
+    "bad_iou": 0.8340607145337546,
+    "good_iou": 1.0
+  },
+  {
+    "label": "22305_5b45cdb3_0011",
+    "raw": "data/data_generation/open_source/fusion360_gallery/raw/r1.0.1/reconstruction/22305_5b45cdb3_0011.step",
+    "bad_gen": "data/data_generation/codex_validation/run_v4_n1000_openai/run_v4_n1000_openai/generated_step/22305_5b45cdb3_0011.step",
+    "good_gen": "data/data_generation/codex_validation/run_v4_n1000_openai/run_v4_n1000_openai/generated_step/22305_5b45cdb3_0011_claude_fixed.step",
+    "bad_iou": 0.8784231760390229,
+    "good_iou": 0.9999
+  },
+  {
+    "label": "112017_a8394d4b_0000",
+    "raw": "data/data_generation/open_source/fusion360_gallery/raw/r1.0.1_extrude_tools/extrude_tools/112017_a8394d4b_0000_0001e.step",
+    "bad_gen": "data/data_generation/codex_validation/run_v2_n1000/generated_step/112017_a8394d4b_0000.step",
+    "good_gen": "data/data_generation/codex_validation/run_v2_n1000/generated_step/112017_a8394d4b_0000_claude_fixed.step",
+    "bad_iou": 0.0,
+    "good_iou": 1.0
+  },
+  {
+    "label": "118282_55c9e36a_0000",
+    "raw": "data/data_generation/open_source/fusion360_gallery/raw/r1.0.1_extrude_tools/extrude_tools/118282_55c9e36a_0000_0001e.step",
+    "bad_gen": "data/data_generation/codex_validation/run_v2_n1000/generated_step/118282_55c9e36a_0000.step",
+    "good_gen": "data/data_generation/codex_validation/run_v2_n1000/generated_step/118282_55c9e36a_0000_claude_fixed.step",
+    "bad_iou": 0.8528119580305558,
+    "good_iou": 1.0
+  },
+  {
+    "label": "34785_dc3b83fa_0011",
+    "raw": "data/data_generation/open_source/fusion360_gallery/raw/r1.0.1_extrude_tools/extrude_tools/34785_dc3b83fa_0011_0094e.step",
+    "bad_gen": "data/data_generation/codex_validation/run_v7_n1000/generated_step/34785_dc3b83fa_0011.step",
+    "good_gen": "data/data_generation/codex_validation/run_v7_n1000/generated_step/34785_dc3b83fa_0011_claude_fixed.step",
+    "bad_iou": 0.9797462129156287,
+    "good_iou": 0.991147
+  }
+]

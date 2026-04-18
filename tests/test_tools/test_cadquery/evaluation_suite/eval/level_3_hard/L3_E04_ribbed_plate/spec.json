@@ -1,0 +1,13 @@
+{
+  "id": "L3_E04",
+  "name": "Ribbed Plate",
+  "level": 3,
+  "expected_volume": 52500.0,
+  "expected_faces": 18,
+  "expected_edges": 48,
+  "expected_bounding_box": {
+    "x": 100.0,
+    "y": 60.0,
+    "z": 20.0
+  }
+}

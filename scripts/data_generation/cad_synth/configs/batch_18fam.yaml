@@ -1,0 +1,28 @@
+num_samples: 3600
+seed: 400
+run_name: synth_batch_18fam_s400
+
+family_mix:
+  mounting_plate:       0.056
+  round_flange:         0.056
+  l_bracket:            0.056
+  enclosure:            0.056
+  vented_panel:         0.056
+  stepped_shaft:        0.056
+  heat_sink:            0.056
+  pipe_flange:          0.056
+  u_channel:            0.056
+  standoff:             0.056
+  slotted_plate:        0.056
+  bearing_retainer_cap: 0.056
+  shaft_collar:         0.056
+  connector_faceplate:  0.056
+  motor_end_cap:        0.056
+  pcb_standoff_plate:   0.056
+  cable_routing_panel:  0.056
+  locator_block:        0.056
+
+difficulty_mix:
+  easy:   0.30
+  medium: 0.45
+  hard:   0.25

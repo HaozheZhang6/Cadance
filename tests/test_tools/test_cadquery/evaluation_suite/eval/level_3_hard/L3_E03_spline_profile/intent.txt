@@ -1,0 +1,1 @@
+Create an extruded teardrop shape using a smooth spline curve. The shape should be approximately 40mm wide, 50mm tall, and extruded 20mm.

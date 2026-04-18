@@ -1,0 +1,308 @@
+{
+  "version": "1.0",
+  "description": "CAD evaluation suite manifest with train/eval splits",
+  "generated_at": "2026-01-27T22:44:52.975595+00:00",
+  "statistics": {
+    "total_samples": 70,
+    "train_samples": 50,
+    "eval_samples": 20,
+    "train_by_level": {
+      "1": 12,
+      "2": 15,
+      "3": 13,
+      "4": 10
+    },
+    "eval_by_level": {
+      "1": 5,
+      "2": 5,
+      "3": 5,
+      "4": 5
+    }
+  },
+  "split_convention": {
+    "train": "Samples in train/ directory",
+    "eval": "Samples in eval/ directory (held-out test set)"
+  },
+  "samples": {
+    "L1_01": {
+      "split": "train",
+      "level": 1
+    },
+    "L1_02": {
+      "split": "train",
+      "level": 1
+    },
+    "L1_03": {
+      "split": "train",
+      "level": 1
+    },
+    "L1_04": {
+      "split": "train",
+      "level": 1
+    },
+    "L1_05": {
+      "split": "train",
+      "level": 1
+    },
+    "L1_06": {
+      "split": "train",
+      "level": 1
+    },
+    "L1_07": {
+      "split": "train",
+      "level": 1
+    },
+    "L1_08": {
+      "split": "train",
+      "level": 1
+    },
+    "L1_09": {
+      "split": "train",
+      "level": 1
+    },
+    "L1_10": {
+      "split": "train",
+      "level": 1
+    },
+    "L1_11": {
+      "split": "train",
+      "level": 1
+    },
+    "L1_12": {
+      "split": "train",
+      "level": 1
+    },
+    "L2_01": {
+      "split": "train",
+      "level": 2
+    },
+    "L2_02": {
+      "split": "train",
+      "level": 2
+    },
+    "L2_03": {
+      "split": "train",
+      "level": 2
+    },
+    "L2_04": {
+      "split": "train",
+      "level": 2
+    },
+    "L2_05": {
+      "split": "train",
+      "level": 2
+    },
+    "L2_06": {
+      "split": "train",
+      "level": 2
+    },
+    "L2_07": {
+      "split": "train",
+      "level": 2
+    },
+    "L2_08": {
+      "split": "train",
+      "level": 2
+    },
+    "L2_09": {
+      "split": "train",
+      "level": 2
+    },
+    "L2_10": {
+      "split": "train",
+      "level": 2
+    },
+    "L2_11": {
+      "split": "train",
+      "level": 2
+    },
+    "L2_12": {
+      "split": "train",
+      "level": 2
+    },
+    "L2_13": {
+      "split": "train",
+      "level": 2
+    },
+    "L2_14": {
+      "split": "train",
+      "level": 2
+    },
+    "L2_15": {
+      "split": "train",
+      "level": 2
+    },
+    "L3_01": {
+      "split": "train",
+      "level": 3
+    },
+    "L3_02": {
+      "split": "train",
+      "level": 3
+    },
+    "L3_03": {
+      "split": "train",
+      "level": 3
+    },
+    "L3_04": {
+      "split": "train",
+      "level": 3
+    },
+    "L3_05": {
+      "split": "train",
+      "level": 3
+    },
+    "L3_06": {
+      "split": "train",
+      "level": 3
+    },
+    "L3_07": {
+      "split": "train",
+      "level": 3
+    },
+    "L3_08": {
+      "split": "train",
+      "level": 3
+    },
+    "L3_09": {
+      "split": "train",
+      "level": 3
+    },
+    "L3_10": {
+      "split": "train",
+      "level": 3
+    },
+    "L3_11": {
+      "split": "train",
+      "level": 3
+    },
+    "L3_12": {
+      "split": "train",
+      "level": 3
+    },
+    "L3_13": {
+      "split": "train",
+      "level": 3
+    },
+    "L4_01": {
+      "split": "train",
+      "level": 4
+    },
+    "L4_02": {
+      "split": "train",
+      "level": 4
+    },
+    "L4_03": {
+      "split": "train",
+      "level": 4
+    },
+    "L4_04": {
+      "split": "train",
+      "level": 4
+    },
+    "L4_05": {
+      "split": "train",
+      "level": 4
+    },
+    "L4_06": {
+      "split": "train",
+      "level": 4
+    },
+    "L4_07": {
+      "split": "train",
+      "level": 4
+    },
+    "L4_08": {
+      "split": "train",
+      "level": 4
+    },
+    "L4_09": {
+      "split": "train",
+      "level": 4
+    },
+    "L4_10": {
+      "split": "train",
+      "level": 4
+    },
+    "L1_E01": {
+      "split": "eval",
+      "level": 1
+    },
+    "L1_E02": {
+      "split": "eval",
+      "level": 1
+    },
+    "L1_E03": {
+      "split": "eval",
+      "level": 1
+    },
+    "L1_E04": {
+      "split": "eval",
+      "level": 1
+    },
+    "L1_E05": {
+      "split": "eval",
+      "level": 1
+    },
+    "L2_E01": {
+      "split": "eval",
+      "level": 2
+    },
+    "L2_E02": {
+      "split": "eval",
+      "level": 2
+    },
+    "L2_E03": {
+      "split": "eval",
+      "level": 2
+    },
+    "L2_E04": {
+      "split": "eval",
+      "level": 2
+    },
+    "L2_E05": {
+      "split": "eval",
+      "level": 2
+    },
+    "L3_E01": {
+      "split": "eval",
+      "level": 3
+    },
+    "L3_E02": {
+      "split": "eval",
+      "level": 3
+    },
+    "L3_E03": {
+      "split": "eval",
+      "level": 3
+    },
+    "L3_E04": {
+      "split": "eval",
+      "level": 3
+    },
+    "L3_E05": {
+      "split": "eval",
+      "level": 3
+    },
+    "L4_E01": {
+      "split": "eval",
+      "level": 4
+    },
+    "L4_E02": {
+      "split": "eval",
+      "level": 4
+    },
+    "L4_E03": {
+      "split": "eval",
+      "level": 4
+    },
+    "L4_E04": {
+      "split": "eval",
+      "level": 4
+    },
+    "L4_E05": {
+      "split": "eval",
+      "level": 4
+    }
+  }
+}

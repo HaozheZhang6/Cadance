@@ -1,0 +1,49 @@
+num_samples: 5400
+seed: 600
+run_name: synth_batch_27fam_s600
+
+# Weighted toward the new diverse-topology families
+family_mix:
+  # Original plate/flange (lower weight — already well-covered)
+  mounting_plate:       0.025
+  round_flange:         0.025
+  pipe_flange:          0.025
+  vented_panel:         0.025
+  slotted_plate:        0.025
+  connector_faceplate:  0.025
+  cable_routing_panel:  0.025
+
+  # Rotational / turned (medium weight)
+  stepped_shaft:        0.040
+  standoff:             0.030
+  spacer_ring:          0.040
+  shaft_collar:         0.040
+  bearing_retainer_cap: 0.040
+  motor_end_cap:        0.040
+
+  # Structural profiles — NEW, high weight
+  lathe_turned_part:    0.060
+  t_slot_rail:          0.060
+  i_beam:               0.060
+  gusseted_bracket:     0.050
+  u_channel:            0.040
+
+  # Bracket / block (medium weight)
+  l_bracket:            0.030
+  locator_block:        0.030
+  pcb_standoff_plate:   0.030
+  heat_sink:            0.030
+
+  # Complex geometry — NEW, high weight
+  hex_standoff:         0.060
+  tapered_boss:         0.060
+  rib_plate:            0.060
+  waffle_plate:         0.060
+
+  # Shell
+  enclosure:            0.025
+
+difficulty_mix:
+  easy:   0.25
+  medium: 0.45
+  hard:   0.30

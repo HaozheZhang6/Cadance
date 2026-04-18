@@ -1,0 +1,1 @@
+Create a U-shaped bracket by making an L-bracket (30mm base, 40mm height, 10mm thick walls) and mirroring it symmetrically. The bracket should be 20mm deep.

@@ -1,0 +1,1 @@
+Create a cylinder 50mm in diameter and 40mm tall with a V-shaped groove cut around its circumference at mid-height. The groove should be 5mm deep and 8mm wide.

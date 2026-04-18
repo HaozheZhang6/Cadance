@@ -1,0 +1,26 @@
+{
+  "schema_version": "ops_program.v1",
+  "name": "mounting_bracket_thin_wall",
+  "description": "Mounting bracket with thin wall violation - triggers ERROR finding",
+  "operations": [
+    {
+      "primitive": "extrude",
+      "parameters": [
+        {"name": "height", "value": 10.0, "unit": "mm"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 6.0, "unit": "mm"},
+        {"name": "depth", "value": 10.0, "unit": "mm"}
+      ]
+    },
+    {
+      "primitive": "shell",
+      "parameters": [
+        {"name": "thickness", "value": 0.5, "unit": "mm"}
+      ]
+    }
+  ]
+}

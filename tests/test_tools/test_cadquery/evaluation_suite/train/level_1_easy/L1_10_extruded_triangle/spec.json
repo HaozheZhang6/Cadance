@@ -1,0 +1,13 @@
+{
+  "id": "L1_10",
+  "name": "Extruded Triangle",
+  "level": 1,
+  "expected_volume": 20784.61,
+  "expected_faces": 5,
+  "expected_edges": 9,
+  "expected_bounding_box": {
+    "x": 34.64,
+    "y": 40.0,
+    "z": 30.0
+  }
+}

@@ -1,0 +1,1 @@
+Create an L-shaped profile and extrude it 40mm. The L has a vertical leg 60mm tall and 15mm wide, and a horizontal leg 50mm wide and 15mm tall. The legs meet at a corner.

@@ -1,0 +1,1 @@
+Create the intersection of two 60mm x 60mm x 30mm boxes, where one is rotated 45 degrees about the vertical axis relative to the other.

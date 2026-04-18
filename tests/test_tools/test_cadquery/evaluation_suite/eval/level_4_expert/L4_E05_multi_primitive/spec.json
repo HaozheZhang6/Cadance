@@ -1,0 +1,13 @@
+{
+  "id": "L4_E05",
+  "name": "Multi Primitive",
+  "level": 4,
+  "expected_volume": 46416.68,
+  "expected_faces": 10,
+  "expected_edges": 21,
+  "expected_bounding_box": {
+    "x": 60.0,
+    "y": 40.0,
+    "z": 25.0
+  }
+}

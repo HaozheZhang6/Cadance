@@ -1,0 +1,20 @@
+num_samples: 2000
+seed: 200
+run_name: synth_batch_s200
+
+family_mix:
+  mounting_plate: 0.10
+  round_flange:   0.10
+  l_bracket:      0.10
+  enclosure:      0.10
+  vented_panel:   0.10
+  stepped_shaft:  0.10
+  heat_sink:      0.10
+  pipe_flange:    0.10
+  u_channel:      0.10
+  standoff:       0.10
+
+difficulty_mix:
+  easy:   0.30
+  medium: 0.45
+  hard:   0.25

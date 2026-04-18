@@ -1,0 +1,13 @@
+{
+  "id": "L3_09",
+  "name": "T Bracket",
+  "level": 3,
+  "expected_volume": 51000.0,
+  "expected_faces": 16,
+  "expected_edges": 36,
+  "expected_bounding_box": {
+    "x": 100.0,
+    "y": 30.0,
+    "z": 80.0
+  }
+}

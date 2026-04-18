@@ -1,0 +1,69 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\noindent\textbf{Why executable code is the key enabling representation.}
+The core claim of this paper is not about LLMs, CadQuery, or any specific provider.
+It is about the choice of representation.
+Mesh generation and point-cloud generation do not admit exact geometric verification:
+there is no clear threshold at which a generated mesh is ``correct.''
+Code generation does: a program either executes and matches the target, or it does not.
+This distinction is what makes our entire pipeline possible---verification is free, fast,
+and precise.
+For any engineering domain where the ground truth can be represented as an executable
+artifact, the same approach applies.
+
+\noindent\textbf{Verification as curation, not evaluation.}
+Standard practice in ML is to use geometric metrics as post-hoc evaluation on a held-out
+test set.
+We use IoU~$\geq 0.99$ as a real-time curation gate during training data construction.
+This is a stronger and more unusual role: the verifier must run in seconds (not minutes),
+must be deterministic (not model-based), and must be precise enough that near-correct
+programs are rejected rather than accepted.
+Our OCCT-based verifier satisfies all three: ${\approx}2$ seconds per pair, deterministic
+Boolean intersection, and rejection sensitivity down to ${\approx}5\,\text{mm}^3$ volume
+discrepancy on typical parts.
+
+\noindent\textbf{Why skill-based modularity matters for hard engineering data.}
+The 134 manually fixed parts in our dataset would not exist under a rigid automated
+pipeline---they represent cases where no provider in the cascade achieved
+IoU~$\geq 0.97$, but the correct CadQuery program exists and is findable by a skilled
+human using the repair skill.
+The key enabling factor is that ``manual checking'' is a first-class component of the
+system, not an afterthought.
+The skill framework makes it easy to route hard cases to human inspection, collect the
+repaired programs, and re-integrate them into the verified store with full provenance.
+This is the engineering advantage of modularity: the hardest cases get the most expensive
+resource (human time), but only those cases.
+
+\noindent\textbf{Limitations.}
+The primary limitation of this work is the absence of downstream retraining results.
+Whether the 1,784 verified pairs improve a CAD reconstruction model over existing
+datasets---\eg, over training on the raw Fusion360 Gallery with weak supervision---remains
+to be shown.
+A second limitation is that geometric IoU~$\geq 0.99$ is necessary but not sufficient for
+training quality: two STEP files with identical geometry may have different construction
+histories (\eg, a feature built by join vs.\ by cut), and a downstream model trained on
+the wrong construction history may generalize poorly.
+Addressing this would require construction-history verification beyond solid geometry,
+which is an open problem.
+Third, the 109 near-misses currently in the fix queue represent failure modes that have
+resisted both automated repair and our developed heuristics; a more systematic analysis of
+these remaining cases is future work.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented a skill-based, verification-guided framework for CAD data generation.
+By reformulating complex CAD generation as verifiable program synthesis---executable
+programs that can be geometrically validated against ground truth---and by organizing the
+system around reusable skills rather than a rigid workflow, we convert noisy LLM outputs
+into high-precision, training-ready supervision without human annotation.
+The result is a verified corpus of 1,784 program--geometry pairs covering complex
+multi-operation industrial parts, all with IoU~$\geq 0.99$ against ground truth.
+Our analysis shows that 92.5\% of verified pairs are produced automatically by the
+provider cascade, while 7.5\% require targeted manual repair---a small but important tail
+that captures genuinely hard cases the automated pipeline cannot reach.
+More broadly, our results suggest that for complex engineering tasks, the combination of
+executable representations, strict geometric verification, and modular skill composition
+provides a practical path to scalable data curation that does not require expensive human
+labeling.

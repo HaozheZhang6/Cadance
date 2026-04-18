@@ -1,0 +1,13 @@
+{
+  "id": "L2_15",
+  "name": "Hollow Cylinder",
+  "level": 2,
+  "expected_volume": 51050.88,
+  "expected_faces": 4,
+  "expected_edges": 6,
+  "expected_bounding_box": {
+    "x": 70.0,
+    "y": 70.0,
+    "z": 50.0
+  }
+}

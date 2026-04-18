@@ -1,0 +1,1 @@
+Create a cylinder with radius 25mm and height 40mm. Add a 3mm x 45° chamfer to the top circular edge.

@@ -1,0 +1,1 @@
+Create a rectangular enclosure box 90mm x 70mm x 45mm with 3mm wall thickness, open on top. Add four internal ribs for reinforcement: two ribs running parallel to the length (90mm direction) and two ribs running parallel to the width (70mm direction). Each rib is 2mm thick and extends 15mm up from the inner bottom surface.

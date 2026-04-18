@@ -1,0 +1,11 @@
+run_name: smoke_handwheel20
+num_samples: 20
+seed: 1234
+n_workers: 4
+family_mix:
+  handwheel: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true

@@ -1,0 +1,13 @@
+{
+  "id": "L2_07",
+  "name": "Tube",
+  "level": 2,
+  "expected_volume": 42411.5,
+  "expected_faces": 4,
+  "expected_edges": 6,
+  "expected_bounding_box": {
+    "x": 50.0,
+    "y": 50.0,
+    "z": 60.0
+  }
+}

@@ -1,0 +1,289 @@
+# CI workflow for verifier_core module (domain-agnostic verification framework)
+#
+# This workflow runs tests using the root-level pyproject.toml configuration,
+# ensuring consistency between CI and local development (`uv run pytest`).
+#
+# Test Strategy:
+# - Unit tests: Always run, no external dependencies, HARD-FAIL gates merges
+# - Integration tests: Optional, run on demand via workflow_dispatch
+#
+# Safety Standards (matching EDA verify):
+# - All required jobs must pass before merge
+# - Coverage reports uploaded as artifacts
+# - Schema validation ensures models are correct
+
+name: Verifier Core
+
+on:
+  push:
+    branches: ["dev", "main", "mech_verify0"]
+    paths:
+      - "src/verifier_core/**"
+      - "tests/test_verifier_core/**"
+      - ".github/workflows/verifier-core.yml"
+  pull_request:
+    branches: ["dev", "main"]
+    paths:
+      - "src/verifier_core/**"
+      - "tests/test_verifier_core/**"
+      - ".github/workflows/verifier-core.yml"
+  workflow_dispatch:
+    inputs:
+      run_integration:
+        description: 'Run integration tests'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+# Run all commands from repository root (matches local development)
+# No working-directory override - uses root pyproject.toml
+
+jobs:
+  unit-tests:
+    name: Unit Tests (No External Dependencies)
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Setup Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run unit tests with coverage
+        run: |
+          uv run pytest tests/test_verifier_core/ -v --tb=short \
+            --ignore=tests/test_verifier_core/test_integration.py \
+            --cov=src/verifier_core/verifier_core --cov-report=term-missing --cov-report=xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verifier-core-coverage-report
+          path: coverage.xml
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-22.04
+    # Only run integration tests when explicitly requested via workflow_dispatch
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_integration == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Setup Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run integration tests
+        run: uv run pytest tests/test_verifier_core/test_integration.py -v --tb=long --run-integration
+
+      - name: Upload test artifacts on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: verifier-core-integration-artifacts
+          path: |
+            out/
+            tests/test_verifier_core/
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Setup Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Check formatting with black
+        run: uv run black --check src/verifier_core/ tests/test_verifier_core/
+
+  schema-validation:
+    name: Schema Validation
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Setup Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Validate all schemas are parseable JSON
+        run: |
+          uv run python -c "
+          from verifier_core.validation import SCHEMA_DIR
+          import json
+          from pathlib import Path
+          
+          schema_dir = Path(SCHEMA_DIR)
+          schemas = list(schema_dir.glob('*.json'))
+          print(f'Found {len(schemas)} schema files in {schema_dir}')
+          
+          for schema_file in schemas:
+              with open(schema_file) as f:
+                  schema = json.load(f)
+              print(f'  ✓ {schema_file.name}')
+          
+          print('All schemas valid JSON!')
+          "
+
+      - name: Validate models serialize correctly (HARD-FAIL)
+        run: |
+          uv run python -c "
+          from verifier_core import Finding, Evidence, Unknown
+          from verifier_core.validation import validate_json, SCHEMA_DIR
+          from pathlib import Path
+          
+          # Test Finding
+          f = Finding(
+              rule_id='test.rule',
+              severity='error',
+              message='Test finding',
+              object_refs=['eda://board/U1']
+          )
+          schema_path = Path(SCHEMA_DIR) / 'finding.schema.json'
+          errors = validate_json(f.to_dict(), schema_path=str(schema_path))
+          if errors:
+              raise ValueError(f'Finding validation FAILED: {errors}')
+          print('✓ Finding schema validation passed')
+          
+          # Test Evidence
+          e = Evidence(
+              evidence_id='ev-001',
+              kind='tool_output',
+              provenance={'source': 'test', 'timestamp': '2025-01-01T00:00:00Z'},
+              inputs=[]
+          )
+          schema_path = Path(SCHEMA_DIR) / 'evidence.schema.json'
+          errors = validate_json(e.to_dict(), schema_path=str(schema_path))
+          if errors:
+              raise ValueError(f'Evidence validation FAILED: {errors}')
+          print('✓ Evidence schema validation passed')
+          
+          # Test Unknown
+          u = Unknown(
+              summary='Test uncertainty',
+              impact='medium',
+              resolution_plan='Investigate further'
+          )
+          schema_path = Path(SCHEMA_DIR) / 'unknown.schema.json'
+          errors = validate_json(u.to_dict(), schema_path=str(schema_path))
+          if errors:
+              raise ValueError(f'Unknown validation FAILED: {errors}')
+          print('✓ Unknown schema validation passed')
+          
+          print('All model validations passed!')
+          "
+
+      - name: Validate rulepack loading works
+        run: |
+          uv run python -c "
+          from verifier_core.rulepack.manifest import load_manifest
+          from verifier_core.rulepack.registry import RulePackRegistry
+          import json
+          import tempfile
+          from pathlib import Path
+          
+          # Create a test manifest
+          manifest = {
+              'name': 'test-pack',
+              'version': '1.0.0',
+              'description': 'Test rulepack for CI validation',
+              'domain': 'eda',
+              'tier': 'tier0',
+              'rules': [
+                  {'id': 'test.rule1', 'title': 'Test Rule', 'severity': 'error'}
+              ]
+          }
+          
+          with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+              json.dump(manifest, f)
+              temp_path = Path(f.name)
+          
+          # Load it
+          loaded = load_manifest(temp_path)
+          assert loaded.name == 'test-pack'
+          assert loaded.version == '1.0.0'
+          assert len(loaded.rules) == 1
+          
+          # Register it
+          registry = RulePackRegistry()
+          registry.register(loaded)
+          assert len(registry.list_all()) == 1
+          
+          print('✓ Rulepack loading and registry works')
+          
+          temp_path.unlink()
+          print('All rulepack tests passed!')
+          "
+
+  # Summary job - gates merges on unit tests, lint, and schema validation
+  # Integration tests are optional and only checked when run
+  all-tests:
+    name: All Tests Passed
+    needs: [unit-tests, integration-tests, lint, schema-validation]
+    runs-on: ubuntu-22.04
+    if: always()
+    steps:
+      - name: Check required jobs passed
+        run: |
+          if [[ "${{ needs.unit-tests.result }}" != "success" ]]; then
+            echo "::error::Unit tests FAILED - this is a HARD-FAIL"
+            exit 1
+          fi
+          if [[ "${{ needs.lint.result }}" != "success" ]]; then
+            echo "::error::Lint FAILED - this is a HARD-FAIL"
+            exit 1
+          fi
+          if [[ "${{ needs.schema-validation.result }}" != "success" ]]; then
+            echo "::error::Schema validation FAILED - this is a HARD-FAIL"
+            exit 1
+          fi
+          echo "All required tests passed!"
+
+      - name: Check optional integration tests (if run)
+        run: |
+          # Integration tests are optional - only fail if they were run and failed
+          RESULT="${{ needs.integration-tests.result }}"
+          if [[ "$RESULT" == "skipped" ]]; then
+            echo "Integration tests were skipped (not requested)"
+          elif [[ "$RESULT" == "success" ]]; then
+            echo "Integration tests passed"
+          elif [[ "$RESULT" == "failure" ]]; then
+            echo "::warning::Integration tests FAILED"
+            echo "Integration tests are optional but failed. Review before merging."
+          else
+            echo "Integration tests result: $RESULT"
+          fi

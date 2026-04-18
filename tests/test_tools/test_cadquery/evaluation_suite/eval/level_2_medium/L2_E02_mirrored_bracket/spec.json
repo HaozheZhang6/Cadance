@@ -1,0 +1,13 @@
+{
+  "id": "L2_E02",
+  "name": "Mirrored Bracket",
+  "level": 2,
+  "expected_volume": 24000.0,
+  "expected_faces": 10,
+  "expected_edges": 24,
+  "expected_bounding_box": {
+    "x": 60.0,
+    "y": 40.0,
+    "z": 20.0
+  }
+}

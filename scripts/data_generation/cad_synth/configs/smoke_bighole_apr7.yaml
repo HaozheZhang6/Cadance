@@ -1,0 +1,12 @@
+num_samples: 60
+seed: 9999
+run_name: smoke_bighole_apr7
+sample_type: test
+
+family_mix:
+  bearing_retainer_cap: 1.0
+
+difficulty_mix:
+  easy:   0.33
+  medium: 0.34
+  hard:   0.33

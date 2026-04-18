@@ -1,0 +1,1 @@
+Create a regular octagonal prism with a circumscribed diameter of 40mm and a height of 30mm.

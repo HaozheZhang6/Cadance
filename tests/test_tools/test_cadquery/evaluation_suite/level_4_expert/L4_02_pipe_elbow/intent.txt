@@ -1,0 +1,1 @@
+Create a 90-degree pipe elbow. Outer diameter: 30mm, wall thickness: 3mm (inner diameter 24mm). The elbow has a bend radius of 45mm (measured to pipe centerline). The elbow should have straight sections of 20mm on each end before/after the bend.

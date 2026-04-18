@@ -1,0 +1,28 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{Why executable code is the key enabling representation.}
+The core claim of this paper is not about LLMs, CadQuery, or any specific provider---it is about the choice of representation.
+Mesh generation and point-cloud generation do not admit exact geometric verification: there is no clear threshold at which a generated mesh is ``correct.''
+Code generation does: a program either executes and matches the target, or it does not.
+This distinction is what makes our entire pipeline possible---verification is free, fast, and precise.
+For any engineering domain where the ground truth can be represented as an executable artifact, the same approach applies.
+
+\paragraph{Verification as curation, not evaluation.}
+Standard practice in ML is to use geometric metrics as post-hoc evaluation on a held-out test set.
+We use IoU $\geq 0.99$ as a real-time curation gate during training data construction.
+This is a stronger and more unusual role: the verifier must run in seconds (not minutes), must be deterministic (not model-based), and must be precise enough that near-correct programs are rejected rather than accepted.
+Our OCCT-based verifier satisfies all three: approximately 2 seconds per pair, deterministic Boolean intersection, and rejection sensitivity down to approximately 5\,mm$^3$ volume discrepancy on typical parts.
+
+\paragraph{Why skill-based modularity matters for hard engineering data.}
+The 134 manually fixed parts in our dataset would not exist under a rigid automated pipeline---they represent cases where no provider in the cascade achieved IoU $\geq 0.97$, but the correct CadQuery program exists and is findable by a skilled human using the repair skill.
+The key enabling factor is that ``manual checking'' is a first-class component of the system, not an afterthought.
+The skill framework makes it easy to route hard cases to human inspection, collect the repaired programs, and re-integrate them into the verified store with full provenance.
+This is the engineering advantage of modularity: the hardest cases get the most expensive resource (human time), but only those cases.
+
+\paragraph{Limitations.}
+The primary limitation of this work is the absence of downstream retraining results.
+Whether the 1,646 verified pairs improve a CAD reconstruction model over existing datasets remains to be shown.
+A second limitation is that geometric IoU $\geq 0.99$ is necessary but not sufficient for training quality: two STEP files with identical geometry may have different construction histories, and a downstream model trained on the wrong construction history may generalize poorly.
+Addressing this would require construction-history verification beyond solid geometry, which is an open problem.
+Third, the 109 near-misses currently in the fix queue represent failure modes that have resisted both automated repair and the repair heuristics we have developed; a more systematic analysis of these remaining cases is future work.

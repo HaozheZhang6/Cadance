@@ -1,0 +1,40 @@
+{
+  "id": "L3_03",
+  "name": "Stepped Shaft with Keyway",
+  "level": 3,
+  "complexity_score": 12,
+  "complexity_breakdown": {
+    "api_breadth": 3,
+    "parameterization": 2,
+    "selection": 3,
+    "ordering": 2,
+    "ambiguity": 2
+  },
+  "dimensions": {
+    "large_diameter": 25,
+    "large_length": 50,
+    "small_diameter": 18,
+    "small_length": 35,
+    "keyway_width": 6,
+    "keyway_depth": 3,
+    "keyway_length": 20,
+    "keyway_offset": 10
+  },
+  "skills_tested": [
+    "cylinder",
+    "union",
+    "box",
+    "cut",
+    "positioning"
+  ],
+  "ambiguity": "moderate",
+  "notes": "Keyways are common in mechanical design for attaching gears/pulleys. Tests cutting operation on cylindrical surface. Keyway orientation not specified.",
+  "expected_volume": 33450.11,
+  "expected_faces": 6,
+  "expected_edges": 6,
+  "expected_bounding_box": {
+    "x": 25.0,
+    "y": 25.0,
+    "z": 92.5
+  }
+}

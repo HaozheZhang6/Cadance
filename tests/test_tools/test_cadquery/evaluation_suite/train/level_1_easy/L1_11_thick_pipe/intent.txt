@@ -1,0 +1,1 @@
+Create a thick-walled pipe with outer diameter 50mm, inner diameter 30mm, and length 80mm.

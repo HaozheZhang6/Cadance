@@ -1,0 +1,1 @@
+Create a hollow cylinder (open-ended tube) with outer diameter 70mm, wall thickness 5mm, and height 50mm using the shell operation.

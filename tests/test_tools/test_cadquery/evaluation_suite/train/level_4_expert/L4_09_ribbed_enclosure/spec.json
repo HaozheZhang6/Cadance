@@ -1,0 +1,13 @@
+{
+  "id": "L4_09",
+  "name": "Ribbed Enclosure",
+  "level": 4,
+  "expected_volume": 66348.0,
+  "expected_faces": 37,
+  "expected_edges": 120,
+  "expected_bounding_box": {
+    "x": 90.0,
+    "y": 70.0,
+    "z": 45.0
+  }
+}

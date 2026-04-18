@@ -1,0 +1,13 @@
+{
+  "id": "L1_09",
+  "name": "Flat Plate",
+  "level": 1,
+  "expected_volume": 150000.0,
+  "expected_faces": 6,
+  "expected_edges": 12,
+  "expected_bounding_box": {
+    "x": 200.0,
+    "y": 150.0,
+    "z": 5.0
+  }
+}

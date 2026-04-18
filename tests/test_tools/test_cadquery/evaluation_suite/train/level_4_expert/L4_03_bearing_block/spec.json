@@ -1,0 +1,47 @@
+{
+  "id": "L4_03",
+  "name": "Pillow Block Bearing Housing",
+  "level": 4,
+  "complexity_score": 15,
+  "complexity_breakdown": {
+    "api_breadth": 5,
+    "parameterization": 3,
+    "selection": 3,
+    "ordering": 2,
+    "ambiguity": 2
+  },
+  "dimensions": {
+    "base_length": 100,
+    "base_width": 50,
+    "base_height": 12,
+    "mounting_hole_diameter": 8,
+    "mounting_hole_offset": 10,
+    "bore_diameter": 35,
+    "boss_outer_diameter": 50,
+    "boss_height": 30,
+    "chamfer_size": 2,
+    "oil_groove_width": 3,
+    "oil_groove_depth": 2
+  },
+  "skills_tested": [
+    "box",
+    "cylinder",
+    "union",
+    "cut",
+    "hole",
+    "chamfer",
+    "faces",
+    "edges",
+    "pushPoints"
+  ],
+  "ambiguity": "moderate",
+  "notes": "Bearing housing is a common mechanical component. Tests multiple coordinate features working together. Oil groove omitted for simplicity. Total height = base 12mm + boss 30mm = 42mm.",
+  "expected_volume": 75777.6,
+  "expected_faces": 15,
+  "expected_edges": 36,
+  "expected_bounding_box": {
+    "x": 100.0,
+    "y": 50.0,
+    "z": 42.0
+  }
+}

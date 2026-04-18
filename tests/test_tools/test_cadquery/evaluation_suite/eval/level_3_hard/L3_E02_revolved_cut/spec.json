@@ -1,0 +1,13 @@
+{
+  "id": "L3_E02",
+  "name": "Revolved Cut",
+  "level": 3,
+  "expected_volume": 78539.82,
+  "expected_faces": 4,
+  "expected_edges": 9,
+  "expected_bounding_box": {
+    "x": 50.0,
+    "y": 50.0,
+    "z": 40.0
+  }
+}

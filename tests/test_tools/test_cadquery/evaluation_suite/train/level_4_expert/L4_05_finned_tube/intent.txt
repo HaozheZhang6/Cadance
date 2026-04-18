@@ -1,0 +1,1 @@
+Create a finned tube heat exchanger element. The main tube has outer diameter 30mm, inner diameter 20mm, and length 100mm. Add 8 rectangular fins around the outside, each 2mm thick, extending 15mm radially outward, running the full length of the tube.

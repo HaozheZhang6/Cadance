@@ -1,0 +1,1 @@
+Create an assembly combining a wedge base (60mm x 40mm, 25mm height, tapering to a 30mm top edge) with a torus ring (15mm major radius, 5mm tube radius) positioned on top of the wedge.

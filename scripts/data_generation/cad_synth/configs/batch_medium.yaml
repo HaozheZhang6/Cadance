@@ -1,0 +1,15 @@
+num_samples: 500
+seed: 100
+run_name: synth_batch_s100
+
+family_mix:
+  mounting_plate: 0.20
+  round_flange: 0.20
+  l_bracket: 0.20
+  enclosure: 0.20
+  vented_panel: 0.20
+
+difficulty_mix:
+  easy: 0.35
+  medium: 0.45
+  hard: 0.20

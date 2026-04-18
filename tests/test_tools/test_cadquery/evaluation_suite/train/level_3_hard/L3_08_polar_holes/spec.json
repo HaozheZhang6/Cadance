@@ -1,0 +1,13 @@
+{
+  "id": "L3_08",
+  "name": "Polar Holes",
+  "level": 3,
+  "expected_volume": 56699.46,
+  "expected_faces": 9,
+  "expected_edges": 21,
+  "expected_bounding_box": {
+    "x": 80.0,
+    "y": 80.0,
+    "z": 12.0
+  }
+}

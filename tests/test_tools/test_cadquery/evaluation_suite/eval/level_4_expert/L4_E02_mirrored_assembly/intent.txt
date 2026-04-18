@@ -1,0 +1,1 @@
+Create a symmetric mounting bracket by making an L-bracket with two 8mm mounting holes and a 5mm filleted inner corner, then mirroring it. The L-bracket has a 60mm horizontal leg and 50mm vertical leg, both 10mm thick, with 25mm depth.

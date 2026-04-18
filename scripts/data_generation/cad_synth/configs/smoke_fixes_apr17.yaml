@@ -1,0 +1,14 @@
+run_name: smoke_fixes_apr17
+num_samples: 40
+seed: 2025
+n_workers: 4
+family_mix:
+  handwheel: 1
+  spacer_ring: 1
+  dome_cap: 1
+  star_blank: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true

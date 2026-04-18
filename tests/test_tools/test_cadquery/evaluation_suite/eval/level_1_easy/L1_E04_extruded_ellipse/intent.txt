@@ -1,0 +1,1 @@
+Create an elliptical prism with a major axis of 50mm, minor axis of 30mm, and a height of 25mm.

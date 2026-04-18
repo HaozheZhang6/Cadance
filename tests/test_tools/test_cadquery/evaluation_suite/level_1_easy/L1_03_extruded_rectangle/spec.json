@@ -1,0 +1,32 @@
+{
+  "id": "L1_03",
+  "name": "Extruded Rectangle",
+  "level": 1,
+  "complexity_score": 6,
+  "complexity_breakdown": {
+    "api_breadth": 2,
+    "parameterization": 1,
+    "selection": 1,
+    "ordering": 1,
+    "ambiguity": 1
+  },
+  "dimensions": {
+    "width": 80,
+    "depth": 40,
+    "height": 25
+  },
+  "skills_tested": [
+    "rect",
+    "extrude"
+  ],
+  "ambiguity": "none",
+  "notes": "Introduces sketch+extrude pattern. Could also be done with box() - tests if model knows both approaches.",
+  "expected_volume": 80000.0,
+  "expected_faces": 6,
+  "expected_edges": 12,
+  "expected_bounding_box": {
+    "x": 80.0,
+    "y": 40.0,
+    "z": 25.0
+  }
+}

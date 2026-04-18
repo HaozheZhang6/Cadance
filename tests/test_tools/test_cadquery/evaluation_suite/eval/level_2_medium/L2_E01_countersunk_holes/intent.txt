@@ -1,0 +1,1 @@
+Create an 80mm x 50mm x 12mm plate with two M6 countersunk holes positioned 25mm on either side of center along the length.

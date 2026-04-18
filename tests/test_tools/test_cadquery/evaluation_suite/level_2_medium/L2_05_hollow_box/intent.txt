@@ -1,0 +1,1 @@
+Create a box 80mm x 60mm x 50mm, then hollow it out with 3mm wall thickness, leaving the top face open.

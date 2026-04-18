@@ -1,0 +1,1 @@
+Create a T-shaped bracket. The vertical part is 80mm tall, 30mm wide, and 10mm thick. The horizontal base is 100mm wide, 30mm deep, and 10mm thick.

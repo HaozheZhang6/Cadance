@@ -1,0 +1,1 @@
+Create a hook shape by sweeping a 10mm diameter circle along a curved path. The path starts vertical for 50mm, then curves 180 degrees with a 25mm radius to form the hook.

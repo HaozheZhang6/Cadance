@@ -1,0 +1,13 @@
+{
+  "id": "L1_E01",
+  "name": "Simple Cone",
+  "level": 1,
+  "expected_volume": 47123.89,
+  "expected_faces": 2,
+  "expected_edges": 2,
+  "expected_bounding_box": {
+    "x": 60.0,
+    "y": 60.0,
+    "z": 50.0
+  }
+}

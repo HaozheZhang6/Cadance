@@ -1,0 +1,13 @@
+{
+  "id": "L2_E05",
+  "name": "Drafted Box",
+  "level": 2,
+  "expected_volume": 86654.98,
+  "expected_faces": 6,
+  "expected_edges": 12,
+  "expected_bounding_box": {
+    "x": 50.0,
+    "y": 50.0,
+    "z": 40.0
+  }
+}

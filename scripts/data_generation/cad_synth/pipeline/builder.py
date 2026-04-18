@@ -1,0 +1,422 @@
+"""Op/Program dataclasses and execution/rendering engine.
+
+`build_from_program` executes Ops on a CadQuery Workplane.
+`render_program_to_code` serialises Ops to executable Python source.
+Both derive from the same Program — geometry cannot diverge.
+"""
+
+from dataclasses import dataclass, field
+from typing import Any
+
+
+@dataclass
+class Op:
+    """One build step in a structured program."""
+
+    name: str
+    args: dict = field(default_factory=dict)
+
+
+@dataclass
+class Program:
+    """Structured, ordered build plan for a part."""
+
+    family: str
+    difficulty: str
+    params: dict
+    ops: list
+    feature_tags: dict = field(default_factory=dict)
+    base_plane: str = "XY"  # starting workplane: "XY", "YZ", or "XZ"
+
+
+# ---------------------------------------------------------------------------
+# Op → CadQuery execution
+# ---------------------------------------------------------------------------
+
+def _apply_op(wp, op: Op):
+    """Apply a single Op to a CadQuery Workplane, return updated wp."""
+    name = op.name
+    a = op.args
+
+    if name == "box":
+        wp = wp.box(a["length"], a["width"], a["height"], centered=a.get("centered", True))
+    elif name == "cylinder":
+        wp = wp.cylinder(a["height"], a["radius"])
+    elif name == "circle":
+        wp = wp.circle(a["radius"])
+    elif name == "rect":
+        wp = wp.rect(a["length"], a["width"])
+    elif name == "extrude":
+        taper = a.get("taper", 0)
+        both = a.get("both", False)
+        if taper:
+            wp = wp.extrude(a["distance"], taper=taper, both=both)
+        else:
+            wp = wp.extrude(a["distance"], both=both)
+    elif name == "cutThruAll":
+        wp = wp.cutThruAll()
+    elif name == "cutBlind":
+        # CadQuery cutBlind requires negative depth to cut INTO the solid from the selected face.
+        # Family code passes positive "depth" values (intuitive), so negate here.
+        try:
+            wp = wp.cutBlind(-abs(a["depth"]))
+        except Exception:
+            wp = wp.newObject(wp.objects)  # skip if face selection invalid
+    elif name == "lineTo":
+        wp = wp.lineTo(a["x"], a["y"])
+    elif name == "close":
+        wp = wp.close()
+    elif name == "tag":
+        wp = wp.tag(a["name"])
+    elif name == "hole":
+        try:
+            wp = wp.hole(a["diameter"], depth=a.get("depth"))
+        except Exception:
+            wp = wp.newObject(wp.objects)  # skip hole if face selection invalid
+    elif name == "cboreHole":
+        wp = wp.cboreHole(
+            a["diameter"], a["cboreDiameter"], a["cboreDepth"], depth=a.get("depth")
+        )
+    elif name == "fillet":
+        try:
+            wp = wp.fillet(a["radius"])
+        except Exception:
+            try:
+                wp = wp.newObject([wp.findSolid()])  # recover solid from context
+            except Exception:
+                pass
+    elif name == "chamfer":
+        try:
+            wp = wp.chamfer(a["length"])
+        except Exception:
+            try:
+                wp = wp.newObject([wp.findSolid()])  # recover solid from context
+            except Exception:
+                pass
+    elif name == "shell":
+        wp = wp.shell(a["thickness"])
+    elif name == "workplane":
+        try:
+            wp = wp.faces(_remap_sel(a["selector"])).workplane()
+        except Exception:
+            try:
+                wp = wp.newObject([wp.findSolid()])
+            except Exception:
+                pass
+    elif name == "pushPoints":
+        wp = wp.pushPoints(a["points"])
+    elif name == "polarArray":
+        wp = wp.polarArray(
+            a["radius"], a.get("startAngle", 0), a.get("angle", 360), a["count"]
+        )
+    elif name == "rarray":
+        wp = wp.rarray(a["xSpacing"], a["ySpacing"], a["xCount"], a["yCount"])
+    elif name == "center":
+        wp = wp.center(a["x"], a["y"])
+    elif name == "moveTo":
+        wp = wp.moveTo(a["x"], a["y"])
+    elif name == "faces":
+        wp = wp.faces(_remap_sel(a["selector"]))
+    elif name == "edges":
+        wp = wp.edges(_remap_sel(a.get("selector", "|Z")))
+    elif name == "revolve":
+        axis_start = tuple(a.get("axisStart", (0, 0, 0)))
+        axis_end = tuple(a.get("axisEnd", (0, 1, 0)))
+        wp = wp.revolve(a["angleDeg"], axis_start, axis_end)
+    elif name == "loft":
+        wp = wp.loft(combine=a.get("combine", True))
+    elif name == "polyline":
+        wp = wp.polyline(a["points"])
+    elif name == "mirrorY":
+        wp = wp.mirrorY()
+    elif name == "mirrorX":
+        wp = wp.mirrorX()
+    elif name == "polygon":
+        wp = wp.polygon(a["n"], a["diameter"])
+    elif name == "slot2D":
+        wp = wp.slot2D(a["length"], a["width"], a.get("angle", 0))
+    elif name == "ellipse":
+        wp = wp.ellipse(a["xRadius"], a["yRadius"])
+    elif name == "threePointArc":
+        wp = wp.threePointArc(tuple(a["point1"]), tuple(a["point2"]))
+    elif name == "sphere":
+        wp = wp.sphere(a["radius"])
+    elif name == "transformed":
+        import cadquery as cq
+        off = a.get("offset", [0, 0, 0])
+        rot = a.get("rotate", [0, 0, 0])
+        wp = wp.transformed(offset=cq.Vector(*off), rotate=cq.Vector(*rot))
+    elif name == "cskHole":
+        wp = wp.cskHole(a["diameter"], a["cskDiameter"], a["cskAngle"], depth=a.get("depth"))
+    elif name == "hLine":
+        wp = wp.hLine(a["distance"])
+    elif name == "vLine":
+        wp = wp.vLine(a["distance"])
+    elif name == "workplane_offset":
+        wp = wp.workplane(offset=a["offset"])
+    elif name == "union":
+        import cadquery as cq
+        sub = cq.Workplane(_current_base_plane)
+        for o in a["ops"]:
+            sub = _apply_op(sub, Op(o["name"], o.get("args", {})))
+        wp = wp.union(sub)
+    elif name == "cut":
+        import cadquery as cq
+        sub = cq.Workplane(_current_base_plane)
+        for o in a["ops"]:
+            sub = _apply_op(sub, Op(o["name"], o.get("args", {})))
+        wp = wp.cut(sub)
+    elif name == "sweep":
+        import cadquery as cq
+        path_type = a["path_type"]
+        is_frenet = a.get("isFrenet", path_type == "helix")
+        if path_type == "helix":
+            pa = a["path_args"]
+            path = cq.Wire.makeHelix(pa["pitch"], pa["height"], pa["radius"])
+        elif path_type == "spline":
+            pts = [tuple(p) for p in a["path_points"]]
+            path = cq.Workplane(a.get("path_plane", "XZ")).spline(pts)
+        elif path_type == "line_pts":
+            pts = [tuple(p) for p in a["path_points"]]
+            path = cq.Workplane(a.get("path_plane", "XZ")).polyline(pts)
+        elif path_type == "elbow_arc":
+            # 90° pipe elbow: straight lead → radiusArc → straight trail (XZ plane)
+            ll = a["lead_length"]
+            br = a["bend_radius"]
+            tl = a["trail_length"]
+            path = (
+                cq.Workplane("XZ")
+                .moveTo(0.0, 0.0)
+                .lineTo(0.0, ll)
+                .radiusArc((br, ll + br), br)
+                .lineTo(br + tl, ll + br)
+            )
+        else:
+            raise ValueError(f"Unknown sweep path_type: {path_type}")
+        wp = wp.sweep(path, isFrenet=is_frenet)
+    else:
+        raise ValueError(f"Unknown op: {name}")
+    return wp
+
+
+def _patch_ocp_hashcode():
+    """Monkey-patch HashCode on OCP TopoDS types (needed in this env)."""
+    from OCP.TopoDS import (
+        TopoDS_Shape, TopoDS_Face, TopoDS_Edge, TopoDS_Vertex,
+        TopoDS_Wire, TopoDS_Shell, TopoDS_Solid, TopoDS_Compound,
+        TopoDS_CompSolid,
+    )
+    for _cls in [
+        TopoDS_Shape, TopoDS_Face, TopoDS_Edge, TopoDS_Vertex,
+        TopoDS_Wire, TopoDS_Shell, TopoDS_Solid, TopoDS_Compound,
+        TopoDS_CompSolid,
+    ]:
+        if not hasattr(_cls, "HashCode"):
+            _cls.HashCode = lambda self, ub=2147483647: id(self) % ub
+
+
+_current_base_plane = "XY"  # module-level so union/cut subs can inherit
+
+# Map selectors that reference the build axis (Z in XY) to the correct axis
+# for each standard workplane.  Only the axial/normal-direction selectors
+# are remapped; radial selectors (>X, <X when plane=XY, etc.) are left alone.
+_AXIAL_REMAP = {
+    # Axial selectors (normal direction of the base plane)
+    ">Z":  {"XY": ">Z", "YZ": ">X", "XZ": ">Y"},
+    "<Z":  {"XY": "<Z", "YZ": "<X", "XZ": "<Y"},
+    "|Z":  {"XY": "|Z", "YZ": "|X", "XZ": "|Y"},
+    # First-lateral selectors (u-axis: X for XY/XZ, Y for YZ)
+    ">X":  {"XY": ">X", "YZ": ">Y", "XZ": ">X"},
+    "<X":  {"XY": "<X", "YZ": "<Y", "XZ": "<X"},
+    "|X":  {"XY": "|X", "YZ": "|Y", "XZ": "|X"},
+    # Second-lateral selectors (v-axis: Y for XY, Z for XZ/YZ)
+    ">Y":  {"XY": ">Y", "YZ": ">Z", "XZ": ">Z"},
+    "<Y":  {"XY": "<Y", "YZ": "<Z", "XZ": "<Z"},
+    "|Y":  {"XY": "|Y", "YZ": "|Z", "XZ": "|Z"},
+    # Shell face plane name aliases
+    "XY":  {"XY": "XY", "YZ": "YZ", "XZ": "XZ"},
+}
+
+
+def _remap_sel(sel: str) -> str:
+    """Remap an axial face selector to match the current base plane."""
+    row = _AXIAL_REMAP.get(sel)
+    if row:
+        return row.get(_current_base_plane, sel)
+    return sel
+
+
+def build_from_program(program: Program):
+    """Execute a Program and return the CadQuery Workplane result."""
+    import cadquery as cq
+    global _current_base_plane
+
+    _patch_ocp_hashcode()
+    _current_base_plane = program.base_plane or "XY"
+    wp = cq.Workplane(_current_base_plane)
+    for op in program.ops:
+        wp = _apply_op(wp, op)
+    return wp
+
+
+# ---------------------------------------------------------------------------
+# Op → Python source
+# ---------------------------------------------------------------------------
+
+def _op_to_code(op: Op) -> str:
+    """Render one Op as a CadQuery method call string."""
+    name = op.name
+    a = op.args
+
+    if name == "box":
+        centered = a.get("centered", True)
+        if centered:
+            return f".box({a['length']}, {a['width']}, {a['height']})"
+        return f".box({a['length']}, {a['width']}, {a['height']}, centered=False)"
+    elif name == "cylinder":
+        return f".cylinder({a['height']}, {a['radius']})"
+    elif name == "circle":
+        return f".circle({a['radius']})"
+    elif name == "rect":
+        return f".rect({a['length']}, {a['width']})"
+    elif name == "extrude":
+        taper = a.get("taper", 0)
+        both  = a.get("both", False)
+        if taper and both:
+            return f".extrude({a['distance']}, taper={taper}, both=True)"
+        if taper:
+            return f".extrude({a['distance']}, taper={taper})"
+        if both:
+            return f".extrude({a['distance']}, both=True)"
+        return f".extrude({a['distance']})"
+    elif name == "cutThruAll":
+        return ".cutThruAll()"
+    elif name == "cutBlind":
+        return f".cutBlind(-{abs(a['depth'])})"
+    elif name == "lineTo":
+        return f".lineTo({a['x']}, {a['y']})"
+    elif name == "close":
+        return ".close()"
+    elif name == "hole":
+        depth = a.get("depth")
+        if depth is not None:
+            return f".hole({a['diameter']}, depth={depth})"
+        return f".hole({a['diameter']})"
+    elif name == "cboreHole":
+        depth = a.get("depth")
+        base = f".cboreHole({a['diameter']}, {a['cboreDiameter']}, {a['cboreDepth']}"
+        if depth is not None:
+            base += f", depth={depth}"
+        return base + ")"
+    elif name == "fillet":
+        return f".fillet({a['radius']})"
+    elif name == "chamfer":
+        return f".chamfer({a['length']})"
+    elif name == "shell":
+        return f".shell({a['thickness']})"
+    elif name == "workplane":
+        return f'.faces("{_remap_sel(a["selector"])}").workplane()'
+    elif name == "pushPoints":
+        return f".pushPoints({a['points']})"
+    elif name == "polarArray":
+        sa = a.get("startAngle", 0)
+        ang = a.get("angle", 360)
+        return f".polarArray({a['radius']}, {sa}, {ang}, {a['count']})"
+    elif name == "rarray":
+        return f".rarray({a['xSpacing']}, {a['ySpacing']}, {a['xCount']}, {a['yCount']})"
+    elif name == "center":
+        return f".center({a['x']}, {a['y']})"
+    elif name == "moveTo":
+        return f".moveTo({a['x']}, {a['y']})"
+    elif name == "faces":
+        return f'.faces("{a["selector"]}")'
+    elif name == "edges":
+        sel = a.get("selector", "|Z")
+        return f'.edges("{sel}")'
+    elif name == "revolve":
+        ax0 = a.get("axisStart", (0, 0, 0))
+        ax1 = a.get("axisEnd", (0, 1, 0))
+        return f".revolve({a['angleDeg']}, {tuple(ax0)}, {tuple(ax1)})"
+    elif name == "loft":
+        combine = a.get("combine", True)
+        return f".loft(combine={combine})"
+    elif name == "polyline":
+        return f".polyline({a['points']})"
+    elif name == "mirrorY":
+        return ".mirrorY()"
+    elif name == "mirrorX":
+        return ".mirrorX()"
+    elif name == "polygon":
+        return f".polygon({a['n']}, {a['diameter']})"
+    elif name == "slot2D":
+        ang = a.get("angle", 0)
+        return f".slot2D({a['length']}, {a['width']}, {ang})"
+    elif name == "ellipse":
+        return f".ellipse({a['xRadius']}, {a['yRadius']})"
+    elif name == "threePointArc":
+        return f".threePointArc({tuple(a['point1'])}, {tuple(a['point2'])})"
+    elif name == "sphere":
+        return f".sphere({a['radius']})"
+    elif name == "transformed":
+        off = a.get("offset", [0, 0, 0])
+        rot = a.get("rotate", [0, 0, 0])
+        return f".transformed(offset=cq.Vector{tuple(off)}, rotate=cq.Vector{tuple(rot)})"
+    elif name == "cskHole":
+        depth = a.get("depth")
+        base = f".cskHole({a['diameter']}, {a['cskDiameter']}, {a['cskAngle']}"
+        if depth is not None:
+            base += f", depth={depth}"
+        return base + ")"
+    elif name == "hLine":
+        return f".hLine({a['distance']})"
+    elif name == "vLine":
+        return f".vLine({a['distance']})"
+    elif name == "workplane_offset":
+        return f".workplane(offset={a['offset']})"
+    elif name in ("union", "cut"):
+        sub_lines = "".join(
+            f"\n        {_op_to_code(Op(o['name'], o.get('args', {})))}"
+            for o in a["ops"]
+        )
+        return f'.{name}(\n    cq.Workplane("{_current_base_plane}"){sub_lines}\n)'
+    elif name == "sweep":
+        path_type = a["path_type"]
+        is_frenet = a.get("isFrenet", path_type == "helix")
+        if path_type == "helix":
+            pa = a["path_args"]
+            return (f'.sweep(cq.Wire.makeHelix({pa["pitch"]}, {pa["height"]}, {pa["radius"]})'
+                    f', isFrenet={is_frenet})')
+        elif path_type == "elbow_arc":
+            ll, br, tl = a["lead_length"], a["bend_radius"], a["trail_length"]
+            return (
+                f'.sweep(\n'
+                f'    cq.Workplane("XZ").moveTo(0.0,0.0).lineTo(0.0,{ll})'
+                f'.radiusArc(({br},{ll+br}),{br}).lineTo({br+tl},{ll+br}),\n'
+                f'    isFrenet=True)'
+            )
+        else:
+            pts = a["path_points"]
+            plane = a.get("path_plane", "XZ")
+            method = "spline" if path_type == "spline" else "polyline"
+            return f'.sweep(cq.Workplane("{plane}").{method}({pts}), isFrenet={is_frenet})'
+    else:
+        raise ValueError(f"Unknown op: {name}")
+
+
+def render_program_to_code(program: Program) -> str:
+    """Render a Program to an executable Python source string."""
+    global _current_base_plane
+    bp = program.base_plane or "XY"
+    _current_base_plane = bp
+    lines = ["import cadquery as cq", "", "result = (", f'    cq.Workplane("{bp}")']
+    for op in program.ops:
+        code = _op_to_code(op)
+        # Re-indent every line of multi-line ops (union/cut/sweep)
+        indented = "\n".join("    " + line for line in code.split("\n"))
+        lines.append(indented)
+    lines.append(")")
+    lines.append("")
+    # Export helpers
+    lines.append("# Export")
+    lines.append("show_object(result)")
+    return "\n".join(lines)

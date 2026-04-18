@@ -1,0 +1,37 @@
+{
+  "id": "L2_06",
+  "name": "Revolved Cup Shape",
+  "level": 2,
+  "complexity_score": 9,
+  "complexity_breakdown": {
+    "api_breadth": 2,
+    "parameterization": 2,
+    "selection": 1,
+    "ordering": 2,
+    "ambiguity": 2
+  },
+  "dimensions": {
+    "outer_diameter": 60,
+    "inner_diameter": 52,
+    "outer_radius": 30,
+    "inner_radius": 26,
+    "height": 70,
+    "base_thickness": 5,
+    "wall_thickness": 4
+  },
+  "skills_tested": [
+    "polyline",
+    "lineTo",
+    "revolve"
+  ],
+  "ambiguity": "minimal",
+  "notes": "First revolve operation. Must translate cup with wall thickness into 2D profile. Tests geometric reasoning.",
+  "expected_volume": 59878.76,
+  "expected_faces": 5,
+  "expected_edges": 6,
+  "expected_bounding_box": {
+    "x": 60.0,
+    "y": 70.0,
+    "z": 60.0
+  }
+}

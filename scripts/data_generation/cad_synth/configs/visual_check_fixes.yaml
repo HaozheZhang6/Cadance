@@ -1,0 +1,17 @@
+run_name: visual_check_fixes
+num_samples: 48
+seed: 9999
+family_mix:
+  hinge: 1
+  snap_clip: 1
+  star_blank: 1
+  enclosure: 1
+  handwheel: 1
+  hollow_tube: 1
+  manifold_block: 1
+  bearing_retainer_cap: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true

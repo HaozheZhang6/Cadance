@@ -1,0 +1,12 @@
+num_samples: 6
+seed: 1302
+run_name: synth_smoke_fix2_rotor_s1302
+
+family_mix:
+  propeller: 0.5
+  impeller:  0.5
+
+difficulty_mix:
+  easy:   0.34
+  medium: 0.33
+  hard:   0.33

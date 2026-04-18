@@ -1,0 +1,1 @@
+Create a stadium-shaped plate (slot shape) that is 60mm long, 20mm wide, and 10mm thick.

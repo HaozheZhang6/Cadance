@@ -1,0 +1,12 @@
+run_name: smoke_prop_lathe20
+num_samples: 20
+seed: 5678
+n_workers: 4
+family_mix:
+  propeller: 1
+  lathe_turned_part: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true

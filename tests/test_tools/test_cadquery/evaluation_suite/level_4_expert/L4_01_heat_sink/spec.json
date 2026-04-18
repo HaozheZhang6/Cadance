@@ -1,0 +1,40 @@
+{
+  "id": "L4_01",
+  "name": "Heat Sink with Cooling Fins",
+  "level": 4,
+  "complexity_score": 14,
+  "complexity_breakdown": {
+    "api_breadth": 3,
+    "parameterization": 3,
+    "selection": 2,
+    "ordering": 3,
+    "ambiguity": 3
+  },
+  "dimensions": {
+    "base_length": 100,
+    "base_width": 60,
+    "base_height": 5,
+    "fin_count": 8,
+    "fin_thickness": 2,
+    "fin_height": 25,
+    "fin_length": 100
+  },
+  "skills_tested": [
+    "box",
+    "rarray",
+    "extrude",
+    "rect",
+    "faces",
+    "workplane"
+  ],
+  "ambiguity": "high",
+  "notes": "Heat sink design requires calculating even fin spacing. 8 fins of 2mm = 16mm, leaving 44mm for 9 gaps = 4.89mm each. Tests array operations and parameterization.",
+  "expected_volume": 70000.0,
+  "expected_faces": 38,
+  "expected_edges": 108,
+  "expected_bounding_box": {
+    "x": 100.0,
+    "y": 60.0,
+    "z": 30.0
+  }
+}

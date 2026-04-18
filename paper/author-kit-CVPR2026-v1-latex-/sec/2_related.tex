@@ -1,0 +1,29 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Parametric and Sequential CAD Generation.}
+A dominant line of work represents CAD objects as ordered construction sequences.
+DeepCAD~\cite{deepcad} models sketch-and-extrude sequences with a transformer and shows that generation quality improves substantially over direct mesh synthesis.
+SkexGen~\cite{skexgen} further factorizes the sketch into topology and geometry, improving coverage of diverse profiles.
+Subsequent work addresses scalability~\cite{cadsignet}, sketch parameterization~\cite{brepgen}, and multi-resolution generation.
+These methods focus on generation quality and are trained on the Fusion360 Gallery~\cite{fusion360gallery}---the same ground-truth source we use as one input to our verification pipeline.
+
+\paragraph{Code-Oriented CAD.}
+More recent work treats CAD construction as program synthesis.
+CAD-Recode~\cite{cadrecode} represents parts as Python code (CadQuery) and trains a language model to generate programs directly from point clouds or images.
+Cadrille~\cite{cadrille} extends this with reinforcement learning using geometric reward signals.
+Our work is complementary: rather than contributing a new CAD generator, we ask how to build high-quality training data for such generators, and how to know when a generated program is sufficiently correct to be used as supervision.
+The executable code representation is central---it is the property that makes strong automated verification possible.
+
+\paragraph{Geometric Verification for CAD.}
+Prior work uses 3D IoU, Chamfer distance, and topological validity metrics to evaluate CAD models post hoc~\cite{deepcad,cadrecode}.
+Validity checks (manifold geometry, watertight shells) are sometimes used as hard filters during training data construction.
+Our use of verification is more aggressive: we use geometric IoU as a real-time acceptance gate during data generation, at a threshold of 0.99.
+This demands fast verification---our OCCT-based IoU check completes in roughly 2 seconds per pair---and sufficient precision to reject near-correct programs that would add noise to training.
+We also identify a failure mode specific to OCCT: the standard \texttt{.union()} operation fails with a \texttt{HashCode} error on certain part configurations; we work around this using \texttt{.add().combine()} instead.
+
+\paragraph{Data-Centric Machine Learning and Curation Loops.}
+Data-centric machine learning~\cite{zha2023datacentric,datacomp} emphasizes that dataset quality, curation strategy, and filtering criteria matter at least as much as model architecture.
+Large-scale data pipelines for vision-language models~\cite{datacomp} apply heuristic and model-based filters at scale; synthetic data pipelines for code~\cite{alphacode} use execution-based filtering extensively.
+For CAD, the equivalent of execution-based filtering is geometric verification---and the equivalent of ``the program runs'' is ``the STEP matches the target above a strict IoU threshold.''
+We instantiate this data-centric approach for a domain where the ground-truth oracle is geometric: the OCCT solid modeling kernel.

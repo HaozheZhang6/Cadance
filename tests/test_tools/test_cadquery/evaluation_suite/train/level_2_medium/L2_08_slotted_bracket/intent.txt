@@ -1,0 +1,1 @@
+Create a rectangular bracket 80mm x 40mm x 15mm with a 40mm long by 10mm wide slot through the center, and 3mm fillets on all top edges.

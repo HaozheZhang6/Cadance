@@ -1,0 +1,14 @@
+num_samples: 1500
+seed: 1200
+run_name: synth_batch_new3_s1200
+
+# 3 new motion/mechanism families (pre-flight verified)
+family_mix:
+  connecting_rod: 0.34
+  helical_gear:   0.33
+  propeller:      0.33
+
+difficulty_mix:
+  easy:   0.25
+  medium: 0.45
+  hard:   0.30

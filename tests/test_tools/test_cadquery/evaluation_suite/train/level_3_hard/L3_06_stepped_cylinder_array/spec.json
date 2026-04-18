@@ -1,0 +1,13 @@
+{
+  "id": "L3_06",
+  "name": "Stepped Cylinder Array",
+  "level": 3,
+  "expected_volume": 31415.93,
+  "expected_faces": 12,
+  "expected_edges": 12,
+  "expected_bounding_box": {
+    "x": 110.0,
+    "y": 20.0,
+    "z": 40.0
+  }
+}

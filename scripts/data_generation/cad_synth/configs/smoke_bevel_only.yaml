@@ -1,0 +1,11 @@
+num_samples: 4
+seed: 1303
+run_name: synth_smoke_bevel_s1303
+
+family_mix:
+  bevel_gear: 1.0
+
+difficulty_mix:
+  easy:   0.25
+  medium: 0.35
+  hard:   0.40

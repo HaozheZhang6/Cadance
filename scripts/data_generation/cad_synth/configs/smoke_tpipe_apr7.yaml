@@ -1,0 +1,12 @@
+num_samples: 60
+seed: 1111
+run_name: smoke_tpipe_apr7
+sample_type: test
+
+family_mix:
+  t_pipe_fitting: 1.0
+
+difficulty_mix:
+  easy:   0.33
+  medium: 0.34
+  hard:   0.33

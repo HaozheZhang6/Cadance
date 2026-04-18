@@ -1,0 +1,1 @@
+Create a mounting plate 120mm x 90mm x 12mm. Add four M8 counterbored holes for socket head cap screws: hole diameter 9mm, counterbore diameter 14mm, counterbore depth 8mm. Position holes 15mm from each edge.

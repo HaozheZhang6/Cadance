@@ -1,0 +1,1 @@
+Create a hollow enclosure with an 80mm x 60mm base, 40mm height, 3mm wall thickness, and 3-degree draft angles on all walls. The top should be open.

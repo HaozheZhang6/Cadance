@@ -1,0 +1,36 @@
+{
+  "id": "L2_04",
+  "name": "Plate with Four Corner Holes",
+  "level": 2,
+  "complexity_score": 9,
+  "complexity_breakdown": {
+    "api_breadth": 2,
+    "parameterization": 2,
+    "selection": 2,
+    "ordering": 2,
+    "ambiguity": 1
+  },
+  "dimensions": {
+    "width": 100,
+    "depth": 80,
+    "height": 10,
+    "hole_diameter": 6,
+    "edge_offset": 10
+  },
+  "skills_tested": [
+    "box",
+    "faces",
+    "pushPoints",
+    "hole"
+  ],
+  "ambiguity": "none",
+  "notes": "First test of multiple positioned features. Must calculate positions: (\u00b140, \u00b130) given 10mm inset from 100x80 plate.",
+  "expected_volume": 78869.03,
+  "expected_faces": 10,
+  "expected_edges": 24,
+  "expected_bounding_box": {
+    "x": 100.0,
+    "y": 80.0,
+    "z": 10.0
+  }
+}

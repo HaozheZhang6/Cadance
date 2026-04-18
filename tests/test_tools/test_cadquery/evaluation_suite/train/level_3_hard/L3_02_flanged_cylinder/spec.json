@@ -1,0 +1,41 @@
+{
+  "id": "L3_02",
+  "name": "Flanged Cylinder",
+  "level": 3,
+  "complexity_score": 10,
+  "complexity_breakdown": {
+    "api_breadth": 3,
+    "parameterization": 2,
+    "selection": 2,
+    "ordering": 2,
+    "ambiguity": 1
+  },
+  "dimensions": {
+    "cylinder_diameter": 30,
+    "cylinder_radius": 15,
+    "cylinder_height": 60,
+    "flange_diameter": 60,
+    "flange_radius": 30,
+    "flange_thickness": 8,
+    "bolt_circle_diameter": 45,
+    "hole_diameter": 5,
+    "hole_count": 4
+  },
+  "skills_tested": [
+    "cylinder",
+    "union",
+    "polarArray",
+    "pushPoints",
+    "hole"
+  ],
+  "ambiguity": "none",
+  "notes": "Tests boolean union and circular positioning. Bolt circle means holes arranged on a circle diameter.",
+  "expected_volume": 58747.78,
+  "expected_faces": 11,
+  "expected_edges": 21,
+  "expected_bounding_box": {
+    "x": 60.0,
+    "y": 60.0,
+    "z": 60.0
+  }
+}

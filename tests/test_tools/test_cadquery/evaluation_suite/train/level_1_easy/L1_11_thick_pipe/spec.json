@@ -1,0 +1,13 @@
+{
+  "id": "L1_11",
+  "name": "Thick Pipe",
+  "level": 1,
+  "expected_volume": 100530.96,
+  "expected_faces": 4,
+  "expected_edges": 6,
+  "expected_bounding_box": {
+    "x": 50.0,
+    "y": 50.0,
+    "z": 80.0
+  }
+}

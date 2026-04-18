@@ -1,0 +1,13 @@
+{
+  "id": "L3_11",
+  "name": "Revolved Handle",
+  "level": 3,
+  "expected_volume": 0.0,
+  "expected_faces": 4,
+  "expected_edges": 4,
+  "expected_bounding_box": {
+    "x": 61.61,
+    "y": 0.0,
+    "z": 61.61
+  }
+}

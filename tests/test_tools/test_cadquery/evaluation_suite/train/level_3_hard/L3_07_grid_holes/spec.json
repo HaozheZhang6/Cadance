@@ -1,0 +1,13 @@
+{
+  "id": "L3_07",
+  "name": "Grid Holes",
+  "level": 3,
+  "expected_volume": 116607.08,
+  "expected_faces": 18,
+  "expected_edges": 48,
+  "expected_bounding_box": {
+    "x": 120.0,
+    "y": 100.0,
+    "z": 10.0
+  }
+}

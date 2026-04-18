@@ -1,0 +1,13 @@
+{
+  "id": "L2_10",
+  "name": "Cylinder Center Hole",
+  "level": 2,
+  "expected_volume": 100530.96,
+  "expected_faces": 4,
+  "expected_edges": 6,
+  "expected_bounding_box": {
+    "x": 60.0,
+    "y": 60.0,
+    "z": 40.0
+  }
+}

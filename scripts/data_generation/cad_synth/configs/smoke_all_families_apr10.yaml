@@ -1,0 +1,59 @@
+num_samples: 1500
+seed: 4444
+run_name: smoke_all_families_apr10
+sample_type: test
+
+family_mix:
+  bearing_retainer_cap: 1.0
+  bellows: 1.0
+  bevel_gear: 1.0
+  cable_routing_panel: 1.0
+  cam: 1.0
+  coil_spring: 1.0
+  connecting_rod: 1.0
+  connector_faceplate: 1.0
+  dovetail_slide: 1.0
+  enclosure: 1.0
+  gusseted_bracket: 1.0
+  heat_sink: 1.0
+  helical_gear: 1.0
+  hex_standoff: 1.0
+  hinge: 1.0
+  hollow_tube: 1.0
+  i_beam: 1.0
+  impeller: 1.0
+  knob: 1.0
+  l_bracket: 1.0
+  lathe_turned_part: 1.0
+  locator_block: 1.0
+  manifold_block: 1.0
+  motor_end_cap: 1.0
+  mounting_plate: 1.0
+  pcb_standoff_plate: 1.0
+  pipe_elbow: 1.0
+  pipe_flange: 1.0
+  propeller: 1.0
+  pulley: 1.0
+  rib_plate: 1.0
+  round_flange: 1.0
+  shaft_collar: 1.0
+  sheet_metal_tray: 1.0
+  slotted_plate: 1.0
+  spacer_ring: 1.0
+  spur_gear: 1.0
+  standoff: 1.0
+  stepped_shaft: 1.0
+  t_pipe_fitting: 1.0
+  t_slot_rail: 1.0
+  tapered_boss: 1.0
+  threaded_adapter: 1.0
+  u_channel: 1.0
+  vented_panel: 1.0
+  waffle_plate: 1.0
+  worm_screw: 1.0
+  z_bracket: 1.0
+
+difficulty_mix:
+  easy:   0.33
+  medium: 0.34
+  hard:   0.33

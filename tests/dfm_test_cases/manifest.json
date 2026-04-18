@@ -1,0 +1,95 @@
+{
+  "schema_version": "dfm_evaluation.v1",
+  "generated_by": "OCP",
+  "description": "DFM test cases with realistic manufacturability violations",
+  "test_cases": [
+    {
+      "name": "golden_pass_box",
+      "level": 1,
+      "description": "Simple box with good manufacturability (baseline)",
+      "expected": {
+        "status": "PASS",
+        "volume": 50000.0,
+        "bbox": [
+          50.0,
+          50.0,
+          20.0
+        ],
+        "violations": []
+      },
+      "path": "tests/dfm_test_cases/L1_golden_pass.step",
+      "ops_program": "tests/dfm_test_cases/L1_golden_pass_ops.json"
+    },
+    {
+      "name": "thin_wall_shell",
+      "level": 2,
+      "description": "Box with 0.5mm wall thickness (below 2mm threshold)",
+      "expected": {
+        "status": "FAIL",
+        "volume": 3180.5,
+        "bbox": [
+          50.0,
+          50.0,
+          20.0
+        ],
+        "violations": [
+          "thin_wall"
+        ]
+      },
+      "path": "tests/dfm_test_cases/L2_thin_wall.step",
+      "ops_program": "tests/dfm_test_cases/L2_thin_wall_ops.json"
+    },
+    {
+      "name": "sharp_edge_box",
+      "level": 3,
+      "description": "Box with unfilleted edges (sharp corners - DFM risk)",
+      "expected": {
+        "status": "WARN",
+        "volume": 50000.0,
+        "bbox": [
+          50.0,
+          50.0,
+          20.0
+        ],
+        "violations": [
+          "sharp_edge"
+        ]
+      },
+      "path": "tests/dfm_test_cases/L3_sharp_edge.step",
+      "ops_program": "tests/dfm_test_cases/L3_sharp_edge_ops.json"
+    },
+    {
+      "name": "small_hole_part",
+      "level": 4,
+      "description": "Part with 0.3mm diameter hole (below 1mm threshold)",
+      "expected": {
+        "status": "FAIL",
+        "volume": 49998.5862845,
+        "bbox": [
+          50.0,
+          50.0,
+          20.0
+        ],
+        "violations": [
+          "small_feature"
+        ]
+      },
+      "path": "tests/dfm_test_cases/L4_small_hole.step",
+      "ops_program": "tests/dfm_test_cases/L4_small_hole_ops.json"
+    },
+    {
+      "name": "complex_violations",
+      "level": 5,
+      "description": "Complex part with thin walls (0.8mm) + sharp edges",
+      "expected": {
+        "status": "FAIL",
+        "violations": [
+          "thin_wall",
+          "sharp_edge"
+        ]
+      },
+      "path": "tests/dfm_test_cases/L5_complex_violations.step",
+      "ops_program": "tests/dfm_test_cases/L5_complex_violations_ops.json"
+    }
+  ]
+}

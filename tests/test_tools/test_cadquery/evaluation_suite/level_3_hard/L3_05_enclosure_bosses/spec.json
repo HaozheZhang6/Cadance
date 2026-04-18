@@ -1,0 +1,43 @@
+{
+  "id": "L3_05",
+  "name": "Enclosure with Mounting Bosses",
+  "level": 3,
+  "complexity_score": 13,
+  "complexity_breakdown": {
+    "api_breadth": 4,
+    "parameterization": 2,
+    "selection": 3,
+    "ordering": 2,
+    "ambiguity": 2
+  },
+  "dimensions": {
+    "outer_length": 120,
+    "outer_width": 80,
+    "outer_height": 40,
+    "wall_thickness": 2,
+    "boss_outer_diameter": 8,
+    "boss_height": 15,
+    "boss_hole_diameter": 3,
+    "boss_offset_from_wall": 8
+  },
+  "skills_tested": [
+    "box",
+    "shell",
+    "faces",
+    "workplane",
+    "pushPoints",
+    "cylinder",
+    "union",
+    "hole"
+  ],
+  "ambiguity": "moderate",
+  "notes": "Common pattern for electronics enclosures. Tests shell operation and adding internal features. Boss positioning from inside walls requires accounting for shell thickness.",
+  "expected_volume": 51583.81,
+  "expected_faces": 27,
+  "expected_edges": 48,
+  "expected_bounding_box": {
+    "x": 120.0,
+    "y": 80.0,
+    "z": 40.0
+  }
+}

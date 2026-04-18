@@ -1,0 +1,1 @@
+Create a lofted shape that transitions from a 40mm x 40mm square at the bottom to a 30mm diameter circle at the top, with a height of 50mm.

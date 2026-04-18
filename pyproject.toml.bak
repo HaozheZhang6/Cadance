@@ -1,0 +1,159 @@
+[project]
+name = "cadance"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "black>=26.1.0",
+    "click>=8.3.1",
+    "dspy-ai>=2.6.0",
+    "openai>=2.15.0",
+    "pydantic>=2.12.5",
+    "python-dotenv>=1.2.1",
+    # Local editable installs
+    "verifier-core",
+    "mech-verifier",
+    "eda-verify",
+    "kicad-verify",
+    # Additional dependencies from dev branch
+    "jsonschema>=4.26.0",
+    "rdflib>=7.5.0",
+    "pyshacl>=0.31.0",
+    "rich>=14.3.1",
+    "questionary>=2.1.1",
+    "casadi>=3.7.2",
+    "cadquery==2.3.0",
+    "numpy==1.26.4",
+    "cadquery-ocp==7.9.3.0",
+    "typish>=1.9.3",
+    "nptyping>=2.5.0",
+    # nlopt is optional - scipy fallback always available via nlopt_compat.py
+    "ezdxf>=1.4.3",
+    "path>=17.1.1",
+    "svgpathtools>=1.7.2",
+    "svgwrite>=1.4.3",
+    "scipy>=1.17.0",
+    "pint>=0.25.2",
+    "z3-solver==4.15.4.0",
+    # Memory layer for intent caching
+    "mem0ai>=0.1.0",
+    "chromadb>=0.4.0",
+    "multimethod>=2.0.0",
+    "anthropic>=0.84.0",
+    "nlopt>=2.7.1",
+    "pandas>=2.3.3",
+    "trimesh>=4.11.3",
+    "open3d>=0.19.0",
+    "datasets>=4.8.3",
+    "streamlit>=1.55.0",
+    "scikit-image>=0.26.0",
+    "manifold3d>=3.4.1",
+]
+
+[project.optional-dependencies]
+# Real nlopt for better optimization (scipy fallback always available)
+nlopt = ["nlopt==2.7.1"]
+
+# Vision rendering dependencies (for Intent-to-CAD visual evaluation)
+# IMPORTANT: This is an OPTIONAL extra, NOT installed by default
+# - Install with: uv sync --extra vision
+# - Requires native Cairo C library: brew install cairo (macOS)
+# - Alternative: Use system tools instead (brew install inkscape or librsvg)
+# - If no converter available, vision evaluation gracefully skips
+vision = [
+    "cairosvg>=2.8.2",
+    "cairocffi>=1.7.1",
+    "cssselect2>=0.8.0",
+    "tinycss2>=1.5.1",
+    "defusedxml>=0.7.1",
+    "webencodings>=0.5.1",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.1.0",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.24",
+    "hypothesis>=6.0.0",
+    "ruff>=0.4.0",
+    "pdfplumber>=0.11.9",
+    "cairosvg>=2.8.2",
+]
+
+[tool.uv.sources]
+# Install local packages as editable
+eda-verify = { path = "src/eda_verifier/eda_verify", editable = true }
+kicad-verify = { path = "src/eda_verifier/kicad_verify", editable = true }
+verifier-core = { path = "src/verifier_core", editable = true }
+mech-verifier = { path = "src/mech_verifier", editable = true }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+# Run all tests from the monorepo with: uv run pytest
+testpaths = [
+    "tests",
+    "src/eda_verifier/eda_verify/tests",
+    "src/eda_verifier/kicad_verify/tests",
+]
+markers = [
+    "integration: marks tests as integration tests (skipped by default)",
+    "kicad: marks tests as requiring KiCad installation",
+    "property: marks tests as property-based tests",
+    "slow: marks tests as slow-running",
+    "demo: marks tests as demo tests (long-running, may require external services, use --run-demo)",
+]
+# Suppress pyparsing deprecation warnings from cadquery's selectors.py
+# These are upstream issues in cadquery using deprecated pyparsing API:
+# - oneOf -> one_of
+# - setParseAction -> set_parse_action
+# See: https://github.com/CadQuery/cadquery/issues (upstream fix needed)
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::pyparsing.PyparsingDeprecationWarning",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["mech_verify", "eda_verify", "verifier_core"]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+
+[tool.uv]

@@ -1,0 +1,1 @@
+Create a rectangular electronics enclosure with mounting bosses. Outer dimensions: 120mm x 80mm x 40mm. Shell to 2mm wall thickness (open on top). Add four cylindrical mounting bosses at the inside corners: 8mm outer diameter, 15mm tall from the inner floor, with 3mm diameter holes through the bosses for screws. Bosses should be positioned 8mm from each inside wall.

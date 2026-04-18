@@ -1,0 +1,18 @@
+num_samples: 120
+seed: 2000
+run_name: smoke_fixed6_s2000
+sample_type: test
+
+# Smoke test: 5 fixed families + spur_gear (rim_heavy coverage)
+family_mix:
+  bellows:          0.17
+  impeller:         0.17
+  propeller:        0.17
+  round_flange:     0.17
+  threaded_adapter: 0.16
+  spur_gear:        0.16
+
+difficulty_mix:
+  easy:   0.33
+  medium: 0.34
+  hard:   0.33

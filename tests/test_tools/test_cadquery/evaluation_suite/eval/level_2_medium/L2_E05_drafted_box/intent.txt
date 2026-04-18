@@ -1,0 +1,1 @@
+Create a tapered box with a 50mm x 50mm base, 40mm height, and a 5-degree draft angle on all sides (narrowing toward the top).

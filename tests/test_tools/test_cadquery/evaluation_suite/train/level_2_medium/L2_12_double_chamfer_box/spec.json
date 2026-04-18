@@ -1,0 +1,13 @@
+{
+  "id": "L2_12",
+  "name": "Double Chamfer Box",
+  "level": 2,
+  "expected_volume": 136330.67,
+  "expected_faces": 14,
+  "expected_edges": 28,
+  "expected_bounding_box": {
+    "x": 70.0,
+    "y": 50.0,
+    "z": 40.0
+  }
+}

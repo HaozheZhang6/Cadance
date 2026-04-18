@@ -1,0 +1,1 @@
+Create a mounting block 100mm x 70mm x 20mm with four M8 counterbored holes at the corners. Each hole has a 9mm through-hole diameter, 16mm counterbore diameter, and 8mm counterbore depth. Position holes 15mm from each edge.

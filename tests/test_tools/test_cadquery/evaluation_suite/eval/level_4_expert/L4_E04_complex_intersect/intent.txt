@@ -1,0 +1,1 @@
+Create the intersection of a 40mm diameter, 60mm tall cylinder with a cone that has a 60mm base diameter and 80mm height. Both shapes should be centered and overlapping to create a bullet-like nose shape.

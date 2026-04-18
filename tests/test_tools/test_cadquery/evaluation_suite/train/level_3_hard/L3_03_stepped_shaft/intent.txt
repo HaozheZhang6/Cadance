@@ -1,0 +1,1 @@
+Create a stepped shaft. Large section: 25mm diameter, 50mm long. Small section: 18mm diameter, 35mm long (attached to large section). Add a keyway in the large section: 6mm wide, 3mm deep, 20mm long, starting 10mm from the shoulder (where sections meet).

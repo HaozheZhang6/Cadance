@@ -1,0 +1,40 @@
+{
+  "id": "L4_02",
+  "name": "90-Degree Pipe Elbow",
+  "level": 4,
+  "complexity_score": 15,
+  "complexity_breakdown": {
+    "api_breadth": 4,
+    "parameterization": 3,
+    "selection": 2,
+    "ordering": 3,
+    "ambiguity": 3
+  },
+  "dimensions": {
+    "outer_diameter": 30,
+    "inner_diameter": 24,
+    "wall_thickness": 3,
+    "bend_radius": 45,
+    "straight_length": 20,
+    "bend_angle": 90
+  },
+  "skills_tested": [
+    "circle",
+    "sweep",
+    "arc",
+    "shell",
+    "polyline",
+    "workplane",
+    "transformed"
+  ],
+  "ambiguity": "high",
+  "notes": "Pipe elbow is a classic sweep operation. Can be done as solid sweep then shell, or as annular profile sweep. Bend radius to centerline is standard piping convention.",
+  "expected_volume": 28166.11,
+  "expected_faces": 8,
+  "expected_edges": 14,
+  "expected_bounding_box": {
+    "x": 80.0,
+    "y": 30.0,
+    "z": 80.0
+  }
+}

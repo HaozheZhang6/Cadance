@@ -1,0 +1,13 @@
+{
+  "id": "L4_04",
+  "name": "Swept Channel",
+  "level": 4,
+  "expected_volume": 15707.96,
+  "expected_faces": 6,
+  "expected_edges": 12,
+  "expected_bounding_box": {
+    "x": 60.0,
+    "y": 10.0,
+    "z": 60.0
+  }
+}

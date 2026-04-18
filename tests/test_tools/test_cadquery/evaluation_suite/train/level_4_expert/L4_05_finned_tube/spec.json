@@ -1,0 +1,13 @@
+{
+  "id": "L4_05",
+  "name": "Finned Tube",
+  "level": 4,
+  "expected_volume": 63269.91,
+  "expected_faces": 67,
+  "expected_edges": 139,
+  "expected_bounding_box": {
+    "x": 60.0,
+    "y": 60.0,
+    "z": 100.0
+  }
+}

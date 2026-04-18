@@ -1,0 +1,119 @@
+{
+  "schema_version": "ops_program.v1",
+  "name": "hydraulic_manifold_block_v2",
+  "description": "Level 4 - REVISED: Hydraulic manifold with DFM violations fixed after verification feedback",
+  "complexity": "L4_industrial",
+  "dfm_status": "PASS",
+  "revision_notes": [
+    "v2: Fixed orifice diameter 0.3mm -> 0.8mm with external restrictor fitting",
+    "v2: Split long channels into sections with plugged intersections (L/D now 8)",
+    "v2: Increased gallery spacing for 2.0mm wall thickness"
+  ],
+  "design_intent": "6-port hydraulic manifold for excavator control",
+  "material": "6061-T6_aluminum",
+  "operations": [
+    {
+      "primitive": "extrude",
+      "parameters": [
+        {"name": "width", "value": 130.0, "unit": "mm"},
+        {"name": "depth", "value": 85.0, "unit": "mm"},
+        {"name": "height", "value": 60.0, "unit": "mm"},
+        {"name": "description", "value": "main_block_enlarged"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 12.0, "unit": "mm"},
+        {"name": "depth", "value": 96.0, "unit": "mm"},
+        {"name": "tap", "value": "G1/2"},
+        {"name": "description", "value": "main_pressure_gallery_section_1"},
+        {"name": "note", "value": "FIXED: L/D=8, within recommended limit"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 12.0, "unit": "mm"},
+        {"name": "depth", "value": 96.0, "unit": "mm"},
+        {"name": "tap", "value": "G1/2"},
+        {"name": "orientation", "value": "opposite_end"},
+        {"name": "description", "value": "main_pressure_gallery_section_2"},
+        {"name": "note", "value": "Cross-drilled and plug at intersection"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 12.0, "unit": "mm"},
+        {"name": "depth", "value": 96.0, "unit": "mm"},
+        {"name": "tap", "value": "G1/2"},
+        {"name": "offset_y", "value": 14.0, "unit": "mm"},
+        {"name": "description", "value": "return_gallery"},
+        {"name": "note", "value": "FIXED: 2.0mm wall to main gallery"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 0.8, "unit": "mm"},
+        {"name": "depth", "value": 6.0, "unit": "mm"},
+        {"name": "description", "value": "flow_passage_for_external_orifice"},
+        {"name": "note", "value": "FIXED: 0.8mm hole, flow restriction via external fitting"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 20.0, "unit": "mm"},
+        {"name": "depth", "value": 35.0, "unit": "mm"},
+        {"name": "tap", "value": "M24x1.5"},
+        {"name": "pattern", "value": "6x_ports"},
+        {"name": "description", "value": "working_ports"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 5.0, "unit": "mm"},
+        {"name": "depth", "value": 40.0, "unit": "mm"},
+        {"name": "pattern", "value": "6x_crossdrills"},
+        {"name": "description", "value": "port_to_gallery_passages"},
+        {"name": "note", "value": "FIXED: L/D=8 with larger diameter"}
+      ]
+    },
+    {
+      "primitive": "pocket",
+      "parameters": [
+        {"name": "width", "value": 30.0, "unit": "mm"},
+        {"name": "length", "value": 30.0, "unit": "mm"},
+        {"name": "depth", "value": 25.0, "unit": "mm"},
+        {"name": "pattern", "value": "2x_valve_seats"},
+        {"name": "spacing", "value": 40.0, "unit": "mm"},
+        {"name": "description", "value": "cartridge_valve_cavities"},
+        {"name": "min_wall_thickness", "value": 2.5, "unit": "mm"},
+        {"name": "note", "value": "FIXED: increased spacing for 2.5mm wall"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 8.0, "unit": "mm"},
+        {"name": "depth", "value": 12.0, "unit": "mm"},
+        {"name": "tap", "value": "M8"},
+        {"name": "pattern", "value": "4x_corners"},
+        {"name": "description", "value": "mounting_holes"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 10.0, "unit": "mm"},
+        {"name": "depth", "value": 15.0, "unit": "mm"},
+        {"name": "tap", "value": "G1/8"},
+        {"name": "pattern", "value": "4x_plugs"},
+        {"name": "description", "value": "cross_drill_plugs"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+Create a row of 4 cylinders, each 20mm in diameter, spaced 30mm apart along the X axis. The cylinders have increasing heights: 10mm, 20mm, 30mm, and 40mm from left to right.

@@ -1,0 +1,153 @@
+\section{Method}
+\label{sec:method}
+
+Our overarching data curation pipeline is visualized in \cref{fig:pipeline}.
+It maps Non-Euclidean raw CAD intent---comprising a structured Ops JSON and multi-view
+renders---into a highly structured Euclidean execution space represented by CadQuery
+Python code.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figure_1}
+  \caption{%
+    \textbf{The CADLoop Data Curation Pipeline.}
+    Raw 3D geometries and semantic JSON intents are initially mapped into executable
+    CadQuery code via a VLM agent cascade.
+    The outputs are subsequently refined by a deterministic geometric fallback loop to
+    produce high-fidelity, verified training pairs.
+  }
+  \label{fig:pipeline}
+\end{figure*}
+
+\subsection{Problem Formulation \& Verification Metric}
+\label{sec:formulation}
+
+The input to our curation pipeline consists of an initially generated candidate CadQuery
+script $C_{init}$ (produced by an upstream VLM), a target ground-truth solid $S_{gt}$ (in
+STEP format), and a reference Ops JSON $J$ providing the discrete semantic constraints
+(\eg, \texttt{cut\_hole}, \texttt{tool\_size}, \texttt{centers}).
+The candidate script $C_{init}$ compiles into a generated 3D boundary representation
+solid $S_{gen}$.
+
+To rigorously ensure engineering-grade accuracy, correctness is not evaluated via
+heuristic distance approximations, but rather verified using exact 3D volumetric
+Intersection over Union (IoU) via precise B-Rep Boolean operations computed by the
+OpenCASCADE kernel:
+\begin{equation}
+  \text{IoU}(S_{gen}, S_{gt}) =
+    \frac{\text{Vol}(S_{gen} \cap S_{gt})}
+         {\text{Vol}(S_{gen}) + \text{Vol}(S_{gt}) - \text{Vol}(S_{gen} \cap S_{gt})}
+  \label{eq:iou}
+\end{equation}
+
+\subsection{The Deterministic Fallback Mechanism}
+\label{sec:fallback}
+
+\Cref{fig:arch} highlights the architectural superiority of CADLoop over standard
+iterative loops.
+We wrap the baseline generation with a ``Geometric Constraint Discovery'' module.
+When standard visual/textual validation fails, rather than blindly re-prompting the LLM,
+the system triggers the targeted programmatic skill to explicitly calculate and correct
+parameters.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figure_2}
+  \caption{%
+    \textbf{Architectural Comparison.}
+    (A) Standard Re-Act loops rely entirely on probabilistic inference, leading to
+    hallucination cycles when faced with continuous geometric errors.
+    (B) CADLoop acts as an outer fallback envelope, utilizing exact geometric discovery to
+    analytically modify the code's AST without VLM intervention.
+  }
+  \label{fig:arch}
+\end{figure*}
+
+The curation and fallback pipeline is formalized in \cref{alg:cadloop}.
+By taking the generated code and reference JSON as direct inputs, we avoid a fragmented
+toolset.
+We expose a single unified skill (\texttt{cad\_data\_generation}) to the overall system,
+which acts as an autonomous post-generation processor to analytically calculate the missing
+spatial constraints and inject them directly into the Python code.
+
+\begin{algorithm}[t]
+  \caption{CADLoop Deterministic Fallback Pipeline}
+  \label{alg:cadloop}
+  \begin{algorithmic}[1]
+    \Require Generated code $C_{init}$, reference Ops JSON $J$, GT solid $S_{gt}$,
+             unified skill $\mathcal{S}_{cad}$
+    \Ensure Verified CadQuery script $C^*$, or \textsc{null}
+    \State $S_{gen} \leftarrow \textsc{Compile}(C_{init})$
+    \State $score \leftarrow \textsc{IoU}(S_{gen},\, S_{gt})$
+    \If{$score \geq 0.99$}
+      \State \Return $C_{init}$ \Comment{Auto-Pass}
+    \EndIf
+    \If{$score < 0.80$}
+      \State \Return \textsc{null} \Comment{Skip structural hallucinations}
+    \EndIf
+    \State \Comment{Trigger Deterministic Fallback (Proximal Near-Miss Regime)}
+    \State \Comment{Skill parses $J$ to discover root cause and compute exact params}
+    \State $params \leftarrow \mathcal{S}_{cad}.\textsc{CalcParams}(S_{gen},\, S_{gt},\, J)$
+    \State \Comment{Deterministically update the generated code's AST}
+    \State $C_{ref} \leftarrow \textsc{InjectParams}(C_{init},\, params)$
+    \State $S_{ref} \leftarrow \textsc{Compile}(C_{ref})$
+    \State $score' \leftarrow \textsc{IoU}(S_{ref},\, S_{gt})$
+    \If{$score' \geq 0.99$}
+      \State \Return $C_{ref}$
+    \Else
+      \State \Return $\textsc{EscalateToFlywheel}(C_{ref},\, J,\, S_{gt})$
+    \EndIf
+  \end{algorithmic}
+\end{algorithm}
+
+\subsection{The Unified Geometric Skill \& Parametric Grounding}
+\label{sec:skill}
+
+Rather than maintaining a scattered, hard-to-route library of narrow tools (\eg, a
+specific tool for circles, another for lines), CADLoop encapsulates its deterministic
+solvers into a single, cohesive programmatic skill.
+Upon invocation, this skill analyzes the Ops JSON ($\mathbf{C}_{json}$) to infer the
+geometric intent, dynamically instantiates the correct analytical mathematical solver, and
+directly injects the explicit parameters ($\mathbf{P}_{exact}$) back into the code.
+We highlight two primary internal operations this unified skill performs to resolve
+failures, as visualized in \cref{fig:skill}.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figure_3}
+  \caption{%
+    \textbf{Unified Skill Internal Reasoning.}
+    The tool calculates exact arc midpoints via rotation matrices and isolates inner-hole
+    volume differences.
+    It updates the AST deterministically, shifting the IoU score from a failing 0.893 to
+    a verified 0.999.
+  }
+  \label{fig:skill}
+\end{figure*}
+
+\noindent\textbf{Operation 1: Arc Midpoint Resolution.}
+A prevalent VLM error is specifying arcs by center and radius (\texttt{radiusArc}), which
+causes severe topological inversions due to ambiguity in the sweep direction.
+To resolve this, the tool parses the \texttt{Arc3D} constraints from the JSON and computes
+the guaranteed unambiguous midpoint $P_{mid}$ using a 2D rotation matrix $\mathbf{R}$:
+\begin{equation}
+  P_{mid} = P_{center} + r \cdot \mathbf{R}(\hat{v},\, \theta/2) \cdot \vec{d}_{start}
+  \label{eq:arcmid}
+\end{equation}
+The AST modifier then automatically replaces the brittle \texttt{radiusArc} syntax with a
+robust \texttt{threePointArc} node.
+
+\noindent\textbf{Operation 2: Feature-Level Volumetric Verification.}
+To detect complex profile omissions (\eg, an LLM failing to subtract an inner bounding
+loop), the tool relies on absolute volume differentials:
+$\Delta V = |\text{Vol}(S_{gen}) - \text{Vol}(S_{gt})|$.
+If $\Delta V$ closely matches the theoretical volume of a specific target feature from the
+JSON, it triggers a localized cross-sectional area verification:
+\begin{equation}
+  Area_{expected} = Area_{rectangle} \pm Area_{semicircle}
+  \label{eq:area}
+\end{equation}
+By identifying whether the area aligns with the positive or negative term of
+\cref{eq:area}, the skill determines the exact structural inversion (Convex Down vs.\
+Convex Up) and actively rewrites the directional Boolean constraints in the CadQuery
+script.

@@ -1,0 +1,13 @@
+{
+  "id": "L3_E01",
+  "name": "Lofted Transition",
+  "level": 3,
+  "expected_volume": 56453.97,
+  "expected_faces": 7,
+  "expected_edges": 15,
+  "expected_bounding_box": {
+    "x": 40.0,
+    "y": 40.0,
+    "z": 50.0
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "L2_09",
+  "name": "Corner Holes",
+  "level": 2,
+  "expected_volume": 116984.07,
+  "expected_faces": 10,
+  "expected_edges": 24,
+  "expected_bounding_box": {
+    "x": 100.0,
+    "y": 80.0,
+    "z": 15.0
+  }
+}

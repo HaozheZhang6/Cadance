@@ -1,0 +1,13 @@
+{
+  "id": "L4_07",
+  "name": "Swept Hook",
+  "level": 4,
+  "expected_volume": 10095.49,
+  "expected_faces": 4,
+  "expected_edges": 5,
+  "expected_bounding_box": {
+    "x": 60.0,
+    "y": 10.0,
+    "z": 80.0
+  }
+}

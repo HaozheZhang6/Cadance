@@ -1,0 +1,13 @@
+{
+  "id": "L1_E04",
+  "name": "Extruded Ellipse",
+  "level": 1,
+  "expected_volume": 29452.43,
+  "expected_faces": 3,
+  "expected_edges": 3,
+  "expected_bounding_box": {
+    "x": 50.0,
+    "y": 30.0,
+    "z": 25.0
+  }
+}

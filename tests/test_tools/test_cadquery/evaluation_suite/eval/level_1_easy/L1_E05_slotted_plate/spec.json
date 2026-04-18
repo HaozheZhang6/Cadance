@@ -1,0 +1,13 @@
+{
+  "id": "L1_E05",
+  "name": "Slotted Plate",
+  "level": 1,
+  "expected_volume": 11141.59,
+  "expected_faces": 6,
+  "expected_edges": 12,
+  "expected_bounding_box": {
+    "x": 60.0,
+    "y": 20.0,
+    "z": 10.0
+  }
+}

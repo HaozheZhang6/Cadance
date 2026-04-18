@@ -1,0 +1,15 @@
+{
+  "schema_version": "ops_program.v1",
+  "operations": [
+    {
+      "primitive": "shell",
+      "parameters": [
+        {
+          "name": "thickness",
+          "value": 0.5,
+          "unit": "mm"
+        }
+      ]
+    }
+  ]
+}

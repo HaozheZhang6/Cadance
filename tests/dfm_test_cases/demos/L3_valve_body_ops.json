@@ -1,0 +1,70 @@
+{
+  "schema_version": "ops_program.v1",
+  "name": "valve_body",
+  "description": "Level 3 - 3-way valve body with threaded ports and internal channels",
+  "complexity": "L3_hard",
+  "operations": [
+    {
+      "primitive": "extrude",
+      "parameters": [
+        {"name": "profile", "value": "hex_with_flats"},
+        {"name": "width", "value": 60.0, "unit": "mm"},
+        {"name": "height", "value": 50.0, "unit": "mm"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 20.0, "unit": "mm"},
+        {"name": "depth", "value": 35.0, "unit": "mm"},
+        {"name": "tap", "value": "NPT_3/4"},
+        {"name": "description", "value": "inlet_port"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 15.0, "unit": "mm"},
+        {"name": "depth", "value": 25.0, "unit": "mm"},
+        {"name": "tap", "value": "NPT_1/2"},
+        {"name": "orientation", "value": "perpendicular"},
+        {"name": "description", "value": "outlet_port_1"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 15.0, "unit": "mm"},
+        {"name": "depth", "value": 25.0, "unit": "mm"},
+        {"name": "tap", "value": "NPT_1/2"},
+        {"name": "orientation", "value": "perpendicular"},
+        {"name": "description", "value": "outlet_port_2"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 25.0, "unit": "mm"},
+        {"name": "depth", "value": 30.0, "unit": "mm"},
+        {"name": "tolerance", "value": "H7"},
+        {"name": "description", "value": "spool_bore"}
+      ]
+    },
+    {
+      "primitive": "groove",
+      "parameters": [
+        {"name": "width", "value": 2.5, "unit": "mm"},
+        {"name": "depth", "value": 1.5, "unit": "mm"},
+        {"name": "pattern", "value": "internal_3x"},
+        {"name": "description", "value": "o_ring_grooves"}
+      ]
+    },
+    {
+      "primitive": "chamfer",
+      "parameters": [
+        {"name": "distance", "value": 1.0, "unit": "mm"},
+        {"name": "location", "value": "port_entries"}
+      ]
+    }
+  ]
+}

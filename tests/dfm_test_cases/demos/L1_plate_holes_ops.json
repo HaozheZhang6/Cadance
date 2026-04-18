@@ -1,0 +1,48 @@
+{
+  "schema_version": "ops_program.v1",
+  "name": "mounting_plate",
+  "description": "Level 1 - Flat plate with 4 corner mounting holes",
+  "complexity": "L1_easy",
+  "operations": [
+    {
+      "primitive": "extrude",
+      "parameters": [
+        {"name": "height", "value": 5.0, "unit": "mm"},
+        {"name": "width", "value": 100.0, "unit": "mm"},
+        {"name": "depth", "value": 60.0, "unit": "mm"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 6.0, "unit": "mm"},
+        {"name": "depth", "value": 5.0, "unit": "mm"},
+        {"name": "position", "value": "corner_10mm_offset"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 6.0, "unit": "mm"},
+        {"name": "depth", "value": 5.0, "unit": "mm"},
+        {"name": "position", "value": "corner_10mm_offset"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 6.0, "unit": "mm"},
+        {"name": "depth", "value": 5.0, "unit": "mm"},
+        {"name": "position", "value": "corner_10mm_offset"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 6.0, "unit": "mm"},
+        {"name": "depth", "value": 5.0, "unit": "mm"},
+        {"name": "position", "value": "corner_10mm_offset"}
+      ]
+    }
+  ]
+}

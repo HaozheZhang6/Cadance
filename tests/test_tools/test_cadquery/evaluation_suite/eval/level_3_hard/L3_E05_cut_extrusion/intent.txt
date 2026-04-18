@@ -1,0 +1,1 @@
+Create an 80mm x 50mm x 30mm block with a T-slot cut into the top face running the full length. The T-slot should have a 10mm wide top opening, a 15mm wide base, and be 20mm deep.

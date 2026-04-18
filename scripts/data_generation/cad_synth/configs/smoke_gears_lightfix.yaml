@@ -1,0 +1,12 @@
+num_samples: 60
+seed: 2026
+run_name: smoke_gears_lightfix_s2026
+
+family_mix:
+  spur_gear:    0.5
+  helical_gear: 0.5
+
+difficulty_mix:
+  easy:   0.20
+  medium: 0.40
+  hard:   0.40

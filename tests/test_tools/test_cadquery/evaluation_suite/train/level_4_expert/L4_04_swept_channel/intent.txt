@@ -1,0 +1,1 @@
+Create a curved channel by sweeping a 20mm x 10mm rectangular profile along a 90-degree arc with a 50mm radius.

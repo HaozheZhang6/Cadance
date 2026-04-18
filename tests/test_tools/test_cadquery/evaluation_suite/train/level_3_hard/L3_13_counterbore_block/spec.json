@@ -1,0 +1,13 @@
+{
+  "id": "L3_13",
+  "name": "Counterbore Block",
+  "level": 3,
+  "expected_volume": 130512.39,
+  "expected_faces": 18,
+  "expected_edges": 36,
+  "expected_bounding_box": {
+    "x": 100.0,
+    "y": 70.0,
+    "z": 20.0
+  }
+}

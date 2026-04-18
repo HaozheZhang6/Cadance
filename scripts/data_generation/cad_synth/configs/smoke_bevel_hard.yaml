@@ -1,0 +1,9 @@
+num_samples: 4
+seed: 1322
+run_name: synth_smoke_bevel_hard_s1322
+
+family_mix:
+  bevel_gear: 1.0
+
+difficulty_mix:
+  hard: 1.0

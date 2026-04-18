@@ -1,0 +1,10 @@
+num_samples: 100
+seed: 42
+run_name: synth_smoke_s42
+family_mix:
+  mounting_plate: 0.5
+  round_flange: 0.5
+difficulty_mix:
+  easy: 0.4
+  medium: 0.4
+  hard: 0.2

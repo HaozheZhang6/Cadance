@@ -1,0 +1,105 @@
+[project]
+name = "cadance"
+version = "0.1.0"
+description = "Bench and synthetic CAD generation utilities"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "openai>=2.15.0",
+    "cadquery==2.3.0",
+    "cadquery-ocp==7.9.3.0",
+    "numpy==1.26.4",
+    "scipy>=1.17.0",
+    "pandas>=2.3.3",
+    "trimesh>=4.11.3",
+    "datasets>=4.8.3",
+    "scikit-image>=0.26.0",
+    "pyyaml>=6.0.2",
+    "pillow>=11.3.0",
+    "torch>=2.8.0",
+    "transformers>=4.56.0",
+    "multimethod>=2.0.2",
+    "typish>=1.9.3",
+    "ezdxf>=1.4.3",
+    "nptyping>=2.5.0",
+    "casadi>=3.7.2",
+]
+
+[project.optional-dependencies]
+vision = [
+    "vtk>=9.3.1",
+]
+
+[dependency-groups]
+dev = [
+    "black>=26.1.0",
+    "ipykernel>=7.1.0",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.24",
+    "hypothesis>=6.0.0",
+    "ruff>=0.4.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "integration: marks tests as integration tests (skipped by default)",
+    "kicad: marks tests as requiring KiCad installation",
+    "property: marks tests as property-based tests",
+    "slow: marks tests as slow-running",
+    "demo: marks tests as demo tests (long-running, may require external services, use --run-demo)",
+]
+# Suppress pyparsing deprecation warnings from cadquery's selectors.py
+# These are upstream issues in cadquery using deprecated pyparsing API:
+# - oneOf -> one_of
+# - setParseAction -> set_parse_action
+# See: https://github.com/CadQuery/cadquery/issues (upstream fix needed)
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::pyparsing.PyparsingDeprecationWarning",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+
+[tool.ruff.lint.isort]
+
+[tool.coverage.run]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+
+[tool.uv]
+package = false

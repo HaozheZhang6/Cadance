@@ -1,0 +1,13 @@
+{
+  "id": "L4_E04",
+  "name": "Complex Intersect",
+  "level": 4,
+  "expected_volume": 51874.46,
+  "expected_faces": 4,
+  "expected_edges": 5,
+  "expected_bounding_box": {
+    "x": 40.0,
+    "y": 40.0,
+    "z": 50.0
+  }
+}

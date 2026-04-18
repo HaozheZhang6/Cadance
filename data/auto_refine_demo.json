@@ -1,0 +1,671 @@
+{
+  "nodes": {
+    "contract_dfm_auto": {
+      "id": "contract_dfm_auto",
+      "node_type": "contract",
+      "description": "DFM compliance contract (automated refinement)",
+      "confidence": 0.6,
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:43.957268",
+      "status": "satisfied",
+      "inputs": {},
+      "outputs": {},
+      "guarantees": [
+        "All DFM rules satisfied"
+      ],
+      "assumptions": [
+        "CNC machining process"
+      ],
+      "cross_effects": {},
+      "unknowns": [],
+      "experiments_needed": [],
+      "input_bounds": {},
+      "parties": [],
+      "formal_repr": "",
+      "valid_regimes": []
+    },
+    "artifact_87c60511": {
+      "id": "artifact_87c60511",
+      "node_type": "artifact",
+      "description": "Initial ops program: precision_spindle_housing",
+      "confidence": 1.0,
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:43.957402",
+      "artifact_type": "ops_program",
+      "path": "/home/vladygin/Documents/GitHub/cadance/cadance_vlad/tests/dfm_test_cases/demos/L5_precision_spindle_housing_ops.json",
+      "uri": null,
+      "sha256": "87c6051189753fe5fbf3c66b980626351b8332593d0678f16814e552ce7de9ee",
+      "media_type": "application/json",
+      "role": "input",
+      "size_bytes": 4026,
+      "meta": {}
+    },
+    "toolinv_4bc7e7d2d90f": {
+      "id": "toolinv_4bc7e7d2d90f",
+      "node_type": "tool_invocation",
+      "description": "mech-verify invocation",
+      "confidence": 1.0,
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.311814",
+      "tool_name": "mech-verify",
+      "tool_version": "0.1.0",
+      "inputs": {
+        "mode": "ops_program",
+        "ops_program_path": "/home/vladygin/Documents/GitHub/cadance/cadance_vlad/tests/dfm_test_cases/demos/L5_precision_spindle_housing_ops.json",
+        "process": null,
+        "material": null,
+        "require_pmi": false,
+        "use_external_tools": false,
+        "shacl": false,
+        "validate_schema": false,
+        "units_length": "mm",
+        "units_angle": "deg"
+      },
+      "outputs": {
+        "artifacts": [
+          {
+            "id": "artifact_8edc500170fb",
+            "path": "data/artifacts/report_8edc500170fb.json",
+            "type": "report"
+          }
+        ]
+      },
+      "exit_code": 0,
+      "status": "success",
+      "duration_ms": 0.274658203125,
+      "config_hash": "2857588db77b9922c0c0775c015838ea0780d9d23bdfdd76bf32448db0abfb2e"
+    },
+    "artifact_8edc500170fb": {
+      "id": "artifact_8edc500170fb",
+      "node_type": "artifact",
+      "description": "report artifact",
+      "confidence": 1.0,
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312027",
+      "artifact_type": "report",
+      "path": "data/artifacts/report_8edc500170fb.json",
+      "uri": null,
+      "sha256": "8edc500170fbe32e62c80d4b9a744c4c2196ba6a9ccb008bbad0cf20c0794039",
+      "media_type": "application/json",
+      "role": "output",
+      "size_bytes": 5058,
+      "meta": {}
+    },
+    "evidence_272b7d969539639c": {
+      "id": "evidence_272b7d969539639c",
+      "node_type": "evidence",
+      "description": "Hole diameter 0.300mm below minimum 0.5mm",
+      "confidence": 1.0,
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312068",
+      "evidence_type": "mech_verification",
+      "provenance": "mech-verify:f2649a5995e4b6ac",
+      "data": {
+        "rule_id": "mech.hole_min_diameter",
+        "severity": "ERROR",
+        "finding_id": "272b7d969539639c",
+        "object_ref": "mech://part/L5_precision_spindle_housing_ops/feature/hole/3",
+        "object_refs": [],
+        "measured_value": {
+          "value": 0.3,
+          "unit": "mm"
+        },
+        "limit": {
+          "value": 0.5,
+          "unit": "mm"
+        },
+        "suggested_fix": "Increase hole diameter to at least 0.5mm",
+        "tags": [],
+        "locations": [],
+        "raw": {
+          "primitive": "hole",
+          "op_index": 3
+        }
+      }
+    },
+    "evidence_1231bb0d6c2790a8": {
+      "id": "evidence_1231bb0d6c2790a8",
+      "node_type": "evidence",
+      "description": "Hole L/D ratio 22.0 exceeds maximum 10.0",
+      "confidence": 1.0,
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312077",
+      "evidence_type": "mech_verification",
+      "provenance": "mech-verify:f2649a5995e4b6ac",
+      "data": {
+        "rule_id": "mech.hole_max_ld_ratio",
+        "severity": "WARN",
+        "finding_id": "1231bb0d6c2790a8",
+        "object_ref": "mech://part/L5_precision_spindle_housing_ops/feature/hole/1",
+        "object_refs": [],
+        "measured_value": {
+          "ratio": 22.0
+        },
+        "limit": {
+          "max_ratio": 10.0
+        },
+        "suggested_fix": "Consider larger diameter or shallower depth for manufacturability",
+        "tags": [],
+        "locations": [],
+        "raw": {
+          "primitive": "hole",
+          "op_index": 1
+        }
+      }
+    },
+    "evidence_4d6e8eee719ec442": {
+      "id": "evidence_4d6e8eee719ec442",
+      "node_type": "evidence",
+      "description": "Hole L/D ratio 40.0 exceeds maximum 10.0",
+      "confidence": 1.0,
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312081",
+      "evidence_type": "mech_verification",
+      "provenance": "mech-verify:f2649a5995e4b6ac",
+      "data": {
+        "rule_id": "mech.hole_max_ld_ratio",
+        "severity": "WARN",
+        "finding_id": "4d6e8eee719ec442",
+        "object_ref": "mech://part/L5_precision_spindle_housing_ops/feature/hole/3",
+        "object_refs": [],
+        "measured_value": {
+          "ratio": 40.0
+        },
+        "limit": {
+          "max_ratio": 10.0
+        },
+        "suggested_fix": "Consider larger diameter or shallower depth for manufacturability",
+        "tags": [],
+        "locations": [],
+        "raw": {
+          "primitive": "hole",
+          "op_index": 3
+        }
+      }
+    },
+    "evidence_c489fc044d299b33": {
+      "id": "evidence_c489fc044d299b33",
+      "node_type": "evidence",
+      "description": "Hole L/D ratio 13.3 exceeds maximum 10.0",
+      "confidence": 1.0,
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312084",
+      "evidence_type": "mech_verification",
+      "provenance": "mech-verify:f2649a5995e4b6ac",
+      "data": {
+        "rule_id": "mech.hole_max_ld_ratio",
+        "severity": "WARN",
+        "finding_id": "c489fc044d299b33",
+        "object_ref": "mech://part/L5_precision_spindle_housing_ops/feature/hole/4",
+        "object_refs": [],
+        "measured_value": {
+          "ratio": 13.33
+        },
+        "limit": {
+          "max_ratio": 10.0
+        },
+        "suggested_fix": "Consider larger diameter or shallower depth for manufacturability",
+        "tags": [],
+        "locations": [],
+        "raw": {
+          "primitive": "hole",
+          "op_index": 4
+        }
+      }
+    },
+    "evidence_e61a3df99b2c25e8": {
+      "id": "evidence_e61a3df99b2c25e8",
+      "node_type": "evidence",
+      "description": "Wall thickness 0.400mm below minimum 1.0mm",
+      "confidence": 1.0,
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312090",
+      "evidence_type": "mech_verification",
+      "provenance": "mech-verify:f2649a5995e4b6ac",
+      "data": {
+        "rule_id": "mech.wall_thickness",
+        "severity": "WARN",
+        "finding_id": "e61a3df99b2c25e8",
+        "object_ref": "mech://part/L5_precision_spindle_housing_ops/feature/hole/4",
+        "object_refs": [],
+        "measured_value": {
+          "value": 0.4,
+          "unit": "mm"
+        },
+        "limit": {
+          "value": 1.0,
+          "unit": "mm"
+        },
+        "suggested_fix": "Increase wall thickness to at least 1.0mm or adjust feature spacing",
+        "tags": [],
+        "locations": [],
+        "raw": {
+          "primitive": "hole",
+          "op_index": 4
+        }
+      }
+    },
+    "evidence_afcc5d0e632a9ed5": {
+      "id": "evidence_afcc5d0e632a9ed5",
+      "node_type": "evidence",
+      "description": "Slot width 0.400mm below minimum 0.5mm (requires EDM)",
+      "confidence": 1.0,
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312095",
+      "evidence_type": "mech_verification",
+      "provenance": "mech-verify:f2649a5995e4b6ac",
+      "data": {
+        "rule_id": "mech.slot_width",
+        "severity": "WARN",
+        "finding_id": "afcc5d0e632a9ed5",
+        "object_ref": "mech://part/L5_precision_spindle_housing_ops/feature/groove/5",
+        "object_refs": [],
+        "measured_value": {
+          "value": 0.4,
+          "unit": "mm"
+        },
+        "limit": {
+          "value": 0.5,
+          "unit": "mm"
+        },
+        "suggested_fix": "Increase slot width to at least 0.5mm or specify EDM process",
+        "tags": [],
+        "locations": [],
+        "raw": {
+          "primitive": "groove",
+          "op_index": 5
+        }
+      }
+    },
+    "evidence_714c7dab56454c73": {
+      "id": "evidence_714c7dab56454c73",
+      "node_type": "evidence",
+      "description": "Pocket corner radius 0.50mm too small for depth 25.0mm (need >= 8.25mm)",
+      "confidence": 1.0,
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312099",
+      "evidence_type": "mech_verification",
+      "provenance": "mech-verify:f2649a5995e4b6ac",
+      "data": {
+        "rule_id": "mech.pocket_corner_radius",
+        "severity": "WARN",
+        "finding_id": "714c7dab56454c73",
+        "object_ref": "mech://part/L5_precision_spindle_housing_ops/feature/pocket/2",
+        "object_refs": [],
+        "measured_value": {
+          "corner_radius": 0.5,
+          "depth": 25.0,
+          "unit": "mm"
+        },
+        "limit": {
+          "min_ratio": 0.33
+        },
+        "suggested_fix": "Increase corner radius to at least 8.25mm (1/3 of depth) or reduce pocket depth",
+        "tags": [],
+        "locations": [],
+        "raw": {
+          "primitive": "pocket",
+          "op_index": 2
+        }
+      }
+    },
+    "evidence_703814d021800bed": {
+      "id": "evidence_703814d021800bed",
+      "node_type": "evidence",
+      "description": "Rib height/thickness ratio 15.0 exceeds maximum 8.0",
+      "confidence": 1.0,
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312161",
+      "evidence_type": "mech_verification",
+      "provenance": "mech-verify:f2649a5995e4b6ac",
+      "data": {
+        "rule_id": "mech.rib_aspect_ratio",
+        "severity": "WARN",
+        "finding_id": "703814d021800bed",
+        "object_ref": "mech://part/L5_precision_spindle_housing_ops/feature/rib/6",
+        "object_refs": [],
+        "measured_value": {
+          "height": 30.0,
+          "thickness": 2.0,
+          "ratio": 15.0
+        },
+        "limit": {
+          "max_ratio": 8.0
+        },
+        "suggested_fix": "Increase rib thickness or reduce height to improve rigidity",
+        "tags": [],
+        "locations": [],
+        "raw": {
+          "primitive": "rib",
+          "op_index": 6
+        }
+      }
+    },
+    "artifact_89b66fcf": {
+      "id": "artifact_89b66fcf",
+      "node_type": "artifact",
+      "description": "Refined ops program v2",
+      "confidence": 1.0,
+      "metadata": {},
+      "created_at": "2026-01-31T09:33:09.703084",
+      "artifact_type": "ops_program",
+      "path": "data/artifacts/L5_precision_spindle_housing_ops_v2.json",
+      "uri": null,
+      "sha256": "89b66fcff342985323fb19144332bb70f0b127c27974cbf2b58577e8d443ab7d",
+      "media_type": "application/json",
+      "role": "input",
+      "size_bytes": 5680,
+      "meta": {}
+    },
+    "toolinv_1051633b4fc0": {
+      "id": "toolinv_1051633b4fc0",
+      "node_type": "tool_invocation",
+      "description": "mech-verify invocation",
+      "confidence": 1.0,
+      "metadata": {},
+      "created_at": "2026-01-31T09:33:09.714747",
+      "tool_name": "mech-verify",
+      "tool_version": "0.1.0",
+      "inputs": {
+        "mode": "ops_program",
+        "ops_program_path": "data/artifacts/L5_precision_spindle_housing_ops_v2.json",
+        "process": null,
+        "material": null,
+        "require_pmi": false,
+        "use_external_tools": false,
+        "shacl": false,
+        "validate_schema": false,
+        "units_length": "mm",
+        "units_angle": "deg"
+      },
+      "outputs": {
+        "artifacts": [
+          {
+            "id": "artifact_b4d4a617bfb5",
+            "path": "data/artifacts/report_b4d4a617bfb5.json",
+            "type": "report"
+          }
+        ]
+      },
+      "exit_code": 0,
+      "status": "success",
+      "duration_ms": 0.171661376953125,
+      "config_hash": "0d3c299ebfbfb5f2e1eb86465d7ded44e89a2bf26d5309b56d04fd249887e2dd"
+    },
+    "artifact_b4d4a617bfb5": {
+      "id": "artifact_b4d4a617bfb5",
+      "node_type": "artifact",
+      "description": "report artifact",
+      "confidence": 1.0,
+      "metadata": {},
+      "created_at": "2026-01-31T09:33:09.714850",
+      "artifact_type": "report",
+      "path": "data/artifacts/report_b4d4a617bfb5.json",
+      "uri": null,
+      "sha256": "b4d4a617bfb579f54746cf9859fc28006b65e820430df89f1523df974d14f175",
+      "media_type": "application/json",
+      "role": "output",
+      "size_bytes": 1498,
+      "meta": {}
+    },
+    "evidence_8c617bb35bfb90b7": {
+      "id": "evidence_8c617bb35bfb90b7",
+      "node_type": "evidence",
+      "description": "Hole L/D ratio 20.0 exceeds maximum 10.0",
+      "confidence": 1.0,
+      "metadata": {},
+      "created_at": "2026-01-31T09:33:09.714880",
+      "evidence_type": "mech_verification",
+      "provenance": "mech-verify:ac81b52a9ea546cf",
+      "data": {
+        "rule_id": "mech.hole_max_ld_ratio",
+        "severity": "WARN",
+        "finding_id": "8c617bb35bfb90b7",
+        "object_ref": "mech://part/L5_precision_spindle_housing_ops_v2/feature/hole/3",
+        "object_refs": [],
+        "measured_value": {
+          "ratio": 20.0
+        },
+        "limit": {
+          "max_ratio": 10.0
+        },
+        "suggested_fix": "Consider larger diameter or shallower depth for manufacturability",
+        "tags": [],
+        "locations": [],
+        "raw": {
+          "primitive": "hole",
+          "op_index": 3
+        }
+      }
+    },
+    "evidence_704f631a54618714": {
+      "id": "evidence_704f631a54618714",
+      "node_type": "evidence",
+      "description": "Hole L/D ratio 13.3 exceeds maximum 10.0",
+      "confidence": 1.0,
+      "metadata": {},
+      "created_at": "2026-01-31T09:33:09.714886",
+      "evidence_type": "mech_verification",
+      "provenance": "mech-verify:ac81b52a9ea546cf",
+      "data": {
+        "rule_id": "mech.hole_max_ld_ratio",
+        "severity": "WARN",
+        "finding_id": "704f631a54618714",
+        "object_ref": "mech://part/L5_precision_spindle_housing_ops_v2/feature/hole/4",
+        "object_refs": [],
+        "measured_value": {
+          "ratio": 13.33
+        },
+        "limit": {
+          "max_ratio": 10.0
+        },
+        "suggested_fix": "Consider larger diameter or shallower depth for manufacturability",
+        "tags": [],
+        "locations": [],
+        "raw": {
+          "primitive": "hole",
+          "op_index": 4
+        }
+      }
+    }
+  },
+  "edges": {
+    "edge_41c35202": {
+      "id": "edge_41c35202",
+      "source_id": "contract_dfm_auto",
+      "target_id": "artifact_87c60511",
+      "edge_type": "has_child",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:43.957426"
+    },
+    "edge_97a77a20e1a2": {
+      "id": "edge_97a77a20e1a2",
+      "source_id": "toolinv_4bc7e7d2d90f",
+      "target_id": "artifact_8edc500170fb",
+      "edge_type": "generated",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312191"
+    },
+    "edge_validate_evidence_272b7d969539639c": {
+      "id": "edge_validate_evidence_272b7d969539639c",
+      "source_id": "evidence_272b7d969539639c",
+      "target_id": "contract_dfm_auto",
+      "edge_type": "validates",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312192"
+    },
+    "edge_evidence_toolinv_4bc7e7d2d90f_evidence_272b7d969539639c": {
+      "id": "edge_evidence_toolinv_4bc7e7d2d90f_evidence_272b7d969539639c",
+      "source_id": "toolinv_4bc7e7d2d90f",
+      "target_id": "evidence_272b7d969539639c",
+      "edge_type": "evidences",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312193"
+    },
+    "edge_validate_evidence_1231bb0d6c2790a8": {
+      "id": "edge_validate_evidence_1231bb0d6c2790a8",
+      "source_id": "evidence_1231bb0d6c2790a8",
+      "target_id": "contract_dfm_auto",
+      "edge_type": "validates",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312194"
+    },
+    "edge_evidence_toolinv_4bc7e7d2d90f_evidence_1231bb0d6c2790a8": {
+      "id": "edge_evidence_toolinv_4bc7e7d2d90f_evidence_1231bb0d6c2790a8",
+      "source_id": "toolinv_4bc7e7d2d90f",
+      "target_id": "evidence_1231bb0d6c2790a8",
+      "edge_type": "evidences",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312197"
+    },
+    "edge_validate_evidence_4d6e8eee719ec442": {
+      "id": "edge_validate_evidence_4d6e8eee719ec442",
+      "source_id": "evidence_4d6e8eee719ec442",
+      "target_id": "contract_dfm_auto",
+      "edge_type": "validates",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312199"
+    },
+    "edge_evidence_toolinv_4bc7e7d2d90f_evidence_4d6e8eee719ec442": {
+      "id": "edge_evidence_toolinv_4bc7e7d2d90f_evidence_4d6e8eee719ec442",
+      "source_id": "toolinv_4bc7e7d2d90f",
+      "target_id": "evidence_4d6e8eee719ec442",
+      "edge_type": "evidences",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312200"
+    },
+    "edge_validate_evidence_c489fc044d299b33": {
+      "id": "edge_validate_evidence_c489fc044d299b33",
+      "source_id": "evidence_c489fc044d299b33",
+      "target_id": "contract_dfm_auto",
+      "edge_type": "validates",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312202"
+    },
+    "edge_evidence_toolinv_4bc7e7d2d90f_evidence_c489fc044d299b33": {
+      "id": "edge_evidence_toolinv_4bc7e7d2d90f_evidence_c489fc044d299b33",
+      "source_id": "toolinv_4bc7e7d2d90f",
+      "target_id": "evidence_c489fc044d299b33",
+      "edge_type": "evidences",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312203"
+    },
+    "edge_validate_evidence_e61a3df99b2c25e8": {
+      "id": "edge_validate_evidence_e61a3df99b2c25e8",
+      "source_id": "evidence_e61a3df99b2c25e8",
+      "target_id": "contract_dfm_auto",
+      "edge_type": "validates",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312209"
+    },
+    "edge_evidence_toolinv_4bc7e7d2d90f_evidence_e61a3df99b2c25e8": {
+      "id": "edge_evidence_toolinv_4bc7e7d2d90f_evidence_e61a3df99b2c25e8",
+      "source_id": "toolinv_4bc7e7d2d90f",
+      "target_id": "evidence_e61a3df99b2c25e8",
+      "edge_type": "evidences",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312210"
+    },
+    "edge_validate_evidence_afcc5d0e632a9ed5": {
+      "id": "edge_validate_evidence_afcc5d0e632a9ed5",
+      "source_id": "evidence_afcc5d0e632a9ed5",
+      "target_id": "contract_dfm_auto",
+      "edge_type": "validates",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312211"
+    },
+    "edge_evidence_toolinv_4bc7e7d2d90f_evidence_afcc5d0e632a9ed5": {
+      "id": "edge_evidence_toolinv_4bc7e7d2d90f_evidence_afcc5d0e632a9ed5",
+      "source_id": "toolinv_4bc7e7d2d90f",
+      "target_id": "evidence_afcc5d0e632a9ed5",
+      "edge_type": "evidences",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312213"
+    },
+    "edge_validate_evidence_714c7dab56454c73": {
+      "id": "edge_validate_evidence_714c7dab56454c73",
+      "source_id": "evidence_714c7dab56454c73",
+      "target_id": "contract_dfm_auto",
+      "edge_type": "validates",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312214"
+    },
+    "edge_evidence_toolinv_4bc7e7d2d90f_evidence_714c7dab56454c73": {
+      "id": "edge_evidence_toolinv_4bc7e7d2d90f_evidence_714c7dab56454c73",
+      "source_id": "toolinv_4bc7e7d2d90f",
+      "target_id": "evidence_714c7dab56454c73",
+      "edge_type": "evidences",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312216"
+    },
+    "edge_validate_evidence_703814d021800bed": {
+      "id": "edge_validate_evidence_703814d021800bed",
+      "source_id": "evidence_703814d021800bed",
+      "target_id": "contract_dfm_auto",
+      "edge_type": "validates",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312217"
+    },
+    "edge_evidence_toolinv_4bc7e7d2d90f_evidence_703814d021800bed": {
+      "id": "edge_evidence_toolinv_4bc7e7d2d90f_evidence_703814d021800bed",
+      "source_id": "toolinv_4bc7e7d2d90f",
+      "target_id": "evidence_703814d021800bed",
+      "edge_type": "evidences",
+      "metadata": {},
+      "created_at": "2026-01-31T09:32:44.312218"
+    },
+    "edge_contract_dfm_auto_artifact_89b66fcf": {
+      "id": "edge_contract_dfm_auto_artifact_89b66fcf",
+      "source_id": "contract_dfm_auto",
+      "target_id": "artifact_89b66fcf",
+      "edge_type": "has_child",
+      "metadata": {},
+      "created_at": "2026-01-31T09:33:09.703146"
+    },
+    "edge_8661fb5da2c6": {
+      "id": "edge_8661fb5da2c6",
+      "source_id": "toolinv_1051633b4fc0",
+      "target_id": "artifact_b4d4a617bfb5",
+      "edge_type": "generated",
+      "metadata": {},
+      "created_at": "2026-01-31T09:33:09.714910"
+    },
+    "edge_validate_evidence_8c617bb35bfb90b7": {
+      "id": "edge_validate_evidence_8c617bb35bfb90b7",
+      "source_id": "evidence_8c617bb35bfb90b7",
+      "target_id": "contract_dfm_auto",
+      "edge_type": "validates",
+      "metadata": {},
+      "created_at": "2026-01-31T09:33:09.714911"
+    },
+    "edge_evidence_toolinv_1051633b4fc0_evidence_8c617bb35bfb90b7": {
+      "id": "edge_evidence_toolinv_1051633b4fc0_evidence_8c617bb35bfb90b7",
+      "source_id": "toolinv_1051633b4fc0",
+      "target_id": "evidence_8c617bb35bfb90b7",
+      "edge_type": "evidences",
+      "metadata": {},
+      "created_at": "2026-01-31T09:33:09.714915"
+    },
+    "edge_validate_evidence_704f631a54618714": {
+      "id": "edge_validate_evidence_704f631a54618714",
+      "source_id": "evidence_704f631a54618714",
+      "target_id": "contract_dfm_auto",
+      "edge_type": "validates",
+      "metadata": {},
+      "created_at": "2026-01-31T09:33:09.714917"
+    },
+    "edge_evidence_toolinv_1051633b4fc0_evidence_704f631a54618714": {
+      "id": "edge_evidence_toolinv_1051633b4fc0_evidence_704f631a54618714",
+      "source_id": "toolinv_1051633b4fc0",
+      "target_id": "evidence_704f631a54618714",
+      "edge_type": "evidences",
+      "metadata": {},
+      "created_at": "2026-01-31T09:33:09.714918"
+    }
+  },
+  "metadata": {
+    "saved_at": "2026-01-31T09:33:09.715055",
+    "version": null,
+    "commit_message": null
+  }
+}

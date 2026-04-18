@@ -1,0 +1,25 @@
+{
+  "schema_version": "ops_program.v1",
+  "operations": [
+    {
+      "primitive": "shell",
+      "parameters": [
+        {
+          "name": "thickness",
+          "value": 0.8,
+          "unit": "mm"
+        }
+      ]
+    },
+    {
+      "primitive": "fillet",
+      "parameters": [
+        {
+          "name": "radius",
+          "value": 0.1,
+          "unit": "mm"
+        }
+      ]
+    }
+  ]
+}

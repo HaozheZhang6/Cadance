@@ -1,0 +1,15 @@
+num_samples: 25
+seed: 1301
+run_name: synth_smoke_fix5_s1301
+
+family_mix:
+  bevel_gear:       0.20
+  bellows:          0.20
+  propeller:        0.20
+  impeller:         0.20
+  threaded_adapter: 0.20
+
+difficulty_mix:
+  easy:   0.30
+  medium: 0.40
+  hard:   0.30

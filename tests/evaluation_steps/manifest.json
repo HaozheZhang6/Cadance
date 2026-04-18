@@ -1,0 +1,77 @@
+{
+  "schema_version": "evaluation.v1",
+  "generated_by": "OCP",
+  "test_cases": [
+    {
+      "name": "simple_box",
+      "level": 1,
+      "description": "Basic rectangular box",
+      "expected": {
+        "volume": 1000.0,
+        "bbox": [
+          10.0,
+          20.0,
+          5.0
+        ]
+      },
+      "path": "tests/evaluation_steps/L1_01_simple_box.step"
+    },
+    {
+      "name": "cylinder",
+      "level": 1,
+      "description": "Basic cylinder",
+      "expected": {
+        "volume": 785.4,
+        "bbox": [
+          10.0,
+          10.0,
+          10.0
+        ]
+      },
+      "path": "tests/evaluation_steps/L1_02_cylinder.step"
+    },
+    {
+      "name": "l_bracket",
+      "level": 2,
+      "description": "L-shaped bracket with wall",
+      "expected": {
+        "volume": 21000.0,
+        "bbox": [
+          50.0,
+          60.0,
+          35.0
+        ]
+      },
+      "path": "tests/evaluation_steps/L2_l_bracket.step"
+    },
+    {
+      "name": "thin_wall",
+      "level": 3,
+      "description": "Part with thin wall (DFM risk)",
+      "expected": {
+        "volume": 2500.0,
+        "bbox": [
+          50.0,
+          50.0,
+          1.0
+        ],
+        "warnings": [
+          "thin_wall"
+        ]
+      },
+      "path": "tests/evaluation_steps/L3_thin_wall.step"
+    },
+    {
+      "name": "degenerate",
+      "level": 4,
+      "description": "Degenerate geometry (should fail)",
+      "expected": {
+        "volume": 0.0,
+        "errors": [
+          "degenerate_geometry"
+        ]
+      },
+      "path": "tests/evaluation_steps/L4_degenerate.step"
+    }
+  ]
+}

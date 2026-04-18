@@ -1,0 +1,1 @@
+Create a triangular prism by extruding an equilateral triangle with 40mm sides to a height of 30mm.

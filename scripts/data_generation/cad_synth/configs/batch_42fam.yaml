@@ -1,0 +1,70 @@
+num_samples: 8400
+seed: 900
+run_name: synth_batch_42fam_s900
+
+# 42 families — new structural-diversity families weighted high
+family_mix:
+  # Plate / panel (low weight)
+  mounting_plate:       0.012
+  round_flange:         0.012
+  pipe_flange:          0.012
+  vented_panel:         0.012
+  slotted_plate:        0.012
+  connector_faceplate:  0.012
+  cable_routing_panel:  0.012
+  waffle_plate:         0.015
+
+  # Rotational / turned
+  stepped_shaft:        0.020
+  standoff:             0.015
+  spacer_ring:          0.020
+  shaft_collar:         0.020
+  bearing_retainer_cap: 0.020
+  motor_end_cap:        0.020
+  hex_standoff:         0.020
+
+  # Structural profiles
+  lathe_turned_part:    0.025
+  t_slot_rail:          0.025
+  i_beam:               0.025
+  gusseted_bracket:     0.020
+  u_channel:            0.020
+  rib_plate:            0.020
+  tapered_boss:         0.020
+
+  # Bracket / block
+  l_bracket:            0.015
+  locator_block:        0.015
+  pcb_standoff_plate:   0.015
+  heat_sink:            0.015
+
+  # Shell
+  enclosure:            0.012
+  sheet_metal_tray:     0.030   # shell-based
+
+  # Sweep path
+  coil_spring:          0.030   # helix sweep (circular)
+  pipe_elbow:           0.030   # spline sweep
+  worm_screw:           0.040   # helix sweep (trapezoidal profile) NEW
+
+  # Boolean multi-body
+  hinge:                0.030   # union assembly
+
+  # Algorithm-distinct families
+  spur_gear:            0.045   # involute polyline
+  impeller:             0.045   # repeated union blades
+  pulley:               0.040   # revolved groove profile
+  knob:                 0.040   # multi-section loft
+  dovetail_slide:       0.035   # trapezoidal polyline
+  cam:                  0.040   # eccentric/lobe profile
+  snap_clip:            0.035   # C-profile thin wall
+
+  # New structural diversity (highest weight)
+  hollow_tube:          0.045   # box + rect.cutThruAll NEW
+  threaded_adapter:     0.045   # hex + cylinder union NEW
+  z_bracket:            0.045   # multi-arm face-workplane NEW
+
+difficulty_mix:
+  easy:   0.25
+  medium: 0.45
+  hard:   0.30

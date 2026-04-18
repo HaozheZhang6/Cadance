@@ -1,0 +1,34 @@
+{
+  "schema_version": "ops_program.v1",
+  "name": "sharp_corner_pocket",
+  "description": "Level 2 - Part with DFM VIOLATION: sharp internal corner (needs fillet)",
+  "complexity": "L2_medium",
+  "dfm_status": "VIOLATION",
+  "expected_findings": ["WARN: sharp_internal_corner"],
+  "operations": [
+    {
+      "primitive": "extrude",
+      "parameters": [
+        {"name": "height", "value": 25.0, "unit": "mm"},
+        {"name": "width", "value": 60.0, "unit": "mm"},
+        {"name": "depth", "value": 40.0, "unit": "mm"}
+      ]
+    },
+    {
+      "primitive": "pocket",
+      "parameters": [
+        {"name": "width", "value": 30.0, "unit": "mm"},
+        {"name": "length", "value": 20.0, "unit": "mm"},
+        {"name": "depth", "value": 15.0, "unit": "mm"},
+        {"name": "corner_radius", "value": 0.0, "unit": "mm"}
+      ]
+    },
+    {
+      "primitive": "fillet",
+      "parameters": [
+        {"name": "radius", "value": 0.1, "unit": "mm"},
+        {"name": "location", "value": "pocket_corners"}
+      ]
+    }
+  ]
+}

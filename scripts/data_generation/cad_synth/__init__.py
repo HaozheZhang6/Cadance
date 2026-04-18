@@ -1,0 +1,1 @@
+"""CadQuery Synthetic Data Harness."""

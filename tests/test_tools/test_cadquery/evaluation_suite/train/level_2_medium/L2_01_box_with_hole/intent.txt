@@ -1,0 +1,1 @@
+Create a 80mm x 60mm x 20mm block with a 15mm diameter hole through the center, going through the full thickness.

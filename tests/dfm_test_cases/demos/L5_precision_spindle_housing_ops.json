@@ -1,0 +1,102 @@
+{
+  "schema_version": "ops_program.v1",
+  "name": "precision_spindle_housing",
+  "description": "Level 5 Expert - CNC spindle housing with cascading DFM violations requiring multi-stage refinement",
+  "complexity": "L5_expert",
+  "dfm_status": "CRITICAL_VIOLATIONS",
+  "expected_findings": [
+    "ERROR: hole_too_small (0.3mm coolant spray)",
+    "WARN: hole_ld_ratio_exceeded (L/D=22 bearing bore)",
+    "WARN: pocket_corner_radius (0.5mm corners in 25mm deep pocket)",
+    "WARN: rib_aspect_ratio (30mm/2mm = 15:1 cooling fins)",
+    "WARN: slot_width (0.4mm labyrinth seal grooves)",
+    "WARN: wall_thickness (0.4mm between coolant passages)"
+  ],
+  "design_intent": "High-speed CNC spindle housing with integrated cooling",
+  "material": "7075-T6_aluminum",
+  "operations": [
+    {
+      "primitive": "extrude",
+      "parameters": [
+        {"name": "profile", "value": "cylindrical_housing"},
+        {"name": "outer_diameter", "value": 180.0, "unit": "mm"},
+        {"name": "inner_diameter", "value": 80.0, "unit": "mm"},
+        {"name": "length", "value": 250.0, "unit": "mm"},
+        {"name": "description", "value": "main_housing_body"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 80.0, "unit": "mm"},
+        {"name": "depth", "value": 1760.0, "unit": "mm"},
+        {"name": "tolerance", "value": "H5"},
+        {"name": "surface_finish", "value": "Ra0.2"},
+        {"name": "description", "value": "main_bearing_bore"},
+        {"name": "note", "value": "VIOLATION: L/D=22, requires line boring"}
+      ]
+    },
+    {
+      "primitive": "pocket",
+      "parameters": [
+        {"name": "diameter", "value": 100.0, "unit": "mm"},
+        {"name": "depth", "value": 25.0, "unit": "mm"},
+        {"name": "corner_radius", "value": 0.5, "unit": "mm"},
+        {"name": "pattern", "value": "2x_bearing_seats"},
+        {"name": "description", "value": "angular_contact_bearing_pockets"},
+        {"name": "note", "value": "VIOLATION: corner radius 0.5mm for 25mm depth (need 8.3mm)"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 0.3, "unit": "mm"},
+        {"name": "depth", "value": 12.0, "unit": "mm"},
+        {"name": "pattern", "value": "24x_radial"},
+        {"name": "description", "value": "coolant_spray_orifices"},
+        {"name": "note", "value": "VIOLATION: 0.3mm below 0.5mm minimum"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 6.0, "unit": "mm"},
+        {"name": "depth", "value": 80.0, "unit": "mm"},
+        {"name": "pattern", "value": "helical_cooling_12x"},
+        {"name": "description", "value": "cooling_channels"},
+        {"name": "min_wall_thickness", "value": 0.4, "unit": "mm"},
+        {"name": "note", "value": "VIOLATION: 0.4mm wall between channels"}
+      ]
+    },
+    {
+      "primitive": "groove",
+      "parameters": [
+        {"name": "width", "value": 0.4, "unit": "mm"},
+        {"name": "depth", "value": 0.8, "unit": "mm"},
+        {"name": "pattern", "value": "labyrinth_5x"},
+        {"name": "description", "value": "labyrinth_seal_grooves"},
+        {"name": "note", "value": "VIOLATION: 0.4mm width requires micro-EDM"}
+      ]
+    },
+    {
+      "primitive": "rib",
+      "parameters": [
+        {"name": "height", "value": 30.0, "unit": "mm"},
+        {"name": "thickness", "value": 2.0, "unit": "mm"},
+        {"name": "pattern", "value": "radial_24x"},
+        {"name": "description", "value": "external_cooling_fins"},
+        {"name": "note", "value": "VIOLATION: 30/2 = 15:1 aspect ratio (max 8:1)"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 8.0, "unit": "mm"},
+        {"name": "depth", "value": 20.0, "unit": "mm"},
+        {"name": "tap", "value": "M8x1.25"},
+        {"name": "pattern", "value": "flange_12x"},
+        {"name": "description", "value": "mounting_flange_holes"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+num_samples: 7600
+seed: 800
+run_name: synth_batch_38fam_s800
+
+# 38 families — new high-diversity families weighted high
+family_mix:
+  # Plate / panel (low weight)
+  mounting_plate:       0.015
+  round_flange:         0.015
+  pipe_flange:          0.015
+  vented_panel:         0.015
+  slotted_plate:        0.015
+  connector_faceplate:  0.015
+  cable_routing_panel:  0.015
+  waffle_plate:         0.020
+
+  # Rotational / turned
+  stepped_shaft:        0.025
+  standoff:             0.020
+  spacer_ring:          0.025
+  shaft_collar:         0.025
+  bearing_retainer_cap: 0.025
+  motor_end_cap:        0.025
+  hex_standoff:         0.025
+
+  # Structural profiles
+  lathe_turned_part:    0.030
+  t_slot_rail:          0.030
+  i_beam:               0.030
+  gusseted_bracket:     0.025
+  u_channel:            0.025
+  rib_plate:            0.025
+  tapered_boss:         0.025
+
+  # Bracket / block
+  l_bracket:            0.020
+  locator_block:        0.020
+  pcb_standoff_plate:   0.020
+  heat_sink:            0.020
+
+  # Shell
+  enclosure:            0.015
+  sheet_metal_tray:     0.040   # NEW: shell-based sheet metal
+
+  # Sweep path
+  coil_spring:          0.040   # helix sweep
+  pipe_elbow:           0.040   # spline sweep
+
+  # Boolean multi-body
+  hinge:                0.040   # union assembly
+
+  # Algorithm-distinct NEW families (highest weight)
+  spur_gear:            0.055   # involute polyline
+  impeller:             0.055   # repeated union blades
+  pulley:               0.050   # revolved groove profile
+  knob:                 0.050   # multi-section loft
+  dovetail_slide:       0.045   # trapezoidal polyline
+  cam:                  0.050   # eccentric/lobe profile
+  snap_clip:            0.045   # C-profile thin wall
+
+difficulty_mix:
+  easy:   0.25
+  medium: 0.45
+  hard:   0.30

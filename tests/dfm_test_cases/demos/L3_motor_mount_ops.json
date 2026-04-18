@@ -1,0 +1,60 @@
+{
+  "schema_version": "ops_program.v1",
+  "name": "motor_mount",
+  "description": "Level 3 - NEMA 23 motor mount with vibration isolation features",
+  "complexity": "L3_hard",
+  "operations": [
+    {
+      "primitive": "extrude",
+      "parameters": [
+        {"name": "profile", "value": "T_slot"},
+        {"name": "width", "value": 80.0, "unit": "mm"},
+        {"name": "height", "value": 65.0, "unit": "mm"},
+        {"name": "depth", "value": 10.0, "unit": "mm"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 38.1, "unit": "mm"},
+        {"name": "depth", "value": 10.0, "unit": "mm"},
+        {"name": "description", "value": "motor_pilot_hole"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 5.5, "unit": "mm"},
+        {"name": "depth", "value": 10.0, "unit": "mm"},
+        {"name": "pattern", "value": "NEMA23_47mm_square"},
+        {"name": "description", "value": "motor_mounting_holes_4x"}
+      ]
+    },
+    {
+      "primitive": "slot",
+      "parameters": [
+        {"name": "width", "value": 8.0, "unit": "mm"},
+        {"name": "length", "value": 20.0, "unit": "mm"},
+        {"name": "depth", "value": 10.0, "unit": "mm"},
+        {"name": "pattern", "value": "2x_vertical"},
+        {"name": "description", "value": "adjustment_slots"}
+      ]
+    },
+    {
+      "primitive": "pocket",
+      "parameters": [
+        {"name": "width", "value": 15.0, "unit": "mm"},
+        {"name": "length", "value": 15.0, "unit": "mm"},
+        {"name": "depth", "value": 5.0, "unit": "mm"},
+        {"name": "pattern", "value": "4x_corners"},
+        {"name": "description", "value": "vibration_damper_pockets"}
+      ]
+    },
+    {
+      "primitive": "fillet",
+      "parameters": [
+        {"name": "radius", "value": 2.0, "unit": "mm"}
+      ]
+    }
+  ]
+}

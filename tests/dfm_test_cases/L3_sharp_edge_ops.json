@@ -1,0 +1,15 @@
+{
+  "schema_version": "ops_program.v1",
+  "operations": [
+    {
+      "primitive": "fillet",
+      "parameters": [
+        {
+          "name": "radius",
+          "value": 0.05,
+          "unit": "mm"
+        }
+      ]
+    }
+  ]
+}

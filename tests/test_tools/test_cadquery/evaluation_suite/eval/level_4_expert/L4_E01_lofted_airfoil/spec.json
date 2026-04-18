@@ -1,0 +1,13 @@
+{
+  "id": "L4_E01",
+  "name": "Lofted Airfoil",
+  "level": 4,
+  "expected_volume": 34737.8,
+  "expected_faces": 4,
+  "expected_edges": 6,
+  "expected_bounding_box": {
+    "x": 60.0,
+    "y": 100.0,
+    "z": 18.09
+  }
+}

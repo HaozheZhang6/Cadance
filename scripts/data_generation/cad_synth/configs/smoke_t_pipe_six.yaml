@@ -1,0 +1,9 @@
+num_samples: 6
+seed: 221104
+run_name: synth_smoke_t_pipe_six_s221104
+
+family_mix:
+  t_pipe_fitting: 1.0
+
+difficulty_mix:
+  hard: 1.0

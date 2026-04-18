@@ -1,0 +1,13 @@
+run_name: smoke_new4b_apr12
+num_samples: 60
+seed: 3031
+family_mix:
+  handwheel: 1
+  wire_grid: 1
+  bucket: 1
+  fan_shroud: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true

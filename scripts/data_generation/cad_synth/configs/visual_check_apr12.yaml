@@ -1,0 +1,28 @@
+run_name: visual_check_apr12
+num_samples: 57
+seed: 1234
+family_mix:
+  dome_cap: 1
+  capsule: 1
+  torus_link: 1
+  piston: 1
+  duct_elbow: 1
+  ball_knob: 1
+  bolt: 1
+  bucket: 1
+  chair: 1
+  clevis: 1
+  fan_shroud: 1
+  handwheel: 1
+  hex_nut: 1
+  mesh_panel: 1
+  mounting_angle: 1
+  nozzle: 1
+  snap_clip: 1
+  table: 1
+  wire_grid: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true

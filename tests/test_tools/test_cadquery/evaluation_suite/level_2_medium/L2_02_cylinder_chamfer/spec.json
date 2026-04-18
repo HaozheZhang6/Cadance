@@ -1,0 +1,34 @@
+{
+  "id": "L2_02",
+  "name": "Cylinder with Top Chamfer",
+  "level": 2,
+  "complexity_score": 8,
+  "complexity_breakdown": {
+    "api_breadth": 2,
+    "parameterization": 1,
+    "selection": 2,
+    "ordering": 2,
+    "ambiguity": 1
+  },
+  "dimensions": {
+    "radius": 25,
+    "height": 40,
+    "chamfer_size": 3
+  },
+  "skills_tested": [
+    "cylinder",
+    "faces",
+    "edges",
+    "chamfer"
+  ],
+  "ambiguity": "none",
+  "notes": "Tests edge selection after face selection. Chamfer on circular edge is common deburring operation.",
+  "expected_volume": 77861.23,
+  "expected_faces": 4,
+  "expected_edges": 5,
+  "expected_bounding_box": {
+    "x": 50.0,
+    "y": 50.0,
+    "z": 40.0
+  }
+}

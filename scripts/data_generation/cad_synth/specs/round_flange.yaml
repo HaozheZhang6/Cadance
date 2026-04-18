@@ -1,0 +1,34 @@
+family: round_flange
+difficulty_levels: [easy, medium, hard]
+ops:
+  - cylinder
+  - faces
+  - workplane
+  - hole
+  - polarArray
+  - chamfer
+  - circle
+  - extrude
+params:
+  outer_radius: [20, 100]
+  inner_radius: [3, 40]
+  height: [5, 30]
+  bolt_circle_radius: [10, 90]
+  bolt_count: [4, 8]
+  bolt_hole_diameter: [2, 15]
+  chamfer_length: [0.3, 2.0]
+  hub_height: [2, 15]
+  hub_radius: [5, 50]
+constraints:
+  - inner_radius < outer_radius
+  - bolt_circle_radius > inner_radius + 3
+  - bolt_circle_radius < outer_radius - 3
+  - bolt_hole_diameter < bolt_pitch / 2
+  - chamfer_length < height / 4
+  - hub_height <= height
+feature_tags:
+  - has_hole
+  - has_bolt_pattern
+  - has_chamfer
+  - has_hub
+  - pattern_like

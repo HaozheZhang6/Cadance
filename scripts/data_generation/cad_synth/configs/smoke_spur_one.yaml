@@ -1,0 +1,9 @@
+num_samples: 1
+seed: 202022
+run_name: synth_smoke_spur_one_s202022
+
+family_mix:
+  spur_gear: 1.0
+
+difficulty_mix:
+  hard: 1.0

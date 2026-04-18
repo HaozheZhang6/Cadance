@@ -1,0 +1,46 @@
+{
+  "id": "L3_04",
+  "name": "L-Bracket with Mounting Holes",
+  "level": 3,
+  "complexity_score": 11,
+  "complexity_breakdown": {
+    "api_breadth": 3,
+    "parameterization": 2,
+    "selection": 3,
+    "ordering": 2,
+    "ambiguity": 1
+  },
+  "dimensions": {
+    "vertical_height": 80,
+    "vertical_width": 60,
+    "vertical_thickness": 5,
+    "horizontal_length": 50,
+    "horizontal_width": 60,
+    "horizontal_thickness": 5,
+    "corner_fillet": 10,
+    "hole_diameter": 6,
+    "vertical_hole_offset_x": 20,
+    "vertical_hole_offset_y": 40,
+    "horizontal_hole_offset_x": 15,
+    "horizontal_hole_offset_y": 15
+  },
+  "skills_tested": [
+    "polyline",
+    "extrude",
+    "fillet",
+    "faces",
+    "workplane",
+    "pushPoints",
+    "hole"
+  ],
+  "ambiguity": "low",
+  "notes": "L-bracket is a common mechanical component. Tests compound face selection for placing holes on different oriented faces. Fillet at inside corner adds complexity.",
+  "expected_volume": 39722.12,
+  "expected_faces": 13,
+  "expected_edges": 33,
+  "expected_bounding_box": {
+    "x": 55.0,
+    "y": 60.0,
+    "z": 80.0
+  }
+}

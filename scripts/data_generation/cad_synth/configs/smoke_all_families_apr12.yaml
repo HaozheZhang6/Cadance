@@ -1,0 +1,16 @@
+num_samples: 300
+seed: 6666
+run_name: smoke_all_families_apr12
+sample_type: test
+
+family_mix:
+  bellows: 1.0
+  enclosure: 1.0
+  hinge: 1.0
+  hollow_tube: 1.0
+  worm_screw: 1.0
+
+difficulty_mix:
+  easy:   0.33
+  medium: 0.34
+  hard:   0.33

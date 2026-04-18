@@ -1,0 +1,43 @@
+{
+  "schema_version": "ops_program.v1",
+  "name": "l_bracket",
+  "description": "Level 2 - L-shaped bracket with mounting holes and fillets",
+  "complexity": "L2_medium",
+  "operations": [
+    {
+      "primitive": "extrude",
+      "parameters": [
+        {"name": "profile", "value": "L_shape"},
+        {"name": "leg1_length", "value": 60.0, "unit": "mm"},
+        {"name": "leg2_length", "value": 40.0, "unit": "mm"},
+        {"name": "thickness", "value": 6.0, "unit": "mm"},
+        {"name": "width", "value": 25.0, "unit": "mm"}
+      ]
+    },
+    {
+      "primitive": "fillet",
+      "parameters": [
+        {"name": "radius", "value": 3.0, "unit": "mm"},
+        {"name": "location", "value": "inner_corner"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 8.0, "unit": "mm"},
+        {"name": "depth", "value": 6.0, "unit": "mm"},
+        {"name": "counterbore_diameter", "value": 14.0, "unit": "mm"},
+        {"name": "counterbore_depth", "value": 3.0, "unit": "mm"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 8.0, "unit": "mm"},
+        {"name": "depth", "value": 6.0, "unit": "mm"},
+        {"name": "counterbore_diameter", "value": 14.0, "unit": "mm"},
+        {"name": "counterbore_depth", "value": 3.0, "unit": "mm"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+Create a 100mm x 60mm x 5mm plate with three reinforcing ribs on the underside. Each rib should be 5mm thick, 15mm deep, running the full length of the plate, and evenly spaced.

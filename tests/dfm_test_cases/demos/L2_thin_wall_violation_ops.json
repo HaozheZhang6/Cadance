@@ -1,0 +1,31 @@
+{
+  "schema_version": "ops_program.v1",
+  "name": "thin_wall_bracket",
+  "description": "Level 2 - Bracket with DFM VIOLATION: wall thickness 0.8mm (min 1.0mm)",
+  "complexity": "L2_medium",
+  "dfm_status": "VIOLATION",
+  "expected_findings": ["WARN: thin_wall"],
+  "operations": [
+    {
+      "primitive": "extrude",
+      "parameters": [
+        {"name": "profile", "value": "channel"},
+        {"name": "width", "value": 50.0, "unit": "mm"},
+        {"name": "height", "value": 30.0, "unit": "mm"},
+        {"name": "depth", "value": 40.0, "unit": "mm"}
+      ]
+    },
+    {
+      "primitive": "shell",
+      "parameters": [
+        {"name": "thickness", "value": 0.8, "unit": "mm"}
+      ]
+    },
+    {
+      "primitive": "fillet",
+      "parameters": [
+        {"name": "radius", "value": 2.0, "unit": "mm"}
+      ]
+    }
+  ]
+}

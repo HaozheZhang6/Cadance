@@ -1,0 +1,1 @@
+Create a stacked cylinder assembly with three sections. The bottom section has diameter 60mm and height 20mm. The middle section has diameter 40mm and height 35mm. The top section has diameter 25mm and height 25mm. All sections are centered on the same axis.

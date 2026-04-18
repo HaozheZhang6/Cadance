@@ -1,0 +1,214 @@
+# CI workflow for kicad_verify module (runs from monorepo root)
+#
+# This workflow runs tests using the root-level pyproject.toml configuration,
+# ensuring consistency between CI and local development (`uv run pytest`).
+#
+# Test Strategy:
+# - Unit tests: Always run, no external dependencies, HARD-FAIL gates merges
+# - Integration tests: Optional, require KiCad installation, run on demand
+#
+# Integration tests are skipped by default to avoid CI requiring KiCad.
+# To run integration tests, use workflow_dispatch with run_integration=true.
+
+name: KiCad Verify
+
+on:
+  push:
+    branches: ["dev", "main"]
+    paths:
+      - "src/eda_verifier/kicad_verify/**"
+      - ".github/workflows/kicad-verify.yml"
+  pull_request:
+    branches: ["dev", "main"]
+    paths:
+      - "src/eda_verifier/kicad_verify/**"
+      - ".github/workflows/kicad-verify.yml"
+  workflow_dispatch:
+    inputs:
+      run_integration:
+        description: 'Run integration tests (requires KiCad installation)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+# Run all commands from repository root (matches local development)
+# No working-directory override - uses root pyproject.toml
+
+jobs:
+  unit-tests:
+    name: Unit Tests (No KiCad Required)
+    # Pin to specific Ubuntu version for reproducibility
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Setup Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run unit tests with coverage
+        run: uv run pytest src/eda_verifier/kicad_verify/tests/unit -v --tb=short --cov=src/eda_verifier/kicad_verify/src/kicad_verify --cov-report=term-missing --cov-report=xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kicad-verify-coverage-report
+          path: coverage.xml
+
+  integration-tests:
+    name: Integration Tests (KiCad ${{ matrix.kicad-version }})
+    # Pin to ubuntu-22.04 for KiCad PPA compatibility and stability
+    # The KiCad PPA is tested against specific Ubuntu LTS releases
+    runs-on: ubuntu-22.04
+    # Only run integration tests when explicitly requested via workflow_dispatch
+    # This avoids requiring KiCad installation for regular CI
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_integration == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        kicad-version: ["8.0"]  # Pin to specific KiCad version
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: apt-kicad-${{ matrix.kicad-version }}-${{ runner.os }}-${{ hashFiles('.github/workflows/kicad-verify.yml') }}
+          restore-keys: |
+            apt-kicad-${{ matrix.kicad-version }}-${{ runner.os }}-
+
+      - name: Install KiCad
+        run: |
+          # Add KiCad PPA and install
+          sudo add-apt-repository --yes ppa:kicad/kicad-${{ matrix.kicad-version }}-releases
+          sudo apt-get update
+          sudo apt-get install -y kicad
+
+      - name: Log installed package versions
+        run: |
+          echo "=== Package Policy (for supply chain tracking) ==="
+          apt-cache policy kicad
+          echo ""
+          echo "=== KiCad CLI Version ==="
+          kicad-cli --version
+          echo ""
+          echo "=== KiCad CLI Path ==="
+          which kicad-cli
+
+      - name: Verify KiCad version is supported
+        run: |
+          # Extract version and verify it's in the supported range (8.0.x - 8.99.x)
+          VERSION=$(kicad-cli --version | grep -oP '\d+\.\d+' | head -1)
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          echo "Detected KiCad version: $VERSION (major=$MAJOR, minor=$MINOR)"
+          
+          # This workflow is tested with KiCad 8.x. Fail fast if version is unexpected.
+          if [[ "$MAJOR" -lt 8 ]]; then
+            echo "::error::KiCad version $VERSION is too old. This workflow requires KiCad 8.0 or later."
+            echo "::error::The kicad-cli 'sch erc' and 'pcb drc' commands were added in KiCad 8.0."
+            exit 1
+          fi
+          if [[ "$MAJOR" -gt 8 ]]; then
+            echo "::warning::KiCad version $VERSION is newer than tested (8.x). CLI output format may have changed."
+            echo "::warning::If tests fail, review JSON output changes and update normalize.py accordingly."
+          fi
+          echo "KiCad version $VERSION is supported."
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Setup Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run integration tests
+        run: uv run pytest src/eda_verifier/kicad_verify/tests/integration -v --tb=long --run-integration
+
+      # Hard-fail verification: Run actual CLI on golden project
+      # This must pass for CI to succeed
+      - name: Verify golden project (HARD-FAIL)
+        run: |
+          echo "Running kicad-verify on golden_pass project..."
+          uv run kicad-verify verify src/eda_verifier/kicad_verify/test_projects/golden_pass/golden_pass.kicad_pro
+          echo "Golden project verification PASSED"
+
+      - name: Upload test artifacts on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: kicad-verify-integration-artifacts-${{ matrix.kicad-version }}
+          path: |
+            out/
+            src/eda_verifier/kicad_verify/test_projects/
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Setup Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Check formatting with black
+        run: uv run black --check src/eda_verifier/kicad_verify/src src/eda_verifier/kicad_verify/tests
+
+  # Summary job - gates merges on unit tests and lint
+  # Integration tests are optional and only checked when run
+  all-tests:
+    name: All Tests Passed
+    needs: [unit-tests, integration-tests, lint]
+    runs-on: ubuntu-22.04
+    if: always()
+    steps:
+      - name: Check required jobs passed
+        run: |
+          if [[ "${{ needs.unit-tests.result }}" != "success" ]]; then
+            echo "::error::Unit tests FAILED - this is a HARD-FAIL"
+            exit 1
+          fi
+          if [[ "${{ needs.lint.result }}" != "success" ]]; then
+            echo "::error::Lint FAILED - this is a HARD-FAIL"
+            exit 1
+          fi
+          echo "All required tests passed!"
+
+      - name: Check optional integration tests (if run)
+        run: |
+          # Integration tests are optional - only fail if they were run and failed
+          RESULT="${{ needs.integration-tests.result }}"
+          if [[ "$RESULT" == "skipped" ]]; then
+            echo "Integration tests were skipped (not requested)"
+          elif [[ "$RESULT" == "success" ]]; then
+            echo "Integration tests passed"
+          elif [[ "$RESULT" == "failure" ]]; then
+            echo "::warning::Integration tests FAILED"
+            echo "Integration tests are optional but failed. Review before merging."
+          else
+            echo "Integration tests result: $RESULT"
+          fi

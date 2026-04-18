@@ -1,0 +1,30 @@
+{
+  "id": "L1_06",
+  "name": "Sphere",
+  "level": 1,
+  "complexity_score": 5,
+  "complexity_breakdown": {
+    "api_breadth": 1,
+    "parameterization": 1,
+    "selection": 1,
+    "ordering": 1,
+    "ambiguity": 1
+  },
+  "dimensions": {
+    "diameter": 50,
+    "radius": 25
+  },
+  "skills_tested": [
+    "sphere"
+  ],
+  "ambiguity": "none",
+  "notes": "Tests sphere() and diameter-to-radius conversion. Sphere has 1 continuous face and 1 seam edge (OCCT/CadQuery B-Rep representation).",
+  "expected_volume": 65449.85,
+  "expected_faces": 1,
+  "expected_edges": 1,
+  "expected_bounding_box": {
+    "x": 50.0,
+    "y": 50.0,
+    "z": 50.0
+  }
+}

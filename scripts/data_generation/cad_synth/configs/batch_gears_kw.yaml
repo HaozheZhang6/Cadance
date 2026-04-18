@@ -1,0 +1,14 @@
+num_samples: 3000
+seed: 1502
+run_name: synth_gears_kw_s1502
+
+# Gear families with fixed keyway (medium/hard only)
+family_mix:
+  spur_gear:    0.34
+  helical_gear: 0.33
+  bevel_gear:   0.33
+
+difficulty_mix:
+  easy:   0.25
+  medium: 0.45
+  hard:   0.30

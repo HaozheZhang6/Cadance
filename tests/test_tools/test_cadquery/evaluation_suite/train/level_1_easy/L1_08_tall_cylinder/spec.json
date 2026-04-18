@@ -1,0 +1,13 @@
+{
+  "id": "L1_08",
+  "name": "Tall Cylinder",
+  "level": 1,
+  "expected_volume": 49087.39,
+  "expected_faces": 3,
+  "expected_edges": 3,
+  "expected_bounding_box": {
+    "x": 25.0,
+    "y": 25.0,
+    "z": 100.0
+  }
+}

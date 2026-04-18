@@ -1,0 +1,1 @@
+Create a handle shape by revolving an L-shaped profile around the Z axis. The profile has a vertical segment 25mm tall and 8mm wide, and a horizontal segment 15mm long and 8mm wide extending outward at the base.

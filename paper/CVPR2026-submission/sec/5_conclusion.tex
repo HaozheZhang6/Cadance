@@ -1,0 +1,20 @@
+\section{Conclusion and Limitations}
+\label{sec:conclusion}
+
+By designing and deploying CADLoop, we demonstrate that neuro-symbolic decoupling---letting
+the neural network handle macroscopic topology and the symbolic tool handle precise
+geometry---makes verifiable CAD generation auditable, deterministic, and highly accurate.
+CADLoop successfully curates a high-value dataset of 1646 pairs where textual intent, JSON
+constraints, multi-view images, and executable CadQuery code are perfectly aligned,
+reducing mean geometric error by 90\%.
+
+\noindent\textbf{Limitations and Future Work.}
+The primary bottleneck remains the \emph{Structural Plateau} ($\text{IoU} < 0.8$).
+We observe that when an Ops JSON encodes highly complex industrial sketches (\eg,
+${>}50$ sequential curves), the total token count exceeds the VLM's effective spatial
+attention span, leading to catastrophic profile omission.
+In these regimes, the topological skeleton itself collapses, rendering downstream
+parametric tools ineffective.
+Future work will integrate complexity-aware routing logic to automatically slice
+ultra-complex JSONs into iterative, localized sub-generation chains prior to VLM
+execution, further expanding the frontier of programmatic 3D generation.

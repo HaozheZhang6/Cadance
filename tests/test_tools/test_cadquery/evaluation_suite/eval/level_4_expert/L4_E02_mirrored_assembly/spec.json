@@ -1,0 +1,13 @@
+{
+  "id": "L4_E02",
+  "name": "Mirrored Assembly",
+  "level": 4,
+  "expected_volume": 47754.98,
+  "expected_faces": 14,
+  "expected_edges": 36,
+  "expected_bounding_box": {
+    "x": 120.0,
+    "y": 50.0,
+    "z": 25.0
+  }
+}

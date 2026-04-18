@@ -1,0 +1,18 @@
+num_samples: 80
+seed: 2025
+run_name: smoke_new8_apr12
+
+family_mix:
+  bolt:            1.0
+  hex_nut:         1.0
+  table:           1.0
+  chair:           1.0
+  nozzle:          1.0
+  mounting_angle:  1.0
+  mesh_panel:      1.0
+  clevis:          1.0
+
+difficulty_mix:
+  easy:   0.33
+  medium: 0.34
+  hard:   0.33

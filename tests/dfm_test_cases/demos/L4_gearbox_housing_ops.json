@@ -1,0 +1,160 @@
+{
+  "schema_version": "ops_program.v1",
+  "name": "gearbox_housing",
+  "description": "Level 4 - Industrial gearbox housing with DFM violations: deep bearing pockets, thin walls, precision bores",
+  "complexity": "L4_industrial",
+  "dfm_status": "MULTIPLE_VIOLATIONS",
+  "expected_findings": [
+    "WARN: hole_ld_ratio_exceeded (L/D=12 oil passages)",
+    "WARN: wall_thickness_below_min (0.6mm between bearing pockets)",
+    "WARN: fillet_radius_below_min (0.15mm pocket corners)"
+  ],
+  "design_intent": "Two-stage helical gearbox housing for industrial drive",
+  "material": "GG25_grey_cast_iron",
+  "operations": [
+    {
+      "primitive": "extrude",
+      "parameters": [
+        {"name": "profile", "value": "rectangular_with_mounting_flanges"},
+        {"name": "width", "value": 280.0, "unit": "mm"},
+        {"name": "depth", "value": 180.0, "unit": "mm"},
+        {"name": "height", "value": 220.0, "unit": "mm"},
+        {"name": "wall_thickness", "value": 12.0, "unit": "mm"},
+        {"name": "description", "value": "main_housing_shell"}
+      ]
+    },
+    {
+      "primitive": "pocket",
+      "parameters": [
+        {"name": "diameter", "value": 85.0, "unit": "mm"},
+        {"name": "depth", "value": 35.0, "unit": "mm"},
+        {"name": "corner_radius", "value": 0.15, "unit": "mm"},
+        {"name": "description", "value": "input_bearing_pocket"},
+        {"name": "note", "value": "VIOLATION: 0.15mm corner radius"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 72.0, "unit": "mm"},
+        {"name": "depth", "value": 28.0, "unit": "mm"},
+        {"name": "tolerance", "value": "H7"},
+        {"name": "description", "value": "input_bearing_bore"}
+      ]
+    },
+    {
+      "primitive": "pocket",
+      "parameters": [
+        {"name": "diameter", "value": 120.0, "unit": "mm"},
+        {"name": "depth", "value": 40.0, "unit": "mm"},
+        {"name": "offset_x", "value": 95.0, "unit": "mm"},
+        {"name": "description", "value": "intermediate_bearing_pocket_1"},
+        {"name": "min_wall_thickness", "value": 0.6, "unit": "mm"},
+        {"name": "note", "value": "VIOLATION: 0.6mm wall to adjacent pocket"}
+      ]
+    },
+    {
+      "primitive": "pocket",
+      "parameters": [
+        {"name": "diameter", "value": 120.0, "unit": "mm"},
+        {"name": "depth", "value": 40.0, "unit": "mm"},
+        {"name": "offset_x", "value": 95.0, "unit": "mm"},
+        {"name": "offset_z", "value": 90.0, "unit": "mm"},
+        {"name": "description", "value": "intermediate_bearing_pocket_2"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 100.0, "unit": "mm"},
+        {"name": "depth", "value": 32.0, "unit": "mm"},
+        {"name": "tolerance", "value": "H7"},
+        {"name": "pattern", "value": "2x_intermediate"},
+        {"name": "description", "value": "intermediate_bearing_bores"}
+      ]
+    },
+    {
+      "primitive": "pocket",
+      "parameters": [
+        {"name": "diameter", "value": 140.0, "unit": "mm"},
+        {"name": "depth", "value": 45.0, "unit": "mm"},
+        {"name": "description", "value": "output_bearing_pocket"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 120.0, "unit": "mm"},
+        {"name": "depth", "value": 38.0, "unit": "mm"},
+        {"name": "tolerance", "value": "H7"},
+        {"name": "description", "value": "output_bearing_bore"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 8.0, "unit": "mm"},
+        {"name": "depth", "value": 96.0, "unit": "mm"},
+        {"name": "pattern", "value": "gallery_3x"},
+        {"name": "description", "value": "oil_distribution_passages"},
+        {"name": "note", "value": "VIOLATION: L/D=12, exceeds recommended 10"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 3.0, "unit": "mm"},
+        {"name": "depth", "value": 25.0, "unit": "mm"},
+        {"name": "pattern", "value": "6x_bearing_spray"},
+        {"name": "description", "value": "bearing_lubrication_jets"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 25.0, "unit": "mm"},
+        {"name": "depth", "value": 30.0, "unit": "mm"},
+        {"name": "tap", "value": "G3/4"},
+        {"name": "description", "value": "oil_fill_port"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 20.0, "unit": "mm"},
+        {"name": "depth", "value": 25.0, "unit": "mm"},
+        {"name": "tap", "value": "G1/2"},
+        {"name": "location", "value": "sump_bottom"},
+        {"name": "description", "value": "oil_drain_port"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 10.0, "unit": "mm"},
+        {"name": "depth", "value": 20.0, "unit": "mm"},
+        {"name": "tap", "value": "M10"},
+        {"name": "pattern", "value": "24x_flange"},
+        {"name": "description", "value": "cover_mounting_holes"}
+      ]
+    },
+    {
+      "primitive": "fillet",
+      "parameters": [
+        {"name": "radius", "value": 0.15, "unit": "mm"},
+        {"name": "location", "value": "bearing_pocket_corners"},
+        {"name": "description", "value": "pocket_corner_fillets"},
+        {"name": "note", "value": "VIOLATION: 0.15mm below 0.2mm minimum"}
+      ]
+    },
+    {
+      "primitive": "groove",
+      "parameters": [
+        {"name": "width", "value": 3.0, "unit": "mm"},
+        {"name": "depth", "value": 1.5, "unit": "mm"},
+        {"name": "pattern", "value": "cover_face_gasket"},
+        {"name": "description", "value": "gasket_groove"}
+      ]
+    }
+  ]
+}

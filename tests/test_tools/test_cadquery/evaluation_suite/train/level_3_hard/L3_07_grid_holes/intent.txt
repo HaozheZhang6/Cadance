@@ -1,0 +1,1 @@
+Create a plate 120mm x 100mm x 10mm with a 3x4 grid of 6mm diameter holes. The holes should be evenly spaced with the first hole 15mm from each edge.

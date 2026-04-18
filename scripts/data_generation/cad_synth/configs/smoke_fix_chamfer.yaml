@@ -1,0 +1,19 @@
+run_name: smoke_fix_chamfer
+num_samples: 60
+seed: 8888
+family_mix:
+  standoff: 1
+  lathe_turned_part: 1
+  hex_nut: 1
+  bearing_retainer_cap: 1
+  u_channel: 1
+  snap_clip: 1
+  hex_standoff: 1
+  bellows: 1
+  stepped_shaft: 1
+  rib_plate: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: false

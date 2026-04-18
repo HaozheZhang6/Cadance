@@ -1,0 +1,1 @@
+Create a 60mm cube. Add 8mm fillets to all four vertical edges (the edges parallel to the Z axis).

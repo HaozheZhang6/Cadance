@@ -1,0 +1,13 @@
+{
+  "id": "L3_E03",
+  "name": "Spline Profile",
+  "level": 3,
+  "expected_volume": 31586.0,
+  "expected_faces": 4,
+  "expected_edges": 6,
+  "expected_bounding_box": {
+    "x": 40.05,
+    "y": 50.0,
+    "z": 20.0
+  }
+}

@@ -1,0 +1,1 @@
+Create a rectangular block 100mm x 80mm x 15mm with four 8mm diameter holes positioned 10mm from each corner.

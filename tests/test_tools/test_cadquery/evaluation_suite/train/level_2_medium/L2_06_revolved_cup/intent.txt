@@ -1,0 +1,1 @@
+Create a cup by revolving a profile around the Y axis. The cup should have: outer diameter 60mm, inner diameter 52mm, height 70mm, and a solid base 5mm thick.

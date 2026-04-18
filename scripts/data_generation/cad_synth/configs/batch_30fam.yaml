@@ -1,0 +1,56 @@
+num_samples: 6000
+seed: 700
+run_name: synth_batch_30fam_s700
+
+# 30 families including sweep (coil_spring, pipe_elbow) and boolean-union (hinge)
+family_mix:
+  # Original plate/flange
+  mounting_plate:       0.025
+  round_flange:         0.025
+  pipe_flange:          0.025
+  vented_panel:         0.020
+  slotted_plate:        0.020
+  connector_faceplate:  0.020
+  cable_routing_panel:  0.020
+
+  # Rotational / turned
+  stepped_shaft:        0.035
+  standoff:             0.025
+  spacer_ring:          0.035
+  shaft_collar:         0.035
+  bearing_retainer_cap: 0.035
+  motor_end_cap:        0.035
+
+  # Structural profiles
+  lathe_turned_part:    0.050
+  t_slot_rail:          0.050
+  i_beam:               0.050
+  gusseted_bracket:     0.040
+  u_channel:            0.035
+
+  # Bracket / block
+  l_bracket:            0.025
+  locator_block:        0.025
+  pcb_standoff_plate:   0.025
+  heat_sink:            0.025
+
+  # Complex geometry
+  hex_standoff:         0.045
+  tapered_boss:         0.045
+  rib_plate:            0.045
+  waffle_plate:         0.045
+
+  # Shell
+  enclosure:            0.020
+
+  # Sweep-path (NEW)
+  coil_spring:          0.060
+  pipe_elbow:           0.060
+
+  # Boolean-union multi-body (NEW)
+  hinge:                0.060
+
+difficulty_mix:
+  easy:   0.25
+  medium: 0.45
+  hard:   0.30

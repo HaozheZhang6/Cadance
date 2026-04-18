@@ -1,0 +1,13 @@
+{
+  "id": "L1_E02",
+  "name": "Torus Ring",
+  "level": 1,
+  "expected_volume": 78956.84,
+  "expected_faces": 1,
+  "expected_edges": 2,
+  "expected_bounding_box": {
+    "x": 100.0,
+    "y": 100.0,
+    "z": 20.0
+  }
+}

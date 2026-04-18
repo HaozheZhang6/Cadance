@@ -1,0 +1,97 @@
+{
+  "schema_version": "ops_program.v1",
+  "name": "hydraulic_manifold_block",
+  "description": "Level 4 - Industrial hydraulic manifold with multiple DFM violations: deep channels (L/D=15), small orifice (0.3mm), thin walls (0.6mm)",
+  "complexity": "L4_industrial",
+  "dfm_status": "MULTIPLE_VIOLATIONS",
+  "expected_findings": [
+    "ERROR: hole_too_small (0.3mm orifice)",
+    "WARN: hole_ld_ratio_exceeded (L/D=15 main channel)",
+    "WARN: wall_thickness_below_min (0.6mm between passages)"
+  ],
+  "design_intent": "6-port hydraulic manifold for excavator control",
+  "material": "6061-T6_aluminum",
+  "operations": [
+    {
+      "primitive": "extrude",
+      "parameters": [
+        {"name": "width", "value": 120.0, "unit": "mm"},
+        {"name": "depth", "value": 80.0, "unit": "mm"},
+        {"name": "height", "value": 60.0, "unit": "mm"},
+        {"name": "description", "value": "main_block"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 12.0, "unit": "mm"},
+        {"name": "depth", "value": 180.0, "unit": "mm"},
+        {"name": "tap", "value": "G1/2"},
+        {"name": "description", "value": "main_pressure_gallery"},
+        {"name": "note", "value": "VIOLATION: L/D=15, max recommended=10"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 12.0, "unit": "mm"},
+        {"name": "depth", "value": 180.0, "unit": "mm"},
+        {"name": "tap", "value": "G1/2"},
+        {"name": "offset_y", "value": 12.6, "unit": "mm"},
+        {"name": "description", "value": "return_gallery"},
+        {"name": "note", "value": "Wall to main gallery only 0.6mm - too thin"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 0.3, "unit": "mm"},
+        {"name": "depth", "value": 8.0, "unit": "mm"},
+        {"name": "description", "value": "pressure_orifice"},
+        {"name": "note", "value": "VIOLATION: 0.3mm below 0.5mm minimum"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 20.0, "unit": "mm"},
+        {"name": "depth", "value": 35.0, "unit": "mm"},
+        {"name": "tap", "value": "M24x1.5"},
+        {"name": "pattern", "value": "6x_ports"},
+        {"name": "description", "value": "working_ports"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 4.0, "unit": "mm"},
+        {"name": "depth", "value": 50.0, "unit": "mm"},
+        {"name": "pattern", "value": "6x_crossdrills"},
+        {"name": "description", "value": "port_to_gallery_passages"},
+        {"name": "note", "value": "L/D=12.5, approaching limit"}
+      ]
+    },
+    {
+      "primitive": "pocket",
+      "parameters": [
+        {"name": "width", "value": 30.0, "unit": "mm"},
+        {"name": "length", "value": 30.0, "unit": "mm"},
+        {"name": "depth", "value": 25.0, "unit": "mm"},
+        {"name": "pattern", "value": "2x_valve_seats"},
+        {"name": "description", "value": "cartridge_valve_cavities"},
+        {"name": "min_wall_thickness", "value": 0.6, "unit": "mm"},
+        {"name": "note", "value": "VIOLATION: thin wall between cavities"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 8.0, "unit": "mm"},
+        {"name": "depth", "value": 12.0, "unit": "mm"},
+        {"name": "tap", "value": "M8"},
+        {"name": "pattern", "value": "4x_corners"},
+        {"name": "description", "value": "mounting_holes"}
+      ]
+    }
+  ]
+}

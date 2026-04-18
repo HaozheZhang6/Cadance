@@ -1,0 +1,9 @@
+num_samples: 12
+seed: 201726
+run_name: synth_smoke_bevel_hard_s201726
+
+family_mix:
+  bevel_gear: 1.0
+
+difficulty_mix:
+  hard: 1.0

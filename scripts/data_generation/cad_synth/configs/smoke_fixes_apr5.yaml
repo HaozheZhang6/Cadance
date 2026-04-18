@@ -1,0 +1,20 @@
+num_samples: 120
+seed: 2025
+run_name: smoke_fixes_apr5_s2025
+sample_type: test
+
+# Test run: all families modified this session
+family_mix:
+  threaded_adapter:      0.13
+  dovetail_slide:        0.13
+  cam:                   0.13
+  spacer_ring:           0.12
+  bearing_retainer_cap:  0.13
+  round_flange:          0.12
+  bellows:               0.12
+  spur_gear:             0.12
+
+difficulty_mix:
+  easy:   0.33
+  medium: 0.34
+  hard:   0.33

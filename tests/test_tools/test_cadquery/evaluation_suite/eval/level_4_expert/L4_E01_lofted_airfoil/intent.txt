@@ -1,0 +1,1 @@
+Create a tapered wing section by lofting between two airfoil profiles. The root has a 60mm chord and the tip has a 30mm chord, with a span of 100mm. The wing should taper and have a slight forward sweep.

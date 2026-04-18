@@ -1,0 +1,13 @@
+{
+  "id": "L2_14",
+  "name": "Box With Slot",
+  "level": 2,
+  "expected_volume": 125536.5,
+  "expected_faces": 10,
+  "expected_edges": 24,
+  "expected_bounding_box": {
+    "x": 90.0,
+    "y": 60.0,
+    "z": 25.0
+  }
+}

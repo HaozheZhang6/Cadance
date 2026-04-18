@@ -1,0 +1,36 @@
+{
+  "id": "L1_05",
+  "name": "L-Shape Extrusion",
+  "level": 1,
+  "complexity_score": 7,
+  "complexity_breakdown": {
+    "api_breadth": 2,
+    "parameterization": 2,
+    "selection": 1,
+    "ordering": 1,
+    "ambiguity": 1
+  },
+  "dimensions": {
+    "vertical_leg_height": 60,
+    "vertical_leg_width": 15,
+    "horizontal_leg_width": 50,
+    "horizontal_leg_height": 15,
+    "extrusion_depth": 40
+  },
+  "skills_tested": [
+    "polyline",
+    "lineTo",
+    "close",
+    "extrude"
+  ],
+  "ambiguity": "minimal",
+  "notes": "First non-rectangular sketch. Tests coordinate calculation. L-profile area = (60*15) + (35*15) = 1425 mm\u00b2, Volume = 1425 * 40 = 57,000 mm\u00b3",
+  "expected_volume": 57000.0,
+  "expected_faces": 8,
+  "expected_edges": 18,
+  "expected_bounding_box": {
+    "x": 50.0,
+    "y": 60.0,
+    "z": 40.0
+  }
+}

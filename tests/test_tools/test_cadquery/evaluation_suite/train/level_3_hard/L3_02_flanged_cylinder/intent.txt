@@ -1,0 +1,1 @@
+Create a cylinder with a mounting flange. Main cylinder: 30mm diameter, 60mm tall. Flange at the base: 60mm diameter, 8mm thick. Add four 5mm holes through the flange on a 45mm bolt circle, evenly spaced (90° apart).

@@ -1,0 +1,13 @@
+{
+  "id": "L1_07",
+  "name": "Extruded Hexagon",
+  "level": 1,
+  "expected_volume": 64951.91,
+  "expected_faces": 8,
+  "expected_edges": 18,
+  "expected_bounding_box": {
+    "x": 50.0,
+    "y": 43.3,
+    "z": 40.0
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "L1_04",
+  "name": "Extruded Circle",
+  "level": 1,
+  "complexity_score": 6,
+  "complexity_breakdown": {
+    "api_breadth": 2,
+    "parameterization": 1,
+    "selection": 1,
+    "ordering": 1,
+    "ambiguity": 1
+  },
+  "dimensions": {
+    "radius": 30,
+    "height": 50
+  },
+  "skills_tested": [
+    "circle",
+    "extrude"
+  ],
+  "ambiguity": "none",
+  "notes": "Same geometry as cylinder but via sketch+extrude. Tests understanding of multiple approaches.",
+  "expected_volume": 141371.67,
+  "expected_faces": 3,
+  "expected_edges": 3,
+  "expected_bounding_box": {
+    "x": 60.0,
+    "y": 60.0,
+    "z": 50.0
+  }
+}

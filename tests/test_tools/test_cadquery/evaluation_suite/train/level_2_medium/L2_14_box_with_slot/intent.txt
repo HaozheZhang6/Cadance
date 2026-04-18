@@ -1,0 +1,1 @@
+Create a block 90mm x 60mm x 25mm with a slot cut through the center. The slot is 40mm long, 10mm wide, and goes completely through the block.

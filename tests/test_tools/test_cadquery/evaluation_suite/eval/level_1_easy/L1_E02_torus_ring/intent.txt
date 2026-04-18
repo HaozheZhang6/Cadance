@@ -1,0 +1,1 @@
+Create a torus (donut shape) with a major radius of 40mm and a tube radius of 10mm.

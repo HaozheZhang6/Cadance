@@ -1,0 +1,15 @@
+num_samples: 2000
+seed: 1100
+run_name: synth_batch_new4_s1100
+
+# 4 new structural families — all pre-flight verified
+family_mix:
+  t_pipe_fitting:  0.25
+  bellows:         0.25
+  manifold_block:  0.25
+  bevel_gear:      0.25
+
+difficulty_mix:
+  easy:   0.25
+  medium: 0.45
+  hard:   0.30

@@ -1,0 +1,13 @@
+{
+  "id": "L1_12",
+  "name": "Extruded Pentagon",
+  "level": 1,
+  "expected_volume": 94841.32,
+  "expected_faces": 7,
+  "expected_edges": 15,
+  "expected_bounding_box": {
+    "x": 53.86,
+    "y": 56.63,
+    "z": 45.0
+  }
+}

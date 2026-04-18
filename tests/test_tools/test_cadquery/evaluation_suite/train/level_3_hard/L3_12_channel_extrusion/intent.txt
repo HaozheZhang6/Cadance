@@ -1,0 +1,1 @@
+Create a U-channel extrusion 150mm long. The channel has an outer width of 50mm, height of 40mm, and wall thickness of 5mm on all sides.

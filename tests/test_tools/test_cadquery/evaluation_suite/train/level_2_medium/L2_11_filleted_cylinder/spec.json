@@ -1,0 +1,13 @@
+{
+  "id": "L2_11",
+  "name": "Filleted Cylinder",
+  "level": 2,
+  "expected_volume": 67917.25,
+  "expected_faces": 4,
+  "expected_edges": 5,
+  "expected_bounding_box": {
+    "x": 50.0,
+    "y": 50.0,
+    "z": 35.0
+  }
+}

@@ -1,0 +1,30 @@
+num_samples: 4000
+seed: 500
+run_name: synth_batch_20fam_s500
+
+family_mix:
+  mounting_plate:       0.05
+  round_flange:         0.05
+  l_bracket:            0.05
+  enclosure:            0.05
+  vented_panel:         0.05
+  stepped_shaft:        0.05
+  heat_sink:            0.05
+  pipe_flange:          0.05
+  u_channel:            0.05
+  standoff:             0.05
+  slotted_plate:        0.05
+  bearing_retainer_cap: 0.05
+  shaft_collar:         0.05
+  connector_faceplate:  0.05
+  motor_end_cap:        0.05
+  pcb_standoff_plate:   0.05
+  cable_routing_panel:  0.05
+  locator_block:        0.05
+  gusseted_bracket:     0.05
+  spacer_ring:          0.05
+
+difficulty_mix:
+  easy:   0.30
+  medium: 0.45
+  hard:   0.25

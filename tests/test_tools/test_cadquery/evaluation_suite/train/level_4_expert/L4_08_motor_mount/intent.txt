@@ -1,0 +1,1 @@
+Create a motor mounting plate 100mm x 80mm x 12mm. Add a central pilot hole with 25mm diameter that goes completely through. Add four M6 mounting holes (6.5mm diameter) on a 65mm x 55mm bolt pattern centered on the plate. Finally, add four 5mm diameter ventilation holes, one near each corner at 10mm from each edge.

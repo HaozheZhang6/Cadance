@@ -1,0 +1,36 @@
+family: mounting_plate
+difficulty_levels: [easy, medium, hard]
+ops:
+  - box
+  - faces
+  - workplane
+  - pushPoints
+  - hole
+  - edges
+  - fillet
+  - chamfer
+  - rect
+  - cutThruAll
+params:
+  length: [30, 200]
+  width: [30, 200]
+  thickness: [3, 20]
+  hole_diameter: [2, 40]
+  hole_inset_x: [5, 80]
+  hole_inset_y: [5, 80]
+  fillet_radius: [0.5, 3.0]
+  chamfer_length: [0.3, 2.0]
+  slot_width: [3, 15]
+  slot_length: [5, 40]
+constraints:
+  - thickness >= 3
+  - hole_diameter < min(length, width) / 3
+  - hole_inset - hole_diameter/2 >= 1
+  - fillet_radius < thickness / 2
+  - chamfer_length < thickness / 3
+feature_tags:
+  - has_hole
+  - has_fillet
+  - has_chamfer
+  - has_slot
+  - pattern_like

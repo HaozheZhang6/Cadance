@@ -1,0 +1,28 @@
+{
+  "schema_version": "ops_program.v1",
+  "name": "cylinder_with_bore",
+  "description": "Level 1 - Turned cylinder with central bore",
+  "complexity": "L1_easy",
+  "operations": [
+    {
+      "primitive": "revolve",
+      "parameters": [
+        {"name": "outer_diameter", "value": 40.0, "unit": "mm"},
+        {"name": "length", "value": 60.0, "unit": "mm"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 12.0, "unit": "mm"},
+        {"name": "depth", "value": 60.0, "unit": "mm"}
+      ]
+    },
+    {
+      "primitive": "chamfer",
+      "parameters": [
+        {"name": "distance", "value": 1.5, "unit": "mm"}
+      ]
+    }
+  ]
+}

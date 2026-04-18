@@ -1,0 +1,19 @@
+num_samples: 3200
+seed: 1000
+run_name: synth_batch_new8_s1000
+
+# Only the 8 newest structurally-distinct families
+family_mix:
+  worm_screw:        0.125   # helix sweep trapezoidal profile
+  hollow_tube:       0.125   # box + rect cutThruAll
+  threaded_adapter:  0.125   # hex + cylinder union
+  z_bracket:         0.125   # chained face-workplane arms
+  spur_gear:         0.125   # involute polyline
+  impeller:          0.125   # repeated union blades
+  pulley:            0.125   # revolved groove profile
+  knob:              0.125   # multi-section loft
+
+difficulty_mix:
+  easy:   0.25
+  medium: 0.45
+  hard:   0.30

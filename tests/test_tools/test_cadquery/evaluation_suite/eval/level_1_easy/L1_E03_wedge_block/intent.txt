@@ -1,0 +1,1 @@
+Create a wedge shape with a rectangular base of 60mm x 40mm, tapering to an edge at a height of 30mm.

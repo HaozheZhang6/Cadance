@@ -1,0 +1,13 @@
+{
+  "id": "L4_10",
+  "name": "Stacked Cylinders",
+  "level": 4,
+  "expected_volume": 103378.03,
+  "expected_faces": 8,
+  "expected_edges": 9,
+  "expected_bounding_box": {
+    "x": 60.0,
+    "y": 60.0,
+    "z": 77.5
+  }
+}

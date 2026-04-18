@@ -1,0 +1,128 @@
+{
+  "schema_version": "ops_program.v1",
+  "name": "turbocharger_compressor_housing",
+  "description": "Level 5 Expert - Turbocharger compressor housing with complex interacting DFM violations",
+  "complexity": "L5_expert",
+  "dfm_status": "CRITICAL_VIOLATIONS",
+  "expected_findings": [
+    "ERROR: hole_too_small (0.2mm oil mist passages)",
+    "WARN: hole_ld_ratio_exceeded (L/D=25 oil drain, L/D=18 bearing cavity)",
+    "WARN: fillet_radius_below_min (0.08mm volute transition)",
+    "WARN: wall_thickness_below_min (0.3mm at volute tongue)"
+  ],
+  "design_intent": "High-performance automotive turbocharger compressor housing",
+  "material": "A356-T6_aluminum_casting",
+  "manufacturing_process": "investment_casting_with_cnc_finish",
+  "operations": [
+    {
+      "primitive": "revolve",
+      "parameters": [
+        {"name": "profile", "value": "volute_cross_section"},
+        {"name": "outer_diameter", "value": 95.0, "unit": "mm"},
+        {"name": "inner_diameter", "value": 52.0, "unit": "mm"},
+        {"name": "height", "value": 55.0, "unit": "mm"},
+        {"name": "volute_angle", "value": 360.0, "unit": "deg"},
+        {"name": "description", "value": "compressor_volute"}
+      ]
+    },
+    {
+      "primitive": "extrude",
+      "parameters": [
+        {"name": "profile", "value": "scroll_outlet"},
+        {"name": "width", "value": 45.0, "unit": "mm"},
+        {"name": "height", "value": 35.0, "unit": "mm"},
+        {"name": "length", "value": 60.0, "unit": "mm"},
+        {"name": "transition_radius", "value": 0.08, "unit": "mm"},
+        {"name": "description", "value": "discharge_scroll"},
+        {"name": "min_wall_thickness", "value": 0.3, "unit": "mm"},
+        {"name": "note", "value": "VIOLATION: 0.08mm transition, 0.3mm tongue thickness"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 28.0, "unit": "mm"},
+        {"name": "depth", "value": 504.0, "unit": "mm"},
+        {"name": "tolerance", "value": "H6"},
+        {"name": "surface_finish", "value": "Ra0.4"},
+        {"name": "description", "value": "bearing_bore"},
+        {"name": "note", "value": "VIOLATION: L/D=18, precision grinding required"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 4.0, "unit": "mm"},
+        {"name": "depth", "value": 100.0, "unit": "mm"},
+        {"name": "pattern", "value": "angled_30deg"},
+        {"name": "description", "value": "oil_drain_passage"},
+        {"name": "note", "value": "VIOLATION: L/D=25, deep gun drilling"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 0.2, "unit": "mm"},
+        {"name": "depth", "value": 5.0, "unit": "mm"},
+        {"name": "pattern", "value": "4x_bearing_spray"},
+        {"name": "description", "value": "oil_mist_passages"},
+        {"name": "note", "value": "VIOLATION: 0.2mm, requires micro-EDM drilling"}
+      ]
+    },
+    {
+      "primitive": "pocket",
+      "parameters": [
+        {"name": "diameter", "value": 38.0, "unit": "mm"},
+        {"name": "depth", "value": 22.0, "unit": "mm"},
+        {"name": "description", "value": "seal_carrier_pocket"}
+      ]
+    },
+    {
+      "primitive": "groove",
+      "parameters": [
+        {"name": "width", "value": 1.5, "unit": "mm"},
+        {"name": "depth", "value": 0.8, "unit": "mm"},
+        {"name": "pattern", "value": "2x_piston_ring"},
+        {"name": "description", "value": "seal_grooves"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 6.0, "unit": "mm"},
+        {"name": "depth", "value": 18.0, "unit": "mm"},
+        {"name": "tap", "value": "M6x1.0"},
+        {"name": "pattern", "value": "V-band_6x_60deg"},
+        {"name": "description", "value": "v_band_clamp_holes"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 55.0, "unit": "mm"},
+        {"name": "depth", "value": 8.0, "unit": "mm"},
+        {"name": "surface_finish", "value": "Ra1.6"},
+        {"name": "description", "value": "inducer_inlet"}
+      ]
+    },
+    {
+      "primitive": "fillet",
+      "parameters": [
+        {"name": "radius", "value": 0.08, "unit": "mm"},
+        {"name": "location", "value": "volute_tongue_transition"},
+        {"name": "description", "value": "tongue_aerodynamic_edge"},
+        {"name": "note", "value": "VIOLATION: 0.08mm, aero-critical but unmachiniable"}
+      ]
+    },
+    {
+      "primitive": "slot",
+      "parameters": [
+        {"name": "width", "value": 2.0, "unit": "mm"},
+        {"name": "depth", "value": 3.0, "unit": "mm"},
+        {"name": "angle", "value": 15.0, "unit": "deg"},
+        {"name": "pattern", "value": "diffuser_vanes_11x"},
+        {"name": "description", "value": "vaned_diffuser_slots"}
+      ]
+    }
+  ]
+}

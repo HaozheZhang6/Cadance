@@ -1,0 +1,1 @@
+Create a stepped block with three levels. The bottom level is 80mm x 80mm x 20mm, the middle level is 60mm x 60mm x 20mm centered on top, and the top level is 40mm x 40mm x 20mm centered on the middle.

@@ -1,0 +1,37 @@
+{
+  "id": "L3_01",
+  "name": "Mounting Plate with Counterbored Holes",
+  "level": 3,
+  "complexity_score": 10,
+  "complexity_breakdown": {
+    "api_breadth": 2,
+    "parameterization": 3,
+    "selection": 2,
+    "ordering": 2,
+    "ambiguity": 1
+  },
+  "dimensions": {
+    "width": 120,
+    "depth": 90,
+    "height": 12,
+    "hole_diameter": 9,
+    "counterbore_diameter": 14,
+    "counterbore_depth": 8,
+    "edge_offset": 15
+  },
+  "skills_tested": [
+    "box",
+    "cboreHole",
+    "pushPoints"
+  ],
+  "ambiguity": "none",
+  "notes": "Introduces counterbored holes (common in mechanical assemblies). M8 hints at standard sizes but dimensions are given explicitly.",
+  "expected_volume": 123656.11,
+  "expected_faces": 18,
+  "expected_edges": 36,
+  "expected_bounding_box": {
+    "x": 120.0,
+    "y": 90.0,
+    "z": 12.0
+  }
+}

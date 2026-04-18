@@ -1,0 +1,100 @@
+{
+  "schema_version": "ops_program.v1",
+  "name": "aerospace_structural_bracket",
+  "description": "Level 4 - Aircraft hinge bracket with DFM violations: sharp internal corners, thin webs (0.5mm), small fastener holes",
+  "complexity": "L4_industrial",
+  "dfm_status": "MULTIPLE_VIOLATIONS",
+  "expected_findings": [
+    "ERROR: hole_too_small (0.4mm pilot holes)",
+    "WARN: fillet_radius_below_min (0.1mm internal corners)",
+    "WARN: wall_thickness_below_min (0.5mm web)"
+  ],
+  "design_intent": "Lightweighted structural bracket for aircraft door hinge",
+  "material": "7075-T6_aluminum",
+  "operations": [
+    {
+      "primitive": "extrude",
+      "parameters": [
+        {"name": "profile", "value": "L_section"},
+        {"name": "leg1_length", "value": 80.0, "unit": "mm"},
+        {"name": "leg2_length", "value": 60.0, "unit": "mm"},
+        {"name": "thickness", "value": 12.0, "unit": "mm"},
+        {"name": "extrusion_length", "value": 150.0, "unit": "mm"},
+        {"name": "description", "value": "main_L_bracket"}
+      ]
+    },
+    {
+      "primitive": "pocket",
+      "parameters": [
+        {"name": "width", "value": 35.0, "unit": "mm"},
+        {"name": "length", "value": 50.0, "unit": "mm"},
+        {"name": "depth", "value": 11.5, "unit": "mm"},
+        {"name": "corner_radius", "value": 0.1, "unit": "mm"},
+        {"name": "pattern", "value": "3x_lightening"},
+        {"name": "description", "value": "lightening_pockets_leg1"},
+        {"name": "min_wall_thickness", "value": 0.5, "unit": "mm"},
+        {"name": "note", "value": "VIOLATION: 0.5mm floor, 0.1mm corner radius"}
+      ]
+    },
+    {
+      "primitive": "pocket",
+      "parameters": [
+        {"name": "width", "value": 25.0, "unit": "mm"},
+        {"name": "length", "value": 40.0, "unit": "mm"},
+        {"name": "depth", "value": 11.5, "unit": "mm"},
+        {"name": "corner_radius", "value": 0.1, "unit": "mm"},
+        {"name": "pattern", "value": "2x_lightening"},
+        {"name": "description", "value": "lightening_pockets_leg2"},
+        {"name": "min_wall_thickness", "value": 0.5, "unit": "mm"},
+        {"name": "note", "value": "VIOLATION: 0.5mm floor, 0.1mm corner radius"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 6.35, "unit": "mm"},
+        {"name": "depth", "value": 12.0, "unit": "mm"},
+        {"name": "tolerance", "value": "H7"},
+        {"name": "pattern", "value": "4x_hinge_pin"},
+        {"name": "description", "value": "hinge_pin_holes"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 4.8, "unit": "mm"},
+        {"name": "depth", "value": 12.0, "unit": "mm"},
+        {"name": "tap", "value": "AN4"},
+        {"name": "pattern", "value": "8x_mounting"},
+        {"name": "description", "value": "mounting_holes"}
+      ]
+    },
+    {
+      "primitive": "hole",
+      "parameters": [
+        {"name": "diameter", "value": 0.4, "unit": "mm"},
+        {"name": "depth", "value": 3.0, "unit": "mm"},
+        {"name": "pattern", "value": "6x_alignment"},
+        {"name": "description", "value": "alignment_pilot_holes"},
+        {"name": "note", "value": "VIOLATION: 0.4mm below 0.5mm minimum"}
+      ]
+    },
+    {
+      "primitive": "fillet",
+      "parameters": [
+        {"name": "radius", "value": 0.1, "unit": "mm"},
+        {"name": "location", "value": "pocket_corners"},
+        {"name": "description", "value": "pocket_corner_fillets"},
+        {"name": "note", "value": "VIOLATION: 0.1mm below 0.2mm minimum"}
+      ]
+    },
+    {
+      "primitive": "chamfer",
+      "parameters": [
+        {"name": "distance", "value": 0.5, "unit": "mm"},
+        {"name": "location", "value": "all_edges"},
+        {"name": "description", "value": "edge_breaks"}
+      ]
+    }
+  ]
+}

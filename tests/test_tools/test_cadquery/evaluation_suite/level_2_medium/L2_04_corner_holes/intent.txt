@@ -1,0 +1,1 @@
+Create a rectangular plate 100mm x 80mm x 10mm thick. Add four 6mm diameter through holes, one in each corner, positioned 10mm from each edge.
