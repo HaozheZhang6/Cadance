@@ -18,6 +18,7 @@ from ..pipeline.builder import Op, Program
 
 class SnapClipFamily(BaseFamily):
     name = "snap_clip"
+    standard = "DIN 6799"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         clip_r = rng.uniform(5, 25)  # radius of the clipped object
@@ -117,17 +118,21 @@ class SnapClipFamily(BaseFamily):
             return (round(r * math.cos(ang_rad), 4), round(r * math.sin(ang_rad), 4))
 
         s_outer = _pt(r_out, -half_rad)
-        mid_outer = (round(r_out, 4), 0.0)          # back of C, outer
+        mid_outer = (round(r_out, 4), 0.0)  # back of C, outer
         e_outer = _pt(r_out, half_rad)
         s_inner = _pt(r_in, -half_rad)
-        mid_inner = (round(r_in, 4), 0.0)            # back of C, inner
+        mid_inner = (round(r_in, 4), 0.0)  # back of C, inner
         e_inner = _pt(r_in, half_rad)
 
         # Profile: outer arc CCW (long way through back), gap, inner arc CW, close
         ops.append(Op("moveTo", {"x": s_outer[0], "y": s_outer[1]}))
-        ops.append(Op("threePointArc", {"point1": list(mid_outer), "point2": list(e_outer)}))
+        ops.append(
+            Op("threePointArc", {"point1": list(mid_outer), "point2": list(e_outer)})
+        )
         ops.append(Op("lineTo", {"x": e_inner[0], "y": e_inner[1]}))
-        ops.append(Op("threePointArc", {"point1": list(mid_inner), "point2": list(s_inner)}))
+        ops.append(
+            Op("threePointArc", {"point1": list(mid_inner), "point2": list(s_inner)})
+        )
         ops.append(Op("close", {}))
         ops.append(Op("extrude", {"distance": clip_l}))
 
@@ -150,19 +155,38 @@ class SnapClipFamily(BaseFamily):
                 cy = round(r_mid * math.sin(ang_rad), 4)
                 ang_deg = round(math.degrees(ang_rad), 3)
                 slot_z = round(clip_l - sd / 2.0, 4)
-                ops.append(Op("cut", {"ops": [
-                    {"name": "transformed", "args": {
-                        # Rotate box so its X-axis (length) is radial at tip
-                        "offset": [cx, cy, slot_z],
-                        "rotate": [0.0, 0.0, ang_deg],
-                    }},
-                    {"name": "box", "args": {
-                        "length": round(wt + 1.0, 4),  # radial: slightly over wall thickness
-                        "width": round(sw, 4),           # tangential: narrow slit
-                        "height": round(sd + 0.2, 4),   # +0.2 to ensure full cut
-                        "centered": True,
-                    }},
-                ]}))
+                ops.append(
+                    Op(
+                        "cut",
+                        {
+                            "ops": [
+                                {
+                                    "name": "transformed",
+                                    "args": {
+                                        # Rotate box so its X-axis (length) is radial at tip
+                                        "offset": [cx, cy, slot_z],
+                                        "rotate": [0.0, 0.0, ang_deg],
+                                    },
+                                },
+                                {
+                                    "name": "box",
+                                    "args": {
+                                        "length": round(
+                                            wt + 1.0, 4
+                                        ),  # radial: slightly over wall thickness
+                                        "width": round(
+                                            sw, 4
+                                        ),  # tangential: narrow slit
+                                        "height": round(
+                                            sd + 0.2, 4
+                                        ),  # +0.2 to ensure full cut
+                                        "centered": True,
+                                    },
+                                },
+                            ]
+                        },
+                    )
+                )
 
         # Mounting flange (hard)
         fw = params.get("flange_width")
@@ -171,22 +195,35 @@ class SnapClipFamily(BaseFamily):
         fhd = params.get("flange_hole_diameter")
         if fw and ft:
             # Flange at the back of the C (positive X side)
-            ops.append(Op("union", {"ops": [
-                {"name": "transformed", "args": {
-                    "offset": [
-                        round(r_out + ft / 2 - 0.5, 4),
-                        0.0,
-                        round(clip_l / 2, 4),
-                    ],
-                    "rotate": [0.0, 0.0, 0.0],
-                }},
-                {"name": "box", "args": {
-                    "length": ft,
-                    "width": fw,
-                    "height": round(clip_l, 4),
-                    "centered": True,
-                }},
-            ]}))
+            ops.append(
+                Op(
+                    "union",
+                    {
+                        "ops": [
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": [
+                                        round(r_out + ft / 2 - 0.5, 4),
+                                        0.0,
+                                        round(clip_l / 2, 4),
+                                    ],
+                                    "rotate": [0.0, 0.0, 0.0],
+                                },
+                            },
+                            {
+                                "name": "box",
+                                "args": {
+                                    "length": ft,
+                                    "width": fw,
+                                    "height": round(clip_l, 4),
+                                    "centered": True,
+                                },
+                            },
+                        ]
+                    },
+                )
+            )
 
         if n_fh and fhd and fw and ft:
             tags["has_hole"] = True

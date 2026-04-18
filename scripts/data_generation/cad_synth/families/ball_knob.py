@@ -12,6 +12,7 @@ from .base import BaseFamily
 
 class BallKnobFamily(BaseFamily):
     name = "ball_knob"
+    standard = "DIN 319"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         ball_r = round(rng.uniform(10, 40), 1)
@@ -56,12 +57,34 @@ class BallKnobFamily(BaseFamily):
         # Stem: cylinder pointing downward from sphere.
         # Centre of stem at (0, 0, -(ball_r + stem_h/2)).
         stem_cz = round(-(ball_r + stem_h / 2), 4)
-        ops.append(Op("union", {"ops": [
-            {"name": "transformed",
-             "args": {"offset": [0.0, 0.0, stem_cz], "rotate": [0, 0, 0]}},
-            {"name": "cylinder",
-             "args": {"height": round(stem_h, 4), "radius": round(stem_r, 4)}},
-        ]}))
+        ops.append(
+            Op(
+                "union",
+                {
+                    "ops": [
+                        {
+                            "name": "transformed",
+                            "args": {
+                                "offset": [0.0, 0.0, stem_cz],
+                                "rotate": [0, 0, 0],
+                            },
+                        },
+                        {
+                            "name": "cylinder",
+                            "args": {
+                                "height": round(stem_h, 4),
+                                "radius": round(stem_r, 4),
+                            },
+                        },
+                    ]
+                },
+            )
+        )
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

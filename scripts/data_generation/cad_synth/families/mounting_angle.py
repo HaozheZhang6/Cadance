@@ -15,6 +15,7 @@ from ..pipeline.builder import Op, Program
 
 class MountingAngleFamily(BaseFamily):
     name = "mounting_angle"
+    standard = "EN 10056"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         arm_w = round(rng.uniform(25, 100), 1)  # horizontal arm width

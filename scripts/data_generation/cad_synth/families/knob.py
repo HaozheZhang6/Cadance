@@ -15,6 +15,7 @@ from ..pipeline.builder import Op, Program
 
 class KnobFamily(BaseFamily):
     name = "knob"
+    standard = "DIN 319"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         r_base = rng.uniform(10, 35)
@@ -77,8 +78,10 @@ class KnobFamily(BaseFamily):
         h = params["total_height"]
 
         ops, tags = [], {
-            "has_hole": False, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": False,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
             "rotational": True,
         }
 
@@ -122,11 +125,23 @@ class KnobFamily(BaseFamily):
         if n_k and kd:
             tags["has_slot"] = True
             ops.append(Op("workplane", {"selector": "<Z"}))
-            ops.append(Op("polarArray", {
-                "radius": round(rb * 0.88, 3),
-                "startAngle": 0, "angle": 360, "count": n_k,
-            }))
+            ops.append(
+                Op(
+                    "polarArray",
+                    {
+                        "radius": round(rb * 0.88, 3),
+                        "startAngle": 0,
+                        "angle": 360,
+                        "count": n_k,
+                    },
+                )
+            )
             ops.append(Op("hole", {"diameter": kd}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

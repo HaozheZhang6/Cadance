@@ -8,13 +8,13 @@ Medium: + rounded inner corners (arcs) + corner mounting holes.
 Hard:   + side slot cutouts on outer edges.
 """
 
-
 from ..pipeline.builder import Op, Program
 from .base import BaseFamily
 
 
 class RectFrameFamily(BaseFamily):
     name = "rect_frame"
+    standard = "EN 10219"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         outer_l = round(rng.uniform(60, 160), 1)

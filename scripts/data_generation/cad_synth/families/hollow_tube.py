@@ -15,25 +15,44 @@ from ..pipeline.builder import Op, Program
 
 # EN 10219 SHS/RHS cold-formed hollow sections — (outer_w, outer_h, wall_t) mm
 _EN10219_SHS = [
-    (20, 20, 2.0), (25, 25, 2.5), (30, 30, 2.5), (40, 40, 3.0),
-    (50, 50, 3.0), (60, 60, 3.0), (80, 80, 4.0), (100, 100, 5.0),
-    (120, 120, 5.0), (150, 150, 6.0),
+    (20, 20, 2.0),
+    (25, 25, 2.5),
+    (30, 30, 2.5),
+    (40, 40, 3.0),
+    (50, 50, 3.0),
+    (60, 60, 3.0),
+    (80, 80, 4.0),
+    (100, 100, 5.0),
+    (120, 120, 5.0),
+    (150, 150, 6.0),
 ]
 _EN10219_RHS = [
-    (50, 30, 3.0), (60, 40, 3.0), (80, 40, 3.0), (80, 60, 4.0),
-    (100, 50, 4.0), (100, 60, 4.0), (120, 60, 5.0), (150, 100, 5.0),
-    (200, 100, 6.0), (200, 150, 6.0),
+    (50, 30, 3.0),
+    (60, 40, 3.0),
+    (80, 40, 3.0),
+    (80, 60, 4.0),
+    (100, 50, 4.0),
+    (100, 60, 4.0),
+    (120, 60, 5.0),
+    (150, 100, 5.0),
+    (200, 100, 6.0),
+    (200, 150, 6.0),
 ]
-_SMALL_SHS = _EN10219_SHS[:5]   # 20–50 mm
-_MID_ALL   = _EN10219_SHS[3:8] + _EN10219_RHS[:6]  # 40–100 mm
-_ALL       = _EN10219_SHS + _EN10219_RHS
+_SMALL_SHS = _EN10219_SHS[:5]  # 20–50 mm
+_MID_ALL = _EN10219_SHS[3:8] + _EN10219_RHS[:6]  # 40–100 mm
+_ALL = _EN10219_SHS + _EN10219_RHS
 
 
 class HollowTubeFamily(BaseFamily):
     name = "hollow_tube"
+    standard = "EN 10305"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        pool = _SMALL_SHS if difficulty == "easy" else (_MID_ALL if difficulty == "medium" else _ALL)
+        pool = (
+            _SMALL_SHS
+            if difficulty == "easy"
+            else (_MID_ALL if difficulty == "medium" else _ALL)
+        )
         outer_w, outer_h, wall_t = pool[int(rng.integers(0, len(pool)))]
         outer_w, outer_h, wall_t = float(outer_w), float(outer_h), float(wall_t)
         length = round(rng.uniform(outer_w * 1.5, outer_w * 5.0), 0)
@@ -47,7 +66,9 @@ class HollowTubeFamily(BaseFamily):
         }
 
         if difficulty in ("medium", "hard"):
-            params["chamfer_length"] = round(rng.uniform(0.5, max(0.6, wall_t * 0.3)), 1)
+            params["chamfer_length"] = round(
+                rng.uniform(0.5, max(0.6, wall_t * 0.3)), 1
+            )
 
         if difficulty == "hard":
             n_holes = int(rng.choice([2, 4]))
@@ -98,8 +119,10 @@ class HollowTubeFamily(BaseFamily):
         oh = params.get("outer_height", ow)
 
         ops, tags = [], {
-            "has_hole": False, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": False,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
         }
 
         # Outer box — tube lies along X axis so bore ends face the iso cameras
@@ -125,8 +148,9 @@ class HollowTubeFamily(BaseFamily):
         if n_mh and mhd:
             tags["has_hole"] = True
             spacing = round(length / (n_mh + 1), 3)
-            mh_pts = [(round(-length / 2 + spacing * (i + 1), 3), 0.0)
-                      for i in range(n_mh)]
+            mh_pts = [
+                (round(-length / 2 + spacing * (i + 1), 3), 0.0) for i in range(n_mh)
+            ]
             ops.append(Op("workplane", {"selector": ">Z"}))
             ops.append(Op("pushPoints", {"points": mh_pts}))
             ops.append(Op("hole", {"diameter": mhd}))
@@ -137,8 +161,15 @@ class HollowTubeFamily(BaseFamily):
         if sw and sd:
             tags["has_slot"] = True
             ops.append(Op("workplane", {"selector": ">X"}))
-            ops.append(Op("slot2D", {"length": sw, "width": round(wt * 0.8, 2), "angle": 0}))
+            ops.append(
+                Op("slot2D", {"length": sw, "width": round(wt * 0.8, 2), "angle": 0})
+            )
             ops.append(Op("cutBlind", {"depth": sd}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

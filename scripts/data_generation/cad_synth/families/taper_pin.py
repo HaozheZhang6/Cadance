@@ -8,6 +8,7 @@ Easy:   plain tapered cylinder
 Medium: + chamfer on large end
 Hard:   + threaded extraction hole on large end (blind, tapped)
 """
+
 import math
 
 from .base import BaseFamily
@@ -15,28 +16,80 @@ from ..pipeline.builder import Op, Program
 
 # ISO 2339 taper pin 1:50 — (d_nominal, l_min, l_max) mm
 _ISO2339 = [
-    (1,   4,  20), (1.2,  4,  25), (1.5,  6,  32), (2,   6,  50),
-    (2.5, 8,  63), (3,   10,  80), (4,   12, 100), (5,  14, 125),
-    (6,  18, 160), (8,   22, 200), (10,  28, 260), (12, 32, 300),
-    (16,  40, 400), (20,  50, 500),
+    (1, 4, 20),
+    (1.2, 4, 25),
+    (1.5, 6, 32),
+    (2, 6, 50),
+    (2.5, 8, 63),
+    (3, 10, 80),
+    (4, 12, 100),
+    (5, 14, 125),
+    (6, 18, 160),
+    (8, 22, 200),
+    (10, 28, 260),
+    (12, 32, 300),
+    (16, 40, 400),
+    (20, 50, 500),
 ]
 _SMALL = [r for r in _ISO2339 if r[0] <= 5]
-_MID   = [r for r in _ISO2339 if 3 <= r[0] <= 12]
-_ALL   = _ISO2339
+_MID = [r for r in _ISO2339 if 3 <= r[0] <= 12]
+_ALL = _ISO2339
 
 
 class TaperPinFamily(BaseFamily):
     """ISO 2339 taper pin, 1:50 taper."""
 
     name = "taper_pin"
+    standard = "ISO 2339"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        pool = _SMALL if difficulty == "easy" else (_MID if difficulty == "medium" else _ALL)
+        pool = (
+            _SMALL
+            if difficulty == "easy"
+            else (_MID if difficulty == "medium" else _ALL)
+        )
         d_nom, l_min, l_max = pool[int(rng.integers(0, len(pool)))]
 
-        _len = [4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 22, 25, 28, 32, 36, 40,
-                45, 50, 56, 63, 70, 80, 90, 100, 110, 125, 140, 160, 180,
-                200, 220, 250, 280, 320, 360, 400, 450, 500]
+        _len = [
+            4,
+            5,
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            25,
+            28,
+            32,
+            36,
+            40,
+            45,
+            50,
+            56,
+            63,
+            70,
+            80,
+            90,
+            100,
+            110,
+            125,
+            140,
+            160,
+            180,
+            200,
+            220,
+            250,
+            280,
+            320,
+            360,
+            400,
+            450,
+            500,
+        ]
         valid = [l for l in _len if l_min <= l <= l_max]
         length = float(valid[int(rng.integers(0, len(valid)))])
 
@@ -75,12 +128,14 @@ class TaperPinFamily(BaseFamily):
     def make_program(self, params: dict) -> Program:
         difficulty = params.get("difficulty", "easy")
         d_nom = params["d_nominal"]
-        d_lg  = params["d_large"]
-        l     = params["length"]
+        d_lg = params["d_large"]
+        l = params["length"]
 
         ops, tags = [], {
-            "has_hole": False, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": False,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
             "rotational": True,
         }
 
@@ -108,8 +163,17 @@ class TaperPinFamily(BaseFamily):
         if ext_m and ext_d:
             tags["has_hole"] = True
             ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("hole", {"diameter": round(ext_m * 0.85, 2),
-                                    "depth": round(ext_d, 2)}))
+            ops.append(
+                Op(
+                    "hole",
+                    {"diameter": round(ext_m * 0.85, 2), "depth": round(ext_d, 2)},
+                )
+            )
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

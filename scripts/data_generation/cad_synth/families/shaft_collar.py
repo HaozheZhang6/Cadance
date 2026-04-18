@@ -11,23 +11,46 @@ from ..pipeline.builder import Op, Program
 
 # DIN 705 Form A shaft collar — (bore_d, od, width_b) mm
 _DIN705 = [
-    (6, 12, 8), (8, 16, 8), (10, 20, 10), (12, 22, 12),
-    (14, 25, 12), (15, 25, 12), (16, 28, 12), (18, 32, 14),
-    (20, 32, 14), (22, 36, 14), (25, 40, 16), (28, 45, 16),
-    (30, 45, 16), (35, 56, 16), (40, 63, 18), (45, 70, 18),
-    (50, 80, 18), (55, 80, 18), (60, 90, 20), (65, 100, 20),
-    (70, 100, 20), (80, 110, 22), (90, 125, 22), (100, 140, 25),
+    (6, 12, 8),
+    (8, 16, 8),
+    (10, 20, 10),
+    (12, 22, 12),
+    (14, 25, 12),
+    (15, 25, 12),
+    (16, 28, 12),
+    (18, 32, 14),
+    (20, 32, 14),
+    (22, 36, 14),
+    (25, 40, 16),
+    (28, 45, 16),
+    (30, 45, 16),
+    (35, 56, 16),
+    (40, 63, 18),
+    (45, 70, 18),
+    (50, 80, 18),
+    (55, 80, 18),
+    (60, 90, 20),
+    (65, 100, 20),
+    (70, 100, 20),
+    (80, 110, 22),
+    (90, 125, 22),
+    (100, 140, 25),
 ]
 _SMALL = [r for r in _DIN705 if r[0] <= 25]
-_MID   = [r for r in _DIN705 if 16 <= r[0] <= 50]
-_ALL   = _DIN705
+_MID = [r for r in _DIN705 if 16 <= r[0] <= 50]
+_ALL = _DIN705
 
 
 class ShaftCollarFamily(BaseFamily):
     name = "shaft_collar"
+    standard = "DIN 705"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        pool = _SMALL if difficulty == "easy" else (_MID if difficulty == "medium" else _ALL)
+        pool = (
+            _SMALL
+            if difficulty == "easy"
+            else (_MID if difficulty == "medium" else _ALL)
+        )
         bore_d, od, width = pool[int(rng.integers(0, len(pool)))]
 
         params = {
@@ -78,8 +101,10 @@ class ShaftCollarFamily(BaseFamily):
         w = params["width"]
 
         ops, tags = [], {
-            "has_hole": True, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": True,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
             "rotational": True,
         }
 
@@ -91,15 +116,29 @@ class ShaftCollarFamily(BaseFamily):
         hub_h = params.get("hub_height")
         if hub_od and hub_h:
             z_ctr = round(w / 2 + hub_h / 2 - 0.5, 3)
-            ops.append(Op("union", {"ops": [
-                {"name": "transformed", "args": {
-                    "offset": [0, 0, z_ctr], "rotate": [0, 0, 0],
-                }},
-                {"name": "cylinder", "args": {
-                    "height": round(hub_h, 3),
-                    "radius": round(hub_od / 2, 3),
-                }},
-            ]}))
+            ops.append(
+                Op(
+                    "union",
+                    {
+                        "ops": [
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": [0, 0, z_ctr],
+                                    "rotate": [0, 0, 0],
+                                },
+                            },
+                            {
+                                "name": "cylinder",
+                                "args": {
+                                    "height": round(hub_h, 3),
+                                    "radius": round(hub_od / 2, 3),
+                                },
+                            },
+                        ]
+                    },
+                )
+            )
 
         # Center bore (axial, thru entire part)
         ops.append(Op("workplane", {"selector": ">Z"}))
@@ -120,5 +159,10 @@ class ShaftCollarFamily(BaseFamily):
             ops.append(Op("pushPoints", {"points": [[0, 0]]}))
             ops.append(Op("hole", {"diameter": round(sd, 3)}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

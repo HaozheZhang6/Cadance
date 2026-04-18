@@ -15,30 +15,57 @@ from ..pipeline.builder import Op, Program
 
 # ISO 272 / DIN 934 hex standoff table — (m_size, af_mm, bore_d, h_min, h_max) mm
 _ISO272 = [
-    (3,  5.5,  3.0,  5,  30),
-    (4,  7.0,  4.0,  6,  40),
-    (5,  8.0,  5.0,  8,  50),
-    (6, 10.0,  6.0, 10,  60),
-    (8, 13.0,  8.0, 12,  80),
+    (3, 5.5, 3.0, 5, 30),
+    (4, 7.0, 4.0, 6, 40),
+    (5, 8.0, 5.0, 8, 50),
+    (6, 10.0, 6.0, 10, 60),
+    (8, 13.0, 8.0, 12, 80),
     (10, 16.0, 10.0, 15, 100),
     (12, 18.0, 12.0, 18, 120),
     (16, 24.0, 16.0, 20, 150),
     (20, 30.0, 20.0, 25, 200),
 ]
-_SMALL = _ISO272[:5]   # M3–M8
-_MID   = _ISO272[2:7]  # M5–M12
-_ALL   = _ISO272
+_SMALL = _ISO272[:5]  # M3–M8
+_MID = _ISO272[2:7]  # M5–M12
+_ALL = _ISO272
 
 # Preferred standoff height series (mm)
-_H_SERIES = [5, 6, 8, 10, 12, 15, 18, 20, 25, 30, 35, 40, 45, 50,
-             60, 70, 80, 90, 100, 120, 150, 200]
+_H_SERIES = [
+    5,
+    6,
+    8,
+    10,
+    12,
+    15,
+    18,
+    20,
+    25,
+    30,
+    35,
+    40,
+    45,
+    50,
+    60,
+    70,
+    80,
+    90,
+    100,
+    120,
+    150,
+    200,
+]
 
 
 class HexStandoffFamily(BaseFamily):
     name = "hex_standoff"
+    standard = "DIN 7984"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        pool = _SMALL if difficulty == "easy" else (_MID if difficulty == "medium" else _ALL)
+        pool = (
+            _SMALL
+            if difficulty == "easy"
+            else (_MID if difficulty == "medium" else _ALL)
+        )
         m_size, af, bore_d, h_min, h_max = pool[int(rng.integers(0, len(pool)))]
         valid_h = [h for h in _H_SERIES if h_min <= h <= h_max]
         height = float(valid_h[int(rng.integers(0, len(valid_h)))])
@@ -58,7 +85,9 @@ class HexStandoffFamily(BaseFamily):
 
             params["flange_diameter"] = round(flange_od, 1)
             params["flange_height"] = round(flange_h, 1)
-            params["chamfer_length"] = round(rng.uniform(0.5, max(0.6, min(2.0, height * 0.04))), 1)
+            params["chamfer_length"] = round(
+                rng.uniform(0.5, max(0.6, min(2.0, height * 0.04))), 1
+            )
 
         if difficulty == "hard":
             # Stepped bore: larger bore for top portion, smaller for bottom
@@ -68,7 +97,9 @@ class HexStandoffFamily(BaseFamily):
             bore_step_h = rng.uniform(2, max(2.5, min(8, height * 0.3)))
             params["bore_step_diameter"] = round(bore_step_d, 1)
             params["bore_step_height"] = round(bore_step_h, 1)
-            params["fillet_radius"] = round(rng.uniform(0.3, max(0.4, min(1.0, af * 0.03))), 1)
+            params["fillet_radius"] = round(
+                rng.uniform(0.3, max(0.4, min(1.0, af * 0.03))), 1
+            )
 
         return params
 
@@ -111,8 +142,10 @@ class HexStandoffFamily(BaseFamily):
         hex_diameter = round(af / 0.866, 3)
 
         ops, tags = [], {
-            "has_hole": True, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": True,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
             "rotational": False,
         }
 
@@ -154,5 +187,10 @@ class HexStandoffFamily(BaseFamily):
             ops.append(Op("edges", {"selector": "|Z"}))
             ops.append(Op("fillet", {"radius": fr}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

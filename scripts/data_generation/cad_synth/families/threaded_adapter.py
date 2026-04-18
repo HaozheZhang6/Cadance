@@ -15,9 +15,10 @@ from ..pipeline.builder import Op, Program
 
 class ThreadedAdapterFamily(BaseFamily):
     name = "threaded_adapter"
+    standard = "ASME B1.20.1"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        hex_across_flats = rng.uniform(14, 50)   # hex wrench size (AF)
+        hex_across_flats = rng.uniform(14, 50)  # hex wrench size (AF)
         hex_h = rng.uniform(8, max(8.1, hex_across_flats * 0.6))
         stub_r = round(hex_across_flats * rng.uniform(0.28, 0.42), 1)
         stub_h = rng.uniform(10, max(10.1, hex_across_flats * 1.2))
@@ -39,7 +40,9 @@ class ThreadedAdapterFamily(BaseFamily):
         params["bore_radius"] = bore_r
 
         if difficulty in ("medium", "hard"):
-            params["chamfer_length"] = round(rng.uniform(0.5, max(0.6, hex_h * 0.08)), 1)
+            params["chamfer_length"] = round(
+                rng.uniform(0.5, max(0.6, hex_h * 0.08)), 1
+            )
 
         if difficulty == "hard":
             # Second stub on the other end (different size)
@@ -103,8 +106,10 @@ class ThreadedAdapterFamily(BaseFamily):
         hex_diam = round(haf / math.cos(math.radians(30)), 3)
 
         ops, tags = [], {
-            "has_hole": False, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": False,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
         }
 
         # Hex body (6-sided polygon extruded)
@@ -114,22 +119,42 @@ class ThreadedAdapterFamily(BaseFamily):
         # Shoulder transition (hex → stub)
         shr = params["shoulder_height"]
         srr = params["shoulder_radius"]
-        ops.append(Op("union", {"ops": [
-            {"name": "transformed", "args": {
-                "offset": [0, 0, round(hh + shr / 2, 3)],
-                "rotate": [0, 0, 0],
-            }},
-            {"name": "cylinder", "args": {"height": shr, "radius": srr}},
-        ]}))
+        ops.append(
+            Op(
+                "union",
+                {
+                    "ops": [
+                        {
+                            "name": "transformed",
+                            "args": {
+                                "offset": [0, 0, round(hh + shr / 2, 3)],
+                                "rotate": [0, 0, 0],
+                            },
+                        },
+                        {"name": "cylinder", "args": {"height": shr, "radius": srr}},
+                    ]
+                },
+            )
+        )
 
         # Stub cylinder on top
-        ops.append(Op("union", {"ops": [
-            {"name": "transformed", "args": {
-                "offset": [0, 0, round(hh + shr + sh / 2, 3)],
-                "rotate": [0, 0, 0],
-            }},
-            {"name": "cylinder", "args": {"height": sh, "radius": sr}},
-        ]}))
+        ops.append(
+            Op(
+                "union",
+                {
+                    "ops": [
+                        {
+                            "name": "transformed",
+                            "args": {
+                                "offset": [0, 0, round(hh + shr + sh / 2, 3)],
+                                "rotate": [0, 0, 0],
+                            },
+                        },
+                        {"name": "cylinder", "args": {"height": sh, "radius": sr}},
+                    ]
+                },
+            )
+        )
 
         # Chamfer hex top/bottom edges (medium+)
         cl = params.get("chamfer_length")
@@ -147,21 +172,47 @@ class ThreadedAdapterFamily(BaseFamily):
         sh2h = params.get("shoulder2_height")
         if s2r and s2h and sh2r and sh2h:
             # Shoulder2 (hex bottom → stub2)
-            ops.append(Op("union", {"ops": [
-                {"name": "transformed", "args": {
-                    "offset": [0, 0, round(-sh2h / 2, 3)],
-                    "rotate": [0, 0, 0],
-                }},
-                {"name": "cylinder", "args": {"height": sh2h, "radius": sh2r}},
-            ]}))
+            ops.append(
+                Op(
+                    "union",
+                    {
+                        "ops": [
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": [0, 0, round(-sh2h / 2, 3)],
+                                    "rotate": [0, 0, 0],
+                                },
+                            },
+                            {
+                                "name": "cylinder",
+                                "args": {"height": sh2h, "radius": sh2r},
+                            },
+                        ]
+                    },
+                )
+            )
             # Stub2
-            ops.append(Op("union", {"ops": [
-                {"name": "transformed", "args": {
-                    "offset": [0, 0, round(-sh2h - s2h / 2, 3)],
-                    "rotate": [0, 0, 0],
-                }},
-                {"name": "cylinder", "args": {"height": s2h, "radius": s2r}},
-            ]}))
+            ops.append(
+                Op(
+                    "union",
+                    {
+                        "ops": [
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": [0, 0, round(-sh2h - s2h / 2, 3)],
+                                    "rotate": [0, 0, 0],
+                                },
+                            },
+                            {
+                                "name": "cylinder",
+                                "args": {"height": s2h, "radius": s2r},
+                            },
+                        ]
+                    },
+                )
+            )
 
         # Knurled ring — thin cylinder with polar slots (hard), between hex and stub2
         kr = params.get("knurl_radius")
@@ -172,28 +223,51 @@ class ThreadedAdapterFamily(BaseFamily):
             slot_w = round(2 * math.pi * kr / nks * 0.35, 3)
             slot_d = round(kr - (s2r or sr), 3)
             # Add knurl body
-            ops.append(Op("union", {"ops": [
-                {"name": "transformed", "args": {
-                    "offset": [0, 0, knurl_z],
-                    "rotate": [0, 0, 0],
-                }},
-                {"name": "cylinder", "args": {"height": kh, "radius": kr}},
-            ]}))
+            ops.append(
+                Op(
+                    "union",
+                    {
+                        "ops": [
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": [0, 0, knurl_z],
+                                    "rotate": [0, 0, 0],
+                                },
+                            },
+                            {"name": "cylinder", "args": {"height": kh, "radius": kr}},
+                        ]
+                    },
+                )
+            )
             # Slot cuts around knurl
             for i in range(nks):
                 angle_deg = round(360.0 * i / nks, 3)
-                ops.append(Op("cut", {"ops": [
-                    {"name": "transformed", "args": {
-                        "offset": [kr, 0, knurl_z],
-                        "rotate": [0, 0, angle_deg],
-                    }},
-                    {"name": "box", "args": {
-                        "length": slot_d * 2,
-                        "width": slot_w,
-                        "height": kh * 1.2,
-                        "centered": True,
-                    }},
-                ]}))
+                ops.append(
+                    Op(
+                        "cut",
+                        {
+                            "ops": [
+                                {
+                                    "name": "transformed",
+                                    "args": {
+                                        "offset": [kr, 0, knurl_z],
+                                        "rotate": [0, 0, angle_deg],
+                                    },
+                                },
+                                {
+                                    "name": "box",
+                                    "args": {
+                                        "length": slot_d * 2,
+                                        "width": slot_w,
+                                        "height": kh * 1.2,
+                                        "centered": True,
+                                    },
+                                },
+                            ]
+                        },
+                    )
+                )
 
         # Through bore — always present, cut after all unions so stub2 is also hollow
         br = params.get("bore_radius")
@@ -202,5 +276,10 @@ class ThreadedAdapterFamily(BaseFamily):
             ops.append(Op("workplane", {"selector": ">Z"}))
             ops.append(Op("hole", {"diameter": br * 2}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

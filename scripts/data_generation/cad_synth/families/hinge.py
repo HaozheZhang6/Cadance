@@ -14,6 +14,7 @@ from ..pipeline.plane_utils import cylinder_rot_to_lateral2, plane_offset
 
 class HingeFamily(BaseFamily):
     name = "hinge"
+    standard = "DIN 7954/7955"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         leaf_w = rng.uniform(25, 70)
@@ -47,7 +48,9 @@ class HingeFamily(BaseFamily):
         if difficulty == "hard":
             params["csk_diameter"] = round(params["screw_diameter"] * 2.0, 1)
             params["csk_angle"] = 82.0
-            params["fillet_radius"] = round(rng.uniform(0.5, min(1.5, leaf_t * 0.25)), 1)
+            params["fillet_radius"] = round(
+                rng.uniform(0.5, min(1.5, leaf_t * 0.25)), 1
+            )
 
         return params
 
@@ -86,8 +89,10 @@ class HingeFamily(BaseFamily):
         kh = params["knuckle_height"]
 
         ops, tags = [], {
-            "has_hole": True, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": True,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
         }
 
         kr = round(kd / 2, 3)
@@ -100,38 +105,65 @@ class HingeFamily(BaseFamily):
         # Knuckle Y positions — evenly spaced along leaf height
         gap = round((lh - n * kh) / (n + 1), 3)
         knuckle_ys = [
-            round(gap * (i + 1) + kh * i + kh / 2 - lh / 2, 3)
-            for i in range(n)
+            round(gap * (i + 1) + kh * i + kh / 2 - lh / 2, 3) for i in range(n)
         ]
 
         # Knuckle barrels: second-lateral-axis cylinders attached to first-lateral edge.
         # cylinder_rot_to_lateral2 tilts the sub-workplane cylinder to the second lateral.
         knuckle_rot = cylinder_rot_to_lateral2(bp)
         for y in knuckle_ys:
-            ops.append(Op("union", {"ops": [
-                {"name": "transformed", "args": {
-                    "offset": plane_offset(bp, knuckle_x, y, 0.0),
-                    "rotate": knuckle_rot,
-                }},
-                {"name": "cylinder", "args": {
-                    "height": round(kh, 3),
-                    "radius": kr,
-                }},
-            ]}))
+            ops.append(
+                Op(
+                    "union",
+                    {
+                        "ops": [
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": plane_offset(bp, knuckle_x, y, 0.0),
+                                    "rotate": knuckle_rot,
+                                },
+                            },
+                            {
+                                "name": "cylinder",
+                                "args": {
+                                    "height": round(kh, 3),
+                                    "radius": kr,
+                                },
+                            },
+                        ]
+                    },
+                )
+            )
 
         # Pin bore through each knuckle barrel along second lateral axis
         pd_r = round(pd / 2, 3)
         for y in knuckle_ys:
-            ops.append(Op("cut", {"ops": [
-                {"name": "transformed", "args": {
-                    "offset": plane_offset(bp, knuckle_x, y, 0.0),
-                    "rotate": knuckle_rot,
-                }},
-                {"name": "cylinder", "args": {
-                    "height": round(kh + 2, 3),  # +2 to punch fully through
-                    "radius": pd_r,
-                }},
-            ]}))
+            ops.append(
+                Op(
+                    "cut",
+                    {
+                        "ops": [
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": plane_offset(bp, knuckle_x, y, 0.0),
+                                    "rotate": knuckle_rot,
+                                },
+                            },
+                            {
+                                "name": "cylinder",
+                                "args": {
+                                    "height": round(
+                                        kh + 2, 3
+                                    ),  # +2 to punch fully through
+                                    "radius": pd_r,
+                                },
+                            },
+                        ]
+                    },
+                )
+            )
 
         # Screw holes on leaf face (medium+)
         n_screws = params.get("n_screws")
@@ -149,11 +181,16 @@ class HingeFamily(BaseFamily):
             csk_a = params.get("csk_angle")
             if csk_d and csk_a:
                 tags["has_chamfer"] = True
-                ops.append(Op("cskHole", {
-                    "diameter": sd,
-                    "cskDiameter": csk_d,
-                    "cskAngle": csk_a,
-                }))
+                ops.append(
+                    Op(
+                        "cskHole",
+                        {
+                            "diameter": sd,
+                            "cskDiameter": csk_d,
+                            "cskAngle": csk_a,
+                        },
+                    )
+                )
             else:
                 ops.append(Op("hole", {"diameter": sd}))
 
@@ -164,5 +201,10 @@ class HingeFamily(BaseFamily):
             ops.append(Op("edges", {"selector": "<Z"}))
             ops.append(Op("fillet", {"radius": fr}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

@@ -14,6 +14,7 @@ from ..pipeline.builder import Op, Program
 
 class SpacerRingFamily(BaseFamily):
     name = "spacer_ring"
+    standard = "DIN 988"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         od = rng.uniform(15, 120)
@@ -76,8 +77,10 @@ class SpacerRingFamily(BaseFamily):
         id_r = od / 2 - wt
 
         ops, tags = [], {
-            "has_hole": True, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": True,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
             "rotational": True,
         }
 
@@ -92,12 +95,17 @@ class SpacerRingFamily(BaseFamily):
         n_h = params.get("n_holes")
         if hp and hd and n_h:
             ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("polarArray", {
-                "radius": hp,
-                "startAngle": 0,
-                "angle": 360,
-                "count": n_h,
-            }))
+            ops.append(
+                Op(
+                    "polarArray",
+                    {
+                        "radius": hp,
+                        "startAngle": 0,
+                        "angle": 360,
+                        "count": n_h,
+                    },
+                )
+            )
             ops.append(Op("hole", {"diameter": round(hd, 3)}))
 
         # Internal snap groove on bore surface (hard)
@@ -109,12 +117,34 @@ class SpacerRingFamily(BaseFamily):
         if gw and gd:
             tags["has_slot"] = True
             groove_base = round(h / 2 - gw / 2, 3)
-            ops.append(Op("cut", {"ops": [
-                {"name": "transformed",
-                 "args": {"offset": [0.0, 0.0, groove_base], "rotate": [0.0, 0.0, 0.0]}},
-                {"name": "cylinder",
-                 "args": {"height": round(gw, 3), "radius": round(id_r + gd, 3)}},
-            ]}))
+            ops.append(
+                Op(
+                    "cut",
+                    {
+                        "ops": [
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": [0.0, 0.0, groove_base],
+                                    "rotate": [0.0, 0.0, 0.0],
+                                },
+                            },
+                            {
+                                "name": "cylinder",
+                                "args": {
+                                    "height": round(gw, 3),
+                                    "radius": round(id_r + gd, 3),
+                                },
+                            },
+                        ]
+                    },
+                )
+            )
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

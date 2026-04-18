@@ -15,13 +15,14 @@ class LBracketFamily(BaseFamily):
     """Parametric L-bracket: two perpendicular arms, uniform thickness."""
 
     name = "l_bracket"
+    standard = "EN 10056"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         """Sample params for an L-bracket at given difficulty."""
-        arm1 = rng.uniform(20, 150)   # free length of horizontal arm
-        arm2 = rng.uniform(20, 150)   # free height of vertical arm
+        arm1 = rng.uniform(20, 150)  # free length of horizontal arm
+        arm2 = rng.uniform(20, 150)  # free height of vertical arm
         thick = rng.uniform(3, 15)
-        depth = rng.uniform(10, 60)   # bracket depth (perpendicular to L profile)
+        depth = rng.uniform(10, 60)  # bracket depth (perpendicular to L profile)
 
         params = {
             "arm1_length": round(arm1, 1),

@@ -14,22 +14,28 @@ from ..pipeline.builder import Op, Program
 
 class TSlotRailFamily(BaseFamily):
     name = "t_slot_rail"
+    standard = "DIN 650"
 
     # ISO 299 T-slot widths → mating bolt + rail size (mm)
     # slot_w: ISO 299 nominal; size: square rail cross-section
     _ISO299 = [
-        (8,  "M8",  20), (10, "M10", 25), (12, "M12", 30),
-        (16, "M16", 40), (18, "M16", 45), (20, "M20", 50),
-        (24, "M24", 60), (28, "M24", 70),
+        (8, "M8", 20),
+        (10, "M10", 25),
+        (12, "M12", 30),
+        (16, "M16", 40),
+        (18, "M16", 45),
+        (20, "M20", 50),
+        (24, "M24", 60),
+        (28, "M24", 70),
     ]
 
     def sample_params(self, difficulty: str, rng) -> dict:
         if difficulty == "easy":
-            pool = self._ISO299[:3]   # slot 8–12
+            pool = self._ISO299[:3]  # slot 8–12
         elif difficulty == "medium":
-            pool = self._ISO299[:5]   # slot 8–18
+            pool = self._ISO299[:5]  # slot 8–18
         else:
-            pool = self._ISO299       # all
+            pool = self._ISO299  # all
 
         slot_opening, bolt_m, size = pool[int(rng.integers(0, len(pool)))]
         slot_opening = float(slot_opening)
@@ -53,7 +59,9 @@ class TSlotRailFamily(BaseFamily):
 
         if difficulty in ("medium", "hard"):
             # end-face mounting holes
-            params["end_hole_diameter"] = round(rng.uniform(3.0, min(6.0, size * 0.18)), 1)
+            params["end_hole_diameter"] = round(
+                rng.uniform(3.0, min(6.0, size * 0.18)), 1
+            )
             params["end_hole_inset"] = round(size / 2, 1)
             # 4-way slot (slots on all 4 faces)
             params["four_way"] = bool(rng.choice([True, False]))
@@ -101,7 +109,7 @@ class TSlotRailFamily(BaseFamily):
         # fillet must fit inside the T-slot geometry
         fr = params.get("fillet_radius")
         back_depth = sd - (sbw - so) / 2
-        ledge_w = (sbw - so) / 2       # ledge width at neck-to-back transition
+        ledge_w = (sbw - so) / 2  # ledge width at neck-to-back transition
         if fr and (back_depth < fr * 2 or ledge_w < fr * 2):
             return False
 
@@ -111,20 +119,22 @@ class TSlotRailFamily(BaseFamily):
         difficulty = params.get("difficulty", "easy")
         sz = params["size"]
         L = params["length"]
-        so = params["slot_opening"]    # opening width at face
-        sd = params["slot_depth"]      # depth of slot
+        so = params["slot_opening"]  # opening width at face
+        sd = params["slot_depth"]  # depth of slot
         sbw = params["slot_back_width"]  # back width of T
         wt = params["wall_thickness"]
 
         ops, tags = [], {
-            "has_hole": False, "has_slot": True,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": False,
+            "has_slot": True,
+            "has_fillet": False,
+            "has_chamfer": False,
             "symmetric_result": True,
         }
 
-        hs = round(sz / 2, 3)   # half-size
+        hs = round(sz / 2, 3)  # half-size
         hso = round(so / 2, 3)  # half slot-opening
-        hsbw = round(sbw / 2, 3) # half slot-back-width
+        hsbw = round(sbw / 2, 3)  # half slot-back-width
 
         # Build outer square profile with one T-slot on top face
         # Profile is on XY plane, extruded along Z
@@ -132,18 +142,18 @@ class TSlotRailFamily(BaseFamily):
         # T-slot cuts into +Y face: opening at y=hs, depth=sd inward
         # Slot profile (from right side going CCW):
         pts = [
-            (-hs,   -hs),     # bottom-left
-            ( hs,   -hs),     # bottom-right
-            ( hs,    hs),     # top-right outer
-            ( hso,   hs),     # right edge of slot opening
-            ( hso,   hs - (sd - (sbw - so) / 2)),  # slot neck RHS
-            ( hsbw,  hs - (sd - (sbw - so) / 2)),  # slot back RHS
-            ( hsbw,  hs - sd), # slot back top
-            (-hsbw,  hs - sd), # slot back top left
-            (-hsbw,  hs - (sd - (sbw - so) / 2)),  # slot back LHS
-            (-hso,   hs - (sd - (sbw - so) / 2)),  # slot neck LHS
-            (-hso,   hs),     # left edge of slot opening
-            (-hs,    hs),     # top-left outer
+            (-hs, -hs),  # bottom-left
+            (hs, -hs),  # bottom-right
+            (hs, hs),  # top-right outer
+            (hso, hs),  # right edge of slot opening
+            (hso, hs - (sd - (sbw - so) / 2)),  # slot neck RHS
+            (hsbw, hs - (sd - (sbw - so) / 2)),  # slot back RHS
+            (hsbw, hs - sd),  # slot back top
+            (-hsbw, hs - sd),  # slot back top left
+            (-hsbw, hs - (sd - (sbw - so) / 2)),  # slot back LHS
+            (-hso, hs - (sd - (sbw - so) / 2)),  # slot neck LHS
+            (-hso, hs),  # left edge of slot opening
+            (-hs, hs),  # top-left outer
         ]
         # Write as moveTo + series of lineTo + close
         ops.append(Op("moveTo", {"x": pts[0][0], "y": pts[0][1]}))
@@ -162,7 +172,9 @@ class TSlotRailFamily(BaseFamily):
             # Bottom face (<Y): slot opens at y=-hs, goes +Y
             # On >Z plane: x=along-part-X (extent=sbw), y=along-part-Y (depth)
             ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("center", {"x": 0.0, "y": round(-hs + neck_h + back_h / 2, 3)}))
+            ops.append(
+                Op("center", {"x": 0.0, "y": round(-hs + neck_h + back_h / 2, 3)})
+            )
             ops.append(Op("rect", {"length": sbw, "width": back_h}))
             ops.append(Op("cutThruAll", {}))
             ops.append(Op("workplane", {"selector": ">Z"}))
@@ -173,7 +185,9 @@ class TSlotRailFamily(BaseFamily):
             # Right face (>X): slot opens at x=hs, goes -X
             # On >Z plane: x=along-part-X (depth), y=along-part-Y (extent=sbw)
             ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("center", {"x": round(hs - neck_h - back_h / 2, 3), "y": 0.0}))
+            ops.append(
+                Op("center", {"x": round(hs - neck_h - back_h / 2, 3), "y": 0.0})
+            )
             ops.append(Op("rect", {"length": back_h, "width": sbw}))
             ops.append(Op("cutThruAll", {}))
             ops.append(Op("workplane", {"selector": ">Z"}))
@@ -183,7 +197,9 @@ class TSlotRailFamily(BaseFamily):
 
             # Left face (<X): slot opens at x=-hs, goes +X (symmetric to right)
             ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("center", {"x": round(-hs + neck_h + back_h / 2, 3), "y": 0.0}))
+            ops.append(
+                Op("center", {"x": round(-hs + neck_h + back_h / 2, 3), "y": 0.0})
+            )
             ops.append(Op("rect", {"length": back_h, "width": sbw}))
             ops.append(Op("cutThruAll", {}))
             ops.append(Op("workplane", {"selector": ">Z"}))
@@ -212,5 +228,10 @@ class TSlotRailFamily(BaseFamily):
             ops.append(Op("edges", {"selector": "|Z"}))
             ops.append(Op("fillet", {"radius": fr}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

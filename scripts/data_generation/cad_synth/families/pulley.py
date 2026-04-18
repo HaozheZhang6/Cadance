@@ -15,13 +15,14 @@ from ..pipeline.builder import Op, Program
 
 class PulleyFamily(BaseFamily):
     name = "pulley"
+    standard = "ISO 22"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        rim_r = rng.uniform(15, 80)      # outer rim radius
-        width = rng.uniform(10, 50)      # total axial width
-        bore_r = rng.uniform(4, max(4.1, rim_r * 0.25))   # shaft bore radius
+        rim_r = rng.uniform(15, 80)  # outer rim radius
+        width = rng.uniform(10, 50)  # total axial width
+        bore_r = rng.uniform(4, max(4.1, rim_r * 0.25))  # shaft bore radius
         hub_r = rng.uniform(bore_r + 3, max(bore_r + 3.5, rim_r * 0.45))
-        rim_t = rng.uniform(3, max(3.1, min(10, width * 0.25)))   # rim wall thickness
+        rim_t = rng.uniform(3, max(3.1, min(10, width * 0.25)))  # rim wall thickness
 
         params = {
             "rim_radius": round(rim_r, 1),
@@ -80,8 +81,10 @@ class PulleyFamily(BaseFamily):
         rt = params["rim_thickness"]
 
         ops, tags = [], {
-            "has_hole": True, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": True,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
             "rotational": True,
         }
 
@@ -141,11 +144,16 @@ class PulleyFamily(BaseFamily):
 
         ops.append(Op("polyline", {"points": pts}))
         ops.append(Op("close", {}))
-        ops.append(Op("revolve", {
-            "angleDeg": 360,
-            "axisStart": [0, 0, 0],
-            "axisEnd": [0, 1, 0],
-        }))
+        ops.append(
+            Op(
+                "revolve",
+                {
+                    "angleDeg": 360,
+                    "axisStart": [0, 0, 0],
+                    "axisEnd": [0, 1, 0],
+                },
+            )
+        )
 
         # Spoked body — polar array of rectangular cutout pockets (hard)
         n_sp = params.get("n_spokes")
@@ -156,18 +164,31 @@ class PulleyFamily(BaseFamily):
             pocket_h = round(w - 4, 3)
             for i in range(n_sp):
                 angle_deg = round(360.0 * i / n_sp, 3)
-                ops.append(Op("cut", {"ops": [
-                    {"name": "transformed", "args": {
-                        "offset": [pocket_r, 0.0, 0.0],
-                        "rotate": [0.0, 0.0, angle_deg],
-                    }},
-                    {"name": "box", "args": {
-                        "length": pocket_l,
-                        "width": sw,
-                        "height": pocket_h * 2,
-                        "centered": True,
-                    }},
-                ]}))
+                ops.append(
+                    Op(
+                        "cut",
+                        {
+                            "ops": [
+                                {
+                                    "name": "transformed",
+                                    "args": {
+                                        "offset": [pocket_r, 0.0, 0.0],
+                                        "rotate": [0.0, 0.0, angle_deg],
+                                    },
+                                },
+                                {
+                                    "name": "box",
+                                    "args": {
+                                        "length": pocket_l,
+                                        "width": sw,
+                                        "height": pocket_h * 2,
+                                        "centered": True,
+                                    },
+                                },
+                            ]
+                        },
+                    )
+                )
 
         # Keyway (hard)
         kw = params.get("keyway_width")
@@ -179,5 +200,10 @@ class PulleyFamily(BaseFamily):
             ops.append(Op("rect", {"length": kw, "width": kh}))
             ops.append(Op("cutThruAll", {}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )
