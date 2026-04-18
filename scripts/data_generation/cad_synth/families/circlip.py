@@ -1,26 +1,56 @@
-"""Circlip (retaining ring) — DIN 471 (external) / DIN 472 (internal).
+"""Circlip (retaining ring) — DIN 471 (external shaft) / DIN 472 (internal bore).
 
 ISO 464 / DIN 471: External circlip for shafts — C-shaped ring, fits in shaft groove.
 DIN 472: Internal circlip for bores — fits in bore groove.
 
 Geometry: thin annular ring with a radial gap (opening) + two lug holes for pliers.
-  - ring_od: outer diameter of the ring
-  - ring_id: inner diameter (determines ring width)
-  - gap_angle: total arc of the opening gap (typically 30–50°)
-  - thickness: axial thickness
-  - lug_hole_d: diameter of plier holes
+Dimensions from DIN 471 Table 1 — exact nominal values only (no continuous sampling).
 
-Easy:   plain C-ring (extrude arc profile → sweep or revolve with cut)
-Medium: + lug holes on the ears
-Hard:   + bevel on the outer edge (DIN chamfer)
+Table: (d1_shaft, d3_ring_od, s_thickness)
+  d1 = nominal shaft diameter [mm]
+  d3 = ring outer diameter [mm]
+  s  = axial ring thickness [mm]
+
+Easy:   plain C-ring (d1 ≤ 25 mm)
+Medium: + lug holes on the ears (d1 ≤ 50 mm)
+Hard:   + bevel on outer edge (full range d1 8–80 mm)
 """
+
 import math
 
 from .base import BaseFamily
 from ..pipeline.builder import Op, Program
 
-# DIN 471 shaft sizes → (d1_nom, t nominal thickness, b ring width) — simplified
-_DIN471_SHAFT_D = [8, 10, 12, 15, 17, 19, 20, 22, 24, 25, 28, 30, 35, 40, 45, 50, 55, 60, 70, 80]
+# DIN 471 Table 1 — exact nominal values (d1_shaft, d3_ring_od, s_thickness) mm
+_DIN471 = [
+    (8, 13.8, 0.8),
+    (10, 17.8, 1.0),
+    (12, 20.5, 1.0),
+    (14, 23.5, 1.0),
+    (15, 24.5, 1.0),
+    (16, 26.5, 1.0),
+    (17, 28.0, 1.0),
+    (18, 29.5, 1.0),
+    (19, 31.0, 1.0),
+    (20, 33.5, 1.2),
+    (22, 36.5, 1.2),
+    (24, 39.5, 1.5),
+    (25, 40.5, 1.5),
+    (28, 45.5, 1.5),
+    (30, 48.5, 1.5),
+    (35, 56.5, 1.75),
+    (40, 64.5, 1.75),
+    (45, 71.5, 2.0),
+    (50, 80.5, 2.0),
+    (55, 88.5, 2.0),
+    (60, 97.5, 2.0),
+    (70, 113.0, 2.5),
+    (80, 129.0, 2.5),
+]
+
+_SMALL = [r for r in _DIN471 if r[0] <= 25]  # d1 8–25
+_MID = [r for r in _DIN471 if r[0] <= 50]  # d1 8–50
+_ALL = _DIN471  # d1 8–80
 
 
 class CirclipFamily(BaseFamily):
@@ -28,17 +58,21 @@ class CirclipFamily(BaseFamily):
     standard = "DIN 471/472"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        shaft_d = float(rng.choice(_DIN471_SHAFT_D))
+        pool = (
+            _SMALL
+            if difficulty == "easy"
+            else (_MID if difficulty == "medium" else _ALL)
+        )
+        d1, d3, s = pool[int(rng.integers(0, len(pool)))]
 
-        # DIN 471 proportions: ring od ≈ shaft_d * 0.87, thickness ≈ shaft_d * 0.06
-        ring_id = round(shaft_d * 0.87, 1)
-        ring_width = round(max(1.5, shaft_d * 0.08), 2)
-        ring_od = round(ring_id + 2 * ring_width, 1)
-        thickness = round(max(1.0, shaft_d * 0.055), 2)
-        gap_angle = round(rng.uniform(30, 50), 1)  # degrees of opening
+        ring_id = float(d1)
+        ring_od = float(d3)
+        thickness = float(s)
+        ring_width = round((d3 - d1) / 2, 2)
+        gap_angle = 35.0  # standard DIN 471 gap ≈ 35°
 
         params = {
-            "shaft_diameter": shaft_d,
+            "shaft_diameter": float(d1),
             "ring_od": ring_od,
             "ring_id": ring_id,
             "ring_width": ring_width,
@@ -48,13 +82,11 @@ class CirclipFamily(BaseFamily):
         }
 
         if difficulty in ("medium", "hard"):
-            # Lug holes for circlip pliers — at the ears
-            lug_d = round(max(1.0, ring_width * 0.5), 2)
+            lug_d = round(max(1.0, ring_width * 0.45), 2)
             params["lug_hole_diameter"] = lug_d
 
         if difficulty == "hard":
-            bevel = round(thickness * 0.2, 2)
-            params["bevel_length"] = bevel
+            params["bevel_length"] = round(thickness * 0.2, 2)
 
         return params
 
@@ -65,7 +97,7 @@ class CirclipFamily(BaseFamily):
         gap = params["gap_angle"]
         rw = params["ring_width"]
 
-        if rod <= rid or rw < 1.0 or t < 0.8:
+        if rod <= rid or rw < 1.0 or t < 0.5:
             return False
         if gap < 20 or gap > 60:
             return False
@@ -85,54 +117,40 @@ class CirclipFamily(BaseFamily):
         rw = params["ring_width"]
 
         ops, tags = [], {
-            "has_hole": False, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
-            "rotational": False,  # not a full revolution
+            "has_hole": False,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
+            "rotational": False,
         }
 
-        # Build C-ring as a 2D closed profile (top view) extruded by thickness t.
-        # Profile: outer arc (CCW, long way round the back) + two ear edges + inner arc (CW).
-        # Gap opens toward +X. Ears at ±half_gap from +X axis.
         gap_half_rad = math.radians(gap / 2)
         r_outer = round(rod / 2, 4)
         r_inner = round(rid / 2, 4)
         mid_r = round((r_outer + r_inner) / 2, 4)
 
-        # Key points (all in XY plane, gap opens at +X)
-        # Outer arc: from top-ear to bottom-ear going CCW around the back (-X side)
-        ox_ear  = round(r_outer * math.cos(gap_half_rad), 4)
-        oy_ear  = round(r_outer * math.sin(gap_half_rad), 4)
-        # Outer arc midpoint at angle=180 (back of ring)
-        ox_mid  = round(-r_outer, 4)
-        # Inner arc midpoint at angle=180
-        ix_mid  = round(-r_inner, 4)
-        ix_ear  = round(r_inner * math.cos(gap_half_rad), 4)
-        iy_ear  = round(r_inner * math.sin(gap_half_rad), 4)
+        ox_ear = round(r_outer * math.cos(gap_half_rad), 4)
+        oy_ear = round(r_outer * math.sin(gap_half_rad), 4)
+        ox_mid = round(-r_outer, 4)
+        ix_mid = round(-r_inner, 4)
+        ix_ear = round(r_inner * math.cos(gap_half_rad), 4)
+        iy_ear = round(r_inner * math.sin(gap_half_rad), 4)
 
         ops.append(Op("workplane", {"selector": "XY"}))
-        # Start at top-outer ear
         ops.append(Op("moveTo", {"x": ox_ear, "y": oy_ear}))
-        # Outer arc CCW to bottom-outer ear (long arc, through back)
-        ops.append(Op("threePointArc", {
-            "point1": [ox_mid, 0.0],
-            "point2": [ox_ear, -oy_ear],
-        }))
-        # Line to bottom-inner ear
+        ops.append(
+            Op("threePointArc", {"point1": [ox_mid, 0.0], "point2": [ox_ear, -oy_ear]})
+        )
         ops.append(Op("lineTo", {"x": ix_ear, "y": -iy_ear}))
-        # Inner arc CW back to top-inner ear (through back, reversed direction)
-        ops.append(Op("threePointArc", {
-            "point1": [ix_mid, 0.0],
-            "point2": [ix_ear, iy_ear],
-        }))
-        # Close back to start (top-outer ear)
+        ops.append(
+            Op("threePointArc", {"point1": [ix_mid, 0.0], "point2": [ix_ear, iy_ear]})
+        )
         ops.append(Op("close", {}))
         ops.append(Op("extrude", {"distance": t}))
 
-        # Lug holes (medium+) at each ear tip — small cylinders cut through thickness
         lug_d = params.get("lug_hole_diameter", 0)
         if lug_d:
             tags["has_hole"] = True
-            # Ears are the ends of the C-ring, at ±half_gap from +X axis
             ear_x = round(mid_r * math.cos(gap_half_rad), 4)
             ear_y = round(mid_r * math.sin(gap_half_rad), 4)
             ops.append(Op("workplane", {"selector": ">Z"}))
@@ -142,12 +160,16 @@ class CirclipFamily(BaseFamily):
             ops.append(Op("moveTo", {"x": ear_x, "y": -ear_y}))
             ops.append(Op("hole", {"diameter": round(lug_d, 4)}))
 
-        # Bevel on outer edge (hard)
         bevel = params.get("bevel_length", 0)
         if bevel:
             tags["has_chamfer"] = True
             ops.append(Op("edges", {"selector": ">Z"}))
             ops.append(Op("chamfer", {"length": round(bevel, 4)}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

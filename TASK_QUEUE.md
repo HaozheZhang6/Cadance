@@ -4,6 +4,51 @@
 
 ## ⚠️ USER-ASSIGNED — 进行中
 
+### UA-6 — ISO 标准化 family 脚本升级 🔴 HIGH (2026-04-18)
+
+**目标：**
+- 每个有标准的 family 的参数化生成逻辑必须真正符合工业标准：
+  1. 参数从标准尺寸表采样（离散值），不是连续随机
+  2. 关键比例/公式关系要在代码里体现
+  3. `iso_tags` / `qa_pairs` 在 qa_generator.py 里要有对应条目
+- 工作流：先在 `tmp/manual_family_previews/manual_<family>.py` 生成预览，目测 OK 后再改 family 脚本
+
+**优先级（按"能做到离散表驱动"的强度排序）：**
+
+Tier 1 — 强约束件，直接查表：
+| Family | 标准 | 状态 |
+|--------|------|------|
+| hex_nut | ISO 4032 | ✅ 已有精确表格 |
+| bolt | ISO 4014 + ISO 888 | ✅ 已有精确表格 |
+| plain_washer | ISO 7089/7090 | ✅ 已有精确表格 |
+| dowel_pin | ISO 8734 | ✅ 已有精确表格 |
+| taper_pin | ISO 2339 | ✅ 已有精确表格 |
+| parallel_key | DIN 6885A | ✅ 已有精确表格 |
+| shaft_collar | DIN 705 | ✅ 已有精确表格 |
+| circlip | DIN 471/472 | ⚠️ 用比例公式，需换精确DIN 471表 |
+| spacer_ring | DIN 988 | 🔴 continuous sampling，需完全改写为精确薄垫片表 |
+| snap_clip | DIN 6799 | 🔴 几何错误：当前是弹簧夹，DIN 6799是E型卡圈，需完全重写 |
+| hex_standoff | ISO 272 | ⚠️ standard属性错误(当前DIN 7984)，需改为ISO 272 |
+
+Tier 2 — 部分标准化（关键参数表驱动，比例公式）：
+| Family | 标准 | 状态 |
+|--------|------|------|
+| spur_gear | ISO 53 | ⏳ module/teeth 标准系列 |
+| helical_gear | ISO 53 | ⏳ |
+| bevel_gear | ISO 23509 | ⏳ |
+| worm_screw | ISO 10828 | ⏳ |
+| sprocket | ISO 606 | ⏳ ⚠️ 参数需修 |
+| pulley | ISO 22 | ⏳ |
+| hollow_tube | EN 10305 | ⏳ |
+| knob / ball_knob | DIN 319 | ⏳ |
+| hinge | DIN 7954/7955 | ⏳ |
+| pipe_elbow | ASME B16.9 | ⏳ |
+| t_slot_rail | DIN 650 | ⏳ |
+| mounting_angle / l_bracket | EN 10056 | ⏳ |
+| rect_frame | EN 10219 | ⏳ |
+
+---
+
 ### UA-5 — ISO 标准化全量 family + standard 列 🔴 HIGH (2026-04-18)
 
 **目标：**

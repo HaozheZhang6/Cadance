@@ -58,7 +58,7 @@ _H_SERIES = [
 
 class HexStandoffFamily(BaseFamily):
     name = "hex_standoff"
-    standard = "DIN 7984"
+    standard = "ISO 272"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         pool = (

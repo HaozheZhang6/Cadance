@@ -1,13 +1,15 @@
-"""Snap clip / spring bracket — C-profile thin-wall arc extrude.
+"""Snap disc / E-ring retaining ring — DIN 6799 (Sicherungsscheiben für Wellen).
 
-Structural type: thin-wall C-profile (two concentric arcs) → extrude.
-Covers: spring clips, retaining rings, panel fasteners, conduit clips.
+DIN 6799: Flat disc-type retaining rings for shaft grooves — smaller and more
+disc-like than DIN 471 circlips. Snaps into an annular groove on a shaft.
+Shaft range d = 1.5–24 mm; fits into a groove that is ≈ 0.1–0.2 mm narrower.
 
-Profile uses threePointArc for clean circular geometry (not polyline).
+Geometry: flat C-ring (two concentric arcs with gap), plier holes in the ears.
+All (d_shaft, d1_bore, D_outer, s_thickness) from DIN 6799 Table 1 — exact values.
 
-Easy:   C-profile thin wall extruded (clips onto rod/rail)
-Medium: + snap finger slots (slotted tips) + chamfer
-Hard:   + mounting flange + through holes
+Easy:   plain C-ring (d ≤ 8 mm)
+Medium: + lug holes for snap-ring pliers (d ≤ 17 mm)
+Hard:   + chamfered outer edge (full range d 1.5–24 mm)
 """
 
 import math
@@ -15,229 +17,142 @@ import math
 from .base import BaseFamily
 from ..pipeline.builder import Op, Program
 
+# DIN 6799 Table 1 — exact nominal (d_shaft, d1_bore, D_outer, s_thickness) mm
+_DIN6799 = [
+    (1.5, 1.3, 3.3, 0.4),
+    (2.0, 1.8, 4.4, 0.4),
+    (2.5, 2.2, 5.5, 0.5),
+    (3.0, 2.7, 6.5, 0.6),
+    (4.0, 3.7, 8.5, 0.7),
+    (5.0, 4.7, 10.5, 0.8),
+    (6.0, 5.6, 13.0, 0.9),
+    (7.0, 6.6, 15.0, 1.0),
+    (8.0, 7.6, 17.0, 1.0),
+    (9.0, 8.6, 19.0, 1.1),
+    (10.0, 9.6, 21.0, 1.2),
+    (12.0, 11.5, 24.0, 1.2),
+    (14.0, 13.5, 27.0, 1.5),
+    (15.0, 14.5, 28.0, 1.5),
+    (17.0, 16.5, 32.0, 1.7),
+    (19.0, 18.5, 36.0, 2.0),
+    (20.0, 19.5, 38.0, 2.0),
+    (24.0, 23.5, 44.0, 2.5),
+]
+
+_SMALL = [r for r in _DIN6799 if r[0] <= 8]  # d 1.5–8
+_MID = [r for r in _DIN6799 if r[0] <= 17]  # d 1.5–17
+_ALL = _DIN6799  # d 1.5–24
+
 
 class SnapClipFamily(BaseFamily):
     name = "snap_clip"
     standard = "DIN 6799"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        clip_r = rng.uniform(5, 25)  # radius of the clipped object
-        wall_t = rng.uniform(1.0, min(4.0, clip_r * 0.25))  # wall thickness
-        clip_length = rng.uniform(10, 50)  # extrude length
-        opening_angle = rng.uniform(30, 80)  # gap angle in degrees (C opening)
+        pool = (
+            _SMALL
+            if difficulty == "easy"
+            else (_MID if difficulty == "medium" else _ALL)
+        )
+        d, d1, D, s = pool[int(rng.integers(0, len(pool)))]
+
+        ring_width = round((D - d1) / 2, 3)
+        gap_angle = 35.0  # DIN 6799 standard gap ≈ 35°
 
         params = {
-            "clip_radius": round(clip_r, 1),
-            "wall_thickness": round(wall_t, 1),
-            "clip_length": round(clip_length, 1),
-            "opening_angle": round(opening_angle, 1),
+            "shaft_diameter": float(d),
+            "ring_id": float(d1),
+            "ring_od": float(D),
+            "thickness": float(s),
+            "ring_width": ring_width,
+            "gap_angle": gap_angle,
             "difficulty": difficulty,
         }
 
         if difficulty in ("medium", "hard"):
-            # Limit slot depth to 25% of clip length so tips don't disconnect
-            max_sd = round(clip_length * 0.25, 1)
-            slot_depth = round(rng.uniform(max(1.0, clip_length * 0.10), max_sd), 1)
-            # Keep slot width narrow: < 30% of wall thickness
-            slot_w = round(rng.uniform(0.5, max(0.6, min(1.5, wall_t * 0.30))), 1)
-            params["snap_slot_depth"] = slot_depth
-            params["snap_slot_width"] = slot_w
-            params["chamfer_length"] = round(
-                rng.uniform(0.3, min(1.0, wall_t * 0.3)), 1
-            )
+            lug_d = round(max(0.5, ring_width * 0.4), 2)
+            params["lug_hole_diameter"] = lug_d
 
         if difficulty == "hard":
-            flange_w = round(rng.uniform(8, max(8.1, min(28, clip_r * 1.2))), 1)
-            flange_t = round(rng.uniform(2.0, max(2.1, min(5.0, wall_t * 2.0))), 1)
-            n_holes = int(rng.choice([2, 3]))
-            # hole_d must be < spacing = flange_w/(n_holes+1) to prevent overlap
-            max_hole_d = min(9.0, flange_w * 0.5, flange_w / (n_holes + 1) - 0.5)
-            hole_d = round(rng.uniform(3.5, max(4.0, max_hole_d)), 1)
-            params["flange_width"] = flange_w
-            params["flange_thickness"] = flange_t
-            params["n_flange_holes"] = n_holes
-            params["flange_hole_diameter"] = hole_d
+            params["bevel_length"] = round(s * 0.2, 2)
 
         return params
 
     def validate_params(self, params: dict) -> bool:
-        cr = params["clip_radius"]
-        wt = params["wall_thickness"]
-        oa = params["opening_angle"]
+        rod = params["ring_od"]
+        rid = params["ring_id"]
+        t = params["thickness"]
+        gap = params["gap_angle"]
+        rw = params["ring_width"]
 
-        if wt >= cr * 0.4 or oa >= 180 or oa < 20:
+        if rod <= rid or rw < 0.3 or t < 0.3:
+            return False
+        if gap < 20 or gap > 60:
             return False
 
-        sw = params.get("snap_slot_width")
-        if sw and sw >= wt * 0.35:
+        lug_d = params.get("lug_hole_diameter", 0)
+        if lug_d and lug_d >= rw * 0.8:
             return False
-
-        sd = params.get("snap_slot_depth")
-        cl = params.get("clip_length", params.get("clip_length", 10))
-        if sd and sd >= cl * 0.28:
-            return False
-
-        fh = params.get("flange_hole_diameter")
-        fw = params.get("flange_width")
-        n_fh = params.get("n_flange_holes", 2)
-        if fh and fw:
-            if fh >= fw * 0.65:
-                return False
-            # center spacing must exceed diameter (no hole overlap)
-            if fw / (n_fh + 1) <= fh:
-                return False
 
         return True
 
     def make_program(self, params: dict) -> Program:
         difficulty = params.get("difficulty", "easy")
-        cr = params["clip_radius"]
-        wt = params["wall_thickness"]
-        clip_l = params["clip_length"]
-        oa = params["opening_angle"]
+        rod = params["ring_od"]
+        rid = params["ring_id"]
+        t = params["thickness"]
+        gap = params["gap_angle"]
+        rw = params["ring_width"]
 
         ops, tags = [], {
             "has_hole": False,
             "has_slot": False,
             "has_fillet": False,
             "has_chamfer": False,
+            "rotational": False,
         }
 
-        # C-profile using threePointArc (clean circular geometry, not polyline)
-        # Arc spans from -half_arc to +half_arc degrees (through 0 = back of C)
-        half_arc = 180.0 - oa / 2.0  # degrees on each side of opening
-        half_rad = math.radians(half_arc)
+        gap_half_rad = math.radians(gap / 2)
+        r_outer = round(rod / 2, 4)
+        r_inner = round(rid / 2, 4)
+        mid_r = round((r_outer + r_inner) / 2, 4)
 
-        r_in = cr
-        r_out = round(cr + wt, 3)
+        ox_ear = round(r_outer * math.cos(gap_half_rad), 4)
+        oy_ear = round(r_outer * math.sin(gap_half_rad), 4)
+        ox_mid = round(-r_outer, 4)
+        ix_mid = round(-r_inner, 4)
+        ix_ear = round(r_inner * math.cos(gap_half_rad), 4)
+        iy_ear = round(r_inner * math.sin(gap_half_rad), 4)
 
-        # Key points on arcs (angle measured from +X axis)
-        # start = -half_arc (bottom of C opening), end = +half_arc (top)
-        # mid = 0° (back of C, farthest from opening)
-        def _pt(r, ang_rad):
-            return (round(r * math.cos(ang_rad), 4), round(r * math.sin(ang_rad), 4))
-
-        s_outer = _pt(r_out, -half_rad)
-        mid_outer = (round(r_out, 4), 0.0)  # back of C, outer
-        e_outer = _pt(r_out, half_rad)
-        s_inner = _pt(r_in, -half_rad)
-        mid_inner = (round(r_in, 4), 0.0)  # back of C, inner
-        e_inner = _pt(r_in, half_rad)
-
-        # Profile: outer arc CCW (long way through back), gap, inner arc CW, close
-        ops.append(Op("moveTo", {"x": s_outer[0], "y": s_outer[1]}))
+        ops.append(Op("workplane", {"selector": "XY"}))
+        ops.append(Op("moveTo", {"x": ox_ear, "y": oy_ear}))
         ops.append(
-            Op("threePointArc", {"point1": list(mid_outer), "point2": list(e_outer)})
+            Op("threePointArc", {"point1": [ox_mid, 0.0], "point2": [ox_ear, -oy_ear]})
         )
-        ops.append(Op("lineTo", {"x": e_inner[0], "y": e_inner[1]}))
+        ops.append(Op("lineTo", {"x": ix_ear, "y": -iy_ear}))
         ops.append(
-            Op("threePointArc", {"point1": list(mid_inner), "point2": list(s_inner)})
+            Op("threePointArc", {"point1": [ix_mid, 0.0], "point2": [ix_ear, iy_ear]})
         )
         ops.append(Op("close", {}))
-        ops.append(Op("extrude", {"distance": clip_l}))
+        ops.append(Op("extrude", {"distance": t}))
 
-        # Chamfer (medium only)
-        cl = params.get("chamfer_length")
-        if cl and difficulty != "hard":
+        lug_d = params.get("lug_hole_diameter", 0)
+        if lug_d:
+            tags["has_hole"] = True
+            ear_x = round(mid_r * math.cos(gap_half_rad), 4)
+            ear_y = round(mid_r * math.sin(gap_half_rad), 4)
+            ops.append(Op("workplane", {"selector": ">Z"}))
+            ops.append(Op("moveTo", {"x": ear_x, "y": ear_y}))
+            ops.append(Op("hole", {"diameter": round(lug_d, 4)}))
+            ops.append(Op("workplane", {"selector": ">Z"}))
+            ops.append(Op("moveTo", {"x": ear_x, "y": -ear_y}))
+            ops.append(Op("hole", {"diameter": round(lug_d, 4)}))
+
+        bevel = params.get("bevel_length", 0)
+        if bevel:
             tags["has_chamfer"] = True
             ops.append(Op("edges", {"selector": ">Z"}))
-            ops.append(Op("chamfer", {"length": cl}))
-
-        # Snap finger slots: cut radially at each tip, oriented tangentially
-        # Use individual cut ops so each can be rotated to match tip angle.
-        sw = params.get("snap_slot_width")
-        sd = params.get("snap_slot_depth")
-        if sw and sd:
-            tags["has_slot"] = True
-            r_mid = round((r_in + r_out) / 2, 4)
-            for ang_rad in [half_rad, -half_rad]:
-                cx = round(r_mid * math.cos(ang_rad), 4)
-                cy = round(r_mid * math.sin(ang_rad), 4)
-                ang_deg = round(math.degrees(ang_rad), 3)
-                slot_z = round(clip_l - sd / 2.0, 4)
-                ops.append(
-                    Op(
-                        "cut",
-                        {
-                            "ops": [
-                                {
-                                    "name": "transformed",
-                                    "args": {
-                                        # Rotate box so its X-axis (length) is radial at tip
-                                        "offset": [cx, cy, slot_z],
-                                        "rotate": [0.0, 0.0, ang_deg],
-                                    },
-                                },
-                                {
-                                    "name": "box",
-                                    "args": {
-                                        "length": round(
-                                            wt + 1.0, 4
-                                        ),  # radial: slightly over wall thickness
-                                        "width": round(
-                                            sw, 4
-                                        ),  # tangential: narrow slit
-                                        "height": round(
-                                            sd + 0.2, 4
-                                        ),  # +0.2 to ensure full cut
-                                        "centered": True,
-                                    },
-                                },
-                            ]
-                        },
-                    )
-                )
-
-        # Mounting flange (hard)
-        fw = params.get("flange_width")
-        ft = params.get("flange_thickness")
-        n_fh = params.get("n_flange_holes")
-        fhd = params.get("flange_hole_diameter")
-        if fw and ft:
-            # Flange at the back of the C (positive X side)
-            ops.append(
-                Op(
-                    "union",
-                    {
-                        "ops": [
-                            {
-                                "name": "transformed",
-                                "args": {
-                                    "offset": [
-                                        round(r_out + ft / 2 - 0.5, 4),
-                                        0.0,
-                                        round(clip_l / 2, 4),
-                                    ],
-                                    "rotate": [0.0, 0.0, 0.0],
-                                },
-                            },
-                            {
-                                "name": "box",
-                                "args": {
-                                    "length": ft,
-                                    "width": fw,
-                                    "height": round(clip_l, 4),
-                                    "centered": True,
-                                },
-                            },
-                        ]
-                    },
-                )
-            )
-
-        if n_fh and fhd and fw and ft:
-            tags["has_hole"] = True
-            spacing = fw / (n_fh + 1)
-            fh_pts = [
-                (
-                    round(r_out + ft / 2 - 0.5, 4),
-                    round(-fw / 2 + spacing * (i + 1), 4),
-                )
-                for i in range(n_fh)
-            ]
-            ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("pushPoints", {"points": fh_pts}))
-            ops.append(Op("hole", {"diameter": fhd}))
+            ops.append(Op("chamfer", {"length": round(bevel, 4)}))
 
         return Program(
             family=self.name,

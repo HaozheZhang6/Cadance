@@ -1,9 +1,18 @@
-"""Spacer ring — thin-wall hollow cylinder with symmetric axial holes.
+"""Spacer ring — precision adjustment shim (DIN 988 Passscheiben).
 
-Typical use: shaft spacer, bearing shim, sleeve bushing.
-Easy:   hollow cylinder (bore + outer)
-Medium: + N symmetric through-holes parallel to axis
-Hard:   + internal snap groove on bore face
+DIN 988: thin flat rings for axial adjustment of bearings, shaft collars, etc.
+All (d, D) pairs and thickness series taken from DIN 988 Table 1 — exact values only.
+
+Table: (d_bore, D_outer)  — thickness s sampled from standard series for each d.
+Thickness series:
+  d < 10  mm: s ∈ {0.1, 0.2, 0.3, 0.5}
+  d 10–18 mm: s ∈ {0.1, 0.2, 0.3, 0.5, 0.8, 1.0}
+  d ≥ 20  mm: s ∈ {0.1, 0.2, 0.3, 0.5, 0.8, 1.0, 1.5, 2.0, 2.5, 3.0}
+
+Easy:   plain flat ring (d ≤ 20)
+Medium: plain flat ring, larger size range (d ≤ 50)
+Hard:   split ring — two half-rings cut along diameter for
+          installation without shaft disassembly (full d range)
 """
 
 import math
@@ -11,135 +20,126 @@ import math
 from .base import BaseFamily
 from ..pipeline.builder import Op, Program
 
+# DIN 988 Table 1 — exact nominal (d_bore, D_outer) pairs, mm
+_DIN988 = [
+    (3, 7),
+    (4, 9),
+    (5, 10),
+    (6, 11),
+    (8, 14),
+    (10, 18),
+    (12, 20),
+    (15, 24),
+    (17, 26),
+    (20, 30),
+    (25, 37),
+    (30, 42),
+    (35, 47),
+    (40, 52),
+    (50, 65),
+    (60, 75),
+    (70, 90),
+    (80, 100),
+    (100, 120),
+]
+
+_S_THIN = [0.1, 0.2, 0.3, 0.5]  # d < 10
+_S_MID = [0.1, 0.2, 0.3, 0.5, 0.8, 1.0]  # d 10–18
+_S_FULL = [0.1, 0.2, 0.3, 0.5, 0.8, 1.0, 1.5, 2.0, 2.5, 3.0]  # d ≥ 20
+
+_SMALL = [r for r in _DIN988 if r[0] <= 20]  # d 3–20
+_MID = [r for r in _DIN988 if r[0] <= 50]  # d 3–50
+_ALL = _DIN988  # d 3–100
+
+
+def _thickness_series(d: float):
+    if d < 10:
+        return _S_THIN
+    elif d < 20:
+        return _S_MID
+    else:
+        return _S_FULL
+
 
 class SpacerRingFamily(BaseFamily):
     name = "spacer_ring"
     standard = "DIN 988"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        od = rng.uniform(15, 120)
-        wall_t = rng.uniform(2, min(15, od * 0.3))
-        height = rng.uniform(3, min(40, od * 0.8))
+        pool = (
+            _SMALL
+            if difficulty == "easy"
+            else (_MID if difficulty == "medium" else _ALL)
+        )
+        d, D = pool[int(rng.integers(0, len(pool)))]
+        s_opts = _thickness_series(float(d))
+        s = float(s_opts[int(rng.integers(0, len(s_opts)))])
 
         params = {
-            "outer_diameter": round(od, 1),
-            "wall_thickness": round(wall_t, 1),
-            "height": round(height, 1),
+            "bore_diameter": float(d),
+            "outer_diameter": float(D),
+            "thickness": s,
             "difficulty": difficulty,
         }
 
-        if difficulty in ("medium", "hard"):
-            n_holes = int(rng.choice([4, 6]))
-            id_r = od / 2 - wall_t
-            hole_pcd = round((id_r + od / 2) / 2, 1)
-            max_hole_d = min(3.5, wall_t * 0.5, 2 * math.pi * hole_pcd / n_holes * 0.35)
-            hole_d = round(rng.uniform(1.5, max(1.6, max_hole_d)), 1)
-            params["n_holes"] = n_holes
-            params["hole_pcd"] = hole_pcd
-            params["hole_diameter"] = hole_d
-
         if difficulty == "hard":
-            groove_w = round(rng.uniform(1.0, max(1.1, min(3.0, height * 0.25))), 1)
-            groove_d = round(rng.uniform(0.5, max(0.6, min(2.0, wall_t * 0.3))), 1)
-            params["groove_width"] = groove_w
-            params["groove_depth"] = groove_d
+            # Split ring: ring is cut in half for installation without shaft disassembly
+            params["split"] = True
 
         return params
 
     def validate_params(self, params: dict) -> bool:
-        od = params["outer_diameter"]
-        wt = params["wall_thickness"]
-        h = params["height"]
-        id_r = od / 2 - wt
-
-        if wt < 1.5 or h < 2 or id_r < 3:
+        d = params["bore_diameter"]
+        D = params["outer_diameter"]
+        s = params["thickness"]
+        if D <= d or s <= 0 or (D - d) / 2 < 1.0:
             return False
-
-        hp = params.get("hole_pcd")
-        hd = params.get("hole_diameter")
-        if hp and hd:
-            if hp - hd / 2 <= id_r or hp + hd / 2 >= od / 2:
-                return False
-
-        gw = params.get("groove_width")
-        gd = params.get("groove_depth")
-        if gw and gd:
-            if gw >= h * 0.4 or gd >= wt * 0.4:
-                return False
-
         return True
 
     def make_program(self, params: dict) -> Program:
         difficulty = params.get("difficulty", "easy")
-        od = params["outer_diameter"]
-        wt = params["wall_thickness"]
-        h = params["height"]
-        id_r = od / 2 - wt
+        d = params["bore_diameter"]
+        D = params["outer_diameter"]
+        s = params["thickness"]
+        split = params.get("split", False)
 
         ops, tags = [], {
             "has_hole": True,
             "has_slot": False,
             "has_fillet": False,
             "has_chamfer": False,
-            "rotational": True,
+            "rotational": not split,
         }
 
-        # Hollow cylinder along Z axis — bore + outer
-        ops.append(Op("cylinder", {"height": h, "radius": round(od / 2, 3)}))
-        ops.append(Op("workplane", {"selector": ">Z"}))
-        ops.append(Op("hole", {"diameter": round(id_r * 2, 3)}))
+        r_outer = round(D / 2, 4)
+        r_inner = round(d / 2, 4)
 
-        # Symmetric axial through-holes (medium+) — parallel to Z axis via polarArray
-        hp = params.get("hole_pcd")
-        hd = params.get("hole_diameter")
-        n_h = params.get("n_holes")
-        if hp and hd and n_h:
+        if not split:
+            # Plain flat ring: cylinder with through bore
+            ops.append(Op("cylinder", {"height": s, "radius": r_outer}))
             ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(
-                Op(
-                    "polarArray",
-                    {
-                        "radius": hp,
-                        "startAngle": 0,
-                        "angle": 360,
-                        "count": n_h,
-                    },
-                )
-            )
-            ops.append(Op("hole", {"diameter": round(hd, 3)}))
-
-        # Internal snap groove on bore surface (hard)
-        # Cut a thin cylinder of radius (id_r + gd) centered axially at h/2.
-        # Since the bore (radius=id_r) is already empty, this removes only the
-        # annular ring id_r → id_r+gd at that axial position.
-        gw = params.get("groove_width")
-        gd = params.get("groove_depth")
-        if gw and gd:
+            ops.append(Op("hole", {"diameter": round(d, 4)}))
+        else:
+            # Split ring: half-ring profile extruded (top semicircle only).
+            # Profile: outer half-arc (y≥0) → left edge → inner half-arc → right edge.
             tags["has_slot"] = True
-            groove_base = round(h / 2 - gw / 2, 3)
+            ops.append(Op("workplane", {"selector": "XY"}))
+            ops.append(Op("moveTo", {"x": r_outer, "y": 0.0}))
             ops.append(
                 Op(
-                    "cut",
-                    {
-                        "ops": [
-                            {
-                                "name": "transformed",
-                                "args": {
-                                    "offset": [0.0, 0.0, groove_base],
-                                    "rotate": [0.0, 0.0, 0.0],
-                                },
-                            },
-                            {
-                                "name": "cylinder",
-                                "args": {
-                                    "height": round(gw, 3),
-                                    "radius": round(id_r + gd, 3),
-                                },
-                            },
-                        ]
-                    },
+                    "threePointArc",
+                    {"point1": [0.0, r_outer], "point2": [-r_outer, 0.0]},
                 )
             )
+            ops.append(Op("lineTo", {"x": -r_inner, "y": 0.0}))
+            ops.append(
+                Op(
+                    "threePointArc",
+                    {"point1": [0.0, r_inner], "point2": [r_inner, 0.0]},
+                )
+            )
+            ops.append(Op("close", {}))
+            ops.append(Op("extrude", {"distance": s}))
 
         return Program(
             family=self.name,
