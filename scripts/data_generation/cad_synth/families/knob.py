@@ -1,16 +1,40 @@
-"""Knob / handle — tapered frustum sections.
+"""Knob / handle — tapered frustum sections (DIN 319 control knobs).
 
-Structural type: taper-extrude stacked cylinders (smooth frustum, no loft artifacts).
-Covers: control knobs, dial handles, grip bodies.
+DIN 319 Form 1: conical/cylindrical control knobs — standard outer diameter D,
+thread designation, and height H series.  All D/H values from DIN 319 Table 1.
 
-Easy:   single tapered frustum (base → top)
-Medium: two tapered sections (base → waist, waist → crown) + short top cylinder
-Hard:   + knurling grooves (polar array of slots) + center bore
+Table: (D_mm, thread_M, H_nom)
+  D = knob outer diameter [mm]
+  M = metric thread for through bore
+  H = nominal height [mm]
+
+Easy:   single tapered frustum, small knobs (D 8–20 mm)
+Medium: two tapered sections + crown, mid knobs (D 12–40 mm)
+Hard:   + knurling grooves + center bore, full range (D 8–80 mm)
 """
 
 import math
 from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+
+# DIN 319 Table 1 — (D_knob_mm, thread_M_mm, H_nominal_mm)
+_DIN319 = [
+    (8, 3, 12),
+    (10, 4, 14),
+    (12, 5, 16),
+    (14, 6, 20),
+    (16, 6, 22),
+    (20, 8, 28),
+    (25, 10, 36),
+    (32, 10, 45),
+    (40, 12, 56),
+    (50, 12, 71),
+    (63, 16, 90),
+    (80, 20, 112),
+]
+_SMALL = _DIN319[:5]  # D 8–16
+_MID = _DIN319[2:9]  # D 12–40
+_ALL = _DIN319
 
 
 class KnobFamily(BaseFamily):
@@ -18,33 +42,42 @@ class KnobFamily(BaseFamily):
     standard = "DIN 319"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        r_base = rng.uniform(10, 35)
-        r_top = rng.uniform(r_base * 0.4, max(r_base * 0.41, r_base * 0.85))
-        h_total = rng.uniform(15, 50)
+        pool = (
+            _SMALL
+            if difficulty == "easy"
+            else (_MID if difficulty == "medium" else _ALL)
+        )
+        D, M, H = pool[int(rng.integers(0, len(pool)))]
+        r_base = round(D / 2, 1)
+        r_top = round(r_base * 0.55, 1)  # DIN 319 Form 1: ~55% taper ratio
+        h_total = float(H)
 
         params = {
-            "base_radius": round(r_base, 1),
-            "top_radius": round(r_top, 1),
-            "total_height": round(h_total, 1),
+            "knob_diameter": float(D),
+            "thread_m": float(M),
+            "base_radius": r_base,
+            "top_radius": r_top,
+            "total_height": h_total,
             "difficulty": difficulty,
         }
 
         if difficulty in ("medium", "hard"):
-            # Waist section for 3-section loft
-            r_waist = round(rng.uniform(r_top * 0.6, max(r_top * 0.61, r_top * 0.9)), 1)
-            h1 = round(rng.uniform(h_total * 0.35, h_total * 0.55), 1)
-            h2 = round(rng.uniform(h_total * 0.15, h_total * 0.3), 1)
+            # DIN 319 waist taper: mid-section slightly narrowed
+            r_waist = round(r_top * 0.75, 1)
+            h1 = round(h_total * 0.45, 1)
+            h2 = round(h_total * 0.25, 1)
             params["waist_radius"] = r_waist
             params["h_base_to_waist"] = h1
             params["h_waist_to_top"] = h2
 
         if difficulty == "hard":
-            bore_d = rng.uniform(4, max(4.1, r_top * 0.6))
+            # DIN 319: through bore = thread M, knurling on body
+            bore_d = float(M)
             n_knurl = int(rng.choice([12, 16, 20, 24]))
-            knurl_d = rng.uniform(1.0, min(3.0, r_base * 0.1))
-            params["bore_diameter"] = round(bore_d, 1)
+            knurl_d = round(max(0.8, min(2.0, r_base * 0.08)), 1)
+            params["bore_diameter"] = bore_d
             params["n_knurl"] = n_knurl
-            params["knurl_diameter"] = round(knurl_d, 1)
+            params["knurl_diameter"] = knurl_d
 
         return params
 

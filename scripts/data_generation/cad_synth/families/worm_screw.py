@@ -26,7 +26,10 @@ import math
 from .base import BaseFamily
 from ..pipeline.builder import Op, Program
 
+# ISO 54 preferred module series
 _MODULE_SERIES = [1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 3.15, 4.0, 5.0, 6.0, 6.3, 8.0, 10.0]
+# ISO 10828 preferred diameter quotient q values
+_Q_SERIES = [6.5, 8.0, 10.0, 12.5, 16.0, 20.0]
 
 
 class WormScrewFamily(BaseFamily):
@@ -38,7 +41,9 @@ class WormScrewFamily(BaseFamily):
         # z1 restricted to {1, 2} — standard worm (z1=4 rarely used; sweep
         # with high lead + short thread_length can produce non-manifold geom)
         z1 = 1 if difficulty == "easy" else int(rng.choice([1, 2]))
-        q = rng.uniform(7, 14)
+        # ISO 10828 preferred q — easy uses small values (q=8–12.5 most common)
+        q_pool = _Q_SERIES[:4] if difficulty == "easy" else _Q_SERIES
+        q = float(rng.choice(q_pool))
         d1 = round(m * q, 1)
         alpha = 20.0
 
@@ -107,9 +112,7 @@ class WormScrewFamily(BaseFamily):
         hf = round(1.2 * m, 4)
         df = round(d1 - 2 * hf, 3)
         tooth_thickness = round(p / 2, 4)
-        top_width = round(
-            tooth_thickness - 2 * ha * math.tan(math.radians(alpha)), 4
-        )
+        top_width = round(tooth_thickness - 2 * ha * math.tan(math.radians(alpha)), 4)
         bottom_width = round(
             tooth_thickness + 2 * hf * math.tan(math.radians(alpha)), 4
         )
@@ -213,9 +216,7 @@ class WormScrewFamily(BaseFamily):
             tags["has_slot"] = True
             kh = round(kw * 0.6, 2)
             ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(
-                Op("pushPoints", {"points": [(0.0, round(bd / 2, 3))]})
-            )
+            ops.append(Op("pushPoints", {"points": [(0.0, round(bd / 2, 3))]}))
             ops.append(Op("rect", {"length": round(kw, 3), "width": kh}))
             ops.append(Op("cutThruAll", {}))
 

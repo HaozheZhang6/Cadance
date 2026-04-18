@@ -1,14 +1,12 @@
 """Pipe elbow — hollow swept tube with 90° radiusArc bend + flanged ends.
 
-Structural type: profile swept along elbow path (lead straight → 90° arc → trail straight).
-Covers: hydraulic fittings, exhaust elbows, pipe joints.
+ASME B16.9 standard butt-weld fittings, NPS (nominal pipe size) series.
+Pipe OD and wall thickness from ASME B36.10M Schedule 40 (most common).
 
-Path layout (XZ plane):
-  z-axis: vertical (along lead straight)
-  x-axis: horizontal (along trail straight)
-  Origin: inlet face centre (z=0)
+Table: (NPS_label, OD_mm, wall_Sch40_mm)
+  bend_radius = 1.5 × NPS (long-radius elbow, per ASME B16.9 Table 1)
 
-Easy:   bare hollow elbow tube (outer sweep − inner sweep)
+Easy:   bare hollow elbow tube
 Medium: + neck + plate flange on both ends
 Hard:   + bolt holes on both flanges
 """
@@ -17,27 +15,48 @@ import math
 from .base import BaseFamily
 from ..pipeline.builder import Op, Program
 
+# ASME B36.10M Schedule 40 — (NPS_label, OD_mm, wall_mm)
+# bend_radius_mm = 38.1 * NPS_inch (long-radius per B16.9)
+_ASME_B369_SCH40 = [
+    ("NPS 1/2", 21.3, 2.77, 19.05),  # OD=21.3, wall=2.77, bend_r=19.05
+    ("NPS 3/4", 26.7, 2.87, 28.58),
+    ("NPS 1", 33.4, 3.38, 38.10),
+    ("NPS 1-1/4", 42.2, 3.56, 47.63),
+    ("NPS 1-1/2", 48.3, 3.68, 57.15),
+    ("NPS 2", 60.3, 3.91, 76.20),
+    ("NPS 2-1/2", 73.0, 5.16, 95.25),
+    ("NPS 3", 88.9, 5.49, 114.30),
+    ("NPS 4", 114.3, 6.02, 152.40),
+    ("NPS 6", 168.3, 7.11, 228.60),
+]
+_SMALL = _ASME_B369_SCH40[:4]  # NPS 1/2–1-1/4
+_MID = _ASME_B369_SCH40[:7]  # NPS 1/2–2-1/2
+_ALL = _ASME_B369_SCH40
+
 
 class PipeElbowFamily(BaseFamily):
     name = "pipe_elbow"
     standard = "ASME B16.9"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        outer_r = round(rng.uniform(8, 30), 1)  # pipe outer radius [mm]
-        wall_t = round(rng.uniform(1.5, max(1.6, min(6.0, outer_r * 0.25))), 1)
+        pool = (
+            _SMALL
+            if difficulty == "easy"
+            else (_MID if difficulty == "medium" else _ALL)
+        )
+        nps, od_mm, wall_mm, bend_r_mm = pool[int(rng.integers(0, len(pool)))]
+        outer_r = round(od_mm / 2, 2)
+        wall_t = round(wall_mm, 2)
         inner_r = round(outer_r - wall_t, 2)
 
-        lead_l = round(
-            rng.uniform(outer_r * 0.8, outer_r * 2.5), 1
-        )  # straight lead [mm]
-        bend_r = round(
-            rng.uniform(outer_r * 1.5, outer_r * 3.5), 1
-        )  # bend centerline radius [mm]
-        trail_l = round(
-            rng.uniform(outer_r * 0.8, outer_r * 2.5), 1
-        )  # straight trail [mm]
+        # B16.9 long-radius: bend centerline = 1.5 × NPS nominal pipe size
+        bend_r = round(bend_r_mm, 1)
+        # B16.9 end tangent (straight section): min 25mm or 1×OD
+        lead_l = round(max(25.0, od_mm), 1)
+        trail_l = lead_l
 
         params = {
+            "nps": nps,
             "outer_radius": outer_r,
             "wall_thickness": wall_t,
             "inner_radius": inner_r,
@@ -48,10 +67,10 @@ class PipeElbowFamily(BaseFamily):
         }
 
         if difficulty in ("medium", "hard"):
-            neck_r = round(rng.uniform(outer_r * 1.1, outer_r * 1.5), 1)
-            neck_l = round(rng.uniform(outer_r * 0.3, outer_r * 0.7), 1)
-            flange_r = round(rng.uniform(neck_r * 1.3, neck_r * 2.0), 1)
-            flange_t = round(rng.uniform(outer_r * 0.25, outer_r * 0.55), 1)
+            neck_r = round(outer_r * 1.25, 1)
+            neck_l = round(outer_r * 0.5, 1)
+            flange_r = round(neck_r * 1.6, 1)
+            flange_t = round(outer_r * 0.4, 1)
             params.update(
                 neck_radius=neck_r,
                 neck_length=neck_l,
@@ -60,8 +79,8 @@ class PipeElbowFamily(BaseFamily):
             )
 
         if difficulty == "hard":
-            n_bolts = int(rng.choice([4, 6]))
-            bolt_r = round(rng.uniform(1.5, max(1.6, outer_r * 0.15)), 1)
+            n_bolts = 4 if od_mm <= 60 else 6
+            bolt_r = round(outer_r * 0.12, 1)
             params.update(n_bolts=n_bolts, bolt_hole_radius=bolt_r)
 
         return params
