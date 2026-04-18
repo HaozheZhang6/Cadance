@@ -120,6 +120,6 @@ Tier 2 — 部分标准化（关键参数表驱动，比例公式）：
 
 ## Pending 渲染验证
 
-- `propeller` — 参考 `tmp/manual_family_previews/manual_propeller.py`
-- `manifold_block` — 参考 `tmp/manual_family_previews/manual_manifold_block.py`
-- `lathe_turned_part` — 参考 `tmp/manual_family_previews/manual_lathe_turned_part.py`
+- `propeller` ✅ build pass (easy/medium/hard) 2026-04-18 — 视觉验证待 Synth Monitor
+- `manifold_block` ✅ build pass (easy/medium/hard) 2026-04-18 — 视觉验证待 Synth Monitor
+- `lathe_turned_part` ✅ build pass (easy/medium/hard) 2026-04-18 — 视觉验证待 Synth Monitor
