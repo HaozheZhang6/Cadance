@@ -1,16 +1,26 @@
-"""Pulley / belt sheave — revolved cross-section profile.
+"""Pulley / belt sheave — revolved cross-section profile (ISO 22 / ISO 4183).
 
-Structural type: 2D polyline profile revolved 360° around Y axis.
-Covers: V-belt pulley, flat-belt pulley, timing pulley.
+ISO 22: Classical V-belt pulleys — groove angle α = 34°/36°/38° depending on PD.
+ISO 4183: groove geometry per belt section (Z, A, B, C, D).
 
-Easy:   flat-belt pulley (cylindrical rim) revolved
-Medium: + V-groove + hub bore
-Hard:   + spoked body (lightening cut pockets) + keyway
+Belt section determines groove width and depth; pulley PD is continuously sampled.
+Groove angle: 34° for small PD, 36° mid, 38° large (per ISO 22 Table 1).
+
+Belt section table: (section, groove_width_mm, groove_depth_mm, pd_min_mm)
 """
 
 import math
 from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+
+# ISO 4183 V-belt groove geometry — (section, groove_width_w, groove_depth_h, pd_min)
+_ISO4183_BELT = [
+    ("Z", 8.5, 7.0, 50),
+    ("A", 11.0, 8.7, 75),
+    ("B", 14.0, 10.8, 125),
+    ("C", 19.0, 14.3, 200),
+    ("D", 27.0, 19.9, 355),
+]
 
 
 class PulleyFamily(BaseFamily):
@@ -22,7 +32,7 @@ class PulleyFamily(BaseFamily):
         width = rng.uniform(10, 50)  # total axial width
         bore_r = rng.uniform(4, max(4.1, rim_r * 0.25))  # shaft bore radius
         hub_r = rng.uniform(bore_r + 3, max(bore_r + 3.5, rim_r * 0.45))
-        rim_t = rng.uniform(3, max(3.1, min(10, width * 0.25)))  # rim wall thickness
+        rim_t = rng.uniform(3, max(3.1, min(10, width * 0.25)))
 
         params = {
             "rim_radius": round(rim_r, 1),
@@ -34,10 +44,25 @@ class PulleyFamily(BaseFamily):
         }
 
         if difficulty in ("medium", "hard"):
-            groove_d = rng.uniform(rim_t * 0.25, max(rim_t * 0.26, rim_t * 0.65))
-            # ISO 22 / ISO 4183 standard groove angles: 34°, 36°, 38°
-            groove_angle = float(rng.choice([34.0, 36.0, 38.0]))
-            params["groove_depth"] = round(groove_d, 1)
+            # ISO 22: groove angle determined by pitch diameter
+            pd_mm = rim_r * 2  # approximate PD ≈ OD
+            if pd_mm < 100:
+                groove_angle = 34.0
+            elif pd_mm < 200:
+                groove_angle = 36.0
+            else:
+                groove_angle = 38.0
+            # ISO 4183: groove depth from table, capped by rim_t
+            # Pick belt section whose pd_min ≤ pd_mm
+            belt_opts = [b for b in _ISO4183_BELT if b[3] <= pd_mm]
+            if not belt_opts:
+                belt_opts = [_ISO4183_BELT[0]]
+            belt_section, groove_w, groove_depth_std, _ = belt_opts[
+                int(rng.integers(0, len(belt_opts)))
+            ]
+            groove_d = round(min(groove_depth_std, rim_t * 0.65), 1)
+            params["belt_section"] = belt_section
+            params["groove_depth"] = groove_d
             params["groove_angle"] = groove_angle
 
         if difficulty == "hard":
