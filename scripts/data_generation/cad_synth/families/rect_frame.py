@@ -2,25 +2,36 @@
 
 A flat rectangular frame: outer rectangle with a rectangular window cut through.
 Common as shims, gaskets, panel frames, spacer frames.
+No governing standard (custom machined / wire-EDM part); proportions follow
+typical fabrication practice: rail 10–20 % of outer dim, thick 3–12 mm.
 
 Easy:   plain rectangular frame.
-Medium: + rounded inner corners (arcs) + corner mounting holes.
+Medium: + corner mounting holes.
 Hard:   + side slot cutouts on outer edges.
 """
 
 from ..pipeline.builder import Op, Program
 from .base import BaseFamily
 
+# Preferred outer dimensions (mm) — common machined frame sizes
+_OUTER_L = [60, 80, 100, 120, 150, 200, 250, 300]
+_OUTER_W = [40, 50, 60, 80, 100, 120, 150, 200]
+_RAIL_FRAC = [0.10, 0.12, 0.15, 0.18, 0.20]  # rail / outer_min
+_THICK_MM = [3, 4, 5, 6, 8, 10, 12]
+
 
 class RectFrameFamily(BaseFamily):
     name = "rect_frame"
-    standard = "EN 10219"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        outer_l = round(rng.uniform(60, 160), 1)
-        outer_w = round(rng.uniform(40, 120), 1)
-        rail = round(rng.uniform(8, 30), 1)  # frame rail width
-        thick = round(rng.uniform(3, 12), 1)
+        ol_pool = _OUTER_L[:5] if difficulty == "easy" else _OUTER_L
+        ow_pool = _OUTER_W[:5] if difficulty == "easy" else _OUTER_W
+        outer_l = float(ol_pool[int(rng.integers(0, len(ol_pool)))])
+        outer_w = float(ow_pool[int(rng.integers(0, len(ow_pool)))])
+        frac = float(rng.choice(_RAIL_FRAC))
+        rail = round(min(outer_l, outer_w) * frac, 1)
+        thick = float(_THICK_MM[int(rng.integers(0, len(_THICK_MM)))])
 
         params = {
             "outer_length": outer_l,
@@ -31,13 +42,13 @@ class RectFrameFamily(BaseFamily):
         }
 
         if difficulty in ("medium", "hard"):
-            corner_r = round(rng.uniform(3, max(3.5, min(rail * 0.5, 10))), 1)
-            hole_d = round(rng.uniform(3, max(3.5, min(rail * 0.55, 8))), 1)
-            params["corner_radius"] = corner_r
+            hole_d = round(min(rail * 0.5, 8.0), 1)
+            hole_d = max(3.0, hole_d)
             params["hole_diameter"] = hole_d
 
         if difficulty == "hard":
-            slot_d = round(rng.uniform(4, max(4.5, min(rail * 0.6, 10))), 1)
+            slot_d = round(min(rail * 0.55, 10.0), 1)
+            slot_d = max(4.0, slot_d)
             params["side_slot_depth"] = slot_d
 
         return params
@@ -58,10 +69,6 @@ class RectFrameFamily(BaseFamily):
         if rail < 6:
             return False
         if thick < 2:
-            return False
-
-        cr = params.get("corner_radius", 0)
-        if cr and cr >= rail * 0.6:
             return False
 
         hd = params.get("hole_diameter", 0)
@@ -96,10 +103,9 @@ class RectFrameFamily(BaseFamily):
         ops.append(Op("rect", {"length": inner_l, "width": inner_w}))
         ops.append(Op("cutThruAll", {}))
 
-        # Corner mounting holes + rounded inner corners effect via holes at inner corners (medium+)
+        # Corner mounting holes (medium+)
         hd = params.get("hole_diameter")
-        cr = params.get("corner_radius")
-        if hd and cr:
+        if hd:
             tags["has_hole"] = True
             # Mounting holes at outer corners (inset by rail/2)
             half_ol = round(ol / 2 - rail / 2, 4)

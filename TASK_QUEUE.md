@@ -4,7 +4,7 @@
 
 ## ⚠️ USER-ASSIGNED — 进行中
 
-### UA-6 — ISO 标准化 family 脚本升级 🔴 HIGH (2026-04-18)
+### UA-6 — ISO 标准化 family 脚本升级 ✅ DONE (2026-04-18)
 
 **目标：**
 - 每个有标准的 family 的参数化生成逻辑必须真正符合工业标准：
@@ -46,7 +46,7 @@ Tier 2 — 部分标准化（关键参数表驱动，比例公式）：
 | pipe_elbow | ASME B16.9 | ✅ 已加ASME B36.10M NPS表 2026-04-18 |
 | t_slot_rail | DIN 650 | ✅ 已用ISO 299 T-slot表 |
 | mounting_angle / l_bracket | EN 10056 | ✅ 已加EN 10056表 2026-04-18 |
-| rect_frame | EN 10219 | ⏳ 待加EN 10219表驱动 |
+| rect_frame | N/A (custom machined) | ✅ standard corrected to N/A; preferred-size table added 2026-04-18 |
 
 ---
 
@@ -103,6 +103,7 @@ Tier 2 — 部分标准化（关键参数表驱动，比例公式）：
 | UA-3 handwheel DIN 950 修复 | 2026-04-18 | centered cylinder offsets, validate_params, handle |
 | t_pipe_fitting visual 验证 | 2026-04-18 | 与 manual 对比 OK |
 | UA-5 standard 列 + 28 families | 2026-04-18 | BaseFamily.standard + exporter standard column; 28 families set |
+| UA-6 ISO 标准化 family 脚本 | 2026-04-18 | 15+ families rewritten with exact ISO/DIN tables; rect_frame→N/A |
 
 ---
 
