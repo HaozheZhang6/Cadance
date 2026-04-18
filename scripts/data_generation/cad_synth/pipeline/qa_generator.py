@@ -12,9 +12,9 @@ Design rule:
   Use absolute mm only for ISO-mandated standard values (module, pitch).
 """
 from __future__ import annotations
+
 import math
 from typing import Any
-
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -363,15 +363,18 @@ def _tapered_boss(p: dict):
 
 
 def _spacer_ring(p: dict):
+    # DIN 988 shim: bore_diameter (d), outer_diameter (D), thickness (s)
     od = p["outer_diameter"]
-    wall = p["wall_thickness"]
-    id_ = round(od - 2 * wall, 2)
-    nb = p.get("n_holes", 0)
+    bd = p["bore_diameter"]
+    s = p["thickness"]
+    split = p.get("split", False)
     qa = [
-        _q("What is the outer to inner diameter ratio?", _ratio(od, id_)),
-        _q("How many bolt holes?", nb, "integer"),
+        _q("What is the outer to bore diameter ratio?", _ratio(od, bd)),
+        _q("What is the shim thickness in mm?", s, "ratio"),
     ]
-    iso = {"iso_286": True, "outer_diameter_mm": round(od, 2), "inner_diameter_mm": id_}
+    if split:
+        qa.append(_q("Is this a split ring?", 1, "integer"))
+    iso = {"din_988": True, "outer_diameter_mm": round(od, 2), "bore_diameter_mm": round(bd, 2), "thickness_mm": round(s, 2)}
     return qa, iso
 
 
@@ -946,17 +949,18 @@ def _ratchet_sector(p: dict):
 
 
 def _snap_clip(p: dict):
-    cr = p["clip_radius"]
-    wt = p["wall_thickness"]
-    oa = p["opening_angle"]
-    nb = p.get("n_flange_holes", 0)
+    # DIN 6799 E-ring: shaft_diameter, ring_id, ring_od, thickness, gap_angle
+    shaft_d = p["shaft_diameter"]
+    ring_od = p["ring_od"]
+    gap = p.get("gap_angle", 35.0)
+    has_lug = "lug_hole_diameter" in p
     qa = [
-        _q("What is the clip radius to wall thickness ratio?", _ratio(cr, wt)),
-        _q("What is the opening angle in degrees?", oa, "ratio"),
+        _q("What is the ring OD to shaft diameter ratio?", _ratio(ring_od, shaft_d)),
+        _q("What is the gap angle in degrees?", gap, "ratio"),
     ]
-    if nb:
-        qa.append(_q("How many flange holes?", nb, "integer"))
-    return qa[:3], {}
+    if has_lug:
+        qa.append(_q("Does this snap ring have lug holes?", 1, "integer"))
+    return qa[:3], {"din_6799": True, "shaft_diameter_mm": round(shaft_d, 2), "ring_od_mm": round(ring_od, 2)}
 
 
 def _locator_block(p: dict):

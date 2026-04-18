@@ -1,0 +1,12 @@
+run_name: smoke_2fam_fix
+num_samples: 60
+seed: 99
+n_workers: 4
+family_mix:
+  snap_clip: 1
+  spacer_ring: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: false
