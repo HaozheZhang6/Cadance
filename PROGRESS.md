@@ -9,3 +9,12 @@
 - Added `din6885a_keyway()` helper to `base.py` (shared DIN 6885A lookup)
 - Bug Fix: spur_gear/helical_gear web recess + rim_boss verified (100% build pass)
 - Preflight: propeller/manifold_block/lathe_turned_part all 9/9 build OK
+
+## 2026-04-18 (session 3)
+
+- Standardized all 80 families:
+  - Easy wins (already table-driven, just needed `standard =`): i_beam (EN 10034), u_channel (EN 10279), clevis_pin (ISO 2340)
+  - Added tables: coil_spring (DIN 2095 wire diameters), t_pipe_fitting (ASME B16.9 NPS), clevis (DIN 71751)
+  - Added `din6885a_keyway()` helper to base.py (shared by bevel_gear, sprocket, and others)
+  - All 44 custom/application-specific families set to standard = "N/A"
+- Launched batch_2k_apr18: 2000 samples, all 80 families, seed 2418, 8 workers
