@@ -10,11 +10,13 @@ Hard:   + small bore keyway
 
 import math
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily, din6885a_keyway
 
 
-def _gear_pts_from_pitch(pitch_r: float, module: float, n_teeth: int, pa_deg: float = 20.0, n_inv: int = 4) -> list[tuple[float, float]]:
+def _gear_pts_from_pitch(
+    pitch_r: float, module: float, n_teeth: int, pa_deg: float = 20.0, n_inv: int = 4
+) -> list[tuple[float, float]]:
     pa = math.radians(pa_deg)
     r_p = pitch_r
     r_b = r_p * math.cos(pa)
@@ -59,7 +61,7 @@ class BevelGearFamily(BaseFamily):
         variant = rng.choice(["straight_bevel", "miter"])
         _ISO54 = [1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 3.5, 1.125, 1.375, 1.75, 2.25, 2.75]
         m = float(rng.choice(_ISO54))
-        z = int(rng.uniform(12, 32))
+        z = int(rng.integers(12, 32))
         r_p = m * z / 2
         pitch_angle = 45.0 if variant == "miter" else round(rng.uniform(20, 45), 1)
         face_w = round(rng.uniform(m * 4, min(m * 8, r_p * 0.72)), 1)
@@ -81,13 +83,24 @@ class BevelGearFamily(BaseFamily):
         }
 
         if difficulty == "medium":
-            params["keyway_width"] = round(rng.uniform(bore_d * 0.12, max(bore_d * 0.13, bore_d * 0.2)), 1)
-            seat_d = round(rng.uniform(bore_d * 1.45, max(bore_d * 1.5, min(r_p * 0.65, bore_d * 2.2))), 1)
-            seat_depth = round(rng.uniform(0.8, max(0.9, params["face_width"] * 0.16)), 1)
+            kw, kd = din6885a_keyway(bore_d)
+            params["keyway_width"] = kw
+            params["keyway_depth"] = kd
+            seat_d = round(
+                rng.uniform(
+                    bore_d * 1.45, max(bore_d * 1.5, min(r_p * 0.65, bore_d * 2.2))
+                ),
+                1,
+            )
+            seat_depth = round(
+                rng.uniform(0.8, max(0.9, params["face_width"] * 0.16)), 1
+            )
             params["bearing_seat_diameter"] = seat_d
             params["bearing_seat_depth"] = seat_depth
         elif difficulty == "hard":
-            params["keyway_width"] = round(rng.uniform(max(1.8, bore_d * 0.28), max(2.2, bore_d * 0.4)), 1)
+            kw, kd = din6885a_keyway(bore_d)
+            params["keyway_width"] = kw
+            params["keyway_depth"] = kd
 
         return params
 
@@ -156,18 +169,22 @@ class BevelGearFamily(BaseFamily):
             ops.append(Op("cutBlind", {"depth": seat_depth}))
 
         kw = params.get("keyway_width")
-        if kw:
+        kd = params.get("keyway_depth")
+        if kw and kd:
             tags["has_slot"] = True
             bore_r = bd / 2
-            key_height = round(max(bd * 0.18, kw * 1.2), 3)
-            rect_width = round(kw, 3)
-            rect_height = round(key_height + bore_r, 3)
+            rect_height = round(bore_r + kd, 3)
             ops.append(Op("workplane", {"selector": "<Z"}))
-            ops.append(Op("center", {
-                "x": 0.0,
-                "y": round(rect_height / 2, 3),
-            }))
-            ops.append(Op("rect", {"length": rect_width, "width": rect_height}))
+            ops.append(
+                Op(
+                    "center",
+                    {
+                        "x": 0.0,
+                        "y": round(rect_height / 2, 3),
+                    },
+                )
+            )
+            ops.append(Op("rect", {"length": round(kw, 3), "width": rect_height}))
             ops.append(Op("cutThruAll", {}))
 
         return Program(

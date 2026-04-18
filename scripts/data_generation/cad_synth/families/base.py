@@ -4,6 +4,36 @@ from abc import ABC, abstractmethod
 
 from ..pipeline.builder import Program, build_from_program, render_program_to_code
 
+# DIN 6885A Form A — (bore_d_min, bore_d_max, key_width_b, key_height_h) mm
+_DIN6885A_KEYWAY = [
+    (6, 8, 2, 2),
+    (8, 10, 3, 3),
+    (10, 12, 4, 4),
+    (12, 17, 5, 5),
+    (17, 22, 6, 6),
+    (22, 30, 8, 7),
+    (30, 38, 10, 8),
+    (38, 44, 12, 8),
+    (44, 50, 14, 9),
+    (50, 58, 16, 10),
+    (58, 65, 18, 11),
+    (65, 75, 20, 12),
+    (75, 85, 22, 14),
+    (85, 95, 25, 14),
+    (95, 110, 28, 16),
+    (110, 130, 32, 18),
+]
+
+
+def din6885a_keyway(bore_d: float) -> tuple[float, float]:
+    """Return (key_width_b, shaft_seat_depth_t1) for bore_d per DIN 6885A."""
+    for d_min, d_max, b, h in _DIN6885A_KEYWAY:
+        if d_min <= bore_d < d_max:
+            return float(b), round(h / 2.0, 1)
+    # Outside table range: proportional fallback
+    b = round(bore_d * 0.25, 0)
+    return b, round(b * 0.5, 1)
+
 
 class BaseFamily(ABC):
     """Base interface for all parametric CadQuery part families."""

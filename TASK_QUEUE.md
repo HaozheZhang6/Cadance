@@ -35,10 +35,10 @@ Tier 2 — 部分标准化（关键参数表驱动，比例公式）：
 |--------|------|------|
 | spur_gear | ISO 53 | ✅ 已用ISO 54 module系列 |
 | helical_gear | ISO 53 | ✅ 同spur_gear module |
-| bevel_gear | ISO 23509 | ⏳ 待检查 |
+| bevel_gear | ISO 23509 | ✅ ISO 54 module + DIN 6885A keyway table 2026-04-18 |
 | worm_screw | ISO 10828 | ✅ 已加preferred q系列 2026-04-18 |
 | sprocket | ISO 606 | ✅ 已用ISO 606 pitch/roller表 |
-| pulley | ISO 22 | ⏳ 待检查 |
+| pulley | ISO 22 | ✅ ISO 22 groove angles + ISO 4183 belt table 2026-04-18 |
 | hollow_tube | EN 10219/10305 | ✅ 已有精确EN 10219 SHS/RHS表 |
 | knob | DIN 319 | ✅ 已加DIN 319表 2026-04-18 |
 | ball_knob | DIN 319 | ✅ 已加DIN 319球形表 2026-04-18 |
@@ -113,7 +113,7 @@ Tier 2 — 部分标准化（关键参数表驱动，比例公式）：
 |-----|--------|------|
 | spur_gear/helical_gear annular web recess 验证 | ⭐ HIGH | 待渲染验证 |
 | spur_gear rim_boss 配套 hub_boss | ⭐ HIGH | 待验证 |
-| sprocket DIN 8187 参数不符 | 🟡 MED | 待修 |
+| sprocket keyway DIN 6885A | 🟡 MED | ✅ 已修 2026-04-18 |
 | bearing_retainer_cap ear bolt hole 圆角 | 🟢 LOW | 待下批次 |
 
 ---

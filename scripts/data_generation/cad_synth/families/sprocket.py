@@ -17,17 +17,18 @@ Easy:   plain toothed disc with bore
 Medium: + hub (cylindrical boss behind disc)
 Hard:   + keyway slot in bore
 """
+
 import math
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily, din6885a_keyway
 
 # ISO 606 pitches and corresponding roller diameters (mm)
 _ISO606 = [
-    (6.350,  3.30),   # #25
-    (8.000,  5.00),   # #35 (non-standard metric)
-    (9.525,  6.35),   # #41
-    (12.700, 8.51),   # #50
+    (6.350, 3.30),  # #25
+    (8.000, 5.00),  # #35 (non-standard metric)
+    (9.525, 6.35),  # #41
+    (12.700, 8.51),  # #50
     (15.875, 10.16),  # #60
     (19.050, 11.91),  # #80
     (25.400, 15.88),  # #100
@@ -74,9 +75,7 @@ class SprocketFamily(BaseFamily):
             params["hub_height"] = hub_h
 
         if difficulty == "hard":
-            # Keyway — DIN 6885 proportions based on bore diameter
-            kw = round(bore_d * 0.25, 1)
-            kd = round(bore_d * 0.12, 1)
+            kw, kd = din6885a_keyway(bore_d)
             params["keyway_width"] = kw
             params["keyway_depth"] = kd
 
@@ -85,7 +84,6 @@ class SprocketFamily(BaseFamily):
     def validate_params(self, params: dict) -> bool:
         df = params["root_diameter"]
         da = params["tip_diameter"]
-        pcd = params["pitch_circle_diameter"]
         t = params["disc_thickness"]
         bore = params["bore_diameter"]
         z = params["n_teeth"]
@@ -112,15 +110,14 @@ class SprocketFamily(BaseFamily):
         z = params["n_teeth"]
         da = params["tip_diameter"]
         df = params["root_diameter"]
-        pcd = params["pitch_circle_diameter"]
-        dr = params["roller_diameter"]
         t = params["disc_thickness"]
         bore = params["bore_diameter"]
-        pitch = params["pitch"]
 
         ops, tags = [], {
-            "has_hole": True, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": True,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
             "rotational": True,
         }
 
@@ -128,18 +125,23 @@ class SprocketFamily(BaseFamily):
         # Draw flat 2D profile: root disc (df/2) + N tooth bumps (circle at
         # tooth_center_r, radius tooth_r), then extrude once by thickness t.
         # Each tooth bump extends from df/2 outward to da/2 (ISO 606 proportions).
-        tooth_r = round((da - df) / 4, 4)          # = 0.9 * dr / 4
+        tooth_r = round((da - df) / 4, 4)  # = 0.9 * dr / 4
         tooth_center_r = round(df / 2 + tooth_r, 4)
 
         ops.append(Op("workplane", {"selector": "XY"}))
-        ops.append(Op("circle", {"radius": round(df / 2, 4)}))   # root disc
-        ops.append(Op("polarArray", {
-            "radius": tooth_center_r,
-            "startAngle": 0,
-            "angle": 360,
-            "count": z,
-        }))
-        ops.append(Op("circle", {"radius": tooth_r}))             # N tooth bumps
+        ops.append(Op("circle", {"radius": round(df / 2, 4)}))  # root disc
+        ops.append(
+            Op(
+                "polarArray",
+                {
+                    "radius": tooth_center_r,
+                    "startAngle": 0,
+                    "angle": 360,
+                    "count": z,
+                },
+            )
+        )
+        ops.append(Op("circle", {"radius": tooth_r}))  # N tooth bumps
         ops.append(Op("extrude", {"distance": t}))
 
         # Central bore
@@ -155,7 +157,9 @@ class SprocketFamily(BaseFamily):
             ops.append(Op("extrude", {"distance": round(hub_h, 4)}))
             # bore through hub — use explicit depth to avoid thru-all bug
             ops.append(Op("workplane", {"selector": "<Z"}))
-            ops.append(Op("hole", {"diameter": round(bore, 4), "depth": round(hub_h + 1.0, 4)}))
+            ops.append(
+                Op("hole", {"diameter": round(bore, 4), "depth": round(hub_h + 1.0, 4)})
+            )
 
         # ── keyway (hard) ──────────────────────────────────────────────────────
         kw = params.get("keyway_width", 0)
@@ -165,11 +169,20 @@ class SprocketFamily(BaseFamily):
             ops.append(Op("workplane", {"selector": "XZ"}))
             ops.append(Op("moveTo", {"x": round(-kw / 2, 4), "y": 0.0}))
             ops.append(Op("lineTo", {"x": round(kw / 2, 4), "y": 0.0}))
-            ops.append(Op("lineTo", {"x": round(kw / 2, 4), "y": round(bore / 2 + kd, 4)}))
-            ops.append(Op("lineTo", {"x": round(-kw / 2, 4), "y": round(bore / 2 + kd, 4)}))
+            ops.append(
+                Op("lineTo", {"x": round(kw / 2, 4), "y": round(bore / 2 + kd, 4)})
+            )
+            ops.append(
+                Op("lineTo", {"x": round(-kw / 2, 4), "y": round(bore / 2 + kd, 4)})
+            )
             ops.append(Op("close", {}))
             total_depth = t + (hub_h if hub_d else 0)
             ops.append(Op("cutBlind", {"depth": round(total_depth, 4)}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )
