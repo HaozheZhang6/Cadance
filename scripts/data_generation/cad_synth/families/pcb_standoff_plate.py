@@ -6,12 +6,13 @@ Medium: + center standoffs + mounting holes + chamfer
 Hard:   + alignment pins + slot cutouts + fillet
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class PcbStandoffPlateFamily(BaseFamily):
     name = "pcb_standoff_plate"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         length = rng.uniform(60, 200)
@@ -37,7 +38,9 @@ class PcbStandoffPlateFamily(BaseFamily):
             params["chamfer_length"] = round(rng.uniform(0.3, min(1.0, thick / 4)), 1)
             # Extra mid-edge standoffs
             params["mid_post_count"] = int(rng.choice([2, 4]))
-            params["mount_hole_diameter"] = round(rng.uniform(2.5, min(5.0, inset * 0.5)), 1)
+            params["mount_hole_diameter"] = round(
+                rng.uniform(2.5, min(5.0, inset * 0.5)), 1
+            )
 
         if difficulty == "hard":
             # Alignment pins (smaller, solid cylinders)
@@ -82,8 +85,10 @@ class PcbStandoffPlateFamily(BaseFamily):
         pbd = params["post_bore_diameter"]
 
         ops, tags = [], {
-            "has_hole": True, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": True,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
             "pattern_like": True,
         }
 
@@ -106,18 +111,20 @@ class PcbStandoffPlateFamily(BaseFamily):
 
         # Collect all standoff positions first (so we extrude all at once from plate top)
         corner_pts = [
-            (round( l/2 - ins, 3), round( w/2 - ins, 3)),
-            (round( l/2 - ins, 3), round(-w/2 + ins, 3)),
-            (round(-l/2 + ins, 3), round( w/2 - ins, 3)),
-            (round(-l/2 + ins, 3), round(-w/2 + ins, 3)),
+            (round(l / 2 - ins, 3), round(w / 2 - ins, 3)),
+            (round(l / 2 - ins, 3), round(-w / 2 + ins, 3)),
+            (round(-l / 2 + ins, 3), round(w / 2 - ins, 3)),
+            (round(-l / 2 + ins, 3), round(-w / 2 + ins, 3)),
         ]
         mid_n = params.get("mid_post_count", 0)
         if mid_n == 2:
-            mid_pts = [(0.0, round(w/2 - ins, 3)), (0.0, round(-w/2 + ins, 3))]
+            mid_pts = [(0.0, round(w / 2 - ins, 3)), (0.0, round(-w / 2 + ins, 3))]
         elif mid_n == 4:
             mid_pts = [
-                (0.0, round(w/2 - ins, 3)), (0.0, round(-w/2 + ins, 3)),
-                (round(l/2 - ins, 3), 0.0), (round(-l/2 + ins, 3), 0.0),
+                (0.0, round(w / 2 - ins, 3)),
+                (0.0, round(-w / 2 + ins, 3)),
+                (round(l / 2 - ins, 3), 0.0),
+                (round(-l / 2 + ins, 3), 0.0),
             ]
         else:
             mid_pts = []
@@ -142,13 +149,29 @@ class PcbStandoffPlateFamily(BaseFamily):
             # Center pin at plate_top - 0.5 + pin_h/2 → bottom 0.5mm inside plate
             pin_z = round(t / 2 - 0.5 + pin_h / 2, 3)
             for px in [round(l / 4, 3), round(-l / 4, 3)]:
-                ops.append(Op("union", {"ops": [
-                    {"name": "transformed", "args": {
-                        "offset": [px, 0.0, pin_z],
-                        "rotate": [0, 0, 0],
-                    }},
-                    {"name": "cylinder", "args": {"height": pin_h, "radius": round(pin_d / 2, 3)}},
-                ]}))
+                ops.append(
+                    Op(
+                        "union",
+                        {
+                            "ops": [
+                                {
+                                    "name": "transformed",
+                                    "args": {
+                                        "offset": [px, 0.0, pin_z],
+                                        "rotate": [0, 0, 0],
+                                    },
+                                },
+                                {
+                                    "name": "cylinder",
+                                    "args": {
+                                        "height": pin_h,
+                                        "radius": round(pin_d / 2, 3),
+                                    },
+                                },
+                            ]
+                        },
+                    )
+                )
 
         # Cable slot (hard)
         sl = params.get("slot_length")
@@ -159,5 +182,10 @@ class PcbStandoffPlateFamily(BaseFamily):
             ops.append(Op("rect", {"length": sl, "width": sw}))
             ops.append(Op("cutThruAll", {}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

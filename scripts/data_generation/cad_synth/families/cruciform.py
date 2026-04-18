@@ -14,6 +14,7 @@ from .base import BaseFamily
 
 class CruciformFamily(BaseFamily):
     name = "cruciform"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         arm_len = round(rng.uniform(20, 80), 1)  # half-length of each arm

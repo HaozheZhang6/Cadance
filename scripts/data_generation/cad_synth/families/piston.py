@@ -14,6 +14,7 @@ from .base import BaseFamily
 
 class PistonFamily(BaseFamily):
     name = "piston"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         r = round(rng.uniform(20, 70), 1)  # piston radius

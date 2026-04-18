@@ -18,6 +18,7 @@ from .base import BaseFamily
 
 class CapsuleFamily(BaseFamily):
     name = "capsule"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         r = round(rng.uniform(15, 60), 1)

@@ -5,12 +5,13 @@ Medium: + chamfer on seat top edges.
 Hard:   + horizontal cross-bar on back.
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class ChairFamily(BaseFamily):
     name = "chair"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         seat_l = round(rng.uniform(60, 160), 1)

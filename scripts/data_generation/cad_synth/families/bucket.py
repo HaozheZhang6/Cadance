@@ -8,12 +8,13 @@ Medium: + chamfer on top rim.
 Hard:   + two rectangular handle-attachment bosses at top.
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class BucketFamily(BaseFamily):
     name = "bucket"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         r_bot = round(rng.uniform(40, 100), 1)

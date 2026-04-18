@@ -8,13 +8,13 @@ Medium: + axle bores through each boss.
 Hard:   + lightening oval slot through waist.
 """
 
-
 from ..pipeline.builder import Op, Program
 from .base import BaseFamily
 
 
 class DogBoneFamily(BaseFamily):
     name = "dog_bone"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         boss_r = round(rng.uniform(12, 45), 1)

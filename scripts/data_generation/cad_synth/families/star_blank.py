@@ -17,6 +17,7 @@ from .base import BaseFamily
 
 class StarBlankFamily(BaseFamily):
     name = "star_blank"
+    standard = "N/A"
 
     _N_BY_DIFF = {"easy": 4, "medium": 5, "hard": 6}
 

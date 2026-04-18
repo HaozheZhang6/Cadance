@@ -6,12 +6,13 @@ Medium: + 2nd cutout + chamfer
 Hard:   + slot array + fillet
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class ConnectorFaceplateFamily(BaseFamily):
     name = "connector_faceplate"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         length = rng.uniform(80, 300)
@@ -105,8 +106,10 @@ class ConnectorFaceplateFamily(BaseFamily):
         cx = params["cutout_x_offset"]
 
         ops, tags = [], {
-            "has_hole": True, "has_slot": True,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": True,
+            "has_slot": True,
+            "has_fillet": False,
+            "has_chamfer": False,
         }
 
         ops.append(Op("box", {"length": l, "width": w, "height": t}))
@@ -144,20 +147,27 @@ class ConnectorFaceplateFamily(BaseFamily):
             spacing = (vsw + 2.5) if nv > 1 else 1
             ops.append(Op("workplane", {"selector": ">Z"}))
             ops.append(Op("center", {"x": round(vx, 3), "y": round(-(w / 4), 3)}))
-            ops.append(Op("rarray", {
-                "xSpacing": spacing, "ySpacing": 1,
-                "xCount": nv, "yCount": 1,
-            }))
+            ops.append(
+                Op(
+                    "rarray",
+                    {
+                        "xSpacing": spacing,
+                        "ySpacing": 1,
+                        "xCount": nv,
+                        "yCount": 1,
+                    },
+                )
+            )
             ops.append(Op("rect", {"length": vsw, "width": vsl}))
             ops.append(Op("cutThruAll", {}))
 
         # Corner mounting holes
         ops.append(Op("workplane", {"selector": ">Z"}))
         pts = [
-            (round( l/2 - ins, 3), round( w/2 - ins, 3)),
-            (round( l/2 - ins, 3), round(-w/2 + ins, 3)),
-            (round(-l/2 + ins, 3), round( w/2 - ins, 3)),
-            (round(-l/2 + ins, 3), round(-w/2 + ins, 3)),
+            (round(l / 2 - ins, 3), round(w / 2 - ins, 3)),
+            (round(l / 2 - ins, 3), round(-w / 2 + ins, 3)),
+            (round(-l / 2 + ins, 3), round(w / 2 - ins, 3)),
+            (round(-l / 2 + ins, 3), round(-w / 2 + ins, 3)),
         ]
         ops.append(Op("pushPoints", {"points": pts}))
         ops.append(Op("hole", {"diameter": mhd}))
@@ -169,5 +179,10 @@ class ConnectorFaceplateFamily(BaseFamily):
             ops.append(Op("edges", {"selector": "|Z"}))
             ops.append(Op("fillet", {"radius": fr}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

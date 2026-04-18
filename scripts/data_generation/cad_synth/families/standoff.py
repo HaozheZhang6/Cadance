@@ -8,19 +8,20 @@ Hard:   + hex outer profile approximated as short hexagonal prism base
         — simplified to: cylinder + chamfer + knurled approx (stepped outer)
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class StandoffFamily(BaseFamily):
     """Parametric cylindrical standoff with through bore."""
 
     name = "standoff"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         """Sample params for a standoff."""
         outer_r = rng.uniform(3, 20)
-        height  = rng.uniform(5, 60)
+        height = rng.uniform(5, 60)
         # Inner bore: must leave wall thickness ≥ 1mm
         max_bore_r = outer_r - 1.0
         bore_r = rng.uniform(1.0, max(1.1, max_bore_r * 0.8))
@@ -112,6 +113,9 @@ class StandoffFamily(BaseFamily):
             ops.append(Op("chamfer", {"length": cl}))
 
         return Program(
-            family=self.name, difficulty=difficulty,
-            params=params, ops=ops, feature_tags=tags,
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
         )

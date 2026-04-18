@@ -12,8 +12,9 @@ Hard:   + lightening holes + chamfer
 """
 
 import math
-from .base import BaseFamily
+
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 from .spur_gear import _gear_pts
 
 
@@ -60,7 +61,7 @@ class HelicalGearFamily(BaseFamily):
         if difficulty == "medium":
             _add_web_recess = True
         elif difficulty == "hard":
-            _add_web_recess = bool(rng.integers(0, 2))   # 50/50
+            _add_web_recess = bool(rng.integers(0, 2))  # 50/50
 
         if _add_web_recess:
             web_cut_r = round(rng.uniform(r_p * 0.55, max(r_p * 0.56, r_p * 0.72)), 1)
@@ -136,8 +137,10 @@ class HelicalGearFamily(BaseFamily):
         twist_deg = round(math.degrees(fw * math.tan(math.radians(ha)) / r_p), 2)
 
         ops, tags = [], {
-            "has_hole": True, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": True,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
             "rotational": True,
         }
 
@@ -193,8 +196,10 @@ class HelicalGearFamily(BaseFamily):
             sides = ["<Z", ">Z"] if wcs == "double" else [wc_side]
             for side in sides:
                 ops.append(Op("workplane", {"selector": side}))
-                ops.append(Op("circle", {"radius": round(wcr, 3)}))       # outer boundary
-                ops.append(Op("circle", {"radius": hub_keep_r}))           # inner boundary (hub preserved)
+                ops.append(Op("circle", {"radius": round(wcr, 3)}))  # outer boundary
+                ops.append(
+                    Op("circle", {"radius": hub_keep_r})
+                )  # inner boundary (hub preserved)
                 ops.append(Op("cutBlind", {"depth": round(wrd, 3)}))
 
         # Keyway slot on all difficulties (cut from top face through bore + hub)
@@ -220,16 +225,29 @@ class HelicalGearFamily(BaseFamily):
                 ang = 2 * math.pi * i / n_l
                 hx = round(l_pcd * math.cos(ang), 3)
                 hy = round(l_pcd * math.sin(ang), 3)
-                ops.append(Op("cut", {"ops": [
-                    {"name": "transformed", "args": {
-                        "offset": [hx, hy, round(fw / 2, 3)],
-                        "rotate": [0, 0, 0],
-                    }},
-                    {"name": "cylinder", "args": {
-                        "height": round(fw * 2, 3),
-                        "radius": round(l_r, 3),
-                    }},
-                ]}))
+                ops.append(
+                    Op(
+                        "cut",
+                        {
+                            "ops": [
+                                {
+                                    "name": "transformed",
+                                    "args": {
+                                        "offset": [hx, hy, round(fw / 2, 3)],
+                                        "rotate": [0, 0, 0],
+                                    },
+                                },
+                                {
+                                    "name": "cylinder",
+                                    "args": {
+                                        "height": round(fw * 2, 3),
+                                        "radius": round(l_r, 3),
+                                    },
+                                },
+                            ]
+                        },
+                    )
+                )
 
         cl = params.get("chamfer_length")
         if cl:
@@ -237,5 +255,10 @@ class HelicalGearFamily(BaseFamily):
             ops.append(Op("edges", {"selector": ">Z"}))
             ops.append(Op("chamfer", {"length": cl}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

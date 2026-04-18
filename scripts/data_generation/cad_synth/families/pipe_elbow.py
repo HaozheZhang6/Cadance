@@ -12,8 +12,9 @@ Hard:   + bolt holes on both flanges
 """
 
 import math
-from .base import BaseFamily
+
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 # ASME B36.10M Schedule 40 — (NPS_label, OD_mm, wall_mm)
 # bend_radius_mm = 38.1 * NPS_inch (long-radius per B16.9)

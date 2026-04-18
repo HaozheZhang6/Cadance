@@ -6,13 +6,13 @@ Medium: + inlet flange lip.
 Hard:   + mounting holes on flange.
 """
 
-import math
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class NozzleFamily(BaseFamily):
     name = "nozzle"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         r_in = round(rng.uniform(12, 40), 1)  # inlet (large end) outer radius

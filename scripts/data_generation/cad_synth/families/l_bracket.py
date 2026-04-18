@@ -6,8 +6,8 @@ Bracket arms correspond to angle legs; depth = bracket extrusion length.
 Table: (leg_mm, thick_mm) from EN 10056-1 preferred sizes.
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 # EN 10056-1 equal-leg angle sections — (leg_mm, thick_mm)
 _EN10056_EQ = [

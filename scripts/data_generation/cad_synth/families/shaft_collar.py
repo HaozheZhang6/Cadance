@@ -6,8 +6,8 @@ Medium: mid bores M16–M50 — + chamfer rims + radial set screw hole
 Hard:   full range M6–M100 — + raised hub variant
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 # DIN 705 Form A shaft collar — (bore_d, od, width_b) mm
 _DIN705 = [

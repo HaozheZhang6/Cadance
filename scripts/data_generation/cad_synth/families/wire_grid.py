@@ -8,12 +8,13 @@ Medium: + chamfer on plate outer vertical edges.
 Hard:   + raised border frame around the grid perimeter.
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class WireGridFamily(BaseFamily):
     name = "wire_grid"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         wire_d = round(rng.uniform(2, 5), 1)

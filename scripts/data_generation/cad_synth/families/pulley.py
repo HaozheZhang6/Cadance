@@ -10,8 +10,9 @@ Belt section table: (section, groove_width_mm, groove_depth_mm, pd_min_mm)
 """
 
 import math
-from .base import BaseFamily
+
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 # ISO 4183 V-belt groove geometry — (section, groove_width_w, groove_depth_h, pd_min)
 _ISO4183_BELT = [

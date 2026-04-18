@@ -8,12 +8,13 @@ Medium: + mounting holes on flanges + edge chamfer
 Hard:   + ventilation slots on sides + corner gussets
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class SheetMetalTrayFamily(BaseFamily):
     name = "sheet_metal_tray"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         length = rng.uniform(40, 200)
@@ -34,7 +35,9 @@ class SheetMetalTrayFamily(BaseFamily):
             hole_d = rng.uniform(3.5, max(4.5, min(14, length * 0.08, width * 0.08)))
             params["n_mount_holes"] = n_holes
             params["mount_hole_diameter"] = round(hole_d, 1)
-            params["chamfer_length"] = round(rng.uniform(0.3, min(1.5, sheet_t * 0.4)), 1)
+            params["chamfer_length"] = round(
+                rng.uniform(0.3, min(1.5, sheet_t * 0.4)), 1
+            )
 
         if difficulty == "hard":
             n_slots = int(rng.choice([2, 3, 4]))
@@ -80,8 +83,10 @@ class SheetMetalTrayFamily(BaseFamily):
         t = params["sheet_thickness"]
 
         ops, tags = [], {
-            "has_hole": False, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": False,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
         }
 
         # Box — chamfer outer top edges BEFORE shell (clean 4-edge selection)
@@ -108,7 +113,7 @@ class SheetMetalTrayFamily(BaseFamily):
             x_inset = round(max(hd / 2 + t + 2, L * 0.12), 3)
             y_margin = round(max(t * 1.5, hd / 2 + t + 1.5), 3)
             y_front = round(-W / 2 + y_margin, 3)
-            y_back  = round( W / 2 - y_margin, 3)
+            y_back = round(W / 2 - y_margin, 3)
             if half_n == 1:
                 xs = [0.0]
             else:
@@ -130,14 +135,16 @@ class SheetMetalTrayFamily(BaseFamily):
         if n_s and sw and sh:
             tags["has_slot"] = True
             spacing = L / (n_s + 1)
-            slot_pts = [
-                (round(-L / 2 + spacing * (i + 1), 3), 0.0)
-                for i in range(n_s)
-            ]
+            slot_pts = [(round(-L / 2 + spacing * (i + 1), 3), 0.0) for i in range(n_s)]
             ops.append(Op("workplane", {"selector": ">Y"}))
             ops.append(Op("pushPoints", {"points": slot_pts}))
             ops.append(Op("rect", {"length": sw, "width": round(sh + sw, 3)}))
             ops.append(Op("cutThruAll", {}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

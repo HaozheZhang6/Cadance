@@ -9,10 +9,9 @@ Medium: + chamfer on large end
 Hard:   + threaded extraction hole on large end (blind, tapped)
 """
 
-import math
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 # ISO 2339 taper pin 1:50 — (d_nominal, l_min, l_max) mm
 _ISO2339 = [

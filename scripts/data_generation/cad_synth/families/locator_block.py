@@ -6,12 +6,13 @@ Medium: + pin holes (sides) + chamfer
 Hard:   + threaded boss pocket + fillet
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class LocatorBlockFamily(BaseFamily):
     name = "locator_block"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         length = rng.uniform(40, 150)
@@ -22,6 +23,7 @@ class LocatorBlockFamily(BaseFamily):
         v_depth = rng.uniform(height * 0.2, height * 0.5)
         v_angle_deg = rng.uniform(30, 60)  # half-angle
         import math
+
         v_width_top = 2 * v_depth * math.tan(math.radians(v_angle_deg))
 
         inset = rng.uniform(6, max(7, min(20, length / 6, width / 5)))
@@ -41,7 +43,9 @@ class LocatorBlockFamily(BaseFamily):
         if difficulty in ("medium", "hard"):
             pin_d = rng.uniform(3.0, min(8.0, width * 0.12))
             params["pin_diameter"] = round(pin_d, 1)
-            params["pin_depth"] = round(rng.uniform(pin_d * 1.5, min(20.0, width * 0.35)), 1)
+            params["pin_depth"] = round(
+                rng.uniform(pin_d * 1.5, min(20.0, width * 0.35)), 1
+            )
             params["chamfer_length"] = round(rng.uniform(0.5, min(2.0, height / 12)), 1)
 
         if difficulty == "hard":
@@ -92,8 +96,10 @@ class LocatorBlockFamily(BaseFamily):
         hd = params["mount_hole_diameter"]
 
         ops, tags = [], {
-            "has_hole": True, "has_slot": True,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": True,
+            "has_slot": True,
+            "has_fillet": False,
+            "has_chamfer": False,
         }
 
         # Base block
@@ -116,10 +122,10 @@ class LocatorBlockFamily(BaseFamily):
         # Mounting holes (bottom face)
         ops.append(Op("workplane", {"selector": "<Z"}))
         pts = [
-            (round( l/2 - ins, 3), round( w/2 - ins, 3)),
-            (round(-l/2 + ins, 3), round( w/2 - ins, 3)),
-            (round( l/2 - ins, 3), round(-w/2 + ins, 3)),
-            (round(-l/2 + ins, 3), round(-w/2 + ins, 3)),
+            (round(l / 2 - ins, 3), round(w / 2 - ins, 3)),
+            (round(-l / 2 + ins, 3), round(w / 2 - ins, 3)),
+            (round(l / 2 - ins, 3), round(-w / 2 + ins, 3)),
+            (round(-l / 2 + ins, 3), round(-w / 2 + ins, 3)),
         ]
         ops.append(Op("pushPoints", {"points": pts}))
         ops.append(Op("hole", {"diameter": hd}))
@@ -130,10 +136,17 @@ class LocatorBlockFamily(BaseFamily):
         if pin_d and pin_depth:
             # pin from >Y face, centered in Z
             ops.append(Op("workplane", {"selector": ">Y"}))
-            ops.append(Op("pushPoints", {"points": [
-                (round( l/4, 3), round(h/2 - ins, 3)),
-                (round(-l/4, 3), round(h/2 - ins, 3)),
-            ]}))
+            ops.append(
+                Op(
+                    "pushPoints",
+                    {
+                        "points": [
+                            (round(l / 4, 3), round(h / 2 - ins, 3)),
+                            (round(-l / 4, 3), round(h / 2 - ins, 3)),
+                        ]
+                    },
+                )
+            )
             ops.append(Op("hole", {"diameter": pin_d, "depth": pin_depth}))
 
         # Boss pocket (hard)
@@ -154,5 +167,10 @@ class LocatorBlockFamily(BaseFamily):
             ops.append(Op("edges", {"selector": "|Z"}))
             ops.append(Op("fillet", {"radius": fr}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

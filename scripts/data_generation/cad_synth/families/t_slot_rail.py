@@ -8,8 +8,8 @@ Medium: + 2 slots (4-way) + mounting holes on ends
 Hard:   + 4-way slot + lightening pockets
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class TSlotRailFamily(BaseFamily):

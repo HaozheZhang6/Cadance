@@ -5,16 +5,16 @@ Medium: round holes + chamfer on plate edges
 Hard:   rectangular slots + chamfer
 """
 
-import math
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class VentedPanelFamily(BaseFamily):
     """Parametric vented panel: flat plate with regular hole/slot array."""
 
     name = "vented_panel"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         """Sample params for a vented panel at given difficulty."""
@@ -45,12 +45,15 @@ class VentedPanelFamily(BaseFamily):
             hole_d = rng.uniform(3.0, max(3.5, max_hole_d * 0.7))
             spacing_x = (length - 2 * margin) / max(1, nx - 1) if nx > 1 else length
             spacing_y = (width - 2 * margin) / max(1, ny - 1) if ny > 1 else width
-            params.update({
-                "hole_diameter": round(hole_d, 1),
-                "nx": nx, "ny": ny,
-                "spacing_x": round(spacing_x, 2),
-                "spacing_y": round(spacing_y, 2),
-            })
+            params.update(
+                {
+                    "hole_diameter": round(hole_d, 1),
+                    "nx": nx,
+                    "ny": ny,
+                    "spacing_x": round(spacing_x, 2),
+                    "spacing_y": round(spacing_y, 2),
+                }
+            )
 
         elif difficulty == "medium":
             # Round holes + plate edge chamfer
@@ -65,13 +68,16 @@ class VentedPanelFamily(BaseFamily):
             spacing_x = (length - 2 * margin) / max(1, nx - 1) if nx > 1 else length
             spacing_y = (width - 2 * margin) / max(1, ny - 1) if ny > 1 else width
             chamfer = rng.uniform(0.5, min(2.0, thickness / 3))
-            params.update({
-                "hole_diameter": round(hole_d, 1),
-                "nx": nx, "ny": ny,
-                "spacing_x": round(spacing_x, 2),
-                "spacing_y": round(spacing_y, 2),
-                "chamfer_length": round(chamfer, 1),
-            })
+            params.update(
+                {
+                    "hole_diameter": round(hole_d, 1),
+                    "nx": nx,
+                    "ny": ny,
+                    "spacing_x": round(spacing_x, 2),
+                    "spacing_y": round(spacing_y, 2),
+                    "chamfer_length": round(chamfer, 1),
+                }
+            )
 
         else:  # hard — rectangular slots
             nx = int(rng.choice([3, 4, 5]))
@@ -81,14 +87,17 @@ class VentedPanelFamily(BaseFamily):
             spacing_x = (length - 2 * margin) / max(1, nx - 1) if nx > 1 else length
             spacing_y = (width - 2 * margin) / max(1, ny - 1) if ny > 1 else width
             chamfer = rng.uniform(0.5, min(2.0, thickness / 3))
-            params.update({
-                "slot_width": round(slot_w, 1),
-                "slot_height": round(slot_h, 1),
-                "nx": nx, "ny": ny,
-                "spacing_x": round(spacing_x, 2),
-                "spacing_y": round(spacing_y, 2),
-                "chamfer_length": round(chamfer, 1),
-            })
+            params.update(
+                {
+                    "slot_width": round(slot_w, 1),
+                    "slot_height": round(slot_h, 1),
+                    "nx": nx,
+                    "ny": ny,
+                    "spacing_x": round(spacing_x, 2),
+                    "spacing_y": round(spacing_y, 2),
+                    "chamfer_length": round(chamfer, 1),
+                }
+            )
 
         return params
 
@@ -178,12 +187,17 @@ class VentedPanelFamily(BaseFamily):
         sl_w = params.get("slot_width")
         sl_h = params.get("slot_height")
 
-        ops.append(Op("rarray", {
-            "xSpacing": sx if nx > 1 else 1,
-            "ySpacing": sy if ny > 1 else 1,
-            "xCount": nx,
-            "yCount": ny,
-        }))
+        ops.append(
+            Op(
+                "rarray",
+                {
+                    "xSpacing": sx if nx > 1 else 1,
+                    "ySpacing": sy if ny > 1 else 1,
+                    "xCount": nx,
+                    "yCount": ny,
+                },
+            )
+        )
 
         if hd is not None:
             # Round holes

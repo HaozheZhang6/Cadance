@@ -8,8 +8,8 @@ Medium: + holes on web arm.
 Hard:   + fillet at inner corner + extra hole row.
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 # EN 10056-1 equal-leg angle sections — (leg_mm, thick_mm)
 _EN10056 = [

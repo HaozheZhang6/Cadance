@@ -6,14 +6,15 @@ Medium: 3 sections + chamfer on tip
 Hard:   4 sections + chamfer + through center bore (making it a stepped bushing)
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class SteppedShaftFamily(BaseFamily):
     """Parametric stepped shaft: stacked coaxial cylinders."""
 
     name = "stepped_shaft"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         """Sample params for a stepped shaft."""
@@ -26,8 +27,10 @@ class SteppedShaftFamily(BaseFamily):
         h2 = rng.uniform(10, 60)
 
         params = {
-            "r1": round(r1, 1), "h1": round(h1, 1),
-            "r2": round(r2, 1), "h2": round(h2, 1),
+            "r1": round(r1, 1),
+            "h1": round(h1, 1),
+            "r2": round(r2, 1),
+            "h2": round(h2, 1),
             "difficulty": difficulty,
         }
 
@@ -123,6 +126,9 @@ class SteppedShaftFamily(BaseFamily):
             ops.append(Op("hole", {"diameter": bd}))
 
         return Program(
-            family=self.name, difficulty=difficulty,
-            params=params, ops=ops, feature_tags=tags,
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
         )

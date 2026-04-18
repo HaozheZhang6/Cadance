@@ -13,27 +13,31 @@ Difficulty controls blade geometry:
 """
 
 import math
-from .base import BaseFamily
+
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class ImpellerFamily(BaseFamily):
     name = "impeller"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        outer_r        = round(rng.uniform(25, 65), 1)   # outer (rim) radius [mm]
-        hub_r          = round(rng.uniform(outer_r * 0.15, outer_r * 0.30), 1)
-        hub_h          = round(rng.uniform(outer_r * 0.35, outer_r * 0.65), 1)
-        back_t         = round(rng.uniform(outer_r * 0.05, outer_r * 0.12), 1)
-        blade_h        = round(rng.uniform(outer_r * 0.25, outer_r * 0.55), 1)
-        blade_t        = round(rng.uniform(outer_r * 0.04, outer_r * 0.10), 1)
-        blade_span     = round(rng.uniform(outer_r * 0.45, outer_r * 0.75), 1)
-        n_blades       = int(rng.choice([6, 7, 8, 10] if difficulty != "easy" else [5, 6, 7]))
-        bore_d         = round(rng.uniform(hub_r * 0.5, max(hub_r * 0.51, hub_r * 0.85)), 1)
-        front_ring_t   = round(rng.uniform(outer_r * 0.03, outer_r * 0.07), 1)
+        outer_r = round(rng.uniform(25, 65), 1)  # outer (rim) radius [mm]
+        hub_r = round(rng.uniform(outer_r * 0.15, outer_r * 0.30), 1)
+        hub_h = round(rng.uniform(outer_r * 0.35, outer_r * 0.65), 1)
+        back_t = round(rng.uniform(outer_r * 0.05, outer_r * 0.12), 1)
+        blade_h = round(rng.uniform(outer_r * 0.25, outer_r * 0.55), 1)
+        blade_t = round(rng.uniform(outer_r * 0.04, outer_r * 0.10), 1)
+        blade_span = round(rng.uniform(outer_r * 0.45, outer_r * 0.75), 1)
+        n_blades = int(rng.choice([6, 7, 8, 10] if difficulty != "easy" else [5, 6, 7]))
+        bore_d = round(rng.uniform(hub_r * 0.5, max(hub_r * 0.51, hub_r * 0.85)), 1)
+        front_ring_t = round(rng.uniform(outer_r * 0.03, outer_r * 0.07), 1)
         # ring inner radius must be INSIDE blade outer extent so blades connect to ring
-        blade_outer    = hub_r + blade_span * 0.9
-        front_ring_ir  = round(blade_outer - rng.uniform(1.0, max(1.1, outer_r * 0.05)), 1)
+        blade_outer = hub_r + blade_span * 0.9
+        front_ring_ir = round(
+            blade_outer - rng.uniform(1.0, max(1.1, outer_r * 0.05)), 1
+        )
 
         # backward sweep angle [degrees]: 0=radial, negative=backward sweep
         if difficulty == "easy":
@@ -44,19 +48,19 @@ class ImpellerFamily(BaseFamily):
             sweep_deg = round(rng.uniform(-40, -15), 1)
 
         params = {
-            "outer_radius":      outer_r,
-            "hub_radius":        hub_r,
-            "hub_height":        hub_h,
+            "outer_radius": outer_r,
+            "hub_radius": hub_r,
+            "hub_height": hub_h,
             "back_plate_thickness": back_t,
-            "blade_height":      blade_h,
-            "blade_thickness":   blade_t,
-            "blade_span":        blade_span,
-            "n_blades":          n_blades,
-            "sweep_angle":       sweep_deg,
-            "bore_diameter":     bore_d,
+            "blade_height": blade_h,
+            "blade_thickness": blade_t,
+            "blade_span": blade_span,
+            "n_blades": n_blades,
+            "sweep_angle": sweep_deg,
+            "bore_diameter": bore_d,
             "front_ring_thickness": front_ring_t,
             "front_ring_inner_radius": front_ring_ir,
-            "difficulty":        difficulty,
+            "difficulty": difficulty,
         }
 
         # Center recess pocket (hard) — small annular groove inside the hub boss
@@ -68,13 +72,13 @@ class ImpellerFamily(BaseFamily):
         return params
 
     def validate_params(self, params: dict) -> bool:
-        or_  = params["outer_radius"]
-        hr   = params["hub_radius"]
-        bh   = params["blade_height"]
-        bt   = params["blade_thickness"]
-        bs   = params["blade_span"]
-        bd   = params["bore_diameter"]
-        n    = params["n_blades"]
+        or_ = params["outer_radius"]
+        hr = params["hub_radius"]
+        bh = params["blade_height"]
+        bt = params["blade_thickness"]
+        bs = params["blade_span"]
+        bd = params["bore_diameter"]
+        n = params["n_blades"]
         frir = params["front_ring_inner_radius"]
 
         if hr >= or_ * 0.4 or bd >= hr * 0.9:
@@ -99,41 +103,66 @@ class ImpellerFamily(BaseFamily):
         return True
 
     def make_program(self, params: dict) -> Program:
-        difficulty  = params.get("difficulty", "easy")
-        or_         = params["outer_radius"]
-        hub_r       = params["hub_radius"]
-        hub_h       = params["hub_height"]
-        back_t      = params["back_plate_thickness"]
-        blade_h     = params["blade_height"]
-        blade_t     = params["blade_thickness"]
-        blade_span  = params["blade_span"]
-        n           = params["n_blades"]
-        sweep       = params["sweep_angle"]
-        bore_d      = params["bore_diameter"]
-        ring_t      = params["front_ring_thickness"]
-        ring_ir     = params["front_ring_inner_radius"]
+        difficulty = params.get("difficulty", "easy")
+        or_ = params["outer_radius"]
+        hub_r = params["hub_radius"]
+        hub_h = params["hub_height"]
+        back_t = params["back_plate_thickness"]
+        blade_h = params["blade_height"]
+        blade_t = params["blade_thickness"]
+        blade_span = params["blade_span"]
+        n = params["n_blades"]
+        sweep = params["sweep_angle"]
+        bore_d = params["bore_diameter"]
+        ring_t = params["front_ring_thickness"]
+        ring_ir = params["front_ring_inner_radius"]
 
         ops, tags = [], {
-            "has_hole": True, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
-            "rotational": True, "pattern_like": True,
+            "has_hole": True,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
+            "rotational": True,
+            "pattern_like": True,
         }
 
         # -------------------------------------------------------
         # 1. Back plate — full disc (z = -back_t/2 .. +back_t/2, centered at z=0)
         # -------------------------------------------------------
-        ops.append(Op("cylinder", {"height": round(back_t, 3), "radius": round(or_, 3)}))
+        ops.append(
+            Op("cylinder", {"height": round(back_t, 3), "radius": round(or_, 3)})
+        )
 
         # -------------------------------------------------------
         # 2. Hub — cylinder on top of back plate (0.5mm overlap to avoid co-planar)
         # -------------------------------------------------------
-        ops.append(Op("union", {"ops": [
-            {"name": "transformed", "args": {
-                "offset": [0, 0, round(back_t / 2 + hub_h / 2 - 0.5, 3)],
-                "rotate": [0, 0, 0],
-            }},
-            {"name": "cylinder", "args": {"height": round(hub_h, 3), "radius": round(hub_r, 3)}},
-        ]}))
+        ops.append(
+            Op(
+                "union",
+                {
+                    "ops": [
+                        {
+                            "name": "transformed",
+                            "args": {
+                                "offset": [
+                                    0,
+                                    0,
+                                    round(back_t / 2 + hub_h / 2 - 0.5, 3),
+                                ],
+                                "rotate": [0, 0, 0],
+                            },
+                        },
+                        {
+                            "name": "cylinder",
+                            "args": {
+                                "height": round(hub_h, 3),
+                                "radius": round(hub_r, 3),
+                            },
+                        },
+                    ]
+                },
+            )
+        )
 
         # -------------------------------------------------------
         # 3. N swept blades
@@ -146,9 +175,9 @@ class ImpellerFamily(BaseFamily):
         # -------------------------------------------------------
         blade_pts = [
             (round(-blade_span * 0.42, 3), round(-blade_t * 0.60, 3)),
-            (round(-blade_span * 0.18, 3), round( blade_t * 0.55, 3)),
-            (round( blade_span * 0.48, 3), round( blade_t * 0.42, 3)),
-            (round( blade_span * 0.24, 3), round(-blade_t * 0.75, 3)),
+            (round(-blade_span * 0.18, 3), round(blade_t * 0.55, 3)),
+            (round(blade_span * 0.48, 3), round(blade_t * 0.42, 3)),
+            (round(blade_span * 0.24, 3), round(-blade_t * 0.75, 3)),
         ]
         # blade base z: 0.5mm inside back_plate for volumetric overlap
         blade_z = round(back_t / 2 - 0.5, 3)
@@ -156,22 +185,38 @@ class ImpellerFamily(BaseFamily):
         cx = round(hub_r + blade_span * 0.42 - 0.5, 3)
 
         for i in range(n):
-            azimuth = round(360.0 * i / n, 3)    # blade rotation around Z axis
-            ops.append(Op("union", {"ops": [
-                # Step 1: rotate workplane to blade's azimuthal position
-                {"name": "transformed", "args": {
-                    "offset": [0, 0, 0],
-                    "rotate": [0, 0, azimuth],
-                }},
-                # Step 2: move to blade centre radially + apply backward sweep in local frame
-                {"name": "transformed", "args": {
-                    "offset": [cx, 0, blade_z],
-                    "rotate": [0, 0, round(sweep, 3)],
-                }},
-                {"name": "polyline", "args": {"points": blade_pts}},
-                {"name": "close", "args": {}},
-                {"name": "extrude", "args": {"distance": round(blade_h, 3)}},
-            ]}))
+            azimuth = round(360.0 * i / n, 3)  # blade rotation around Z axis
+            ops.append(
+                Op(
+                    "union",
+                    {
+                        "ops": [
+                            # Step 1: rotate workplane to blade's azimuthal position
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": [0, 0, 0],
+                                    "rotate": [0, 0, azimuth],
+                                },
+                            },
+                            # Step 2: move to blade centre radially + apply backward sweep in local frame
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": [cx, 0, blade_z],
+                                    "rotate": [0, 0, round(sweep, 3)],
+                                },
+                            },
+                            {"name": "polyline", "args": {"points": blade_pts}},
+                            {"name": "close", "args": {}},
+                            {
+                                "name": "extrude",
+                                "args": {"distance": round(blade_h, 3)},
+                            },
+                        ]
+                    },
+                )
+            )
 
         # -------------------------------------------------------
         # 4. Front retaining ring — ANNULAR disc (ring_ir to or_) at blade tip z.
@@ -181,15 +226,25 @@ class ImpellerFamily(BaseFamily):
         z_overlap = round(min(2.0, ring_t * 0.4), 3)
         ring_z = round(blade_z + blade_h + ring_t / 2 - z_overlap, 3)
         ring_bottom = round(ring_z - ring_t / 2, 3)
-        ops.append(Op("union", {"ops": [
-            {"name": "transformed", "args": {
-                "offset": [0, 0, ring_bottom],
-                "rotate": [0, 0, 0],
-            }},
-            {"name": "circle", "args": {"radius": round(or_, 3)}},
-            {"name": "circle", "args": {"radius": round(ring_ir, 3)}},
-            {"name": "extrude", "args": {"distance": round(ring_t, 3)}},
-        ]}))
+        ops.append(
+            Op(
+                "union",
+                {
+                    "ops": [
+                        {
+                            "name": "transformed",
+                            "args": {
+                                "offset": [0, 0, ring_bottom],
+                                "rotate": [0, 0, 0],
+                            },
+                        },
+                        {"name": "circle", "args": {"radius": round(or_, 3)}},
+                        {"name": "circle", "args": {"radius": round(ring_ir, 3)}},
+                        {"name": "extrude", "args": {"distance": round(ring_t, 3)}},
+                    ]
+                },
+            )
+        )
 
         # -------------------------------------------------------
         # 5. Central bore (all difficulties)
@@ -207,5 +262,10 @@ class ImpellerFamily(BaseFamily):
             ops.append(Op("circle", {"radius": round(cr, 3)}))
             ops.append(Op("cutBlind", {"depth": round(cd, 3)}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

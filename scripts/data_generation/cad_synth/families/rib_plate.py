@@ -8,23 +8,26 @@ Medium: + mounting corner holes
 Hard:   + lightening holes in rib webs + fillet
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class RibPlateFamily(BaseFamily):
     name = "rib_plate"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         length = rng.uniform(60, 200)
         width = rng.uniform(40, 150)
-        base_t = rng.uniform(2, 6)        # thin base plate thickness
-        rib_h = rng.uniform(8, 35)         # rib height (above base)
+        base_t = rng.uniform(2, 6)  # thin base plate thickness
+        rib_h = rng.uniform(8, 35)  # rib height (above base)
         rib_t = rng.uniform(2, min(6, base_t * 2))  # rib thickness
-        n_ribs = int(rng.choice([2, 3, 4]))          # ribs along length
+        n_ribs = int(rng.choice([2, 3, 4]))  # ribs along length
 
         # rib spacing (center-to-center)
-        rib_spacing = (length - 2 * rib_t) / max(1, n_ribs - 1) if n_ribs > 1 else length / 2
+        rib_spacing = (
+            (length - 2 * rib_t) / max(1, n_ribs - 1) if n_ribs > 1 else length / 2
+        )
 
         params = {
             "length": round(length, 1),
@@ -40,7 +43,9 @@ class RibPlateFamily(BaseFamily):
         if difficulty in ("medium", "hard"):
             inset = rng.uniform(6, max(7, min(20, length / 8, width / 8)))
             params["mount_inset"] = round(inset, 1)
-            params["mount_hole_diameter"] = round(rng.uniform(3.0, min(6.0, inset * 0.5)), 1)
+            params["mount_hole_diameter"] = round(
+                rng.uniform(3.0, min(6.0, inset * 0.5)), 1
+            )
 
         if difficulty == "hard":
             # Lightening holes in rib web
@@ -79,9 +84,12 @@ class RibPlateFamily(BaseFamily):
         rs = params["rib_spacing"]
 
         ops, tags = [], {
-            "has_hole": False, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
-            "thin_wall": True, "has_rib": True,
+            "has_hole": False,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
+            "thin_wall": True,
+            "has_rib": True,
         }
 
         # Base plate
@@ -89,12 +97,17 @@ class RibPlateFamily(BaseFamily):
 
         # Longitudinal ribs on top face
         ops.append(Op("workplane", {"selector": ">Z"}))
-        ops.append(Op("rarray", {
-            "xSpacing": rs if n > 1 else 1,
-            "ySpacing": 1,
-            "xCount": n,
-            "yCount": 1,
-        }))
+        ops.append(
+            Op(
+                "rarray",
+                {
+                    "xSpacing": rs if n > 1 else 1,
+                    "ySpacing": 1,
+                    "xCount": n,
+                    "yCount": 1,
+                },
+            )
+        )
         ops.append(Op("rect", {"length": rt, "width": w - 2}))
         ops.append(Op("extrude", {"distance": rh}))
 
@@ -113,10 +126,10 @@ class RibPlateFamily(BaseFamily):
             tags["has_hole"] = True
             ops.append(Op("workplane", {"selector": ">Z"}))
             pts = [
-                (round( l/2 - ins, 3), round( w/2 - ins, 3)),
-                (round( l/2 - ins, 3), round(-w/2 + ins, 3)),
-                (round(-l/2 + ins, 3), round( w/2 - ins, 3)),
-                (round(-l/2 + ins, 3), round(-w/2 + ins, 3)),
+                (round(l / 2 - ins, 3), round(w / 2 - ins, 3)),
+                (round(l / 2 - ins, 3), round(-w / 2 + ins, 3)),
+                (round(-l / 2 + ins, 3), round(w / 2 - ins, 3)),
+                (round(-l / 2 + ins, 3), round(-w / 2 + ins, 3)),
             ]
             ops.append(Op("pushPoints", {"points": pts}))
             ops.append(Op("hole", {"diameter": mhd}))
@@ -135,5 +148,10 @@ class RibPlateFamily(BaseFamily):
             ops.append(Op("pushPoints", {"points": lh_pts}))
             ops.append(Op("hole", {"diameter": lhd}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

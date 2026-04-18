@@ -6,12 +6,13 @@ Medium: + boss (raised hub) + chamfer
 Hard:   + ventilation holes + fillet
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class MotorEndCapFamily(BaseFamily):
     name = "motor_end_cap"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         od = rng.uniform(60, 200)
@@ -19,7 +20,9 @@ class MotorEndCapFamily(BaseFamily):
         shaft_d = rng.uniform(od * 0.12, od * 0.30)
         n_bolts = int(rng.choice([4, 6, 8]))
         bolt_pcd = rng.uniform(shaft_d / 2 + 6, od / 2 - 6)
-        bolt_d = rng.uniform(3.0, max(3.1, min(8.0, (bolt_pcd * 2 * 3.14159 / n_bolts) * 0.28)))
+        bolt_d = rng.uniform(
+            3.0, max(3.1, min(8.0, (bolt_pcd * 2 * 3.14159 / n_bolts) * 0.28))
+        )
 
         params = {
             "outer_diameter": round(od, 1),
@@ -106,9 +109,12 @@ class MotorEndCapFamily(BaseFamily):
         bolt_d = params["bolt_diameter"]
 
         ops, tags = [], {
-            "has_hole": True, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
-            "rotational": True, "pattern_like": True,
+            "has_hole": True,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
+            "rotational": True,
+            "pattern_like": True,
         }
 
         # Base disc
@@ -146,17 +152,38 @@ class MotorEndCapFamily(BaseFamily):
         vn = params.get("vent_count")
         if vr and vpcd and vn:
             ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("polarArray", {
-                "radius": vpcd, "startAngle": 0, "angle": 360, "count": vn,
-            }))
+            ops.append(
+                Op(
+                    "polarArray",
+                    {
+                        "radius": vpcd,
+                        "startAngle": 0,
+                        "angle": 360,
+                        "count": vn,
+                    },
+                )
+            )
             ops.append(Op("hole", {"diameter": vr * 2}))
 
         # Bolt circle
         ops.append(Op("workplane", {"selector": ">Z"}))
-        ops.append(Op("polarArray", {
-            "radius": bpr, "startAngle": 0, "angle": 360, "count": n,
-        }))
+        ops.append(
+            Op(
+                "polarArray",
+                {
+                    "radius": bpr,
+                    "startAngle": 0,
+                    "angle": 360,
+                    "count": n,
+                },
+            )
+        )
         ops.append(Op("hole", {"diameter": bolt_d}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

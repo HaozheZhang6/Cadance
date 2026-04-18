@@ -8,13 +8,13 @@ Medium: + second arm at opposite end (Z-shape) + mounting holes
 Hard:   + gusset rib + extra offset arm + chamfer
 """
 
-import math
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class ZBracketFamily(BaseFamily):
     name = "z_bracket"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         base_l = rng.uniform(40, 120)
@@ -78,8 +78,10 @@ class ZBracketFamily(BaseFamily):
         at = params["arm_thickness"]
 
         ops, tags = [], {
-            "has_hole": False, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": False,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
         }
 
         # Base plate
@@ -96,18 +98,31 @@ class ZBracketFamily(BaseFamily):
         # Position: at x = +bl/2 edge, extends in +Z
         arm1_x = round(bl / 2 - at / 2, 3)
         arm1_z = round(bt / 2 + ah / 2 - 0.5, 3)
-        ops.append(Op("union", {"ops": [
-            {"name": "transformed", "args": {
-                "offset": [arm1_x, 0, arm1_z],
-                "rotate": [0, 0, 0],
-            }},
-            {"name": "box", "args": {
-                "length": at,
-                "width": bw,
-                "height": ah,
-                "centered": True,
-            }},
-        ]}))
+        ops.append(
+            Op(
+                "union",
+                {
+                    "ops": [
+                        {
+                            "name": "transformed",
+                            "args": {
+                                "offset": [arm1_x, 0, arm1_z],
+                                "rotate": [0, 0, 0],
+                            },
+                        },
+                        {
+                            "name": "box",
+                            "args": {
+                                "length": at,
+                                "width": bw,
+                                "height": ah,
+                                "centered": True,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
 
         # Mounting holes on base plate (medium+)
         n_mh = params.get("n_base_holes")
@@ -130,18 +145,36 @@ class ZBracketFamily(BaseFamily):
         if a2o is not None:
             arm2_x = round(-bl / 2 + at / 2 + a2o, 3)
             arm2_z = round(bt / 2 + ah / 2 - 0.5, 3)
-            ops.append(Op("union", {"ops": [
-                {"name": "transformed", "args": {
-                    "offset": [arm2_x, 0, arm2_z],
-                    "rotate": [0, 0, 0],
-                }},
-                {"name": "box", "args": {
-                    "length": at,
-                    "width": bw,
-                    "height": ah,
-                    "centered": True,
-                }},
-            ]}))
+            ops.append(
+                Op(
+                    "union",
+                    {
+                        "ops": [
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": [arm2_x, 0, arm2_z],
+                                    "rotate": [0, 0, 0],
+                                },
+                            },
+                            {
+                                "name": "box",
+                                "args": {
+                                    "length": at,
+                                    "width": bw,
+                                    "height": ah,
+                                    "centered": True,
+                                },
+                            },
+                        ]
+                    },
+                )
+            )
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

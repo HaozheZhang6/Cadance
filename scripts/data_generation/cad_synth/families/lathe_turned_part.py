@@ -8,19 +8,20 @@ Medium: + neck groove + taper transition
 Hard:   + bore + undercut relief groove
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class LatheTurnedPartFamily(BaseFamily):
     name = "lathe_turned_part"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         # Main body: large-diameter section
-        d1 = rng.uniform(20, 80)    # large OD
-        h1 = rng.uniform(10, 40)    # length of large section
-        d2 = rng.uniform(d1 * 0.4, d1 * 0.75)   # small-end OD
-        h2 = rng.uniform(10, 35)    # length of small section
+        d1 = rng.uniform(20, 80)  # large OD
+        h1 = rng.uniform(10, 40)  # length of large section
+        d2 = rng.uniform(d1 * 0.4, d1 * 0.75)  # small-end OD
+        h2 = rng.uniform(10, 35)  # length of small section
 
         params = {
             "d1": round(d1, 1),
@@ -39,7 +40,9 @@ class LatheTurnedPartFamily(BaseFamily):
             # Taper section (frustum) between d1 and d2
             params["has_taper"] = True
             params["taper_length"] = round(rng.uniform(3, min(15, h1 * 0.4)), 1)
-            params["chamfer_length"] = round(rng.uniform(0.5, max(0.6, min(2.0, d2 * 0.05))), 1)
+            params["chamfer_length"] = round(
+                rng.uniform(0.5, max(0.6, min(2.0, d2 * 0.05))), 1
+            )
 
         if difficulty == "hard":
             # Center bore through entire part
@@ -48,7 +51,9 @@ class LatheTurnedPartFamily(BaseFamily):
             # Undercut relief groove near shoulder
             params["undercut_width"] = round(rng.uniform(1.5, min(5.0, gw * 1.5)), 1)
             params["undercut_depth"] = round(rng.uniform(0.5, min(2.5, gd)), 1)
-            params["fillet_radius"] = round(rng.uniform(0.5, max(0.6, min(2.0, d2 * 0.06))), 1)
+            params["fillet_radius"] = round(
+                rng.uniform(0.5, max(0.6, min(2.0, d2 * 0.06))), 1
+            )
 
         return params
 
@@ -82,9 +87,12 @@ class LatheTurnedPartFamily(BaseFamily):
         d2, h2 = params["d2"], params["h2"]
 
         ops, tags = [], {
-            "has_hole": False, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
-            "rotational": True, "multi_stage": True,
+            "has_hole": False,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
+            "rotational": True,
+            "multi_stage": True,
         }
 
         # Build a polyline cross-section profile then revolve around Y axis.
@@ -105,7 +113,7 @@ class LatheTurnedPartFamily(BaseFamily):
 
         if has_taper and tl:
             # explicit taper: large → small over taper_length (no extra TRANS step)
-            y_shoulder = round(y1 + tl, 3)   # where r2 is first reached
+            y_shoulder = round(y1 + tl, 3)  # where r2 is first reached
             y_top = round(y_shoulder + h2, 3)
         else:
             # 2mm angled transition: r1→y1, then diagonal to r2 at y1+TRANS
@@ -115,34 +123,39 @@ class LatheTurnedPartFamily(BaseFamily):
         # Groove position: centred at shoulder where r2 begins
         if gw and gd:
             gy_start = round(y_shoulder - gw / 2, 3)
-            gy_end   = round(y_shoulder + gw / 2, 3)
+            gy_end = round(y_shoulder + gw / 2, 3)
             r_groove = round(r2 - gd, 3)
 
         # Build profile via lineTo then revolve
         ops.append(Op("moveTo", {"x": 0.0, "y": y0}))
-        ops.append(Op("lineTo", {"x": r1,  "y": y0}))          # bottom face
-        ops.append(Op("lineTo", {"x": r1,  "y": y1}))          # outer large wall
+        ops.append(Op("lineTo", {"x": r1, "y": y0}))  # bottom face
+        ops.append(Op("lineTo", {"x": r1, "y": y1}))  # outer large wall
         # Transition: taper (medium+) or 2mm diagonal step (easy) → r2 at y_shoulder
         ops.append(Op("lineTo", {"x": r2, "y": y_shoulder}))
 
         if gw and gd:
             # groove at shoulder
-            ops.append(Op("lineTo", {"x": r2,      "y": gy_start}))
+            ops.append(Op("lineTo", {"x": r2, "y": gy_start}))
             ops.append(Op("lineTo", {"x": r_groove, "y": gy_start}))
             ops.append(Op("lineTo", {"x": r_groove, "y": gy_end}))
-            ops.append(Op("lineTo", {"x": r2,       "y": gy_end}))
-            ops.append(Op("lineTo", {"x": r2, "y": y_top}))    # small OD wall
+            ops.append(Op("lineTo", {"x": r2, "y": gy_end}))
+            ops.append(Op("lineTo", {"x": r2, "y": y_top}))  # small OD wall
             tags["has_slot"] = True
         else:
-            ops.append(Op("lineTo", {"x": r2, "y": y_top}))    # small OD wall
+            ops.append(Op("lineTo", {"x": r2, "y": y_top}))  # small OD wall
 
-        ops.append(Op("lineTo", {"x": 0.0, "y": y_top}))       # top face (to axis)
+        ops.append(Op("lineTo", {"x": 0.0, "y": y_top}))  # top face (to axis)
         ops.append(Op("close", {}))
-        ops.append(Op("revolve", {
-            "angleDeg": 360,
-            "axisStart": [0, 0, 0],
-            "axisEnd": [0, 1, 0],
-        }))
+        ops.append(
+            Op(
+                "revolve",
+                {
+                    "angleDeg": 360,
+                    "axisStart": [0, 0, 0],
+                    "axisEnd": [0, 1, 0],
+                },
+            )
+        )
 
         # Chamfer top edge (medium+) — before bore to avoid multi-circle selection
         cl = params.get("chamfer_length")
@@ -165,5 +178,10 @@ class LatheTurnedPartFamily(BaseFamily):
             ops.append(Op("workplane", {"selector": "<Y"}))
             ops.append(Op("hole", {"diameter": bd}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

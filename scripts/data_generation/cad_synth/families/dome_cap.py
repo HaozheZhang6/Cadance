@@ -15,6 +15,7 @@ from .base import BaseFamily
 
 class DomeCapFamily(BaseFamily):
     name = "dome_cap"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         r = round(rng.uniform(20, 70), 1)
@@ -34,7 +35,9 @@ class DomeCapFamily(BaseFamily):
 
         if difficulty == "hard":
             params["n_holes"] = int(rng.choice([4, 6, 8]))
-            params["hole_diameter"] = round(rng.uniform(3, max(3.5, min(r * 0.12, 8))), 1)
+            params["hole_diameter"] = round(
+                rng.uniform(3, max(3.5, min(r * 0.12, 8))), 1
+            )
             params["hole_pcd"] = round(r * rng.uniform(0.65, 0.82), 1)
 
         return params

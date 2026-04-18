@@ -5,12 +5,13 @@ Medium: + chamfer on top edges.
 Hard:   + apron boards (4 skirt panels connecting legs under the top).
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class TableFamily(BaseFamily):
     name = "table"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         top_l = round(rng.uniform(100, 250), 1)

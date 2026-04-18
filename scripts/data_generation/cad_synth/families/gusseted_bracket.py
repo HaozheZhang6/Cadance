@@ -6,17 +6,18 @@ Medium: + mounting holes both flanges + chamfer
 Hard:   + gusset pocket (lightening) + fillet
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class GussetedBracketFamily(BaseFamily):
     name = "gusseted_bracket"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        flange_w = rng.uniform(30, 100)   # width of each flange
-        flange_t = rng.uniform(5, 15)     # flange thickness
-        depth = rng.uniform(20, 80)       # extrude depth (Z)
+        flange_w = rng.uniform(30, 100)  # width of each flange
+        flange_t = rng.uniform(5, 15)  # flange thickness
+        depth = rng.uniform(20, 80)  # extrude depth (Z)
         # gusset must fit below the inner corner (fw/2 - ft); keep 3mm margin
         gh_min = max(10.0, flange_w * 0.2)
         gh_max = max(gh_min + 2.0, flange_w / 2 - flange_t - 3)
@@ -37,7 +38,9 @@ class GussetedBracketFamily(BaseFamily):
         if difficulty in ("medium", "hard"):
             n_holes = int(rng.choice([1, 2]))
             params["holes_per_flange"] = n_holes
-            params["chamfer_length"] = round(rng.uniform(0.5, min(2.0, flange_t / 4)), 1)
+            params["chamfer_length"] = round(
+                rng.uniform(0.5, min(2.0, flange_t / 4)), 1
+            )
 
         if difficulty == "hard":
             pocket_w = rng.uniform(gusset_h * 0.2, gusset_h * 0.45)
@@ -84,8 +87,10 @@ class GussetedBracketFamily(BaseFamily):
         hd = params["mount_hole_diameter"]
 
         ops, tags = [], {
-            "has_hole": True, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": True,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
         }
 
         # L-profile with triangular gusset, right half, then mirrorY
@@ -99,12 +104,12 @@ class GussetedBracketFamily(BaseFamily):
         # Then mirrorY to get full L + 2 gussets
         half_fw = round(fw / 2, 3)
         pts = [
-            (0.0,      0.0),
-            (half_fw,  0.0),
-            (half_fw,  ft),
-            (ft,       gh),
-            (ft,       half_fw),
-            (0.0,      half_fw),
+            (0.0, 0.0),
+            (half_fw, 0.0),
+            (half_fw, ft),
+            (ft, gh),
+            (ft, half_fw),
+            (0.0, half_fw),
         ]
         ops.append(Op("moveTo", {"x": pts[0][0], "y": pts[0][1]}))
         for px, py in pts[1:]:
@@ -137,12 +142,22 @@ class GussetedBracketFamily(BaseFamily):
 
         # Horizontal flange: >Y face (front face along flange)
         ops.append(Op("workplane", {"selector": "<Y"}))
-        ops.append(Op("pushPoints", {"points": [(round(half_fw / 2, 3), round(-d / 2 + ins, 3))]}))
+        ops.append(
+            Op(
+                "pushPoints",
+                {"points": [(round(half_fw / 2, 3), round(-d / 2 + ins, 3))]},
+            )
+        )
         ops.append(Op("hole", {"diameter": hd}))
 
         # Vertical flange: <X face
         ops.append(Op("workplane", {"selector": ">X"}))
-        ops.append(Op("pushPoints", {"points": [(round(half_fw / 2, 3), round(-d / 2 + ins, 3))]}))
+        ops.append(
+            Op(
+                "pushPoints",
+                {"points": [(round(half_fw / 2, 3), round(-d / 2 + ins, 3))]},
+            )
+        )
         ops.append(Op("hole", {"diameter": hd}))
 
         # Gusset pocket (hard) — cut into gusset face
@@ -151,9 +166,19 @@ class GussetedBracketFamily(BaseFamily):
         if pw and pd:
             tags["has_slot"] = True
             ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("center", {"x": round(ft / 2 + pw / 2, 3), "y": round(ft / 2 + pw / 2, 3)}))
+            ops.append(
+                Op(
+                    "center",
+                    {"x": round(ft / 2 + pw / 2, 3), "y": round(ft / 2 + pw / 2, 3)},
+                )
+            )
             ops.append(Op("rect", {"length": pw, "width": pw}))
             ops.append(Op("cutBlind", {"depth": pd}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

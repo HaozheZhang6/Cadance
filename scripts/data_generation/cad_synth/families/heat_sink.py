@@ -6,14 +6,15 @@ Medium: base + more fins + chamfer on fin tops
 Hard:   base + fins + mounting holes on base
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class HeatSinkFamily(BaseFamily):
     """Parametric heat sink: plate with extruded fin array."""
 
     name = "heat_sink"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         """Sample params for a heat sink."""
@@ -23,12 +24,14 @@ class HeatSinkFamily(BaseFamily):
 
         # Fins run along the length direction (X)
         n_fins = int(rng.choice([4, 5, 6, 7, 8]))
-        fin_h  = rng.uniform(8, 40)
+        fin_h = rng.uniform(8, 40)
         # Fin thickness: must leave gaps between fins
         max_fin_t = (base_w - 4) / (n_fins * 2)  # half gap, half fin
         fin_t = rng.uniform(1.0, max(1.2, max_fin_t * 0.7))
         # spacing = center-to-center; total span = spacing*(n-1)+fin_t must fit in base_w
-        fin_spacing = (base_w - 4 - fin_t) / max(1, n_fins - 1) if n_fins > 1 else base_w
+        fin_spacing = (
+            (base_w - 4 - fin_t) / max(1, n_fins - 1) if n_fins > 1 else base_w
+        )
 
         params = {
             "base_length": round(base_l, 1),
@@ -122,12 +125,17 @@ class HeatSinkFamily(BaseFamily):
         # rarray(xSpacing, ySpacing, xCount, yCount)
         # We want 1 row of nf fins along Y
         ops.append(Op("workplane", {"selector": ">Z"}))
-        ops.append(Op("rarray", {
-            "xSpacing": 1,      # xCount=1, so spacing doesn't matter
-            "ySpacing": fs,
-            "xCount": 1,
-            "yCount": nf,
-        }))
+        ops.append(
+            Op(
+                "rarray",
+                {
+                    "xSpacing": 1,  # xCount=1, so spacing doesn't matter
+                    "ySpacing": fs,
+                    "xCount": 1,
+                    "yCount": nf,
+                },
+            )
+        )
         # Each fin: thin in Y, spans full length in X (minus small margin)
         ops.append(Op("rect", {"length": bl - 2, "width": ft}))
         ops.append(Op("extrude", {"distance": fh}))
@@ -146,10 +154,10 @@ class HeatSinkFamily(BaseFamily):
             ix = params["hole_inset_x"]
             iy = params["hole_inset_y"]
             corners = [
-                ( ix - bl/2,  iy - bw/2),
-                ( ix - bl/2,  bw/2 - iy),
-                ( bl/2 - ix,  iy - bw/2),
-                ( bl/2 - ix,  bw/2 - iy),
+                (ix - bl / 2, iy - bw / 2),
+                (ix - bl / 2, bw / 2 - iy),
+                (bl / 2 - ix, iy - bw / 2),
+                (bl / 2 - ix, bw / 2 - iy),
             ]
             corners = [(round(x, 4), round(y, 4)) for x, y in corners]
             ops.append(Op("workplane", {"selector": "<Z"}))
@@ -157,6 +165,9 @@ class HeatSinkFamily(BaseFamily):
             ops.append(Op("hole", {"diameter": hd}))
 
         return Program(
-            family=self.name, difficulty=difficulty,
-            params=params, ops=ops, feature_tags=tags,
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
         )

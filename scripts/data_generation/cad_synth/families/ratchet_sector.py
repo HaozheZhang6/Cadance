@@ -16,6 +16,7 @@ from .base import BaseFamily
 
 class RatchetSectorFamily(BaseFamily):
     name = "ratchet_sector"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         outer_r = round(rng.uniform(30, 100), 1)

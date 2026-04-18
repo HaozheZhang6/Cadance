@@ -8,40 +8,40 @@ Difficulty controls geometry complexity:
 Dimensions from ISO 7090 Table 1 only — no continuous sampling.
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 # ISO 7090 Table 1 — exact nominal values (mm)
 # (nominal_size, d1_clearance_bore, d2_outer_dia, h_thickness, preferred)
 _ISO7090_TABLE = [
-    ( 5,  5.30,  10.0,  1.0, True),
-    ( 6,  6.40,  12.0,  1.6, True),
-    ( 8,  8.40,  16.0,  1.6, True),
-    (10, 10.50,  21.0,  2.0, True),
-    (12, 13.00,  24.0,  2.5, True),
-    (14, 15.00,  28.0,  2.5, False),
-    (16, 17.00,  30.0,  3.0, True),
-    (18, 19.00,  34.0,  3.0, False),
-    (20, 21.00,  37.0,  3.0, True),
-    (22, 23.00,  39.0,  3.0, False),
-    (24, 25.00,  44.0,  4.0, True),
-    (27, 28.00,  50.0,  4.0, False),
-    (30, 31.00,  56.0,  4.0, True),
-    (33, 34.00,  60.0,  5.0, False),
-    (36, 37.00,  64.8,  5.0, True),
-    (39, 42.00,  72.0,  6.0, False),
-    (42, 45.00,  78.0,  8.0, True),
-    (45, 48.00,  85.0,  8.0, False),
-    (48, 52.00,  92.0,  8.0, True),
-    (52, 56.00,  98.0,  8.0, False),
+    (5, 5.30, 10.0, 1.0, True),
+    (6, 6.40, 12.0, 1.6, True),
+    (8, 8.40, 16.0, 1.6, True),
+    (10, 10.50, 21.0, 2.0, True),
+    (12, 13.00, 24.0, 2.5, True),
+    (14, 15.00, 28.0, 2.5, False),
+    (16, 17.00, 30.0, 3.0, True),
+    (18, 19.00, 34.0, 3.0, False),
+    (20, 21.00, 37.0, 3.0, True),
+    (22, 23.00, 39.0, 3.0, False),
+    (24, 25.00, 44.0, 4.0, True),
+    (27, 28.00, 50.0, 4.0, False),
+    (30, 31.00, 56.0, 4.0, True),
+    (33, 34.00, 60.0, 5.0, False),
+    (36, 37.00, 64.8, 5.0, True),
+    (39, 42.00, 72.0, 6.0, False),
+    (42, 45.00, 78.0, 8.0, True),
+    (45, 48.00, 85.0, 8.0, False),
+    (48, 52.00, 92.0, 8.0, True),
+    (52, 56.00, 98.0, 8.0, False),
     (56, 62.00, 105.0, 10.0, True),
     (60, 66.00, 110.0, 10.0, False),
     (64, 70.00, 115.0, 10.0, True),
 ]
 
-_SMALL     = [r for r in _ISO7090_TABLE if r[4] and r[0] <= 20]  # M5–M20 preferred
-_PREFERRED = [r for r in _ISO7090_TABLE if r[4]]                  # M5–M64 preferred
-_ALL       = _ISO7090_TABLE                                        # all 23 rows
+_SMALL = [r for r in _ISO7090_TABLE if r[4] and r[0] <= 20]  # M5–M20 preferred
+_PREFERRED = [r for r in _ISO7090_TABLE if r[4]]  # M5–M64 preferred
+_ALL = _ISO7090_TABLE  # all 23 rows
 
 
 class WasherFamily(BaseFamily):
@@ -78,7 +78,7 @@ class WasherFamily(BaseFamily):
     def validate_params(self, params: dict) -> bool:
         d1 = params["bore_diameter"]
         d2 = params["outer_diameter"]
-        h  = params["thickness"]
+        h = params["thickness"]
         ch = params.get("chamfer_length", 0)
         if not (d2 > d1 > 0 and h > 0):
             return False
@@ -92,12 +92,14 @@ class WasherFamily(BaseFamily):
         difficulty = params.get("difficulty", "easy")
         d1 = params["bore_diameter"]
         d2 = params["outer_diameter"]
-        h  = params["thickness"]
+        h = params["thickness"]
         ch = params.get("chamfer_length")
 
         ops, tags = [], {
-            "has_hole": True, "has_slot": False,
-            "has_fillet": False, "has_chamfer": bool(ch),
+            "has_hole": True,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": bool(ch),
             "rotational": True,
         }
 
@@ -110,8 +112,13 @@ class WasherFamily(BaseFamily):
             ops.append(Op("edges", {"selector": "|Z"}))
             ops.append(Op("chamfer", {"length": round(ch, 4)}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )
 
 
 # Keep old names as aliases so registry doesn't break during transition

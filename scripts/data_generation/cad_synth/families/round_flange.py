@@ -2,14 +2,15 @@
 
 import math
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class RoundFlangeFamily(BaseFamily):
     """Parametric round flange: outer cylinder + center bore + bolt pattern."""
 
     name = "round_flange"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         """Sample params for a round flange at given difficulty."""
@@ -33,7 +34,9 @@ class RoundFlangeFamily(BaseFamily):
             bolt_r = rng.uniform(bolt_r_min, bolt_r_max)
             n_bolts = rng.choice([4, 6, 8])
             pitch = 2 * math.pi * bolt_r / n_bolts
-            max_bolt_d = min(pitch / 2, (outer_r - bolt_r - 1) * 2, (bolt_r - inner_r - 1) * 2)
+            max_bolt_d = min(
+                pitch / 2, (outer_r - bolt_r - 1) * 2, (bolt_r - inner_r - 1) * 2
+            )
             bolt_d = rng.uniform(2, max(2.5, max_bolt_d * 0.6))
             params["bolt_circle_radius"] = round(bolt_r, 1)
             params["bolt_count"] = int(n_bolts)
@@ -109,8 +112,12 @@ class RoundFlangeFamily(BaseFamily):
         }
 
         # Outer cylinder (flange disc)
-        ops.append(Op("cylinder", {"height": params["height"],
-                                    "radius": params["outer_radius"]}))
+        ops.append(
+            Op(
+                "cylinder",
+                {"height": params["height"], "radius": params["outer_radius"]},
+            )
+        )
 
         # Chamfer bottom outer edge first — before holes pierce <Z face
         cl = params.get("chamfer_length")
@@ -127,12 +134,15 @@ class RoundFlangeFamily(BaseFamily):
             ops.append(Op("faces", {"selector": ">Z"}))
             ops.append(Op("workplane", {"selector": ">Z"}))
             ops.append(
-                Op("polarArray", {
-                    "radius": bcr,
-                    "startAngle": 0,
-                    "angle": 360,
-                    "count": params["bolt_count"],
-                })
+                Op(
+                    "polarArray",
+                    {
+                        "radius": bcr,
+                        "startAngle": 0,
+                        "angle": 360,
+                        "count": params["bolt_count"],
+                    },
+                )
             )
             ops.append(Op("hole", {"diameter": params["bolt_hole_diameter"]}))
 
@@ -141,20 +151,53 @@ class RoundFlangeFamily(BaseFamily):
         rfh = params.get("raised_face_height")
         if rfr and rfh:
             tags["has_hub"] = True
-            ops.append(Op("union", {"ops": [
-                {"name": "transformed", "args": {"offset": [0, 0, round(params["height"] / 2 + rfh / 2, 3)], "rotate": [0, 0, 0]}},
-                {"name": "cylinder", "args": {"height": rfh, "radius": rfr}},
-            ]}))
+            ops.append(
+                Op(
+                    "union",
+                    {
+                        "ops": [
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": [
+                                        0,
+                                        0,
+                                        round(params["height"] / 2 + rfh / 2, 3),
+                                    ],
+                                    "rotate": [0, 0, 0],
+                                },
+                            },
+                            {
+                                "name": "cylinder",
+                                "args": {"height": rfh, "radius": rfr},
+                            },
+                        ]
+                    },
+                )
+            )
 
         # Neck (hard)
         nr = params.get("neck_radius")
         nh = params.get("neck_height")
         if nr and nh and rfh:
             neck_z = params["height"] / 2 + rfh
-            ops.append(Op("union", {"ops": [
-                {"name": "transformed", "args": {"offset": [0, 0, round(neck_z + nh / 2, 3)], "rotate": [0, 0, 0]}},
-                {"name": "cylinder", "args": {"height": nh, "radius": nr}},
-            ]}))
+            ops.append(
+                Op(
+                    "union",
+                    {
+                        "ops": [
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": [0, 0, round(neck_z + nh / 2, 3)],
+                                    "rotate": [0, 0, 0],
+                                },
+                            },
+                            {"name": "cylinder", "args": {"height": nh, "radius": nr}},
+                        ]
+                    },
+                )
+            )
 
         # Center bore — last, through full assembly (flange + raised face + neck)
         ops.append(Op("workplane", {"selector": ">Z"}))

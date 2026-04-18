@@ -15,10 +15,9 @@ Hard:   split ring — two half-rings cut along diameter for
           installation without shaft disassembly (full d range)
 """
 
-import math
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 # DIN 988 Table 1 — exact nominal (d_bore, D_outer) pairs, mm
 _DIN988 = [

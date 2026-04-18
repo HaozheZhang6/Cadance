@@ -10,8 +10,8 @@ Medium: + rectangular cross-section (RHS) + chamfer
 Hard:   + larger SHS/RHS + mounting holes + end cap slot
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 # EN 10219 SHS/RHS cold-formed hollow sections — (outer_w, outer_h, wall_t) mm
 _EN10219_SHS = [

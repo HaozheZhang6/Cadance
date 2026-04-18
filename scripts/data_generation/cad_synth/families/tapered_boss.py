@@ -8,18 +8,21 @@ Medium: + flat base flange + center bore
 Hard:   + key slot + fillet
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class TaperedBossFamily(BaseFamily):
     name = "tapered_boss"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         base_d = rng.uniform(20, 100)
         top_d = rng.uniform(base_d * 0.3, base_d * 0.8)
         height = rng.uniform(15, 80)
-        taper_offset = round(height * rng.uniform(0.5, 0.9), 1)  # where loft profile sits
+        taper_offset = round(
+            height * rng.uniform(0.5, 0.9), 1
+        )  # where loft profile sits
 
         params = {
             "base_diameter": round(base_d, 1),
@@ -35,7 +38,9 @@ class TaperedBossFamily(BaseFamily):
             params["flange_diameter"] = round(flange_od, 1)
             params["flange_height"] = round(flange_h, 1)
             params["bore_diameter"] = round(bore_d, 1)
-            params["chamfer_length"] = round(rng.uniform(0.5, min(2.0, flange_h * 0.25)), 1)
+            params["chamfer_length"] = round(
+                rng.uniform(0.5, min(2.0, flange_h * 0.25)), 1
+            )
 
         if difficulty == "hard":
             bore_val = params.get("bore_diameter", 0)
@@ -94,9 +99,12 @@ class TaperedBossFamily(BaseFamily):
         h = params["height"]
 
         ops, tags = [], {
-            "has_hole": False, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
-            "rotational": True, "multi_stage": True,
+            "has_hole": False,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
+            "rotational": True,
+            "multi_stage": True,
         }
 
         # Loft: circle at z=0 → smaller circle at z=height
@@ -150,5 +158,10 @@ class TaperedBossFamily(BaseFamily):
             ops.append(Op("rect", {"length": key_len, "width": kw}))
             ops.append(Op("cutBlind", {"depth": kd}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

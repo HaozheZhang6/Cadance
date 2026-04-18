@@ -4,16 +4,16 @@ Geometry: box → shell (open top face).  Medium/hard add mounting holes on the
 bottom floor and fillets on inner bottom edges.
 """
 
-import math
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class EnclosureFamily(BaseFamily):
     """Parametric rectangular enclosure: hollow shell with open top."""
 
     name = "enclosure"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         """Sample params for an enclosure at given difficulty."""
@@ -51,12 +51,12 @@ class EnclosureFamily(BaseFamily):
                 margin = max(5.0, min(inner_l, inner_w) * 0.15)
                 nx = params["hole_nx"]
                 ny = params["hole_ny"]
-                params["hole_spacing_x"] = round(
-                    (inner_l - 2 * margin) / max(1, nx - 1), 1
-                ) if nx > 1 else 0
-                params["hole_spacing_y"] = round(
-                    (inner_w - 2 * margin) / max(1, ny - 1), 1
-                ) if ny > 1 else 0
+                params["hole_spacing_x"] = (
+                    round((inner_l - 2 * margin) / max(1, nx - 1), 1) if nx > 1 else 0
+                )
+                params["hole_spacing_y"] = (
+                    round((inner_w - 2 * margin) / max(1, ny - 1), 1) if ny > 1 else 0
+                )
 
         return params
 
@@ -132,12 +132,17 @@ class EnclosureFamily(BaseFamily):
             sy = params.get("hole_spacing_y", 0) if ny > 1 else 1
             # Select bottom face, use rarray for pattern
             ops.append(Op("workplane", {"selector": "<Z"}))
-            ops.append(Op("rarray", {
-                "xSpacing": sx if nx > 1 else 1,
-                "ySpacing": sy if ny > 1 else 1,
-                "xCount": nx,
-                "yCount": ny,
-            }))
+            ops.append(
+                Op(
+                    "rarray",
+                    {
+                        "xSpacing": sx if nx > 1 else 1,
+                        "ySpacing": sy if ny > 1 else 1,
+                        "xCount": nx,
+                        "yCount": ny,
+                    },
+                )
+            )
             ops.append(Op("hole", {"diameter": hd}))
 
         return Program(

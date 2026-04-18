@@ -9,9 +9,9 @@ Medium: + screw holes on leaf face (W 25–60)
 Hard:   + countersunk screw holes + fillet (full range)
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
 from ..pipeline.plane_utils import cylinder_rot_to_lateral2, plane_offset
+from .base import BaseFamily
 
 # DIN 7954 Table 1 — (leaf_W, leaf_H, leaf_T, knuckle_D, pin_D) mm
 _DIN7954 = [

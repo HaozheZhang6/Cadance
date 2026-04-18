@@ -7,12 +7,13 @@ Medium: + 4 corner mounting holes.
 Hard:   + raised cylindrical collar around fan opening.
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class FanShroudFamily(BaseFamily):
     name = "fan_shroud"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         fan_r = round(rng.uniform(30, 80), 1)

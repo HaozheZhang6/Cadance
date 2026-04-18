@@ -18,8 +18,8 @@ Hard:   + bevel on outer edge (full range d1 8–80 mm)
 
 import math
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 # DIN 471 Table 1 — exact nominal values (d1_shaft, d3_ring_od, s_thickness) mm
 _DIN471 = [

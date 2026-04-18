@@ -23,8 +23,9 @@ Hard:   + bore hole + keyway
 """
 
 import math
-from .base import BaseFamily
+
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 # ISO 54 preferred module series
 _MODULE_SERIES = [1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 3.15, 4.0, 5.0, 6.0, 6.3, 8.0, 10.0]

@@ -14,8 +14,8 @@ Hard:   + chamfered outer edge (full range d 1.5–24 mm)
 
 import math
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 # DIN 6799 Table 1 — exact nominal (d_shaft, d1_bore, D_outer, s_thickness) mm
 _DIN6799 = [

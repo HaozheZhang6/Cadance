@@ -1,44 +1,61 @@
-"""Clevis — U-shaped fork bracket with pin holes.
+"""Clevis — U-shaped fork bracket with pin holes (DIN 71751 Gabelköpfe).
 
-Geometry: rectangular block with center slot cut from top, giving two parallel arms.
-Pin holes drilled axially (Z direction) through each arm.
+DIN 71751: clevis fork for connecting rods and links.
+Key proportions: arm_thickness b ≈ pin_diameter d; gap s = d + 1 mm.
 
-Easy:   base block + two arms + pin holes.
-Medium: + chamfer on arm tips.
-Hard:   + threaded base stub (cylinder below base block).
+Easy:   base block + two arms + pin holes (small d 5–12 mm).
+Medium: + chamfer on arm tips (d 8–20 mm).
+Hard:   + threaded base stub (full range d 5–40 mm).
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
+
+# DIN 71751 Gabelkopf — (pin_d, arm_t, gap) mm; gap = d+1, arm_t ≈ d
+_DIN71751 = [
+    (5, 5, 6),
+    (6, 6, 7),
+    (8, 8, 9),
+    (10, 10, 11),
+    (12, 12, 13),
+    (16, 16, 17),
+    (20, 20, 21),
+    (25, 25, 26),
+    (32, 30, 33),
+    (40, 36, 41),
+]
+_SMALL = _DIN71751[:4]   # d 5–10
+_MID = _DIN71751[2:7]    # d 8–20
+_ALL = _DIN71751
 
 
 class ClevisFamily(BaseFamily):
     name = "clevis"
+    standard = "DIN 71751"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        arm_t = round(rng.uniform(5, 20), 1)  # each arm thickness (X direction)
-        gap = round(rng.uniform(8, 40), 1)  # inner gap between arms
-        arm_h = round(rng.uniform(20, 70), 1)  # arm height (above base)
-        base_h = round(rng.uniform(12, 40), 1)  # base block height
-        depth = round(rng.uniform(15, 50), 1)  # arm depth (Y direction)
-        pin_d = round(rng.uniform(2, min(arm_t * 0.7, 16)), 1)
+        pool = _SMALL if difficulty == "easy" else (_MID if difficulty == "medium" else _ALL)
+        pin_d, arm_t, gap = pool[int(rng.integers(0, len(pool)))]
+        arm_h = round(pin_d * rng.uniform(2.5, 5.0), 1)
+        base_h = round(pin_d * rng.uniform(1.5, 3.0), 1)
+        depth = round((2 * arm_t + gap) * rng.uniform(0.8, 1.5), 1)
 
         params = {
-            "arm_thickness": arm_t,
-            "gap_width": gap,
+            "arm_thickness": float(arm_t),
+            "gap_width": float(gap),
             "arm_height": arm_h,
             "base_height": base_h,
             "depth": depth,
-            "pin_diameter": pin_d,
+            "pin_diameter": float(pin_d),
             "difficulty": difficulty,
         }
 
         if difficulty in ("medium", "hard"):
-            params["chamfer"] = round(min(arm_t * 0.15, 2.0), 1)
+            params["chamfer"] = round(min(arm_t * 0.12, 2.0), 1)
 
         if difficulty == "hard":
-            params["stub_diameter"] = round((gap + arm_t) * rng.uniform(0.6, 0.9), 1)
-            params["stub_height"] = round(base_h * rng.uniform(0.5, 0.9), 1)
+            params["stub_diameter"] = round((gap + arm_t) * 0.75, 1)
+            params["stub_height"] = round(base_h * 0.7, 1)
 
         return params
 
@@ -58,7 +75,7 @@ class ClevisFamily(BaseFamily):
             return False
         if base_h < 8:
             return False
-        if pin_d >= arm_t * 0.85:
+        if pin_d > arm_t:
             return False
         if depth < 10:
             return False
@@ -113,9 +130,6 @@ class ClevisFamily(BaseFamily):
         # Pin holes through each arm (Z direction from ">Z" face)
         # Arms are at x = ±(gap/2 + arm_t/2)
         arm_cx = round(gap / 2 + arm_t / 2, 4)
-        # Pin hole center Z: top_h/2 - arm_h + pin margin (near top of arm)
-        pin_margin = max(pin_d / 2 + 1.5, 3.0)
-        pin_z_world = round(total_h / 2 - pin_margin, 4)
 
         # From ">Z" workplane (local_x=X_world, local_y=Y_world):
         # pushPoints at (x_world, y_world=0) but ">Z" face is the TOP of the L —

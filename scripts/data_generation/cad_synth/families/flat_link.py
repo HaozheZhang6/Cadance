@@ -8,13 +8,13 @@ Medium: + circular through-bores in each boss.
 Hard:   + lightening slot cut between bosses.
 """
 
-
 from ..pipeline.builder import Op, Program
 from .base import BaseFamily
 
 
 class FlatLinkFamily(BaseFamily):
     name = "flat_link"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         boss_r = round(rng.uniform(8, 30), 1)  # boss circle radius

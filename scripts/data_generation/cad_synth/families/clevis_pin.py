@@ -8,41 +8,104 @@ Medium: + cross-hole for split pin (ISO 1234)
 Hard:   + groove near end for snap ring (circlip groove)
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 # ISO 2340 clevis pin without head — (d_nominal, l_min, l_max) mm
 _ISO2340 = [
-    (4,  10, 100), (5,  12, 120), (6,  14, 140),
-    (8,  18, 180), (10, 22, 220), (12, 28, 260),
-    (14, 32, 300), (16, 36, 340), (18, 40, 380),
-    (20, 45, 420), (22, 50, 460), (24, 56, 500),
-    (27, 63, 500), (30, 70, 500), (36, 90, 500),
+    (4, 10, 100),
+    (5, 12, 120),
+    (6, 14, 140),
+    (8, 18, 180),
+    (10, 22, 220),
+    (12, 28, 260),
+    (14, 32, 300),
+    (16, 36, 340),
+    (18, 40, 380),
+    (20, 45, 420),
+    (22, 50, 460),
+    (24, 56, 500),
+    (27, 63, 500),
+    (30, 70, 500),
+    (36, 90, 500),
     (40, 100, 500),
 ]
 _SMALL = [r for r in _ISO2340 if r[0] <= 12]
-_MID   = [r for r in _ISO2340 if 8 <= r[0] <= 24]
-_ALL   = _ISO2340
+_MID = [r for r in _ISO2340 if 8 <= r[0] <= 24]
+_ALL = _ISO2340
 
 # ISO 1234 split pin diameters by clevis pin diameter (approx mapping)
-_SPLIT_PIN_D = {4: 1.0, 5: 1.2, 6: 1.6, 8: 2.0, 10: 2.5, 12: 3.2,
-                14: 3.2, 16: 4.0, 18: 4.0, 20: 5.0, 22: 5.0, 24: 6.3,
-                27: 6.3, 30: 8.0, 36: 8.0, 40: 10.0}
+_SPLIT_PIN_D = {
+    4: 1.0,
+    5: 1.2,
+    6: 1.6,
+    8: 2.0,
+    10: 2.5,
+    12: 3.2,
+    14: 3.2,
+    16: 4.0,
+    18: 4.0,
+    20: 5.0,
+    22: 5.0,
+    24: 6.3,
+    27: 6.3,
+    30: 8.0,
+    36: 8.0,
+    40: 10.0,
+}
 
 
 class ClevisPinFamily(BaseFamily):
     """ISO 2340 clevis pin without head."""
 
     name = "clevis_pin"
+    standard = "ISO 2340"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        pool = _SMALL if difficulty == "easy" else (_MID if difficulty == "medium" else _ALL)
+        pool = (
+            _SMALL
+            if difficulty == "easy"
+            else (_MID if difficulty == "medium" else _ALL)
+        )
         d, l_min, l_max = pool[int(rng.integers(0, len(pool)))]
 
         # Pick length from preferred series within range
-        _len = [10, 12, 14, 16, 18, 20, 22, 25, 28, 32, 36, 40, 45, 50, 56,
-                63, 70, 80, 90, 100, 110, 125, 140, 160, 180, 200, 220, 250,
-                280, 320, 360, 400, 450, 500]
+        _len = [
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            22,
+            25,
+            28,
+            32,
+            36,
+            40,
+            45,
+            50,
+            56,
+            63,
+            70,
+            80,
+            90,
+            100,
+            110,
+            125,
+            140,
+            160,
+            180,
+            200,
+            220,
+            250,
+            280,
+            320,
+            360,
+            400,
+            450,
+            500,
+        ]
         valid = [l for l in _len if l_min <= l <= l_max]
         length = float(valid[int(rng.integers(0, len(valid)))])
         chamfer = round(min(1.0, d * 0.1), 1)
@@ -86,8 +149,10 @@ class ClevisPinFamily(BaseFamily):
         ch = params.get("chamfer_length", 0)
 
         ops, tags = [], {
-            "has_hole": False, "has_slot": False,
-            "has_fillet": False, "has_chamfer": bool(ch),
+            "has_hole": False,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": bool(ch),
             "rotational": True,
         }
 
@@ -121,5 +186,10 @@ class ClevisPinFamily(BaseFamily):
             ops.append(Op("rect", {"length": gd, "width": gw}))
             ops.append(Op("cutThruAll", {}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

@@ -8,12 +8,13 @@ Medium: + chamfer on panel edges.
 Hard:   + solid frame border (slightly raised rim around the panel).
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class MeshPanelFamily(BaseFamily):
     name = "mesh_panel"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         hole_d = round(rng.uniform(3, 10), 1)

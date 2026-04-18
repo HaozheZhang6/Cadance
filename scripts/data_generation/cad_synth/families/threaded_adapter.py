@@ -9,8 +9,9 @@ Hard:   + second stepped stub on other end + knurled ring (approximated)
 """
 
 import math
-from .base import BaseFamily
+
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class ThreadedAdapterFamily(BaseFamily):

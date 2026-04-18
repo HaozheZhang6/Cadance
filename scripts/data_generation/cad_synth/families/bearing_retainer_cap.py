@@ -14,29 +14,46 @@ Hard:   + oil seal groove on boss inner bore
 
 import math
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
 from ..pipeline.plane_utils import plane_offset
+from .base import BaseFamily
 
 # ISO 15 / 62xx series ball bearings — (shaft_bore_d, bearing_od, width_b) mm
 _ISO15_62XX = [
-    (10, 30,  9), (12, 32, 10), (15, 35, 11), (17, 40, 12),
-    (20, 47, 14), (25, 52, 15), (30, 62, 16), (35, 72, 17),
-    (40, 80, 18), (45, 85, 19), (50, 90, 20), (55, 100, 21),
-    (60, 110, 22), (65, 120, 23), (70, 125, 24), (80, 140, 26),
+    (10, 30, 9),
+    (12, 32, 10),
+    (15, 35, 11),
+    (17, 40, 12),
+    (20, 47, 14),
+    (25, 52, 15),
+    (30, 62, 16),
+    (35, 72, 17),
+    (40, 80, 18),
+    (45, 85, 19),
+    (50, 90, 20),
+    (55, 100, 21),
+    (60, 110, 22),
+    (65, 120, 23),
+    (70, 125, 24),
+    (80, 140, 26),
 ]
-_SMALL = _ISO15_62XX[:5]   # bore 10–20 mm
-_MID   = _ISO15_62XX[2:10] # bore 15–45 mm
-_ALL   = _ISO15_62XX
+_SMALL = _ISO15_62XX[:5]  # bore 10–20 mm
+_MID = _ISO15_62XX[2:10]  # bore 15–45 mm
+_ALL = _ISO15_62XX
 
 VARIANTS = ["disc", "ear"]
 
 
 class BearingRetainerCapFamily(BaseFamily):
     name = "bearing_retainer_cap"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        pool = _SMALL if difficulty == "easy" else (_MID if difficulty == "medium" else _ALL)
+        pool = (
+            _SMALL
+            if difficulty == "easy"
+            else (_MID if difficulty == "medium" else _ALL)
+        )
         bore_d, bearing_od, bearing_w = pool[int(rng.integers(0, len(pool)))]
         bore_d = float(bore_d)
         # boss OD = bearing OD + housing clearance (cap sits around or over bearing)
@@ -78,7 +95,9 @@ class BearingRetainerCapFamily(BaseFamily):
             ear_pcd = round(
                 rng.uniform(collar_od / 2 + 4, collar_od / 2 + collar_od * 0.35), 1
             )
-            ear_d = round(rng.uniform(max(20, collar_od * 0.20), max(21, collar_od * 0.35)), 1)
+            ear_d = round(
+                rng.uniform(max(20, collar_od * 0.20), max(21, collar_od * 0.35)), 1
+            )
             bolt_d = round(rng.uniform(ear_d * 0.30, ear_d * 0.52), 1)
             # tangent style requires (boss_r - ear_r) / ear_pcd < 0.625 (ensures neck ≥ 3x old min)
             r1, r2, d = boss_od / 2, ear_d / 2, ear_pcd
@@ -104,7 +123,9 @@ class BearingRetainerCapFamily(BaseFamily):
 
         if difficulty == "hard":
             groove_w = round(rng.uniform(2.0, min(5.0, boss_h * 0.15)), 1)
-            groove_d = round(rng.uniform(0.8, min(2.5, (boss_od - bore_d) / 2 * 0.35)), 1)
+            groove_d = round(
+                rng.uniform(0.8, min(2.5, (boss_od - bore_d) / 2 * 0.35)), 1
+            )
             params["oil_groove_width"] = groove_w
             params["oil_groove_depth"] = groove_d
 
@@ -192,7 +213,9 @@ class BearingRetainerCapFamily(BaseFamily):
                             {
                                 "name": "transformed",
                                 "args": {
-                                    "offset": plane_offset(bp, 0, 0, round(ft / 2 + bh / 2 - 0.5, 3)),
+                                    "offset": plane_offset(
+                                        bp, 0, 0, round(ft / 2 + bh / 2 - 0.5, 3)
+                                    ),
                                     "rotate": [0, 0, 0],
                                 },
                             },
@@ -221,7 +244,9 @@ class BearingRetainerCapFamily(BaseFamily):
                                 {
                                     "name": "transformed",
                                     "args": {
-                                        "offset": plane_offset(bp, hx, hy, round(ft / 2, 3)),
+                                        "offset": plane_offset(
+                                            bp, hx, hy, round(ft / 2, 3)
+                                        ),
                                         "rotate": [0, 0, 0],
                                     },
                                 },
@@ -241,7 +266,7 @@ class BearingRetainerCapFamily(BaseFamily):
             col_h = params["collar_height"]
             ear_pcd = params["ear_pcd_radius"]
             ear_d = params["ear_diameter"]
-            ear_w = round(ear_d * 0.90, 1)   # bar width close to ear_d for thick neck
+            ear_w = round(ear_d * 0.90, 1)  # bar width close to ear_d for thick neck
             blt_d = params["bolt_diameter"]
             web_style = params.get("web_style", "bar")
 
@@ -261,12 +286,14 @@ class BearingRetainerCapFamily(BaseFamily):
                 r2 = round(ear_d / 2, 3)
                 d = ear_pcd
                 sin_a = max(-0.95, min(0.95, (r1 - r2) / d))
-                cos_a = math.sqrt(1 - sin_a ** 2)
+                cos_a = math.sqrt(1 - sin_a**2)
                 a_ru = math.atan2(cos_a, sin_a)
 
                 def _pt(angle, cx=0.0, cy=0.0, r=r1):
-                    return [round(cx + r * math.cos(angle), 3),
-                            round(cy + r * math.sin(angle), 3)]
+                    return [
+                        round(cx + r * math.cos(angle), 3),
+                        round(cy + r * math.sin(angle), 3),
+                    ]
 
                 p1u_r = _pt(a_ru, r=r1)
                 p1l_r = _pt(-a_ru, r=r1)
@@ -282,67 +309,144 @@ class BearingRetainerCapFamily(BaseFamily):
                 boss_bot = [0.0, round(-r1, 3)]
 
                 # 2. Tangent web: profile includes boss + tangent neck + ear lugs
-                ops.append(Op("union", {"ops": [
-                    {"name": "transformed", "args": {
-                        "offset": plane_offset(bp, 0, 0, z_bottom), "rotate": [0, 0, 0]}},
-                    {"name": "moveTo", "args": {"x": p2l_r[0], "y": p2l_r[1]}},
-                    {"name": "threePointArc", "args": {
-                        "point1": ear_r_tip, "point2": p2u_r}},
-                    {"name": "lineTo", "args": {"x": p1u_r[0], "y": p1u_r[1]}},
-                    {"name": "threePointArc", "args": {
-                        "point1": boss_top, "point2": p1u_l}},
-                    {"name": "lineTo", "args": {"x": p2u_l[0], "y": p2u_l[1]}},
-                    {"name": "threePointArc", "args": {
-                        "point1": ear_l_tip, "point2": p2l_l}},
-                    {"name": "lineTo", "args": {"x": p1l_l[0], "y": p1l_l[1]}},
-                    {"name": "threePointArc", "args": {
-                        "point1": boss_bot, "point2": p1l_r}},
-                    {"name": "lineTo", "args": {"x": p2l_r[0], "y": p2l_r[1]}},
-                    {"name": "close", "args": {}},
-                    {"name": "extrude", "args": {"distance": round(col_h, 3)}},
-                ]}))
+                ops.append(
+                    Op(
+                        "union",
+                        {
+                            "ops": [
+                                {
+                                    "name": "transformed",
+                                    "args": {
+                                        "offset": plane_offset(bp, 0, 0, z_bottom),
+                                        "rotate": [0, 0, 0],
+                                    },
+                                },
+                                {
+                                    "name": "moveTo",
+                                    "args": {"x": p2l_r[0], "y": p2l_r[1]},
+                                },
+                                {
+                                    "name": "threePointArc",
+                                    "args": {"point1": ear_r_tip, "point2": p2u_r},
+                                },
+                                {
+                                    "name": "lineTo",
+                                    "args": {"x": p1u_r[0], "y": p1u_r[1]},
+                                },
+                                {
+                                    "name": "threePointArc",
+                                    "args": {"point1": boss_top, "point2": p1u_l},
+                                },
+                                {
+                                    "name": "lineTo",
+                                    "args": {"x": p2u_l[0], "y": p2u_l[1]},
+                                },
+                                {
+                                    "name": "threePointArc",
+                                    "args": {"point1": ear_l_tip, "point2": p2l_l},
+                                },
+                                {
+                                    "name": "lineTo",
+                                    "args": {"x": p1l_l[0], "y": p1l_l[1]},
+                                },
+                                {
+                                    "name": "threePointArc",
+                                    "args": {"point1": boss_bot, "point2": p1l_r},
+                                },
+                                {
+                                    "name": "lineTo",
+                                    "args": {"x": p2l_r[0], "y": p2l_r[1]},
+                                },
+                                {"name": "close", "args": {}},
+                                {
+                                    "name": "extrude",
+                                    "args": {"distance": round(col_h, 3)},
+                                },
+                            ]
+                        },
+                    )
+                )
 
             else:  # bar style
                 # 2. Cross-bar web through center — overlap with boss, flush with bottom face
                 bar_len = round(2 * (ear_pcd + ear_d / 2), 3)
-                ops.append(Op("union", {"ops": [
-                    {"name": "transformed", "args": {
-                        "offset": plane_offset(bp, 0, 0, z_ear),
-                        "rotate": [0, 0, 0],
-                    }},
-                    {"name": "box", "args": {
-                        "length": bar_len,
-                        "width": round(ear_w, 3),
-                        "height": round(col_h, 3),
-                        "centered": True,
-                    }},
-                ]}))
+                ops.append(
+                    Op(
+                        "union",
+                        {
+                            "ops": [
+                                {
+                                    "name": "transformed",
+                                    "args": {
+                                        "offset": plane_offset(bp, 0, 0, z_ear),
+                                        "rotate": [0, 0, 0],
+                                    },
+                                },
+                                {
+                                    "name": "box",
+                                    "args": {
+                                        "length": bar_len,
+                                        "width": round(ear_w, 3),
+                                        "height": round(col_h, 3),
+                                        "centered": True,
+                                    },
+                                },
+                            ]
+                        },
+                    )
+                )
 
                 # 3. Round ear lugs at ±ear_pcd — flush with bottom face
                 for x_off in [round(ear_pcd, 3), round(-ear_pcd, 3)]:
-                    ops.append(Op("union", {"ops": [
-                        {"name": "transformed", "args": {
-                            "offset": plane_offset(bp, x_off, 0, z_ear),
-                            "rotate": [0, 0, 0],
-                        }},
-                        {"name": "cylinder", "args": {
-                            "height": round(col_h, 3),
-                            "radius": round(ear_d / 2, 3),
-                        }},
-                    ]}))
+                    ops.append(
+                        Op(
+                            "union",
+                            {
+                                "ops": [
+                                    {
+                                        "name": "transformed",
+                                        "args": {
+                                            "offset": plane_offset(bp, x_off, 0, z_ear),
+                                            "rotate": [0, 0, 0],
+                                        },
+                                    },
+                                    {
+                                        "name": "cylinder",
+                                        "args": {
+                                            "height": round(col_h, 3),
+                                            "radius": round(ear_d / 2, 3),
+                                        },
+                                    },
+                                ]
+                            },
+                        )
+                    )
 
             # Bolt holes through ear lugs (both styles)
             for x_off in [round(ear_pcd, 3), round(-ear_pcd, 3)]:
-                ops.append(Op("cut", {"ops": [
-                    {"name": "transformed", "args": {
-                        "offset": plane_offset(bp, x_off, 0, z_ear),
-                        "rotate": [0, 0, 0],
-                    }},
-                    {"name": "cylinder", "args": {
-                        "height": round(col_h * 3, 3),
-                        "radius": round(blt_d / 2, 3),
-                    }},
-                ]}))
+                ops.append(
+                    Op(
+                        "cut",
+                        {
+                            "ops": [
+                                {
+                                    "name": "transformed",
+                                    "args": {
+                                        "offset": plane_offset(bp, x_off, 0, z_ear),
+                                        "rotate": [0, 0, 0],
+                                    },
+                                },
+                                {
+                                    "name": "cylinder",
+                                    "args": {
+                                        "height": round(col_h * 3, 3),
+                                        "radius": round(blt_d / 2, 3),
+                                    },
+                                },
+                            ]
+                        },
+                    )
+                )
 
         # Boss top chamfer before bore (>Z has only outer edge before hole is cut)
         bc = params.get("boss_chamfer")

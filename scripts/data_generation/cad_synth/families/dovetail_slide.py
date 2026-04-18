@@ -24,41 +24,43 @@ Hard:   + oil groove along length
 """
 
 import math
-from .base import BaseFamily
+
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 VARIANTS = ["male", "female"]
 
 
 class DovetailSlideFamily(BaseFamily):
     name = "dovetail_slide"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        variant     = rng.choice(VARIANTS)
-        width_top   = rng.uniform(15, 55)      # male: wide end; female: groove wide end
-        angle_deg   = rng.uniform(45, 65)      # dovetail flank angle [°]
+        variant = rng.choice(VARIANTS)
+        width_top = rng.uniform(15, 55)  # male: wide end; female: groove wide end
+        angle_deg = rng.uniform(45, 65)  # dovetail flank angle [°]
         # cap height so width_bottom >= width_top * 0.30 (avoid wedge shapes)
         max_h = (width_top * 0.70) / (2 * math.tan(math.radians(angle_deg)))
-        height      = rng.uniform(8, max(8.1, min(22, max_h)))
-        length      = rng.uniform(50, 200)     # extrude length
-        taper       = 2 * height * math.tan(math.radians(angle_deg))
-        width_bot   = round(width_top - taper, 2)
+        height = rng.uniform(8, max(8.1, min(22, max_h)))
+        length = rng.uniform(50, 200)  # extrude length
+        taper = 2 * height * math.tan(math.radians(angle_deg))
+        width_bot = round(width_top - taper, 2)
 
         params = {
-            "variant":      variant,
-            "width_top":    round(width_top, 1),   # wide end of dovetail
-            "width_bottom": max(3.0, round(width_bot, 1)),   # narrow end
-            "height":       round(height, 1),
-            "length":       round(length, 1),
-            "angle_deg":    round(angle_deg, 1),
-            "difficulty":   difficulty,
+            "variant": variant,
+            "width_top": round(width_top, 1),  # wide end of dovetail
+            "width_bottom": max(3.0, round(width_bot, 1)),  # narrow end
+            "height": round(height, 1),
+            "length": round(length, 1),
+            "angle_deg": round(angle_deg, 1),
+            "difficulty": difficulty,
         }
 
         if variant == "female":
             # Block dimensions: wall on each side + base below groove
-            wall_t  = round(width_top * rng.uniform(0.25, 0.45), 1)
-            base_t  = round(height    * rng.uniform(0.30, 0.60), 1)
-            params["block_width"]  = round(width_top + 2 * wall_t, 1)
+            wall_t = round(width_top * rng.uniform(0.25, 0.45), 1)
+            base_t = round(height * rng.uniform(0.30, 0.60), 1)
+            params["block_width"] = round(width_top + 2 * wall_t, 1)
             params["block_height"] = round(height + base_t, 1)
 
         if difficulty in ("medium", "hard"):
@@ -76,7 +78,7 @@ class DovetailSlideFamily(BaseFamily):
             else:
                 hole_d = rng.uniform(3, min(8, max(3.1, params["block_width"] * 0.12)))
             if n_holes is not None:
-                params["n_holes"]       = n_holes
+                params["n_holes"] = n_holes
                 params["hole_diameter"] = round(hole_d, 1)
 
         if difficulty == "hard":
@@ -90,8 +92,8 @@ class DovetailSlideFamily(BaseFamily):
     def validate_params(self, params: dict) -> bool:
         wt = params["width_top"]
         wb = params["width_bottom"]
-        h  = params["height"]
-        L  = params["length"]
+        h = params["height"]
+        L = params["length"]
         variant = params.get("variant", "male")
 
         if wb < 2 or wt <= wb or h < 4 or L < 20:
@@ -117,18 +119,20 @@ class DovetailSlideFamily(BaseFamily):
 
     def make_program(self, params: dict) -> Program:
         difficulty = params.get("difficulty", "easy")
-        variant    = params.get("variant", "male")
+        variant = params.get("variant", "male")
         wt = params["width_top"]
         wb = params["width_bottom"]
-        h  = params["height"]
-        L  = params["length"]
+        h = params["height"]
+        L = params["length"]
 
         hw_t = round(wt / 2, 3)
         hw_b = round(wb / 2, 3)
 
         ops, tags = [], {
-            "has_hole": False, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": False,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
         }
 
         # ── 1. Base solid ────────────────────────────────────────────────────
@@ -138,8 +142,8 @@ class DovetailSlideFamily(BaseFamily):
             # Matches female groove: narrow opening at top, wide bottom
             pts = [
                 (-hw_t, 0.0),
-                ( hw_t, 0.0),
-                ( hw_b, round(h, 3)),
+                (hw_t, 0.0),
+                (hw_b, round(h, 3)),
                 (-hw_b, round(h, 3)),
             ]
             ops.append(Op("polyline", {"points": pts}))
@@ -153,14 +157,14 @@ class DovetailSlideFamily(BaseFamily):
             # Single polyline: outer block contour + dovetail groove notch at top.
             # Groove: narrow opening (wb) at y=bh, wide bottom (wt) at y=bh-h.
             pts = [
-                (-hw_bw, 0.0),            # bottom-left
-                ( hw_bw, 0.0),            # bottom-right
-                ( hw_bw, round(bh, 3)),   # top-right (block corner)
-                ( hw_b,  round(bh, 3)),   # groove opening right edge (narrow)
-                ( hw_t,  round(bh - h, 3)),  # groove bottom right (wide)
-                (-hw_t,  round(bh - h, 3)),  # groove bottom left
-                (-hw_b,  round(bh, 3)),   # groove opening left edge
-                (-hw_bw, round(bh, 3)),   # top-left (block corner)
+                (-hw_bw, 0.0),  # bottom-left
+                (hw_bw, 0.0),  # bottom-right
+                (hw_bw, round(bh, 3)),  # top-right (block corner)
+                (hw_b, round(bh, 3)),  # groove opening right edge (narrow)
+                (hw_t, round(bh - h, 3)),  # groove bottom right (wide)
+                (-hw_t, round(bh - h, 3)),  # groove bottom left
+                (-hw_b, round(bh, 3)),  # groove opening left edge
+                (-hw_bw, round(bh, 3)),  # top-left (block corner)
             ]
             ops.append(Op("polyline", {"points": pts}))
             ops.append(Op("close", {}))
@@ -181,12 +185,12 @@ class DovetailSlideFamily(BaseFamily):
 
         # ── 3. Mounting holes (medium+) ──────────────────────────────────────
         n_h = params.get("n_holes")
-        hd  = params.get("hole_diameter")
+        hd = params.get("hole_diameter")
         if n_h and hd:
             tags["has_hole"] = True
-            spacing   = round(L / (n_h + 1), 3)
-            hole_pts  = [(0.0, round(-L / 2 + spacing * (i + 1), 3)) for i in range(n_h)]
-            cbore_d   = round(hd * 1.8, 1)
+            spacing = round(L / (n_h + 1), 3)
+            hole_pts = [(0.0, round(-L / 2 + spacing * (i + 1), 3)) for i in range(n_h)]
+            cbore_d = round(hd * 1.8, 1)
             cbore_dep = round(h * 0.4, 2)
             if variant == "male":
                 # Holes on base face (<Y = wide face) — cbore fits comfortably in wide base
@@ -195,11 +199,16 @@ class DovetailSlideFamily(BaseFamily):
                 # Holes on bottom face (<Y) for mounting the guide body
                 ops.append(Op("workplane", {"selector": "<Y"}))
             ops.append(Op("pushPoints", {"points": hole_pts}))
-            ops.append(Op("cboreHole", {
-                "diameter":    hd,
-                "cboreDiameter": cbore_d,
-                "cboreDepth":  cbore_dep,
-            }))
+            ops.append(
+                Op(
+                    "cboreHole",
+                    {
+                        "diameter": hd,
+                        "cboreDiameter": cbore_d,
+                        "cboreDepth": cbore_dep,
+                    },
+                )
+            )
 
         # ── 4. Oil groove along length (hard) ────────────────────────────────
         gw = params.get("oil_groove_width")
@@ -217,17 +226,42 @@ class DovetailSlideFamily(BaseFamily):
                 # Use explicit world-coord cut: centered on the groove bottom
                 bh = params["block_height"]
                 groove_bottom_y = round(bh - h, 3)
-                ops.append(Op("cut", {"ops": [
-                    {"name": "transformed", "args": {
-                        "offset": [0, round(groove_bottom_y - gd / 2, 3), 0],
-                        "rotate": [90, 0, 0],
-                    }},
-                    {"name": "rect", "args": {
-                        "length": gw,
-                        "width": round(L * 0.8, 2),
-                    }},
-                    {"name": "extrude", "args": {"distance": round(gd * 2, 3)}},
-                ]}))
+                ops.append(
+                    Op(
+                        "cut",
+                        {
+                            "ops": [
+                                {
+                                    "name": "transformed",
+                                    "args": {
+                                        "offset": [
+                                            0,
+                                            round(groove_bottom_y - gd / 2, 3),
+                                            0,
+                                        ],
+                                        "rotate": [90, 0, 0],
+                                    },
+                                },
+                                {
+                                    "name": "rect",
+                                    "args": {
+                                        "length": gw,
+                                        "width": round(L * 0.8, 2),
+                                    },
+                                },
+                                {
+                                    "name": "extrude",
+                                    "args": {"distance": round(gd * 2, 3)},
+                                },
+                            ]
+                        },
+                    )
+                )
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

@@ -15,39 +15,40 @@ Medium: UPN80–UPN200; + fillet on inner bottom corners + chamfer on arm tips.
 Hard:   full range UPN30–UPN300; + mounting holes on the web.
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 # UPN series — EN 10279 exact nominal values (mm)
 # (designation, h, b, tw, tf)
 _UPN = [
-    ("UPN30",   30,  33, 5.0,  7.0),
-    ("UPN40",   40,  35, 5.0,  7.0),
-    ("UPN50",   50,  38, 5.0,  7.0),
-    ("UPN65",   65,  42, 5.5,  7.5),
-    ("UPN80",   80,  45, 6.0,  8.0),
-    ("UPN100", 100,  50, 6.0,  8.5),
-    ("UPN120", 120,  55, 7.0,  9.0),
-    ("UPN140", 140,  60, 7.0, 10.0),
-    ("UPN160", 160,  65, 7.5, 10.5),
-    ("UPN180", 180,  70, 8.0, 11.0),
-    ("UPN200", 200,  75, 8.5, 11.5),
-    ("UPN220", 220,  80, 9.0, 12.5),
-    ("UPN240", 240,  85, 9.5, 13.0),
-    ("UPN260", 260,  90, 10.0, 14.0),
-    ("UPN280", 280,  95, 10.0, 15.0),
+    ("UPN30", 30, 33, 5.0, 7.0),
+    ("UPN40", 40, 35, 5.0, 7.0),
+    ("UPN50", 50, 38, 5.0, 7.0),
+    ("UPN65", 65, 42, 5.5, 7.5),
+    ("UPN80", 80, 45, 6.0, 8.0),
+    ("UPN100", 100, 50, 6.0, 8.5),
+    ("UPN120", 120, 55, 7.0, 9.0),
+    ("UPN140", 140, 60, 7.0, 10.0),
+    ("UPN160", 160, 65, 7.5, 10.5),
+    ("UPN180", 180, 70, 8.0, 11.0),
+    ("UPN200", 200, 75, 8.5, 11.5),
+    ("UPN220", 220, 80, 9.0, 12.5),
+    ("UPN240", 240, 85, 9.5, 13.0),
+    ("UPN260", 260, 90, 10.0, 14.0),
+    ("UPN280", 280, 95, 10.0, 15.0),
     ("UPN300", 300, 100, 10.0, 16.0),
 ]
 
-_SMALL  = [r for r in _UPN if r[1] <= 100]   # UPN30–UPN100
+_SMALL = [r for r in _UPN if r[1] <= 100]  # UPN30–UPN100
 _MEDIUM = [r for r in _UPN if 80 <= r[1] <= 200]  # UPN80–UPN200
-_ALL    = _UPN
+_ALL = _UPN
 
 
 class UChannelFamily(BaseFamily):
     """Parametric U-channel — UPN series, box-minus-cutout geometry."""
 
     name = "u_channel"
+    standard = "EN 10279"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         if difficulty == "easy":
@@ -90,7 +91,11 @@ class UChannelFamily(BaseFamily):
             if max_hd >= 2.0:
                 hd = round(rng.uniform(2.0, max_hd), 1)
                 n_holes = int(rng.choice([2, 3, 4]))
-                spacing = round((length - 20) / max(1, n_holes - 1), 1) if n_holes > 1 else length
+                spacing = (
+                    round((length - 20) / max(1, n_holes - 1), 1)
+                    if n_holes > 1
+                    else length
+                )
                 params["hole_diameter"] = hd
                 params["hole_count"] = n_holes
                 params["hole_spacing"] = spacing
@@ -181,6 +186,9 @@ class UChannelFamily(BaseFamily):
             ops.append(Op("hole", {"diameter": hd}))
 
         return Program(
-            family=self.name, difficulty=difficulty,
-            params=params, ops=ops, feature_tags=tags,
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
         )

@@ -8,12 +8,13 @@ Medium: + mounting holes + chamfer on pockets
 Hard:   + round pockets (mix) + fillet + through center hole
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class WafflePlateFamily(BaseFamily):
     name = "waffle_plate"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         length = rng.uniform(60, 200)
@@ -48,8 +49,12 @@ class WafflePlateFamily(BaseFamily):
         if difficulty in ("medium", "hard"):
             inset = rng.uniform(5, max(6, min(16, margin * 0.8)))
             params["mount_inset"] = round(inset, 1)
-            params["mount_hole_diameter"] = round(rng.uniform(3.0, max(3.1, min(6.0, inset * 0.5))), 1)
-            params["pocket_chamfer"] = round(rng.uniform(0.3, min(1.5, pocket_w * 0.08)), 1)
+            params["mount_hole_diameter"] = round(
+                rng.uniform(3.0, max(3.1, min(6.0, inset * 0.5))), 1
+            )
+            params["pocket_chamfer"] = round(
+                rng.uniform(0.3, min(1.5, pocket_w * 0.08)), 1
+            )
 
         if difficulty == "hard":
             # Some pockets round instead of square (variation)
@@ -103,9 +108,12 @@ class WafflePlateFamily(BaseFamily):
         ys = params["y_spacing"]
 
         ops, tags = [], {
-            "has_hole": False, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
-            "pattern_like": True, "has_pocket": True,
+            "has_hole": False,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
+            "pattern_like": True,
+            "has_pocket": True,
         }
 
         # Base plate
@@ -120,12 +128,17 @@ class WafflePlateFamily(BaseFamily):
 
         # Grid pockets (square cutBlind)
         ops.append(Op("workplane", {"selector": ">Z"}))
-        ops.append(Op("rarray", {
-            "xSpacing": xs if nx > 1 else 1,
-            "ySpacing": ys if ny > 1 else 1,
-            "xCount": nx,
-            "yCount": ny,
-        }))
+        ops.append(
+            Op(
+                "rarray",
+                {
+                    "xSpacing": xs if nx > 1 else 1,
+                    "ySpacing": ys if ny > 1 else 1,
+                    "xCount": nx,
+                    "yCount": ny,
+                },
+            )
+        )
         ops.append(Op("rect", {"length": pw, "width": ph}))
         ops.append(Op("cutBlind", {"depth": pd}))
 
@@ -133,12 +146,17 @@ class WafflePlateFamily(BaseFamily):
         rpd = params.get("round_pocket_diameter")
         if rpd:
             ops.append(Op("workplane", {"selector": "<Z"}))
-            ops.append(Op("rarray", {
-                "xSpacing": xs if nx > 1 else 1,
-                "ySpacing": ys if ny > 1 else 1,
-                "xCount": nx,
-                "yCount": ny,
-            }))
+            ops.append(
+                Op(
+                    "rarray",
+                    {
+                        "xSpacing": xs if nx > 1 else 1,
+                        "ySpacing": ys if ny > 1 else 1,
+                        "xCount": nx,
+                        "yCount": ny,
+                    },
+                )
+            )
             ops.append(Op("circle", {"radius": rpd / 2}))
             ops.append(Op("cutBlind", {"depth": round(t - pd - 2, 2)}))
 
@@ -156,10 +174,10 @@ class WafflePlateFamily(BaseFamily):
             tags["has_hole"] = True
             ops.append(Op("workplane", {"selector": ">Z"}))
             pts = [
-                (round( l/2 - ins, 3), round( w/2 - ins, 3)),
-                (round( l/2 - ins, 3), round(-w/2 + ins, 3)),
-                (round(-l/2 + ins, 3), round( w/2 - ins, 3)),
-                (round(-l/2 + ins, 3), round(-w/2 + ins, 3)),
+                (round(l / 2 - ins, 3), round(w / 2 - ins, 3)),
+                (round(l / 2 - ins, 3), round(-w / 2 + ins, 3)),
+                (round(-l / 2 + ins, 3), round(w / 2 - ins, 3)),
+                (round(-l / 2 + ins, 3), round(-w / 2 + ins, 3)),
             ]
             ops.append(Op("pushPoints", {"points": pts}))
             ops.append(Op("hole", {"diameter": mhd}))
@@ -171,5 +189,10 @@ class WafflePlateFamily(BaseFamily):
             ops.append(Op("edges", {"selector": "|Z"}))
             ops.append(Op("fillet", {"radius": fr}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

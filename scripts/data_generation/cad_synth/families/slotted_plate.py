@@ -6,27 +6,32 @@ Medium: + 2nd row + |Z fillet
 Hard:   + corner mounting holes + chamfer
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class SlottedPlateFamily(BaseFamily):
     name = "slotted_plate"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         length = rng.uniform(60, 250)
-        width  = rng.uniform(40, 150)
-        thick  = rng.uniform(4, 15)
+        width = rng.uniform(40, 150)
+        thick = rng.uniform(4, 15)
         n_slots = int(rng.choice([2, 3, 4, 5]))
         slot_l = rng.uniform(length * 0.3, length * 0.7)
         slot_w_max = max(4.5, min(12, (width - 20) / (n_slots + 1)))
         slot_w = rng.uniform(4, slot_w_max)
-        slot_spacing = (width - 10 - slot_w) / max(1, n_slots - 1) if n_slots > 1 else width / 2
+        slot_spacing = (
+            (width - 10 - slot_w) / max(1, n_slots - 1) if n_slots > 1 else width / 2
+        )
 
         params = {
-            "length": round(length, 1), "width": round(width, 1),
+            "length": round(length, 1),
+            "width": round(width, 1),
             "thickness": round(thick, 1),
-            "slot_count": n_slots, "slot_length": round(slot_l, 1),
+            "slot_count": n_slots,
+            "slot_length": round(slot_l, 1),
             "slot_width": round(slot_w, 1),
             "slot_spacing": round(slot_spacing, 2),
             "difficulty": difficulty,
@@ -80,8 +85,11 @@ class SlottedPlateFamily(BaseFamily):
         ss = params["slot_spacing"]
 
         ops, tags = [], {
-            "has_slot": True, "has_hole": False,
-            "has_fillet": False, "has_chamfer": False, "pattern_like": True,
+            "has_slot": True,
+            "has_hole": False,
+            "has_fillet": False,
+            "has_chamfer": False,
+            "pattern_like": True,
         }
 
         ops.append(Op("box", {"length": l, "width": w, "height": t}))
@@ -95,10 +103,17 @@ class SlottedPlateFamily(BaseFamily):
 
         # Row of slots along X, spaced in Y
         ops.append(Op("workplane", {"selector": ">Z"}))
-        ops.append(Op("rarray", {
-            "xSpacing": 1, "ySpacing": ss if n > 1 else 1,
-            "xCount": 1, "yCount": n,
-        }))
+        ops.append(
+            Op(
+                "rarray",
+                {
+                    "xSpacing": 1,
+                    "ySpacing": ss if n > 1 else 1,
+                    "xCount": 1,
+                    "yCount": n,
+                },
+            )
+        )
         ops.append(Op("rect", {"length": sl, "width": sw}))
         ops.append(Op("cutThruAll", {}))
 
@@ -108,10 +123,10 @@ class SlottedPlateFamily(BaseFamily):
         if hd:
             tags["has_hole"] = True
             pts = [
-                (round( l/2 - inset, 3), round( w/2 - inset, 3)),
-                (round( l/2 - inset, 3), round(-w/2 + inset, 3)),
-                (round(-l/2 + inset, 3), round( w/2 - inset, 3)),
-                (round(-l/2 + inset, 3), round(-w/2 + inset, 3)),
+                (round(l / 2 - inset, 3), round(w / 2 - inset, 3)),
+                (round(l / 2 - inset, 3), round(-w / 2 + inset, 3)),
+                (round(-l / 2 + inset, 3), round(w / 2 - inset, 3)),
+                (round(-l / 2 + inset, 3), round(-w / 2 + inset, 3)),
             ]
             ops.append(Op("workplane", {"selector": ">Z"}))
             ops.append(Op("pushPoints", {"points": pts}))
@@ -123,5 +138,10 @@ class SlottedPlateFamily(BaseFamily):
             ops.append(Op("faces", {"selector": ">Z"}))
             ops.append(Op("chamfer", {"length": cl}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

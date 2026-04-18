@@ -20,6 +20,7 @@ from .base import BaseFamily
 
 class TorusLinkFamily(BaseFamily):
     name = "torus_link"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         R = round(rng.uniform(25, 80), 1)  # major radius

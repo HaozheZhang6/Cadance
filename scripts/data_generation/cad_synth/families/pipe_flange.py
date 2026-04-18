@@ -6,21 +6,22 @@ Medium: plate + center bore + 4 corner bolt holes + fillet edges
 Hard:   plate + raised boss around bore + bolt holes + chamfer
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class PipeFlangeFamily(BaseFamily):
     """Parametric pipe flange: plate with central bore and corner bolt holes."""
 
     name = "pipe_flange"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         """Sample params for a pipe flange."""
         side = rng.uniform(60, 200)  # plate is roughly square
         aspect = rng.uniform(0.7, 1.3)
         length = round(side, 1)
-        width  = round(side * aspect, 1)
+        width = round(side * aspect, 1)
         thickness = rng.uniform(8, 30)
         bore_r = rng.uniform(10, min(length, width) / 3)
 
@@ -131,10 +132,10 @@ class PipeFlangeFamily(BaseFamily):
         if hd is not None:
             tags["pattern_like"] = True
             corners = [
-                ( inset - l/2,  inset - w/2),
-                ( inset - l/2,  w/2 - inset),
-                ( l/2 - inset,  inset - w/2),
-                ( l/2 - inset,  w/2 - inset),
+                (inset - l / 2, inset - w / 2),
+                (inset - l / 2, w / 2 - inset),
+                (l / 2 - inset, inset - w / 2),
+                (l / 2 - inset, w / 2 - inset),
             ]
             corners = [(round(x, 4), round(y, 4)) for x, y in corners]
             ops.append(Op("workplane", {"selector": ">Z"}))
@@ -161,6 +162,9 @@ class PipeFlangeFamily(BaseFamily):
             ops.append(Op("chamfer", {"length": cl}))
 
         return Program(
-            family=self.name, difficulty=difficulty,
-            params=params, ops=ops, feature_tags=tags,
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
         )

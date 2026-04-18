@@ -1,15 +1,15 @@
 """Mounting plate family — rectangular plate with optional holes/fillets."""
 
-import math
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class MountingPlateFamily(BaseFamily):
     """Parametric mounting plate: rect base + optional corner holes + fillet."""
 
     name = "mounting_plate"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         """Sample params for a mounting plate at given difficulty."""
@@ -100,8 +100,14 @@ class MountingPlateFamily(BaseFamily):
 
         # Base plate
         ops.append(
-            Op("box", {"length": params["length"], "width": params["width"],
-                        "height": params["thickness"]})
+            Op(
+                "box",
+                {
+                    "length": params["length"],
+                    "width": params["width"],
+                    "height": params["thickness"],
+                },
+            )
         )
 
         # Fillet vertical edges FIRST (before holes/slots break topology)

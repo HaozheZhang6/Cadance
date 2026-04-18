@@ -10,8 +10,8 @@ Medium: + flange base + chamfer
 Hard:   + partial blind bore (stepped) + fillet
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 # ISO 272 / DIN 934 hex standoff table — (m_size, af_mm, bore_d, h_min, h_max) mm
 _ISO272 = [

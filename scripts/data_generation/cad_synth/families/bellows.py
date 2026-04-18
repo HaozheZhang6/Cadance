@@ -11,21 +11,24 @@ Medium: + end flanges (collar cylinders)
 Hard:   + bore hole + flange bolt holes
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 VARIANTS = ["round", "conical"]
 
 
 class BellowsFamily(BaseFamily):
     name = "bellows"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         variant = rng.choice(VARIANTS)
         outer_r = rng.uniform(8, 40)
         inner_r = rng.uniform(outer_r * 0.45, max(outer_r * 0.46, outer_r * 0.65))
-        n_conv = int(rng.uniform(4, 9))         # number of convolutions
-        conv_h = rng.uniform(max(3, outer_r * 0.25), max(3.1, outer_r * 0.55))  # height per half-conv
+        n_conv = int(rng.uniform(4, 9))  # number of convolutions
+        conv_h = rng.uniform(
+            max(3, outer_r * 0.25), max(3.1, outer_r * 0.55)
+        )  # height per half-conv
 
         params = {
             "variant": variant,
@@ -88,8 +91,10 @@ class BellowsFamily(BaseFamily):
         fh = params.get("flange_height")
 
         ops, tags = [], {
-            "has_hole": True, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": True,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
             "rotational": True,
         }
 
@@ -119,7 +124,9 @@ class BellowsFamily(BaseFamily):
             frac_end = (2 * i + 1) / (2 * n)
             if variant == "conical":
                 cur_ir = round(ir * (1.0 - taper * frac_end * 0.5), 3)
-                cur_or = round(or_ * (1.0 - taper * (frac_start + (frac_end - frac_start) / 2)), 3)
+                cur_or = round(
+                    or_ * (1.0 - taper * (frac_start + (frac_end - frac_start) / 2)), 3
+                )
             else:
                 cur_ir = ir
                 cur_or = or_
@@ -143,7 +150,12 @@ class BellowsFamily(BaseFamily):
 
         ops.append(Op("polyline", {"points": pts}))
         ops.append(Op("close", {}))
-        ops.append(Op("revolve", {"angleDeg": 360, "axisStart": [0, 0, 0], "axisEnd": [0, 1, 0]}))
+        ops.append(
+            Op(
+                "revolve",
+                {"angleDeg": 360, "axisStart": [0, 0, 0], "axisEnd": [0, 1, 0]},
+            )
+        )
 
         # Hard bore override (wider bore than wall_t allows)
         br = params.get("bore_radius")
@@ -159,9 +171,24 @@ class BellowsFamily(BaseFamily):
             bolt_pcd = round(or_ + (fr - or_) * 0.55, 3)
             for face_sel in (">Y", "<Y"):
                 ops.append(Op("workplane", {"selector": face_sel}))
-                ops.append(Op("polarArray", {"radius": bolt_pcd, "startAngle": 0, "angle": 360, "count": nb}))
+                ops.append(
+                    Op(
+                        "polarArray",
+                        {
+                            "radius": bolt_pcd,
+                            "startAngle": 0,
+                            "angle": 360,
+                            "count": nb,
+                        },
+                    )
+                )
                 ops.append(Op("circle", {"radius": round(bd / 2, 3)}))
                 ops.append(Op("cutBlind", {"depth": fh}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

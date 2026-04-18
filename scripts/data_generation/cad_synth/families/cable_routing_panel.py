@@ -6,12 +6,13 @@ Medium: + 2nd row + chamfer
 Hard:   + center hole cluster + fillet
 """
 
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 
 class CableRoutingPanelFamily(BaseFamily):
     name = "cable_routing_panel"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         length = rng.uniform(100, 300)
@@ -23,7 +24,9 @@ class CableRoutingPanelFamily(BaseFamily):
         slot_l = rng.uniform(20, min(50, length * 0.4))
         slot_w = rng.uniform(6, min(16, width * 0.15))
         # slot spacing (center-to-center along length axis)
-        slot_spacing = (length - 2 * inset - slot_l) / max(1, n_slots - 1) if n_slots > 1 else 1
+        slot_spacing = (
+            (length - 2 * inset - slot_l) / max(1, n_slots - 1) if n_slots > 1 else 1
+        )
         row_y = rng.uniform(width * 0.15, width * 0.3)
 
         params = {
@@ -95,8 +98,10 @@ class CableRoutingPanelFamily(BaseFamily):
         ry = params["row_y_offset"]
 
         ops, tags = [], {
-            "has_hole": True, "has_slot": True,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": True,
+            "has_slot": True,
+            "has_fillet": False,
+            "has_chamfer": False,
             "pattern_like": True,
         }
 
@@ -118,12 +123,17 @@ class CableRoutingPanelFamily(BaseFamily):
         def _add_slot_row(y_off):
             ops.append(Op("workplane", {"selector": ">Z"}))
             ops.append(Op("center", {"x": 0.0, "y": round(y_off, 3)}))
-            ops.append(Op("rarray", {
-                "xSpacing": ss if n > 1 else 1,
-                "ySpacing": 1,
-                "xCount": n,
-                "yCount": 1,
-            }))
+            ops.append(
+                Op(
+                    "rarray",
+                    {
+                        "xSpacing": ss if n > 1 else 1,
+                        "ySpacing": 1,
+                        "xCount": n,
+                        "yCount": 1,
+                    },
+                )
+            )
             ops.append(Op("rect", {"length": sl, "width": sw}))
             ops.append(Op("cutThruAll", {}))
 
@@ -137,22 +147,34 @@ class CableRoutingPanelFamily(BaseFamily):
         if chn and chd:
             spacing = chd + 4
             ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("rarray", {
-                "xSpacing": spacing, "ySpacing": 1,
-                "xCount": chn, "yCount": 1,
-            }))
+            ops.append(
+                Op(
+                    "rarray",
+                    {
+                        "xSpacing": spacing,
+                        "ySpacing": 1,
+                        "xCount": chn,
+                        "yCount": 1,
+                    },
+                )
+            )
             ops.append(Op("hole", {"diameter": chd}))
 
         # Corner mounting holes
         ops.append(Op("workplane", {"selector": ">Z"}))
         pts = [
-            (round( l/2 - ins, 3), round( w/2 - ins, 3)),
-            (round( l/2 - ins, 3), round(-w/2 + ins, 3)),
-            (round(-l/2 + ins, 3), round( w/2 - ins, 3)),
-            (round(-l/2 + ins, 3), round(-w/2 + ins, 3)),
+            (round(l / 2 - ins, 3), round(w / 2 - ins, 3)),
+            (round(l / 2 - ins, 3), round(-w / 2 + ins, 3)),
+            (round(-l / 2 + ins, 3), round(w / 2 - ins, 3)),
+            (round(-l / 2 + ins, 3), round(-w / 2 + ins, 3)),
         ]
         ops.append(Op("pushPoints", {"points": pts}))
         ops.append(Op("hole", {"diameter": mhd}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

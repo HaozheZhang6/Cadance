@@ -12,15 +12,15 @@ Medium: + narrower tip chord + bore
 Hard:   lofted ellipse airfoil blade (root→tip taper + twist) + bore + fillet
 """
 
-import math
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
 
 VARIANTS = ["2blade", "3blade", "4blade"]
 
 
 class PropellerFamily(BaseFamily):
     name = "propeller"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         variant = rng.choice(VARIANTS)
@@ -29,8 +29,10 @@ class PropellerFamily(BaseFamily):
         hub_h = rng.uniform(hub_r * 0.6, hub_r * 1.5)
         blade_len = rng.uniform(hub_r * 2.2, hub_r * 4.2)
         root_chord = rng.uniform(hub_r * 0.9, hub_r * 1.8)
-        root_thickness = rng.uniform(max(2.0, root_chord * 0.18), max(root_chord * 0.22, root_chord * 0.32))
-        pitch_deg = rng.uniform(10, 40)   # blade pitch angle from hub plane
+        root_thickness = rng.uniform(
+            max(2.0, root_chord * 0.18), max(root_chord * 0.22, root_chord * 0.32)
+        )
+        pitch_deg = rng.uniform(10, 40)  # blade pitch angle from hub plane
 
         params = {
             "variant": variant,
@@ -104,8 +106,10 @@ class PropellerFamily(BaseFamily):
         tip_pitch = params.get("tip_pitch_angle", pitch * 0.75)
 
         ops, tags = [], {
-            "has_hole": False, "has_slot": False,
-            "has_fillet": False, "has_chamfer": False,
+            "has_hole": False,
+            "has_slot": False,
+            "has_fillet": False,
+            "has_chamfer": False,
             "rotational": True,
         }
 
@@ -139,71 +143,117 @@ class PropellerFamily(BaseFamily):
 
             for i in range(n_blades):
                 blade_angle = round(360.0 * i / n_blades, 3)
-                ops.append(Op("union", {"ops": [
-                    # Step 1: move to hub equator (z=0), rotate to blade azimuth
-                    {"name": "transformed", "args": {
-                        "offset": [0, 0, 0],
-                        "rotate": [0, 0, blade_angle],
-                    }},
-                    # Step 2: Ry(90°) makes local-Z = radially outward (span axis);
-                    # offset [0,0, hub_r-root_inset] moves root to hub surface
-                    {"name": "transformed", "args": {
-                        "offset": [0, 0, round(hub_r - root_inset, 3)],
-                        "rotate": [0, 90, 0],
-                    }},
-                    # Step 3: pitch rotation of cross-section around chord (Y) axis
-                    {"name": "transformed", "args": {
-                        "offset": [0, 0, 0],
-                        "rotate": [0, round(pitch, 3), 0],
-                    }},
-                    # Root cross-section: ellipse(thickness/2, chord/2)
-                    {"name": "ellipse", "args": {
-                        "xRadius": round(root_t / 2, 3),
-                        "yRadius": round(root_chord / 2, 3),
-                    }},
-                    # Span offset to tip
-                    {"name": "workplane_offset", "args": {"offset": round(blade_len, 3)}},
-                    # Differential tip untwist around chord (Y) axis
-                    {"name": "transformed", "args": {
-                        "offset": [0, 0, 0],
-                        "rotate": [0, round(twist_deg, 3), 0],
-                    }},
-                    # Tip cross-section: smaller and thinner
-                    {"name": "ellipse", "args": {
-                        "xRadius": round(tip_t / 2, 3),
-                        "yRadius": round(tip_chord / 2, 3),
-                    }},
-                    {"name": "loft", "args": {"combine": True}},
-                ]}))
+                ops.append(
+                    Op(
+                        "union",
+                        {
+                            "ops": [
+                                # Step 1: move to hub equator (z=0), rotate to blade azimuth
+                                {
+                                    "name": "transformed",
+                                    "args": {
+                                        "offset": [0, 0, 0],
+                                        "rotate": [0, 0, blade_angle],
+                                    },
+                                },
+                                # Step 2: Ry(90°) makes local-Z = radially outward (span axis);
+                                # offset [0,0, hub_r-root_inset] moves root to hub surface
+                                {
+                                    "name": "transformed",
+                                    "args": {
+                                        "offset": [0, 0, round(hub_r - root_inset, 3)],
+                                        "rotate": [0, 90, 0],
+                                    },
+                                },
+                                # Step 3: pitch rotation of cross-section around chord (Y) axis
+                                {
+                                    "name": "transformed",
+                                    "args": {
+                                        "offset": [0, 0, 0],
+                                        "rotate": [0, round(pitch, 3), 0],
+                                    },
+                                },
+                                # Root cross-section: ellipse(thickness/2, chord/2)
+                                {
+                                    "name": "ellipse",
+                                    "args": {
+                                        "xRadius": round(root_t / 2, 3),
+                                        "yRadius": round(root_chord / 2, 3),
+                                    },
+                                },
+                                # Span offset to tip
+                                {
+                                    "name": "workplane_offset",
+                                    "args": {"offset": round(blade_len, 3)},
+                                },
+                                # Differential tip untwist around chord (Y) axis
+                                {
+                                    "name": "transformed",
+                                    "args": {
+                                        "offset": [0, 0, 0],
+                                        "rotate": [0, round(twist_deg, 3), 0],
+                                    },
+                                },
+                                # Tip cross-section: smaller and thinner
+                                {
+                                    "name": "ellipse",
+                                    "args": {
+                                        "xRadius": round(tip_t / 2, 3),
+                                        "yRadius": round(tip_chord / 2, 3),
+                                    },
+                                },
+                                {"name": "loft", "args": {"combine": True}},
+                            ]
+                        },
+                    )
+                )
         else:
             # Flat swept-planform blade (easy / medium) — 5-point profile per reference:
             # (0, ±root_chord/2) → (len*0.72, ±tip_chord*0.55) → (len, 0.0)
             blade_z = round((hub_h - root_t) / 2, 3)
             for i in range(n_blades):
                 blade_angle = round(360.0 * i / n_blades, 3)
-                bl  = round(blade_len, 3)
+                bl = round(blade_len, 3)
                 rc2 = round(root_chord / 2, 3)
-                tc  = tip_chord if difficulty == "medium" else round(root_chord * 0.65, 3)
+                tc = (
+                    tip_chord if difficulty == "medium" else round(root_chord * 0.65, 3)
+                )
                 blade_pts = [
-                    [0.0,              round(-rc2, 3)],
-                    [0.0,              rc2],
+                    [0.0, round(-rc2, 3)],
+                    [0.0, rc2],
                     [round(bl * 0.72, 3), round(tc * 0.55, 3)],
-                    [bl,               0.0],
+                    [bl, 0.0],
                     [round(bl * 0.72, 3), round(-tc * 0.55, 3)],
                 ]
-                ops.append(Op("union", {"ops": [
-                    {"name": "transformed", "args": {
-                        "offset": [0, 0, blade_z],
-                        "rotate": [0, 0, blade_angle],
-                    }},
-                    {"name": "transformed", "args": {
-                        "offset": [root_inset, 0, 0],
-                        "rotate": [round(pitch, 3), 0, 0],
-                    }},
-                    {"name": "polyline", "args": {"points": blade_pts}},
-                    {"name": "close", "args": {}},
-                    {"name": "extrude", "args": {"distance": round(root_t, 3)}},
-                ]}))
+                ops.append(
+                    Op(
+                        "union",
+                        {
+                            "ops": [
+                                {
+                                    "name": "transformed",
+                                    "args": {
+                                        "offset": [0, 0, blade_z],
+                                        "rotate": [0, 0, blade_angle],
+                                    },
+                                },
+                                {
+                                    "name": "transformed",
+                                    "args": {
+                                        "offset": [root_inset, 0, 0],
+                                        "rotate": [round(pitch, 3), 0, 0],
+                                    },
+                                },
+                                {"name": "polyline", "args": {"points": blade_pts}},
+                                {"name": "close", "args": {}},
+                                {
+                                    "name": "extrude",
+                                    "args": {"distance": round(root_t, 3)},
+                                },
+                            ]
+                        },
+                    )
+                )
 
         # Fillet on hub-blade junctions (medium flat blades only; lofted blades skip)
         fr = params.get("fillet_radius")
@@ -212,5 +262,10 @@ class PropellerFamily(BaseFamily):
             ops.append(Op("edges", {"selector": ">Z"}))
             ops.append(Op("fillet", {"radius": fr}))
 
-        return Program(family=self.name, difficulty=difficulty,
-                       params=params, ops=ops, feature_tags=tags)
+        return Program(
+            family=self.name,
+            difficulty=difficulty,
+            params=params,
+            ops=ops,
+            feature_tags=tags,
+        )

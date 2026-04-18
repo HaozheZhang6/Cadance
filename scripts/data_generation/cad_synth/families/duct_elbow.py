@@ -16,6 +16,7 @@ from .base import BaseFamily
 
 class DuctElbowFamily(BaseFamily):
     name = "duct_elbow"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         duct_w = round(rng.uniform(20, 80), 1)  # section width (X dir)
@@ -103,15 +104,28 @@ class DuctElbowFamily(BaseFamily):
         # This opens both ends and creates proper duct wall thickness.
         inner_dw = round(dw - 2 * wt, 4)
         inner_dh = round(dh - 2 * wt, 4)
-        ops.append(Op("cut", {"ops": [
-            {"name": "rect", "args": {"length": inner_dw, "width": inner_dh}},
-            {"name": "sweep", "args": {
-                "path_type": "elbow_arc",
-                "lead_length": round(lead, 4),
-                "bend_radius": round(br, 4),
-                "trail_length": round(trail, 4),
-            }},
-        ]}))
+        ops.append(
+            Op(
+                "cut",
+                {
+                    "ops": [
+                        {
+                            "name": "rect",
+                            "args": {"length": inner_dw, "width": inner_dh},
+                        },
+                        {
+                            "name": "sweep",
+                            "args": {
+                                "path_type": "elbow_arc",
+                                "lead_length": round(lead, 4),
+                                "bend_radius": round(br, 4),
+                                "trail_length": round(trail, 4),
+                            },
+                        },
+                    ]
+                },
+            )
+        )
 
         # Reinforcement rib on outer side of lead section (medium+).
         # A box union on the +X face of the lead run (outer side of bend).
@@ -144,7 +158,6 @@ class DuctElbowFamily(BaseFamily):
                     },
                 )
             )
-
 
         return Program(
             family=self.name,

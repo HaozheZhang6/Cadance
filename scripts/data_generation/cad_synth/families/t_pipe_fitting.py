@@ -1,6 +1,7 @@
 """T-pipe fitting — main run + perpendicular branch with flanges and bores.
 
 Rewritten from: tmp/manual_family_previews/manual_t_pipe.py
+Pipe OD/wall from ASME B36.10M Sch40 NPS table (same as pipe_elbow).
 
 Construction (matches manual exactly):
   Step 1: Main pipe outer wall — cylinder along Z
@@ -18,54 +19,72 @@ Medium: + flanges + bolt holes on main ends + branch flange
 Hard:   + bolt holes on branch flange
 """
 
-import math
-from .base import BaseFamily
 from ..pipeline.builder import Op, Program
+from .base import BaseFamily
+
+# ASME B36.10M Sch40 — (nps_label, OD_mm, wall_mm)
+_NPS_SCH40 = [
+    ("NPS 1/2", 21.3, 2.77),
+    ("NPS 3/4", 26.7, 2.87),
+    ("NPS 1", 33.4, 3.38),
+    ("NPS 1-1/4", 42.2, 3.56),
+    ("NPS 1-1/2", 48.3, 3.68),
+    ("NPS 2", 60.3, 3.91),
+    ("NPS 2-1/2", 73.0, 5.16),
+    ("NPS 3", 88.9, 5.49),
+    ("NPS 4", 114.3, 6.02),
+]
+_SMALL_NPS = _NPS_SCH40[:5]   # NPS 1/2 – 1-1/2
+_MID_NPS = _NPS_SCH40[2:7]    # NPS 1 – 2-1/2
+_ALL_NPS = _NPS_SCH40
 
 VARIANTS = ["tee"]
 
 
 class TPipeFittingFamily(BaseFamily):
     name = "t_pipe_fitting"
+    standard = "ASME B16.9"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        variant = rng.choice(VARIANTS)
-        od = rng.uniform(12, 60)
-        wall = rng.uniform(2, max(2.1, od * 0.15))
-        run_len = rng.uniform(od * 1.5, od * 4)
-        branch_od = rng.uniform(od * 0.5, od * 0.95)
-        branch_len = rng.uniform(branch_od * 1.2, branch_od * 3)
+        pool = (
+            _SMALL_NPS if difficulty == "easy"
+            else (_MID_NPS if difficulty == "medium" else _ALL_NPS)
+        )
+        nps, od, wall = pool[int(rng.integers(0, len(pool)))]
+        # Branch: one NPS step smaller (or same if already smallest)
+        branch_row = pool[max(0, int(rng.integers(0, len(pool))) - 1)]
+        branch_od = branch_row[1]
+        run_len = round(od * rng.uniform(2.5, 4.0), 1)
+        branch_len = round(branch_od * rng.uniform(1.5, 3.0), 1)
 
         params = {
-            "variant": variant,
-            "outer_diameter": round(od, 1),
-            "wall_thickness": round(wall, 1),
-            "run_length": round(run_len, 1),
+            "nps": nps,
+            "variant": "tee",
+            "outer_diameter": od,
+            "wall_thickness": wall,
+            "run_length": run_len,
             "branch_od": round(branch_od, 1),
-            "branch_length": round(branch_len, 1),
+            "branch_length": branch_len,
             "difficulty": difficulty,
         }
 
         if difficulty in ("medium", "hard"):
-            flange_od = round(od * rng.uniform(1.5, 2.2), 1)
-            flange_t = round(rng.uniform(3, max(3.1, wall * 1.5)), 1)
-            n_bolt = int(rng.choice([4, 6, 8]))
-            bolt_d = round(
-                rng.uniform(3, max(3.1, min(8, flange_od * 0.1))), 1
-            )
+            flange_od = round(od * 1.8, 1)
+            flange_t = round(max(3.0, wall * 1.5), 1)
+            n_bolt = 4 if od <= 60 else 6
+            bolt_d = round(max(3.0, min(8.0, flange_od * 0.09)), 1)
             pcd_lo = max(flange_od * 0.55, od + bolt_d + 4)
             pcd_hi = min(flange_od * 0.85, flange_od - bolt_d - 4)
             pcd_lo = min(pcd_lo, pcd_hi - 0.1)
-            bolt_pcd = round(rng.uniform(pcd_lo, pcd_hi), 1)
+            bolt_pcd = round((pcd_lo + pcd_hi) / 2, 1)
             params["flange_od"] = flange_od
             params["flange_thickness"] = flange_t
             params["n_bolts"] = n_bolt
             params["bolt_diameter"] = bolt_d
             params["bolt_pcd"] = bolt_pcd
 
-            # Branch flange
-            v_flange_od = round(branch_od * rng.uniform(1.2, 1.6), 1)
-            v_flange_t = round(rng.uniform(3, max(3.1, wall * 1.8)), 1)
+            v_flange_od = round(branch_od * 1.6, 1)
+            v_flange_t = round(max(3.0, wall * 1.8), 1)
             params["branch_flange_od"] = v_flange_od
             params["branch_flange_thickness"] = v_flange_t
 
@@ -97,7 +116,6 @@ class TPipeFittingFamily(BaseFamily):
 
     def make_program(self, params: dict) -> Program:
         difficulty = params.get("difficulty", "easy")
-        variant = params.get("variant", "tee")
         od = params["outer_diameter"]
         wall = params["wall_thickness"]
         rl = params["run_length"]
