@@ -39,6 +39,7 @@ _ALL = _DIN950
 
 class HandwheelFamily(BaseFamily):
     name = "handwheel"
+    standard = "DIN 950"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         pool = (

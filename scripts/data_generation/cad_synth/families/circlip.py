@@ -25,6 +25,7 @@ _DIN471_SHAFT_D = [8, 10, 12, 15, 17, 19, 20, 22, 24, 25, 28, 30, 35, 40, 45, 50
 
 class CirclipFamily(BaseFamily):
     name = "circlip"
+    standard = "DIN 471/472"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         shaft_d = float(rng.choice(_DIN471_SHAFT_D))

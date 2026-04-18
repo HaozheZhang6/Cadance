@@ -44,6 +44,7 @@ class HexNutFamily(BaseFamily):
     """ISO 4032 hex nut."""
 
     name = "hex_nut"
+    standard = "ISO 4032"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         if difficulty == "easy":

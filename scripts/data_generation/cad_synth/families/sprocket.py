@@ -36,6 +36,7 @@ _ISO606 = [
 
 class SprocketFamily(BaseFamily):
     name = "sprocket"
+    standard = "ISO 606"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         pitch, dr = _ISO606[int(rng.integers(0, len(_ISO606)))]

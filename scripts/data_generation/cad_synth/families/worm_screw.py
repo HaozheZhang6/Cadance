@@ -31,6 +31,7 @@ _MODULE_SERIES = [1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 3.15, 4.0, 5.0, 6.0, 6.3, 8.0, 
 
 class WormScrewFamily(BaseFamily):
     name = "worm_screw"
+    standard = "ISO 10828"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         m = float(rng.choice(_MODULE_SERIES[:8]))

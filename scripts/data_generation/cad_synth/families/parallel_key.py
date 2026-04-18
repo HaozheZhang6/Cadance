@@ -44,6 +44,7 @@ class ParallelKeyFamily(BaseFamily):
     """DIN 6885A Form A parallel key."""
 
     name = "parallel_key"
+    standard = "DIN 6885"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         pool = _SMALL if difficulty == "easy" else (_MID if difficulty == "medium" else _ALL)

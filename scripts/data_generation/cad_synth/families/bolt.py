@@ -42,6 +42,7 @@ _ISO888_LENGTHS = [8, 10, 12, 16, 20, 25, 30, 35, 40, 45, 50, 55, 60,
 
 class BoltFamily(BaseFamily):
     name = "bolt"
+    standard = "ISO 4014"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         # Difficulty controls M-size range

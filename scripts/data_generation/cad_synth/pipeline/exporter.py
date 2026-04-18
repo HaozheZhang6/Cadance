@@ -11,16 +11,17 @@ DATA = ROOT / "data" / "data_generation"
 SYNTH_CSV = DATA / "synth_parts.csv"
 
 SYNTH_FIELDS = [
-    "gid",          # global monotonic row ID (unique across all runs)
+    "gid",  # global monotonic row ID (unique across all runs)
     "sample_id",
     "stem",
     "family",
     "variant",
     "difficulty",
-    "base_plane",   # "XY" | "XZ" | "YZ" — starting workplane for this sample
+    "base_plane",  # "XY" | "XZ" | "YZ" — starting workplane for this sample
     "ops_used",
     "feature_tags",
     "params_json",
+    "standard",  # ISO/DIN/ASME standard, e.g. "DIN 950", "ISO 4032", "N/A"
     "status",
     "reject_stage",
     "reject_reason",
@@ -70,9 +71,7 @@ def export_sample(
     render: bool = True,
 ) -> dict:
     """Write all artifacts for an accepted sample. Returns meta dict."""
-    sample_dir = (
-        DATA / "generated_data" / "fusion360" / stem / f"verified_{run_name}"
-    )
+    sample_dir = DATA / "generated_data" / "fusion360" / stem / f"verified_{run_name}"
     sample_dir.mkdir(parents=True, exist_ok=True)
 
     # code.py
@@ -100,9 +99,8 @@ def export_sample(
     if render:
         try:
             import sys
-            sys.path.insert(
-                0, str(ROOT / "scripts" / "data_generation")
-            )
+
+            sys.path.insert(0, str(ROOT / "scripts" / "data_generation"))
             from render_normalized_views import render_step_normalized
 
             view_dir = sample_dir / "views"
@@ -114,9 +112,7 @@ def export_sample(
                 dst = sample_dir / f"render_{i}.png"
                 if src.exists():
                     shutil.copy2(src, dst)
-                    render_paths[f"render_{i}"] = str(
-                        dst.relative_to(ROOT)
-                    )
+                    render_paths[f"render_{i}"] = str(dst.relative_to(ROOT))
         except Exception as e:
             render_paths["error"] = str(e)
 
@@ -124,6 +120,7 @@ def export_sample(
     ops_used = [op.name for op in program.ops]
 
     from .qa_generator import get_qa_and_iso
+
     qa_pairs, iso_tags = get_qa_and_iso(program.family, program.params)
 
     meta = {
@@ -148,6 +145,9 @@ def export_sample(
 
     # CSV row
     _ensure_csv_header()
+    from .registry import get_family as _get_family
+
+    _fam_cls = _get_family(program.family)
     row = {
         "gid": _next_gid(),
         "sample_id": f"sample_{sample_id:06d}",
@@ -159,6 +159,7 @@ def export_sample(
         "ops_used": json.dumps(ops_used),
         "feature_tags": json.dumps(program.feature_tags),
         "params_json": json.dumps(program.params, default=str),
+        "standard": getattr(_fam_cls, "standard", "N/A"),
         "status": "accepted",
         "reject_stage": "",
         "reject_reason": "",
@@ -187,6 +188,8 @@ def log_rejection(
     run_name: str,
 ):
     """Log a rejected sample to synth_parts.csv."""
+    from .registry import get_family as _get_family
+
     _ensure_csv_header()
     row = {
         "gid": _next_gid(),
@@ -199,6 +202,7 @@ def log_rejection(
         "ops_used": "",
         "feature_tags": "",
         "params_json": json.dumps(params, default=str),
+        "standard": getattr(_get_family(family), "standard", "N/A"),
         "status": "rejected",
         "reject_stage": stage,
         "reject_reason": reason,

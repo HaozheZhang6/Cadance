@@ -19,6 +19,7 @@ _LENGTH_OPTIONS = [6, 8, 10, 12, 16, 20, 24, 30, 36, 40, 50, 60, 80, 100]
 
 class DowelPinFamily(BaseFamily):
     name = "dowel_pin"
+    standard = "ISO 8734"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         d = float(rng.choice(_ISO8734_DIAMETERS[:10]))  # up to d=12 for reasonable rendering

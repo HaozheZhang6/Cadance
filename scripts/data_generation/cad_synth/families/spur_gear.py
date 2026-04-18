@@ -98,6 +98,7 @@ def _gear_pts(m, z, pa_deg=20.0, n_inv=5):
 
 class SpurGearFamily(BaseFamily):
     name = "spur_gear"
+    standard = "ISO 53"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         """Randomly sample parameters for one spur gear instance.

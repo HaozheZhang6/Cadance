@@ -48,6 +48,7 @@ class WasherFamily(BaseFamily):
     """ISO 7089/7090 washer — plain (easy) or chamfered OD (medium/hard)."""
 
     name = "washer"
+    standard = "ISO 7089"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         if difficulty == "easy":

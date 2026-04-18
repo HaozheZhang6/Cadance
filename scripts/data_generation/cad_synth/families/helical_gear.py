@@ -26,6 +26,7 @@ def _rotate_pts(pts, angle_deg):
 
 class HelicalGearFamily(BaseFamily):
     name = "helical_gear"
+    standard = "ISO 53"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         variant = rng.choice(["external", "herringbone"])

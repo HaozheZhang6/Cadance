@@ -9,6 +9,7 @@ class BaseFamily(ABC):
     """Base interface for all parametric CadQuery part families."""
 
     name: str = ""
+    standard: str = "N/A"  # ISO/DIN/ASME standard, e.g. "DIN 950", "ISO 4032"
 
     @abstractmethod
     def sample_params(self, difficulty: str, rng) -> dict:

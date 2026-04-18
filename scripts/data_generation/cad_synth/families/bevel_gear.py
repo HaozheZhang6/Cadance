@@ -53,6 +53,7 @@ def _gear_pts_from_pitch(pitch_r: float, module: float, n_teeth: int, pa_deg: fl
 
 class BevelGearFamily(BaseFamily):
     name = "bevel_gear"
+    standard = "ISO 23509"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         variant = rng.choice(["straight_bevel", "miter"])
