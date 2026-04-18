@@ -111,8 +111,8 @@ Tier 2 — 部分标准化（关键参数表驱动，比例公式）：
 
 | Bug | 优先级 | 状态 |
 |-----|--------|------|
-| spur_gear/helical_gear annular web recess 验证 | ⭐ HIGH | 待渲染验证 |
-| spur_gear rim_boss 配套 hub_boss | ⭐ HIGH | 待验证 |
+| spur_gear/helical_gear annular web recess 验证 | ⭐ HIGH | ✅ 100% build pass 2026-04-18 |
+| spur_gear rim_boss 配套 hub_boss | ⭐ HIGH | ✅ 100% build pass 2026-04-18 |
 | sprocket keyway DIN 6885A | 🟡 MED | ✅ 已修 2026-04-18 |
 | bearing_retainer_cap ear bolt hole 圆角 | 🟢 LOW | 待下批次 |
 
