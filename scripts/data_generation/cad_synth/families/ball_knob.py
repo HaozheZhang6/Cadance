@@ -6,6 +6,8 @@ All (D, M, H) values from DIN 319 Table 1 (Kugelknöpfe).
 Easy:   sphere + plain stem (small D 16–32 mm)
 Medium: same geometry, mid range (D 25–63 mm)
 Hard:   + through bore M-thread in stem (full range D 16–80 mm)
+
+Reference: DIN 319:1991 — Control knobs, Form C (ball); Table (D, M, H for D 16–80mm)
 """
 
 from ..pipeline.builder import Op, Program

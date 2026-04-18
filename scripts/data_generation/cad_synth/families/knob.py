@@ -11,6 +11,8 @@ Table: (D_mm, thread_M, H_nom)
 Easy:   single tapered frustum, small knobs (D 8–20 mm)
 Medium: two tapered sections + crown, mid knobs (D 12–40 mm)
 Hard:   + knurling grooves + center bore, full range (D 8–80 mm)
+
+Reference: DIN 319:1991 — Control knobs, Form 1 (conical); Table (D, M, H for D 16–80mm)
 """
 
 import math

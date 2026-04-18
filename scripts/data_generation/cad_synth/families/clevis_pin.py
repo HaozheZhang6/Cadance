@@ -6,6 +6,8 @@ within the ISO 2340 table range for the chosen diameter.
 Easy:   plain cylinder + chamfered ends
 Medium: + cross-hole for split pin (ISO 1234)
 Hard:   + groove near end for snap ring (circlip groove)
+
+Reference: ISO 2340:1986 — Clevis pins without head; Table (d, l_min, l_max for d 3–50mm)
 """
 
 from ..pipeline.builder import Op, Program

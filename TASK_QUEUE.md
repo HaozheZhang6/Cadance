@@ -95,6 +95,75 @@ Tier 2 — 部分标准化（关键参数表驱动，比例公式）：
 
 ---
 
+---
+
+## UA-7 — 标准化 Tier C Family 修复 🔴 HIGH (2026-04-18)
+
+**目标：** 8 个有标准但参数化不符标准的 family，按优先级逐个修复，改为表驱动。
+
+### 子任务列表
+
+| # | Family | 标准 | 核心问题 | 状态 |
+|---|--------|------|----------|------|
+| UA-7-1 | threaded_adapter | ASME B1.20.1 | 0个表，14个uniform，完全没实现标准 | ✅ DONE 2026-04-18 |
+| UA-7-2 | spur_gear | ISO 53 | z用uniform，keyway比例凭空，face_w全uniform | ✅ DONE 2026-04-18 |
+| UA-7-3 | helical_gear | ISO 53 | 同spur_gear + helix_angle全uniform | ✅ DONE 2026-04-18 |
+| UA-7-4 | bevel_gear | ISO 23509 | pitch_angle uniform，keyway比例凭空 | ✅ DONE 2026-04-18 |
+| UA-7-5 | pulley | ISO 22 | 几乎全uniform，只有belt groove从表 | ✅ DONE 2026-04-18 |
+| UA-7-6 | sprocket | ISO 606 | disc_thickness/bore_d uniform，keyway凭空 | ✅ DONE 2026-04-18 |
+| UA-7-7 | t_slot_rail | DIN 650 | slot_depth/back_w/wall_t均为uniform | ✅ DONE 2026-04-18 |
+| UA-7-8 | hex_standoff | ISO 272 | flange_od/bore_step为uniform | ✅ DONE 2026-04-18 |
+
+### 各任务改进方案
+
+**UA-7-1 threaded_adapter (ASME B1.20.1):**
+- 加 ASME B1.20.1 NPT 尺寸表：NPS 1/8–2"，含 hex AF、stub OD、thread pitch
+- 从表采样替代所有 hex/stub uniform 调用
+
+**UA-7-2 spur_gear (ISO 53):**
+- `z = rng.integers(14, 36)` (不是 uniform)
+- `face_w = rng.choice([6,8,10,12]) * m`
+- `bore_d` → DIN 6885A 反查合理范围
+- keyway → `din6885a_keyway(bore_d)`
+
+**UA-7-3 helical_gear (ISO 53):**
+- 同 spur_gear 所有修改
+- `helix_angle = rng.choice([15, 20, 23, 25, 30])`
+
+**UA-7-4 bevel_gear (ISO 23509):**
+- `pitch_angle = rng.choice([15,20,25,30,35,40,45])`
+- bore_d 合理范围；keyway → `din6885a_keyway(bore_d)`
+
+**UA-7-5 pulley (ISO 22 + ISO 4183):**
+- 以 ISO 4183 belt 型号为锚点
+- belt 定 groove_w → rim_r 从表选 → hub/spoke 按比例
+- bore_d → DIN 6885A
+
+**UA-7-6 sprocket (ISO 606):**
+- `disc_thickness = rng.choice([0.8,0.9,1.0,1.1,1.2]) * dr`
+- bore_d → DIN 6885A 范围；keyway → `din6885a_keyway(bore_d)`
+
+**UA-7-7 t_slot_rail (DIN 650):**
+- slot_depth/slot_back_w/wall_t 改为从 DIN 650 标准 profile 比例表取
+
+**UA-7-8 hex_standoff (ISO 272):**
+- `flange_od = af * rng.choice([1.4,1.5,1.6,1.8])`
+
+---
+
+## UA-8 — Docstring 标准来源链接 🔴 HIGH (2026-04-18)
+
+**目标：** 每个有具体标准的 family (33个)，在 docstring 里加参数示意图和表格的来源链接。
+格式：`Reference: <标准名> — <链接或文档标题>`
+
+**进度：**
+
+| Family | 标准 | 状态 |
+|--------|------|------|
+| all 33 families | various | ✅ DONE 2026-04-18 |
+
+---
+
 ## 已完成
 
 | Task | 完成时间 | 说明 |

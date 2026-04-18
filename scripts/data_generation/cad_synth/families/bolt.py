@@ -5,6 +5,8 @@ Dimensions from ISO 4014 Table 1 (partial thread) — exact standard values only
 
 Table: (M_nominal, s_across_flats, k_head_height)
 Standard lengths sampled from ISO 888 preferred length series.
+
+Reference: ISO 4014:2011 — Table 1 (s, k, e for M3–M64); ISO 888:2012 preferred lengths
 """
 
 import math
@@ -87,7 +89,7 @@ class BoltFamily(BaseFamily):
         M, s, k = pool[int(rng.integers(0, len(pool)))]
 
         # Pick length from ISO 888 series: at least 2.5×M, at most 10×M
-        valid_lens = [l for l in _ISO888_LENGTHS if M * 2.5 <= l <= M * 10]
+        valid_lens = [ln for ln in _ISO888_LENGTHS if M * 2.5 <= ln <= M * 10]
         if not valid_lens:
             valid_lens = [round(M * 4)]
         shaft_len = float(valid_lens[int(rng.integers(0, len(valid_lens)))])

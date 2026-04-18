@@ -8,6 +8,9 @@ Dimensions from ISO 272 / DIN 934 wrench-size table: M-size → (af_mm, bore_d, 
 Easy:   hex prism + center bore
 Medium: + flange base + chamfer
 Hard:   + partial blind bore (stepped) + fillet
+
+Reference: ISO 272:1982 — Hexagon sizes for bolts, screws and nuts; fastener catalogue
+  standoff height series per M-size (PCB/electronics hardware standards)
 """
 
 from ..pipeline.builder import Op, Program
@@ -79,27 +82,22 @@ class HexStandoffFamily(BaseFamily):
         }
 
         if difficulty in ("medium", "hard"):
-            # Flange base (larger hex or round disc)
-            flange_od = rng.uniform(af * 1.3, af * 1.8)
-            flange_h = rng.uniform(2, max(2.5, min(8, height * 0.25)))
-
-            params["flange_diameter"] = round(flange_od, 1)
-            params["flange_height"] = round(flange_h, 1)
-            params["chamfer_length"] = round(
-                rng.uniform(0.5, max(0.6, min(2.0, height * 0.04))), 1
-            )
+            # Flange OD: preferred multiples of AF
+            flange_od = round(af * float(rng.choice([1.4, 1.5, 1.6, 1.8])), 1)
+            flange_h = round(height * float(rng.choice([0.12, 0.15, 0.18, 0.22])), 1)
+            flange_h = max(flange_h, 2.0)
+            params["flange_diameter"] = flange_od
+            params["flange_height"] = flange_h
+            params["chamfer_length"] = round(min(1.5, height * 0.04), 1)
 
         if difficulty == "hard":
-            # Stepped bore: larger bore for top portion, smaller for bottom
-            bsd_low = bore_d * 1.3
-            bsd_high = max(bsd_low + 1, af * 0.65)
-            bore_step_d = rng.uniform(bsd_low, bsd_high)
-            bore_step_h = rng.uniform(2, max(2.5, min(8, height * 0.3)))
-            params["bore_step_diameter"] = round(bore_step_d, 1)
-            params["bore_step_height"] = round(bore_step_h, 1)
-            params["fillet_radius"] = round(
-                rng.uniform(0.3, max(0.4, min(1.0, af * 0.03))), 1
-            )
+            # Stepped bore: standard clearance step ~ bore_d × 1.5
+            bore_step_d = round(bore_d * float(rng.choice([1.3, 1.4, 1.5, 1.6])), 1)
+            bore_step_h = round(height * float(rng.choice([0.20, 0.25, 0.30])), 1)
+            bore_step_h = max(bore_step_h, 2.0)
+            params["bore_step_diameter"] = bore_step_d
+            params["bore_step_height"] = bore_step_h
+            params["fillet_radius"] = round(af * 0.025, 1)
 
         return params
 

@@ -10,6 +10,8 @@ All (d_shaft, d1_bore, D_outer, s_thickness) from DIN 6799 Table 1 — exact val
 Easy:   plain C-ring (d ≤ 8 mm)
 Medium: + lug holes for snap-ring pliers (d ≤ 17 mm)
 Hard:   + chamfered outer edge (full range d 1.5–24 mm)
+
+Reference: DIN 6799:1981 — Circlips (E-rings) for shafts; Table (d_shaft, d1, D, s for d 1.5–40mm)
 """
 
 import math

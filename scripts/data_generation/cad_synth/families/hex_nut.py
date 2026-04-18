@@ -10,6 +10,8 @@ bore = M_nominal (thread minor diameter approximated as M for geometry).
 Easy:   M3–M12; hex prism + thru bore.
 Medium: M6–M24; + chamfer on top+bottom face edges.
 Hard:   full range M3–M48; same chamfer.
+
+Reference: ISO 4032:2012 — Hexagon regular nuts (style 1); Table 1 (M_nom, s, m for M1.6–M64)
 """
 
 import math

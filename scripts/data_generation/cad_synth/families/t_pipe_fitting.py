@@ -17,6 +17,8 @@ Order matters: bore cuts come AFTER all solids are unioned (manual sequence).
 Easy:   tee body + through bores (no flanges)
 Medium: + flanges + bolt holes on main ends + branch flange
 Hard:   + bolt holes on branch flange
+
+Reference: ASME B16.9-2018 — Tee fittings; ASME B36.10M NPS/Sch40 OD and wall table
 """
 
 from ..pipeline.builder import Op, Program

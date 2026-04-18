@@ -6,6 +6,9 @@ variant=miter:          1:1 bevel gear with 45-degree pitch angle
 Easy:   tapered gear body + bore
 Medium: + bearing-seat recess
 Hard:   + small bore keyway
+
+Reference: ISO 23509:2016 — Bevel and hypoid gear geometry; preferred pitch angles
+  ISO 54:1996 — modules; DIN 6885A:1968 — keyway per bore_d
 """
 
 import math
@@ -63,8 +66,12 @@ class BevelGearFamily(BaseFamily):
         m = float(rng.choice(_ISO54))
         z = int(rng.integers(12, 32))
         r_p = m * z / 2
-        pitch_angle = 45.0 if variant == "miter" else round(rng.uniform(20, 45), 1)
-        face_w = round(rng.uniform(m * 4, min(m * 8, r_p * 0.72)), 1)
+        # ISO 23509 preferred pitch angles for straight bevel gears
+        pitch_angle = 45.0 if variant == "miter" else float(rng.choice([15.0, 20.0, 25.0, 30.0, 35.0, 40.0]))
+        # Face width: ISO 23509 recommends b ≤ r_p/3 and b ≤ 10m; preferred ratio b/m in {4,5,6,7,8}
+        fw_max = min(m * 8, r_p * 0.72)
+        fw_choices = [m * k for k in [4, 5, 6, 7, 8] if m * k <= fw_max]
+        face_w = round(float(rng.choice(fw_choices)) if fw_choices else fw_max, 1)
         bore_d = round(rng.uniform(r_p * 0.2, max(r_p * 0.21, r_p * 0.45)), 1)
         cone_h = round(r_p / math.tan(math.radians(pitch_angle)), 1)
         small_r = round(max(1.0, r_p - face_w * math.sin(math.radians(pitch_angle))), 2)

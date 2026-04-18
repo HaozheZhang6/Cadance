@@ -7,14 +7,18 @@ Belt section determines groove width and depth; pulley PD is continuously sample
 Groove angle: 34° for small PD, 36° mid, 38° large (per ISO 22 Table 1).
 
 Belt section table: (section, groove_width_mm, groove_depth_mm, pd_min_mm)
+
+Reference: ISO 22:1991 — Classical V-belt pulleys — groove angles per PD
+  ISO 4183:1989 — V-belt groove geometry; Table (Z/A/B/C/D groove_w, groove_d, pd_min)
+  ISO 22 Table 1 preferred pitch diameters per belt section
 """
 
 import math
 
 from ..pipeline.builder import Op, Program
-from .base import BaseFamily
+from .base import BaseFamily, din6885a_keyway
 
-# ISO 4183 V-belt groove geometry — (section, groove_width_w, groove_depth_h, pd_min)
+# ISO 4183 V-belt groove geometry — (section, groove_width_mm, groove_depth_mm, pd_min_mm)
 _ISO4183_BELT = [
     ("Z", 8.5, 7.0, 50),
     ("A", 11.0, 8.7, 75),
@@ -23,56 +27,86 @@ _ISO4183_BELT = [
     ("D", 27.0, 19.9, 355),
 ]
 
+# ISO 22 preferred pitch diameters (mm) per belt section
+_ISO22_PD = {
+    "Z": [50, 56, 63, 71, 80, 90, 100, 112, 125],
+    "A": [75, 80, 90, 100, 112, 125, 140, 160, 180, 200],
+    "B": [125, 140, 160, 180, 200, 224, 250],
+    "C": [200, 224, 250, 280, 315, 355],
+    "D": [355, 400, 450, 500],
+}
+
 
 class PulleyFamily(BaseFamily):
     name = "pulley"
     standard = "ISO 22"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        rim_r = rng.uniform(15, 80)  # outer rim radius
-        width = rng.uniform(10, 50)  # total axial width
-        bore_r = rng.uniform(4, max(4.1, rim_r * 0.25))  # shaft bore radius
-        hub_r = rng.uniform(bore_r + 3, max(bore_r + 3.5, rim_r * 0.45))
-        rim_t = rng.uniform(3, max(3.1, min(10, width * 0.25)))
+        # Anchor on ISO 4183 belt section first, then derive geometry
+        if difficulty == "easy":
+            belt_pool = _ISO4183_BELT[:3]   # Z, A, B
+        elif difficulty == "medium":
+            belt_pool = _ISO4183_BELT[:4]   # Z, A, B, C
+        else:
+            belt_pool = _ISO4183_BELT       # all sections
+
+        belt_section, groove_w, groove_depth_std, pd_min = belt_pool[
+            int(rng.integers(0, len(belt_pool)))
+        ]
+
+        # ISO 22 preferred pitch diameter
+        pd_opts = _ISO22_PD[belt_section]
+        pd_mm = float(pd_opts[int(rng.integers(0, len(pd_opts)))])
+        rim_r = round(pd_mm / 2, 1)
+
+        # Rim thickness: must contain groove depth with margin
+        rim_t = round(groove_depth_std * float(rng.choice([1.3, 1.5, 1.8, 2.0])), 1)
+
+        # Total axial width: groove width + two flanges (3–8 mm each side)
+        flange = float(rng.choice([3.0, 4.0, 5.0, 6.0, 8.0]))
+        width = round(groove_w + 2.0 * flange, 1)
+
+        # Bore: 15–25% of rim radius; hub: capped at 50% of rim radius
+        bore_r = round(rim_r * float(rng.choice([0.15, 0.18, 0.20, 0.25])), 1)
+        bore_r = max(bore_r, 4.0)
+        hub_r_raw = round(bore_r * float(rng.choice([1.6, 1.8, 2.0, 2.2])), 1)
+        hub_r = min(hub_r_raw, round(rim_r * 0.50, 1))
+
+        # Rim thickness must be < 35% of width to pass validate
+        rim_t = round(min(groove_depth_std * float(rng.choice([1.3, 1.5, 1.8])), width * 0.30), 1)
+        rim_t = max(rim_t, 3.0)
+
+        # ISO 22: groove angle by pitch diameter
+        if pd_mm < 100:
+            groove_angle = 34.0
+        elif pd_mm < 200:
+            groove_angle = 36.0
+        else:
+            groove_angle = 38.0
 
         params = {
-            "rim_radius": round(rim_r, 1),
-            "width": round(width, 1),
-            "bore_radius": round(bore_r, 1),
-            "hub_radius": round(hub_r, 1),
-            "rim_thickness": round(rim_t, 1),
+            "belt_section": belt_section,
+            "rim_radius": rim_r,
+            "width": width,
+            "bore_radius": bore_r,
+            "hub_radius": hub_r,
+            "rim_thickness": rim_t,
             "difficulty": difficulty,
         }
 
         if difficulty in ("medium", "hard"):
-            # ISO 22: groove angle determined by pitch diameter
-            pd_mm = rim_r * 2  # approximate PD ≈ OD
-            if pd_mm < 100:
-                groove_angle = 34.0
-            elif pd_mm < 200:
-                groove_angle = 36.0
-            else:
-                groove_angle = 38.0
-            # ISO 4183: groove depth from table, capped by rim_t
-            # Pick belt section whose pd_min ≤ pd_mm
-            belt_opts = [b for b in _ISO4183_BELT if b[3] <= pd_mm]
-            if not belt_opts:
-                belt_opts = [_ISO4183_BELT[0]]
-            belt_section, groove_w, groove_depth_std, _ = belt_opts[
-                int(rng.integers(0, len(belt_opts)))
-            ]
             groove_d = round(min(groove_depth_std, rim_t * 0.65), 1)
-            params["belt_section"] = belt_section
             params["groove_depth"] = groove_d
             params["groove_angle"] = groove_angle
 
         if difficulty == "hard":
             n_spokes = int(rng.choice([4, 6]))
-            spoke_w = rng.uniform(4, max(4.1, min(12, (rim_r - hub_r) * 0.3)))
+            spoke_w = round(float(rng.choice([6.0, 8.0, 10.0, 12.0])), 1)
             params["n_spokes"] = n_spokes
-            params["spoke_width"] = round(spoke_w, 1)
-            kw = rng.uniform(bore_r * 0.4, max(bore_r * 0.41, bore_r * 0.65))
-            params["keyway_width"] = round(kw, 1)
+            params["spoke_width"] = spoke_w
+            kw, kh = din6885a_keyway(bore_r * 2)
+            params["keyway_width"] = kw
+            params["keyway_height"] = kh
 
         return params
 
@@ -216,11 +250,11 @@ class PulleyFamily(BaseFamily):
                     )
                 )
 
-        # Keyway (hard)
+        # Keyway (hard) — DIN 6885A dimensions from params
         kw = params.get("keyway_width")
-        if kw:
+        kh = params.get("keyway_height")
+        if kw and kh:
             tags["has_slot"] = True
-            kh = round(kw * 0.6, 2)
             ops.append(Op("workplane", {"selector": ">Y"}))
             ops.append(Op("pushPoints", {"points": [(0.0, round(br, 3))]}))
             ops.append(Op("rect", {"length": kw, "width": kh}))

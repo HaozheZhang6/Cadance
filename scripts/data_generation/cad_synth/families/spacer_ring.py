@@ -13,6 +13,8 @@ Easy:   plain flat ring (d ≤ 20)
 Medium: plain flat ring, larger size range (d ≤ 50)
 Hard:   split ring — two half-rings cut along diameter for
           installation without shaft disassembly (full d range)
+
+Reference: DIN 988:1990 — Shim rings; Table (bore d, OD D, thickness s series for d 3–200mm)
 """
 
 

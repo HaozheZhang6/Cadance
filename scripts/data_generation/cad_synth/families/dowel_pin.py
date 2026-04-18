@@ -6,6 +6,8 @@ Tolerance: m6 (parallel) — geometry is a plain cylinder with chamfered ends.
 Easy:   plain cylinder with end chamfers
 Medium: + centre drill hole on one end (tolerance marking indentation)
 Hard:   + second end differs (spring pin / grooved end style): axial groove cut
+
+Reference: ISO 8734:1997 — Parallel pins, of unhardened steel; Table (d, l series for d 1–20mm)
 """
 
 

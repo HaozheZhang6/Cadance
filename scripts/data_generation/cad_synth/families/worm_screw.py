@@ -20,6 +20,8 @@ the thread on the shaft by shifting the SHAFT down by z_off=(sl-tl)/2
 Easy:   stepped shaft + single-start thread
 Medium: + multi-start (z1∈{1,2}) + end chamfers
 Hard:   + bore hole + keyway
+
+Reference: ISO 10828:2013 — Worm gears — tooth forms; Table (module m, worm diameters q series)
 """
 
 import math

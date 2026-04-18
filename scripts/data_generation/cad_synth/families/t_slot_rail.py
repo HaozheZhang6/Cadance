@@ -6,6 +6,9 @@ The T-slot groove runs along the length, making it impossible to mistake for a b
 Easy:   T-slot profile (one slot) extruded
 Medium: + 2 slots (4-way) + mounting holes on ends
 Hard:   + 4-way slot + lightening pockets
+
+Reference: DIN 650:1986 — T-slots; ISO 299:1999 — T-slot widths and mating bolt sizes
+  Table (slot_opening, back_width, depth per slot size 8–28mm)
 """
 
 from ..pipeline.builder import Op, Program
@@ -18,15 +21,17 @@ class TSlotRailFamily(BaseFamily):
 
     # ISO 299 T-slot widths → mating bolt + rail size (mm)
     # slot_w: ISO 299 nominal; size: square rail cross-section
+    # DIN 650 slot profile: (slot_opening, bolt_m, size, back_w, depth, wall_t)
+    # back_w ≈ 1.5×slot_opening; depth ≈ slot_opening; wall_t ≈ 0.15×size
     _ISO299 = [
-        (8, "M8", 20),
-        (10, "M10", 25),
-        (12, "M12", 30),
-        (16, "M16", 40),
-        (18, "M16", 45),
-        (20, "M20", 50),
-        (24, "M24", 60),
-        (28, "M24", 70),
+        (8,  "M8",  20, 12, 8,  3),
+        (10, "M10", 25, 15, 10, 4),
+        (12, "M12", 30, 18, 12, 5),
+        (16, "M16", 40, 24, 16, 6),
+        (18, "M16", 45, 27, 18, 7),
+        (20, "M20", 50, 30, 20, 8),
+        (24, "M24", 60, 36, 24, 9),
+        (28, "M24", 70, 42, 28, 10),
     ]
 
     def sample_params(self, difficulty: str, rng) -> dict:
@@ -37,14 +42,16 @@ class TSlotRailFamily(BaseFamily):
         else:
             pool = self._ISO299  # all
 
-        slot_opening, bolt_m, size = pool[int(rng.integers(0, len(pool)))]
+        slot_opening, bolt_m, size, slot_back_w, slot_depth, wall_t = pool[
+            int(rng.integers(0, len(pool)))
+        ]
         slot_opening = float(slot_opening)
         size = float(size)
+        slot_depth = float(slot_depth)
+        slot_back_w = float(slot_back_w)
+        wall_t = float(wall_t)
 
         length = rng.uniform(size * 3, size * 10)
-        slot_depth = round(size * rng.uniform(0.3, 0.5), 1)
-        slot_back_w = round(size * rng.uniform(0.6, 0.85), 1)
-        wall_t = round(size * rng.uniform(0.12, 0.22), 1)
 
         params = {
             "size": float(size),
@@ -58,22 +65,18 @@ class TSlotRailFamily(BaseFamily):
         }
 
         if difficulty in ("medium", "hard"):
-            # end-face mounting holes
-            params["end_hole_diameter"] = round(
-                rng.uniform(3.0, min(6.0, size * 0.18)), 1
-            )
+            # end-face mounting holes — M-bolt clearance hole (slot_opening × 0.7)
+            params["end_hole_diameter"] = round(slot_opening * 0.7, 1)
             params["end_hole_inset"] = round(size / 2, 1)
-            # 4-way slot (slots on all 4 faces)
             params["four_way"] = bool(rng.choice([True, False]))
 
         if difficulty == "hard":
-            # Center bore: constrain so cbd/2 + slot_depth < size/2
             max_cbd = round((size / 2 - slot_depth) * 2 - 1, 1)
             if max_cbd >= 3:
                 params["center_bore_diameter"] = round(
-                    rng.uniform(3, max(3.5, min(max_cbd, size * 0.28))), 1
+                    min(max_cbd, size * 0.28), 1
                 )
-            params["fillet_radius"] = round(rng.uniform(0.5, min(2.0, wall_t * 0.4)), 1)
+            params["fillet_radius"] = round(wall_t * 0.25, 1)
 
         return params
 
@@ -122,7 +125,6 @@ class TSlotRailFamily(BaseFamily):
         so = params["slot_opening"]  # opening width at face
         sd = params["slot_depth"]  # depth of slot
         sbw = params["slot_back_width"]  # back width of T
-        wt = params["wall_thickness"]
 
         ops, tags = [], {
             "has_hole": False,

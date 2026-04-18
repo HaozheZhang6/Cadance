@@ -7,6 +7,8 @@ Mean coil diameter D = 2 × coil_radius.
 Easy:   plain coil (small wire d 2–4 mm)
 Medium: + flat ground ends (cut top/bottom), mid range d 3–8 mm
 Hard:   + variable pitch (two-section helix), full range d 2–10 mm
+
+Reference: DIN 2095:1973 — Cylindrical helical springs; Table (preferred wire_d 2–10mm, index c 4–20)
 """
 
 from ..pipeline.builder import Op, Program

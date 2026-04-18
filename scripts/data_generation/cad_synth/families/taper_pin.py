@@ -7,6 +7,8 @@ Length sampled within ISO 2339 range for each nominal diameter.
 Easy:   plain tapered cylinder
 Medium: + chamfer on large end
 Hard:   + threaded extraction hole on large end (blind, tapped)
+
+Reference: ISO 2339:1986 — Taper pins, unhardened; Table (d_nom, l_min, l_max for d 0.6–50mm)
 """
 
 

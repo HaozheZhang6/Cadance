@@ -13,6 +13,8 @@ thickness (acceptable approximation for data synthesis).
 Easy:   UPN30–UPN100 (small sizes); plain U profile.
 Medium: UPN80–UPN200; + fillet on inner bottom corners + chamfer on arm tips.
 Hard:   full range UPN30–UPN300; + mounting holes on the web.
+
+Reference: EN 10279:2000 — Hot-rolled steel channels; Table (UPN 30–UPN 400, h, b, tw, tf)
 """
 
 from ..pipeline.builder import Op, Program

@@ -9,6 +9,8 @@ Table: (NPS_label, OD_mm, wall_Sch40_mm)
 Easy:   bare hollow elbow tube
 Medium: + neck + plate flange on both ends
 Hard:   + bolt holes on both flanges
+
+Reference: ASME B16.9-2018 — Factory-made wrought fittings; ASME B36.10M Sch40 OD/wall table
 """
 
 import math

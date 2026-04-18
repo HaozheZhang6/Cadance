@@ -14,12 +14,16 @@ Gear geometry conventions (all dimensions in mm):
   r_a = addendum circle (tip) = r_p + m  (outermost tooth radius)
   r_d = dedendum circle (root) = r_p − 1.25·m  (bottom of tooth valley)
   α   = pressure angle (standard = 20°)
+
+Reference: ISO 53:1998 — Spur gears — standard basic rack tooth profile
+  ISO 54:1996 — Cylindrical gears — modules; Table (module series 0.1–50mm)
+  DIN 6885A:1968 — Parallel keys (keyway dimensions per bore_d)
 """
 
 import math
 
 from ..pipeline.builder import Op, Program
-from .base import BaseFamily
+from .base import BaseFamily, din6885a_keyway
 
 VARIANTS = ["solid_disc", "spoked", "rim_heavy", "internal_ring", "multi_web"]
 
@@ -132,15 +136,14 @@ class SpurGearFamily(BaseFamily):
         ]
         m = float(rng.choice(_ISO54))
 
-        # z: number of teeth. Fewer teeth → larger tooth fraction of disc; ≥12 avoids undercut
-        z = int(rng.uniform(14, 36))
+        # z: integer tooth count — rng.integers for correct discrete sampling
+        z = int(rng.integers(14, 37))
 
         # r_p = m·z/2 [mm]: pitch radius — the nominal "gear radius" used for all ratios
         r_p = m * z / 2
 
-        # face_width [mm]: axial thickness of the gear body (along the shaft axis)
-        # Typical spur gear: face_width ≈ 8–12× module
-        face_w = round(rng.uniform(m * 6, m * 12), 1)
+        # face_width: ISO 54 preferred face width = b/m ratio in {6,8,10,12}
+        face_w = round(m * float(rng.choice([6, 8, 10, 12])), 1)
 
         # bore_diameter [mm]: centre shaft hole. Must be < r_p (no material left otherwise)
         # Range: 20%–50% of pitch radius
@@ -155,10 +158,6 @@ class SpurGearFamily(BaseFamily):
             "pressure_angle": 20.0,  # involute pressure angle [degrees] — standard
             "difficulty": difficulty,
         }
-
-        # Dedendum radius r_d [mm]: radius to root of tooth (bottom of tooth gap)
-        # Used as clearance reference for spoke/multi_web inner features
-        r_d = max(r_p * math.cos(math.radians(20)) * 0.98, r_p - 1.25 * m)
 
         # --- Variant-specific parameters ---
 
@@ -281,13 +280,9 @@ class SpurGearFamily(BaseFamily):
                 web_recess_side=side,
             )
 
-        # --- Keyway: medium+ all variants ---
-        # Sample keyway BEFORE lightening holes so PCD min can account for keyway depth.
+        # --- Keyway: medium+ all variants — DIN 6885A table ---
         if difficulty in ("medium", "hard"):
-            key_w = round(
-                rng.uniform(bore_d * 0.2, max(bore_d * 0.21, bore_d * 0.3)), 1
-            )
-            key_h = round(rng.uniform(key_w * 0.5, max(key_w * 0.51, key_w)), 1)
+            key_w, key_h = din6885a_keyway(bore_d)
             params.update(keyway_width=key_w, keyway_height=key_h)
 
         # --- Hard solid_disc features ---

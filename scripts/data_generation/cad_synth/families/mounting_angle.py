@@ -6,6 +6,8 @@ Leg dimensions from EN 10056-1 equal-leg angle section table.
 Easy:   L + holes on base arm only.
 Medium: + holes on web arm.
 Hard:   + fillet at inner corner + extra hole row.
+
+Reference: EN 10056-1:1998 — Equal leg angles; Table (leg, thickness for L20–L200)
 """
 
 from ..pipeline.builder import Op, Program

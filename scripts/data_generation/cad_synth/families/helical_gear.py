@@ -9,12 +9,16 @@ variant=herringbone: double helix (two mirrored halves, no axial thrust)
 Easy:   gear body + bore
 Medium: + hub boss + keyway
 Hard:   + lightening holes + chamfer
+
+Reference: ISO 53:1998 — Helical gears — basic rack tooth profile
+  ISO 54:1996 — Cylindrical gears — modules; preferred helix angles 15°–30°
+  DIN 6885A:1968 — Parallel keys (keyway dimensions per bore_d)
 """
 
 import math
 
 from ..pipeline.builder import Op, Program
-from .base import BaseFamily
+from .base import BaseFamily, din6885a_keyway
 from .spur_gear import _gear_pts
 
 
@@ -33,10 +37,12 @@ class HelicalGearFamily(BaseFamily):
         variant = rng.choice(["external", "herringbone"])
         _ISO54 = [1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 1.125, 1.375, 1.75, 2.25, 2.75]
         m = float(rng.choice(_ISO54))
-        z = int(rng.uniform(14, 36))
+        z = int(rng.integers(14, 37))
         r_p = m * z / 2
-        face_w = round(rng.uniform(m * 8, m * 16), 1)
-        helix_angle = round(rng.uniform(10, 30), 1)
+        # ISO 54 preferred face width ratio for helical gears: b/m in {8,10,12,16}
+        face_w = round(m * float(rng.choice([8, 10, 12, 16])), 1)
+        # Common helical gear helix angles per ISO 53 preferred series
+        helix_angle = float(rng.choice([15.0, 20.0, 23.0, 25.0, 30.0]))
         bore_d = round(rng.uniform(r_p * 0.2, max(r_p * 0.21, r_p * 0.5)), 1)
 
         params = {
@@ -51,8 +57,9 @@ class HelicalGearFamily(BaseFamily):
         }
 
         if difficulty in ("medium", "hard"):
-            kw = round(rng.uniform(bore_d * 0.2, max(bore_d * 0.21, bore_d * 0.3)), 1)
+            kw, kh = din6885a_keyway(bore_d)
             params["keyway_width"] = kw
+            params["keyway_height"] = kh
 
         # Web recess vs lightening holes: MUTUALLY EXCLUSIVE for hard.
         # Rule: if rim is enhanced (outer rim > web via recess), hub zone must also be
@@ -158,8 +165,6 @@ class HelicalGearFamily(BaseFamily):
         else:  # herringbone: lower half (0 → +twist) union upper half (0 → -twist)
             # Both halves are built independently; upper half translated in Z
             half = round(fw / 2, 3)
-            pts_neg_twisted = _rotate_pts(pts, -twist_deg)
-
             # Lower half: unrotated at z=0, twisted at z=half
             ops.append(Op("polyline", {"points": pts}))
             ops.append(Op("close", {}))

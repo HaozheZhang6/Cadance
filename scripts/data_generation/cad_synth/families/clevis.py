@@ -6,6 +6,8 @@ Key proportions: arm_thickness b ≈ pin_diameter d; gap s = d + 1 mm.
 Easy:   base block + two arms + pin holes (small d 5–12 mm).
 Medium: + chamfer on arm tips (d 8–20 mm).
 Hard:   + threaded base stub (full range d 5–40 mm).
+
+Reference: DIN 71751:1985 — Fork heads (Gabelköpfe); Table (pin_d, arm_t, gap for pin_d 5–40mm)
 """
 
 from ..pipeline.builder import Op, Program

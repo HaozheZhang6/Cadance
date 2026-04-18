@@ -6,6 +6,8 @@ Dimensions from DIN 6885A Table 1: shaft_d range → (b, h, l_min, l_max).
 Easy:   plain rectangular bar (b × h × l)
 Medium: + chamfered ends (45° × 0.4mm)
 Hard:   + slot along length (key with central oil groove)
+
+Reference: DIN 6885A:1968 — Parallel keys, type A; Table (shaft_d range, b, h, l_min, l_max)
 """
 
 from ..pipeline.builder import Op, Program

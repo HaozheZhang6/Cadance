@@ -7,6 +7,8 @@ DIN 7954: steel butt hinge. Dimensions from Table 1 — (W, H, T, Kd, Pd) mm.
 Easy:   leaf + 2 knuckle cylinders + pin bore (W 20–35)
 Medium: + screw holes on leaf face (W 25–60)
 Hard:   + countersunk screw holes + fillet (full range)
+
+Reference: DIN 7954/7955:1980 — Hinges; Table (W, H, T, knuckle_d, pin_d for W 20–100mm)
 """
 
 from ..pipeline.builder import Op, Program

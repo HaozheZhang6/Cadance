@@ -8,6 +8,8 @@ Dimensions from EN 10219 SHS/RHS cold-formed hollow sections.
 Easy:   square hollow tube (SHS, small)
 Medium: + rectangular cross-section (RHS) + chamfer
 Hard:   + larger SHS/RHS + mounting holes + end cap slot
+
+Reference: EN 10219-2:2006 — Cold-formed hollow sections; Tables (SHS/RHS OD×wall series)
 """
 
 from ..pipeline.builder import Op, Program

@@ -1,4 +1,18 @@
 
+## 2026-04-18 (session 3)
+
+- UA-7 完成：8个 Tier C family 标准化修复 (240/240 qa_generator tests pass)
+  - threaded_adapter: 加 ASME B1.20.1 NPT 9-row 尺寸表，替换全部 14 个 rng.uniform
+  - spur_gear: z→rng.integers, face_w→b/m∈{6,8,10,12}×m, keyway→DIN 6885A
+  - helical_gear: 同 spur_gear + helix_angle→choice([15,20,23,25,30])
+  - bevel_gear: pitch_angle→choice([15..40]), face_w→b/m∈{4..8}×m
+  - pulley: 以 ISO 4183 belt section 为锚重构 sample_params; ISO 22 PD 表驱动
+  - sprocket: disc_thickness→dr×choice([0.8..1.3])
+  - t_slot_rail: slot_depth/back_w/wall_t 改为 DIN 650 profile 固定值
+  - hex_standoff: flange_od/bore_step 改为离散倍数
+- UA-8 完成：33个有标准 family 全部在 docstring 加 Reference 来源（标准号+文档标题）
+- 88 tests pass
+
 ## 2026-04-18 (session 2)
 
 - UA-6 完成：所有 Tier 2 families 补全 ISO/DIN 表格驱动

@@ -9,6 +9,8 @@ Table columns: (designation, h_height, b_flange, tw_web, tf_flange) — all mm.
 Easy:   IPE80–IPE200 (small sections), plain section.
 Medium: IPE160–IPE360 (medium); + bolt holes in flanges + chamfer.
 Hard:   full IPE80–IPE600 range; + web lightening holes + fillet.
+
+Reference: EN 10034:1993 — I and H sections; Table (IPE 80–IPE 600, h, b, tw, tf)
 """
 
 from ..pipeline.builder import Op, Program

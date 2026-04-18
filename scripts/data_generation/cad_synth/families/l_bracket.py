@@ -4,6 +4,8 @@ EN 10056 equal-leg angle sections: leg × leg × thickness (mm).
 Bracket arms correspond to angle legs; depth = bracket extrusion length.
 
 Table: (leg_mm, thick_mm) from EN 10056-1 preferred sizes.
+
+Reference: EN 10056-1:1998 — Equal and unequal leg angles; Table (leg, thickness for L20–L200)
 """
 
 from ..pipeline.builder import Op, Program

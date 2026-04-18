@@ -14,6 +14,8 @@ Table: (d1_shaft, d3_ring_od, s_thickness)
 Easy:   plain C-ring (d1 ≤ 25 mm)
 Medium: + lug holes on the ears (d1 ≤ 50 mm)
 Hard:   + bevel on outer edge (full range d1 8–80 mm)
+
+Reference: DIN 471:2011 — Retaining rings for shafts; Table 1 (d1, d3, s for d1 8–250mm)
 """
 
 import math

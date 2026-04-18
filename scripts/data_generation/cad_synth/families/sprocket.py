@@ -16,6 +16,8 @@ Key ISO 606 relations:
 Easy:   plain toothed disc with bore
 Medium: + hub (cylindrical boss behind disc)
 Hard:   + keyway slot in bore
+
+Reference: ISO 606:2015 — Short-pitch transmission precision roller chains; Table (pitch, roller_d, b1)
 """
 
 import math
@@ -51,7 +53,9 @@ class SprocketFamily(BaseFamily):
         da = pcd + 0.8 * dr
         df = pcd - dr
 
-        disc_thickness = round(rng.uniform(max(4.0, dr * 0.6), dr * 1.4), 1)
+        # Disc thickness: preferred multiples of roller diameter (ISO 606 tooth profile)
+        disc_thickness = round(dr * float(rng.choice([0.8, 0.9, 1.0, 1.1, 1.2, 1.3])), 1)
+        disc_thickness = max(disc_thickness, 4.0)
         bore_d = round(rng.uniform(df * 0.2, df * 0.45), 1)
         bore_d = max(bore_d, 5.0)
 

@@ -4,6 +4,8 @@ Dimensions from DIN 705 Table 1: bore_d → (od, width_b).
 Easy:   small bores M6–M25 — ring + center bore
 Medium: mid bores M16–M50 — + chamfer rims + radial set screw hole
 Hard:   full range M6–M100 — + raised hub variant
+
+Reference: DIN 705:1994 — Shaft collars; Table (bore d, OD, width for d 10–120mm)
 """
 
 from ..pipeline.builder import Op, Program

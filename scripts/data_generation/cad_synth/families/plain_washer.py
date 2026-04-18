@@ -6,6 +6,8 @@ Difficulty controls geometry complexity:
   Hard:   chamfered, includes non-preferred sizes (harder to ID exact size)
 
 Dimensions from ISO 7090 Table 1 only — no continuous sampling.
+
+Reference: ISO 7089:2000 — Plain washers, normal series; Table (nominal, d1, d2, h for M5–M64)
 """
 
 from ..pipeline.builder import Op, Program

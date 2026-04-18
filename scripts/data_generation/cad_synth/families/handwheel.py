@@ -18,6 +18,8 @@ DIN 950 table: d1, hub_d, bore_d, hub_l, rim_w, rim_l, dish, n_spokes, m, h_len
 Easy:   hub + rim + spokes + bore + handle
 Medium: + chamfer on rim outer edge
 Hard:   + chamfer on rim outer edge + hub boss chamfer
+
+Reference: DIN 950:1987 — Handwheels with solid hub; Table (rim_d, spoke_d, hub_d, bore_ref)
 """
 
 from ..pipeline.builder import Op, Program
