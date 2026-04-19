@@ -23,6 +23,7 @@ dependencies = [
     "ezdxf>=1.4.3",
     "nptyping>=2.5.0",
     "casadi>=3.7.2",
+    "streamlit>=1.56.0",
 ]
 
 [project.optional-dependencies]

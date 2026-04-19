@@ -52,7 +52,8 @@ class CamFamily(BaseFamily):
 
     def sample_params(self, difficulty: str, rng) -> dict:
         r_base = rng.uniform(10, 40)
-        eccentricity = rng.uniform(r_base * 0.1, max(r_base * 0.11, r_base * 0.4))
+        # Eccentricity ≥ 22% of base radius — visible offset at montage scale.
+        eccentricity = rng.uniform(r_base * 0.22, r_base * 0.42)
         thickness = rng.uniform(8, 30)
         bore_d = rng.uniform(4, max(4.1, r_base * 0.4))
 
@@ -71,9 +72,8 @@ class CamFamily(BaseFamily):
         params["hub_height"] = hub_h
 
         if difficulty in ("medium", "hard"):
-            lobe_h = round(
-                rng.uniform(r_base * 0.1, max(r_base * 0.11, r_base * 0.35)), 1
-            )
+            # Lobe ≥ 18% r_base — clear bump, not pegs.
+            lobe_h = round(rng.uniform(r_base * 0.18, r_base * 0.38), 1)
             lobe_angle = round(rng.uniform(0, 360), 1)
             params["lobe_height"] = lobe_h
             params["lobe_angle"] = lobe_angle

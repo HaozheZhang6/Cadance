@@ -4,6 +4,55 @@
 
 ## ⚠️ USER-ASSIGNED — 进行中
 
+### UA-13 — 新增 `twisted_bracket` family (无 ISO 参考) ✅ DONE (2026-04-18)
+
+**目标：** 加一类 twisted_bracket family，无 ISO 约束，只需物理/常识合理。
+**参考：** `tmp/manual_family_previews/manual_twisted_bracket.py`（两块垂直薄板 + 短螺旋 loft 连接）
+**结果：**
+- `twisted_bracket` — 两块互相垂直的平板沿 X 轴侧并排，中间 YZ-loft 90° 扭转连接
+- Plate 1: XY 平面（厚度 Z）；Plate 2: XZ 平面（厚度 Y，-90°X 旋转）
+- loft 端面：rotate[0,90,0] + chained rotate[0,0,90] 实现扭转
+- 每板 1 或 2 个螺栓孔（沿长度均分）
+- 3×3 preflight 8/9 通过（1/9 参数随机组合触发边距 validate 拒绝）；18-sample batch 100% 通过
+
+### UA-12 — 新增 4 family: eyebolt / spline_hub / venturi_tube / torsion_spring ✅ DONE (2026-04-18)
+
+**目标：** 将 4 个 manual 原型转为 registered families
+**参考：** `tmp/manual_family_previews/manual_{eyebolt,internal_spline_hub,venturi_tube,torsion_spring}.py`
+**结果：**
+- `eyebolt` (DIN 580) — collar+shank+neck-loft+torus eye；新增 `torus` Op
+- `spline_hub` (DIN 5480) — hub+内齿切削(threePointArc×4z)+undercut+chamfer
+- `venturi_tube` (ISO 5167-4) — 闭合截面沿 Y revolve 360°
+- `torsion_spring` (DIN 2088) — 已存在，本次仅注册
+4/4 family 3×3 preflight 全通过 + 视觉审核通过 + registry 注册。
+
+### UA-11 — 新增 `torsion_spring` family (DIN 2088) ✅ DONE (2026-04-18)
+
+随 UA-12 一并完成。family 文件已在 UA-11 前期实现，UA-12 完成注册。
+
+### UA-10 — 新增 `roller_chain` family + 精修 prposal.md 🔴 HIGH (2026-04-18)
+
+**目标：**
+1. 对照现有 80 families 精修 `prposal.md`（删 `clevis_pin` 重复；`compression_spring` 改为升级现有 `coil_spring`）。✅ DONE
+2. 新增 `roller_chain` family 配对现有 `sprocket` / `double_simplex_sprocket`。
+
+**`roller_chain` 设计要点 (ISO 606):**
+- chain code 与 sprocket 共享：`06B-1`, `08B-1`, `10B-1`, `12B-1`, `16B-1`, `20B-1`
+- 表列：pitch $p$, roller $d_1$, inner width $b_1$, pin $d_2$, plate height $h_2$
+- 单 link = 外板×2 + 内板×2 + 销×2 + 套筒×2 + 滚子×2
+- 8 字链板：两圆弧 ($h_2/2$) + 两切线 → polyline 封闭轮廓 → 拉伸
+- N_links pattern 沿 X 轴，内外板交替
+- 与 sprocket pitch 锁定 → 可渲染 sprocket+chain 驱动组合（未来）
+
+**流程（遵循 CLAUDE.md CAD Family Pre-Flight Rule）：**
+1. 在 `tmp/manual_family_previews/manual_roller_chain.py` 写算法原型
+2. 视觉 OK 后搬入 `families/roller_chain.py`
+3. 3×3 preflight (easy/medium/hard × 3 trials) 全通过
+4. 注册到 `registry.py`
+5. `AUDIT_METHODOLOGY.md` 的 9 步视觉审核
+6. 更新 `PROGRESS.md` + 标记 UA-10 ✅ DONE
+
+
 ### UA-6 — ISO 标准化 family 脚本升级 ✅ DONE (2026-04-18)
 
 **目标：**

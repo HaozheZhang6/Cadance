@@ -6,7 +6,6 @@ Both derive from the same Program — geometry cannot diverge.
 """
 
 from dataclasses import dataclass, field
-from typing import Any
 
 
 @dataclass
@@ -33,13 +32,16 @@ class Program:
 # Op → CadQuery execution
 # ---------------------------------------------------------------------------
 
+
 def _apply_op(wp, op: Op):
     """Apply a single Op to a CadQuery Workplane, return updated wp."""
     name = op.name
     a = op.args
 
     if name == "box":
-        wp = wp.box(a["length"], a["width"], a["height"], centered=a.get("centered", True))
+        wp = wp.box(
+            a["length"], a["width"], a["height"], centered=a.get("centered", True)
+        )
     elif name == "cylinder":
         wp = wp.cylinder(a["height"], a["radius"])
     elif name == "circle":
@@ -141,13 +143,23 @@ def _apply_op(wp, op: Op):
         wp = wp.threePointArc(tuple(a["point1"]), tuple(a["point2"]))
     elif name == "sphere":
         wp = wp.sphere(a["radius"])
+    elif name == "torus":
+        import cadquery as cq
+
+        pnt = cq.Vector(*a.get("pnt", (0, 0, 0)))
+        dir_ = cq.Vector(*a.get("dir", (0, 0, 1)))
+        torus = cq.Solid.makeTorus(a["majorRadius"], a["minorRadius"], pnt, dir_)
+        wp = wp.union(cq.Workplane("XY").newObject([torus]))
     elif name == "transformed":
         import cadquery as cq
+
         off = a.get("offset", [0, 0, 0])
         rot = a.get("rotate", [0, 0, 0])
         wp = wp.transformed(offset=cq.Vector(*off), rotate=cq.Vector(*rot))
     elif name == "cskHole":
-        wp = wp.cskHole(a["diameter"], a["cskDiameter"], a["cskAngle"], depth=a.get("depth"))
+        wp = wp.cskHole(
+            a["diameter"], a["cskDiameter"], a["cskAngle"], depth=a.get("depth")
+        )
     elif name == "hLine":
         wp = wp.hLine(a["distance"])
     elif name == "vLine":
@@ -156,23 +168,54 @@ def _apply_op(wp, op: Op):
         wp = wp.workplane(offset=a["offset"])
     elif name == "union":
         import cadquery as cq
+
         sub = cq.Workplane(_current_base_plane)
         for o in a["ops"]:
             sub = _apply_op(sub, Op(o["name"], o.get("args", {})))
         wp = wp.union(sub)
     elif name == "cut":
         import cadquery as cq
+
         sub = cq.Workplane(_current_base_plane)
         for o in a["ops"]:
             sub = _apply_op(sub, Op(o["name"], o.get("args", {})))
         wp = wp.cut(sub)
     elif name == "sweep":
         import cadquery as cq
+
         path_type = a["path_type"]
         is_frenet = a.get("isFrenet", path_type == "helix")
         if path_type == "helix":
             pa = a["path_args"]
             path = cq.Wire.makeHelix(pa["pitch"], pa["height"], pa["radius"])
+        elif path_type == "helix_with_legs":
+            # Continuous wire: straight leg1 → helix → straight leg2.
+            # Legs tangent to helix at its actual endpoints — uses helix vertices
+            # and the helix parametric tangent at t_start=0 and t_end=2π·H/p.
+            import math as _m
+
+            pa = a["path_args"]
+            _p, _H, _R, _ll = pa["pitch"], pa["height"], pa["radius"], pa["leg_length"]
+            _helix = cq.Wire.makeHelix(_p, _H, _R)
+            _verts = _helix.Vertices()
+            _p_start = cq.Vector(_verts[0].X, _verts[0].Y, _verts[0].Z)
+            _p_end = cq.Vector(_verts[1].X, _verts[1].Y, _verts[1].Z)
+            _dz = _p / (2 * _m.pi)
+            _t0 = 0.0
+            _t1 = 2 * _m.pi * _H / _p
+            _tan0 = cq.Vector(-_R * _m.sin(_t0), _R * _m.cos(_t0), _dz)
+            _tan1 = cq.Vector(-_R * _m.sin(_t1), _R * _m.cos(_t1), _dz)
+            _m0 = _m.sqrt(_tan0.x ** 2 + _tan0.y ** 2 + _tan0.z ** 2)
+            _m1 = _m.sqrt(_tan1.x ** 2 + _tan1.y ** 2 + _tan1.z ** 2)
+            _tan0n = cq.Vector(_tan0.x / _m0, _tan0.y / _m0, _tan0.z / _m0)
+            _tan1n = cq.Vector(_tan1.x / _m1, _tan1.y / _m1, _tan1.z / _m1)
+            _leg1_start = _p_start - _tan0n.multiply(_ll)
+            _leg2_end = _p_end + _tan1n.multiply(_ll)
+            _leg1 = cq.Edge.makeLine(_leg1_start, _p_start)
+            _leg2 = cq.Edge.makeLine(_p_end, _leg2_end)
+            path = cq.Wire.assembleEdges(
+                [_leg1] + list(_helix.Edges()) + [_leg2]
+            )
         elif path_type == "spline":
             pts = [tuple(p) for p in a["path_points"]]
             path = cq.Workplane(a.get("path_plane", "XZ")).spline(pts)
@@ -202,13 +245,26 @@ def _apply_op(wp, op: Op):
 def _patch_ocp_hashcode():
     """Monkey-patch HashCode on OCP TopoDS types (needed in this env)."""
     from OCP.TopoDS import (
-        TopoDS_Shape, TopoDS_Face, TopoDS_Edge, TopoDS_Vertex,
-        TopoDS_Wire, TopoDS_Shell, TopoDS_Solid, TopoDS_Compound,
+        TopoDS_Compound,
         TopoDS_CompSolid,
+        TopoDS_Edge,
+        TopoDS_Face,
+        TopoDS_Shape,
+        TopoDS_Shell,
+        TopoDS_Solid,
+        TopoDS_Vertex,
+        TopoDS_Wire,
     )
+
     for _cls in [
-        TopoDS_Shape, TopoDS_Face, TopoDS_Edge, TopoDS_Vertex,
-        TopoDS_Wire, TopoDS_Shell, TopoDS_Solid, TopoDS_Compound,
+        TopoDS_Shape,
+        TopoDS_Face,
+        TopoDS_Edge,
+        TopoDS_Vertex,
+        TopoDS_Wire,
+        TopoDS_Shell,
+        TopoDS_Solid,
+        TopoDS_Compound,
         TopoDS_CompSolid,
     ]:
         if not hasattr(_cls, "HashCode"):
@@ -222,19 +278,19 @@ _current_base_plane = "XY"  # module-level so union/cut subs can inherit
 # are remapped; radial selectors (>X, <X when plane=XY, etc.) are left alone.
 _AXIAL_REMAP = {
     # Axial selectors (normal direction of the base plane)
-    ">Z":  {"XY": ">Z", "YZ": ">X", "XZ": ">Y"},
-    "<Z":  {"XY": "<Z", "YZ": "<X", "XZ": "<Y"},
-    "|Z":  {"XY": "|Z", "YZ": "|X", "XZ": "|Y"},
+    ">Z": {"XY": ">Z", "YZ": ">X", "XZ": ">Y"},
+    "<Z": {"XY": "<Z", "YZ": "<X", "XZ": "<Y"},
+    "|Z": {"XY": "|Z", "YZ": "|X", "XZ": "|Y"},
     # First-lateral selectors (u-axis: X for XY/XZ, Y for YZ)
-    ">X":  {"XY": ">X", "YZ": ">Y", "XZ": ">X"},
-    "<X":  {"XY": "<X", "YZ": "<Y", "XZ": "<X"},
-    "|X":  {"XY": "|X", "YZ": "|Y", "XZ": "|X"},
+    ">X": {"XY": ">X", "YZ": ">Y", "XZ": ">X"},
+    "<X": {"XY": "<X", "YZ": "<Y", "XZ": "<X"},
+    "|X": {"XY": "|X", "YZ": "|Y", "XZ": "|X"},
     # Second-lateral selectors (v-axis: Y for XY, Z for XZ/YZ)
-    ">Y":  {"XY": ">Y", "YZ": ">Z", "XZ": ">Z"},
-    "<Y":  {"XY": "<Y", "YZ": "<Z", "XZ": "<Z"},
-    "|Y":  {"XY": "|Y", "YZ": "|Z", "XZ": "|Z"},
+    ">Y": {"XY": ">Y", "YZ": ">Z", "XZ": ">Z"},
+    "<Y": {"XY": "<Y", "YZ": "<Z", "XZ": "<Z"},
+    "|Y": {"XY": "|Y", "YZ": "|Z", "XZ": "|Z"},
     # Shell face plane name aliases
-    "XY":  {"XY": "XY", "YZ": "YZ", "XZ": "XZ"},
+    "XY": {"XY": "XY", "YZ": "YZ", "XZ": "XZ"},
 }
 
 
@@ -249,6 +305,7 @@ def _remap_sel(sel: str) -> str:
 def build_from_program(program: Program):
     """Execute a Program and return the CadQuery Workplane result."""
     import cadquery as cq
+
     global _current_base_plane
 
     _patch_ocp_hashcode()
@@ -262,6 +319,7 @@ def build_from_program(program: Program):
 # ---------------------------------------------------------------------------
 # Op → Python source
 # ---------------------------------------------------------------------------
+
 
 def _op_to_code(op: Op) -> str:
     """Render one Op as a CadQuery method call string."""
@@ -281,7 +339,7 @@ def _op_to_code(op: Op) -> str:
         return f".rect({a['length']}, {a['width']})"
     elif name == "extrude":
         taper = a.get("taper", 0)
-        both  = a.get("both", False)
+        both = a.get("both", False)
         if taper and both:
             return f".extrude({a['distance']}, taper={taper}, both=True)"
         if taper:
@@ -323,7 +381,9 @@ def _op_to_code(op: Op) -> str:
         ang = a.get("angle", 360)
         return f".polarArray({a['radius']}, {sa}, {ang}, {a['count']})"
     elif name == "rarray":
-        return f".rarray({a['xSpacing']}, {a['ySpacing']}, {a['xCount']}, {a['yCount']})"
+        return (
+            f".rarray({a['xSpacing']}, {a['ySpacing']}, {a['xCount']}, {a['yCount']})"
+        )
     elif name == "center":
         return f".center({a['x']}, {a['y']})"
     elif name == "moveTo":
@@ -357,10 +417,20 @@ def _op_to_code(op: Op) -> str:
         return f".threePointArc({tuple(a['point1'])}, {tuple(a['point2'])})"
     elif name == "sphere":
         return f".sphere({a['radius']})"
+    elif name == "torus":
+        pnt = tuple(a.get("pnt", (0, 0, 0)))
+        dir_ = tuple(a.get("dir", (0, 0, 1)))
+        return (
+            f'.union(cq.Workplane("XY").newObject(['
+            f"cq.Solid.makeTorus({a['majorRadius']}, {a['minorRadius']}, "
+            f"cq.Vector{pnt}, cq.Vector{dir_})]))"
+        )
     elif name == "transformed":
         off = a.get("offset", [0, 0, 0])
         rot = a.get("rotate", [0, 0, 0])
-        return f".transformed(offset=cq.Vector{tuple(off)}, rotate=cq.Vector{tuple(rot)})"
+        return (
+            f".transformed(offset=cq.Vector{tuple(off)}, rotate=cq.Vector{tuple(rot)})"
+        )
     elif name == "cskHole":
         depth = a.get("depth")
         base = f".cskHole({a['diameter']}, {a['cskDiameter']}, {a['cskAngle']}"
@@ -384,21 +454,33 @@ def _op_to_code(op: Op) -> str:
         is_frenet = a.get("isFrenet", path_type == "helix")
         if path_type == "helix":
             pa = a["path_args"]
-            return (f'.sweep(cq.Wire.makeHelix({pa["pitch"]}, {pa["height"]}, {pa["radius"]})'
-                    f', isFrenet={is_frenet})')
+            return (
+                f'.sweep(cq.Wire.makeHelix({pa["pitch"]}, {pa["height"]}, {pa["radius"]})'
+                f", isFrenet={is_frenet})"
+            )
+        elif path_type == "helix_with_legs":
+            pa = a["path_args"]
+            return (
+                f".sweep(\n"
+                f"    _helix_with_legs_path({pa['pitch']}, {pa['height']},"
+                f" {pa['radius']}, {pa['leg_length']}),\n"
+                f"    isFrenet={is_frenet})"
+            )
         elif path_type == "elbow_arc":
             ll, br, tl = a["lead_length"], a["bend_radius"], a["trail_length"]
             return (
-                f'.sweep(\n'
+                f".sweep(\n"
                 f'    cq.Workplane("XZ").moveTo(0.0,0.0).lineTo(0.0,{ll})'
-                f'.radiusArc(({br},{ll+br}),{br}).lineTo({br+tl},{ll+br}),\n'
-                f'    isFrenet=True)'
+                f".radiusArc(({br},{ll+br}),{br}).lineTo({br+tl},{ll+br}),\n"
+                f"    isFrenet=True)"
             )
         else:
             pts = a["path_points"]
             plane = a.get("path_plane", "XZ")
             method = "spline" if path_type == "spline" else "polyline"
-            return f'.sweep(cq.Workplane("{plane}").{method}({pts}), isFrenet={is_frenet})'
+            return (
+                f'.sweep(cq.Workplane("{plane}").{method}({pts}), isFrenet={is_frenet})'
+            )
     else:
         raise ValueError(f"Unknown op: {name}")
 
@@ -408,7 +490,45 @@ def render_program_to_code(program: Program) -> str:
     global _current_base_plane
     bp = program.base_plane or "XY"
     _current_base_plane = bp
-    lines = ["import cadquery as cq", "", "result = (", f'    cq.Workplane("{bp}")']
+
+    def _uses_helix_with_legs(ops):
+        for o in ops:
+            if o.name == "sweep" and o.args.get("path_type") == "helix_with_legs":
+                return True
+            sub = o.args.get("ops") if isinstance(o.args, dict) else None
+            if sub:
+                for s in sub:
+                    if (
+                        s.get("name") == "sweep"
+                        and s.get("args", {}).get("path_type") == "helix_with_legs"
+                    ):
+                        return True
+        return False
+
+    lines = ["import cadquery as cq"]
+    if _uses_helix_with_legs(program.ops):
+        lines += [
+            "import math",
+            "",
+            "def _helix_with_legs_path(pitch, height, radius, leg_length):",
+            "    helix = cq.Wire.makeHelix(pitch, height, radius)",
+            "    v = helix.Vertices()",
+            "    p0 = cq.Vector(v[0].X, v[0].Y, v[0].Z)",
+            "    p1 = cq.Vector(v[1].X, v[1].Y, v[1].Z)",
+            "    dz = pitch / (2 * math.pi)",
+            "    t0 = 0.0",
+            "    t1 = 2 * math.pi * height / pitch",
+            "    tan0 = cq.Vector(-radius*math.sin(t0), radius*math.cos(t0), dz)",
+            "    tan1 = cq.Vector(-radius*math.sin(t1), radius*math.cos(t1), dz)",
+            "    m0 = math.sqrt(tan0.x**2 + tan0.y**2 + tan0.z**2)",
+            "    m1 = math.sqrt(tan1.x**2 + tan1.y**2 + tan1.z**2)",
+            "    tan0n = cq.Vector(tan0.x/m0, tan0.y/m0, tan0.z/m0)",
+            "    tan1n = cq.Vector(tan1.x/m1, tan1.y/m1, tan1.z/m1)",
+            "    leg1 = cq.Edge.makeLine(p0 - tan0n.multiply(leg_length), p0)",
+            "    leg2 = cq.Edge.makeLine(p1, p1 + tan1n.multiply(leg_length))",
+            "    return cq.Wire.assembleEdges([leg1] + list(helix.Edges()) + [leg2])",
+        ]
+    lines += ["", "result = (", f'    cq.Workplane("{bp}")']
     for op in program.ops:
         code = _op_to_code(op)
         # Re-indent every line of multi-line ops (union/cut/sweep)

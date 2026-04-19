@@ -11,12 +11,11 @@ Thickness series:
 
 Easy:   plain flat ring (d ≤ 20)
 Medium: plain flat ring, larger size range (d ≤ 50)
-Hard:   split ring — two half-rings cut along diameter for
-          installation without shaft disassembly (full d range)
+Hard:   split shim — full ring with narrow radial slit for snap-on
+          installation without shaft disassembly (full d range; non-DIN variant)
 
 Reference: DIN 988:1990 — Shim rings; Table (bore d, OD D, thickness s series for d 3–200mm)
 """
-
 
 from ..pipeline.builder import Op, Program
 from .base import BaseFamily
@@ -115,32 +114,42 @@ class SpacerRingFamily(BaseFamily):
         r_outer = round(D / 2, 4)
         r_inner = round(d / 2, 4)
 
-        if not split:
-            # Plain flat ring: cylinder with through bore
-            ops.append(Op("cylinder", {"height": s, "radius": r_outer}))
-            ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("hole", {"diameter": round(d, 4)}))
-        else:
-            # Split ring: half-ring profile extruded (top semicircle only).
-            # Profile: outer half-arc (y≥0) → left edge → inner half-arc → right edge.
+        # Plain flat ring: cylinder with through bore
+        ops.append(Op("cylinder", {"height": s, "radius": r_outer}))
+        ops.append(Op("workplane", {"selector": ">Z"}))
+        ops.append(Op("hole", {"diameter": round(d, 4)}))
+
+        if split:
+            # Narrow radial slit through ring wall — snap-on installation
             tags["has_slot"] = True
-            ops.append(Op("workplane", {"selector": "XY"}))
-            ops.append(Op("moveTo", {"x": r_outer, "y": 0.0}))
+            gap_w = round(max(0.8, min(2.5, (D - d) / 4)), 2)
+            cut_center_x = round((r_outer + r_inner) / 2, 3)
+            cut_len = round(D - d + 1, 3)
             ops.append(
                 Op(
-                    "threePointArc",
-                    {"point1": [0.0, r_outer], "point2": [-r_outer, 0.0]},
+                    "cut",
+                    {
+                        "ops": [
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": [cut_center_x, 0.0, 0.0],
+                                    "rotate": [0, 0, 0],
+                                },
+                            },
+                            {
+                                "name": "box",
+                                "args": {
+                                    "length": cut_len,
+                                    "width": gap_w,
+                                    "height": round(s + 1, 3),
+                                    "centered": True,
+                                },
+                            },
+                        ]
+                    },
                 )
             )
-            ops.append(Op("lineTo", {"x": -r_inner, "y": 0.0}))
-            ops.append(
-                Op(
-                    "threePointArc",
-                    {"point1": [0.0, r_inner], "point2": [r_inner, 0.0]},
-                )
-            )
-            ops.append(Op("close", {}))
-            ops.append(Op("extrude", {"distance": s}))
 
         return Program(
             family=self.name,

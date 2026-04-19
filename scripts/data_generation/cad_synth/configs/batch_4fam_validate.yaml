@@ -1,0 +1,14 @@
+run_name: batch_4fam_validate_apr18
+num_samples: 48
+seed: 4418
+n_workers: 4
+family_mix:
+  eyebolt: 1
+  spline_hub: 1
+  venturi_tube: 1
+  torsion_spring: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true

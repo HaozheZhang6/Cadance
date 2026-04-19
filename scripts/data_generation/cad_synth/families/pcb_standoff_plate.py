@@ -18,9 +18,11 @@ class PcbStandoffPlateFamily(BaseFamily):
         length = rng.uniform(60, 200)
         width = rng.uniform(40, 150)
         thick = rng.uniform(2, 6)
-        inset = rng.uniform(5, max(6, min(20, length / 8, width / 8)))
-        post_h = rng.uniform(4, 15)
-        post_od = rng.uniform(4, min(10, inset * 0.8))
+        # Force inset ≥ 8 so post_od has room (≥ 8mm posts visible at montage scale).
+        inset = rng.uniform(8, max(10, min(22, length / 7, width / 7)))
+        # Post height ≥ 8mm + diameter ≥ 6mm so posts read as columns, not bumps.
+        post_h = rng.uniform(8, 18)
+        post_od = rng.uniform(6, max(7, min(12, inset * 0.85)))
         post_bore_d = rng.uniform(2.0, post_od * 0.55)
 
         params = {

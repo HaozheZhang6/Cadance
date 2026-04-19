@@ -18,13 +18,13 @@ class SteppedShaftFamily(BaseFamily):
 
     def sample_params(self, difficulty: str, rng) -> dict:
         """Sample params for a stepped shaft."""
-        # Base (largest) section
+        # Section 1 = stub/hub: shorter, wider
         r1 = rng.uniform(8, 40)
-        h1 = rng.uniform(5, 30)
+        h1 = rng.uniform(5, max(6, r1 * 0.6))
 
-        # Each successive step: smaller radius, variable height
-        r2 = rng.uniform(r1 * 0.4, r1 * 0.8)
-        h2 = rng.uniform(10, 60)
+        # Section 2 = main shaft: longer than hub, narrower (clear visual step)
+        r2 = rng.uniform(r1 * 0.35, r1 * 0.7)
+        h2 = rng.uniform(max(20.0, h1 * 2.0), 60.0)
 
         params = {
             "r1": round(r1, 1),
@@ -55,9 +55,10 @@ class SteppedShaftFamily(BaseFamily):
 
     def validate_params(self, params: dict) -> bool:
         r1, r2 = params["r1"], params["r2"]
-        if r2 >= r1 or r1 < 3 or r2 < 1.5:
+        h1, h2 = params["h1"], params["h2"]
+        if r2 >= r1 * 0.75 or r1 < 3 or r2 < 1.5:
             return False
-        if params["h1"] < 2 or params["h2"] < 2:
+        if h1 < 2 or h2 < h1 * 1.5:
             return False
 
         r3 = params.get("r3")

@@ -24,28 +24,24 @@ class MountingPlateFamily(BaseFamily):
             "difficulty": difficulty,
         }
 
-        if difficulty in ("medium", "hard"):
-            max_hole_d = min(length, width) / 3
-            hole_d = rng.uniform(2, max(2.5, max_hole_d * 0.6))
-            params["hole_diameter"] = round(hole_d, 1)
-            # Inset from edges
-            margin = hole_d / 2 + 3
-            params["hole_inset_x"] = round(
-                rng.uniform(margin, max(margin + 1, length / 2 - margin)), 1
-            )
-            params["hole_inset_y"] = round(
-                rng.uniform(margin, max(margin + 1, width / 2 - margin)), 1
-            )
+        # Corner holes present at all difficulties — defines "mounting plate" identity
+        max_hole_d = min(length, width) / 3
+        hole_d = rng.uniform(4, max(4.5, max_hole_d * 0.6))
+        params["hole_diameter"] = round(hole_d, 1)
+        margin = hole_d / 2 + 3
+        params["hole_inset_x"] = round(
+            rng.uniform(margin, max(margin + 1, length / 2 - margin)), 1
+        )
+        params["hole_inset_y"] = round(
+            rng.uniform(margin, max(margin + 1, width / 2 - margin)), 1
+        )
 
-        if difficulty == "medium":
+        if difficulty in ("medium", "hard"):
             params["fillet_radius"] = round(
                 rng.uniform(0.5, min(3.0, thickness / 2 - 0.1)), 1
             )
 
         if difficulty == "hard":
-            params["fillet_radius"] = round(
-                rng.uniform(0.5, min(3.0, thickness / 2 - 0.1)), 1
-            )
             params["chamfer_length"] = round(
                 rng.uniform(0.3, min(2.0, thickness / 3)), 1
             )

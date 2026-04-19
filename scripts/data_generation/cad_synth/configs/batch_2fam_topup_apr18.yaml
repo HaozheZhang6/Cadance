@@ -1,0 +1,12 @@
+run_name: batch_2fam_topup_apr18
+num_samples: 50
+seed: 4182
+n_workers: 4
+family_mix:
+  snap_clip: 1
+  spacer_ring: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true

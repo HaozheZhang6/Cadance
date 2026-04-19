@@ -44,11 +44,11 @@ class PulleyFamily(BaseFamily):
     def sample_params(self, difficulty: str, rng) -> dict:
         # Anchor on ISO 4183 belt section first, then derive geometry
         if difficulty == "easy":
-            belt_pool = _ISO4183_BELT[:3]   # Z, A, B
+            belt_pool = _ISO4183_BELT[:3]  # Z, A, B
         elif difficulty == "medium":
-            belt_pool = _ISO4183_BELT[:4]   # Z, A, B, C
+            belt_pool = _ISO4183_BELT[:4]  # Z, A, B, C
         else:
-            belt_pool = _ISO4183_BELT       # all sections
+            belt_pool = _ISO4183_BELT  # all sections
 
         belt_section, groove_w, groove_depth_std, pd_min = belt_pool[
             int(rng.integers(0, len(belt_pool)))
@@ -62,9 +62,11 @@ class PulleyFamily(BaseFamily):
         # Rim thickness: must contain groove depth with margin
         rim_t = round(groove_depth_std * float(rng.choice([1.3, 1.5, 1.8, 2.0])), 1)
 
-        # Total axial width: groove width + two flanges (3–8 mm each side)
+        # Total axial width: groove width + two flanges (3–8 mm each side),
+        # but enforce ISO 22 minimum proportion of ≥ 0.18 × PD so the rim is
+        # visibly thick relative to the pulley diameter.
         flange = float(rng.choice([3.0, 4.0, 5.0, 6.0, 8.0]))
-        width = round(groove_w + 2.0 * flange, 1)
+        width = round(max(groove_w + 2.0 * flange, pd_mm * 0.18), 1)
 
         # Bore: 15–25% of rim radius; hub: capped at 50% of rim radius
         bore_r = round(rim_r * float(rng.choice([0.15, 0.18, 0.20, 0.25])), 1)
@@ -73,7 +75,9 @@ class PulleyFamily(BaseFamily):
         hub_r = min(hub_r_raw, round(rim_r * 0.50, 1))
 
         # Rim thickness must be < 35% of width to pass validate
-        rim_t = round(min(groove_depth_std * float(rng.choice([1.3, 1.5, 1.8])), width * 0.30), 1)
+        rim_t = round(
+            min(groove_depth_std * float(rng.choice([1.3, 1.5, 1.8])), width * 0.30), 1
+        )
         rim_t = max(rim_t, 3.0)
 
         # ISO 22: groove angle by pitch diameter
@@ -160,7 +164,8 @@ class PulleyFamily(BaseFamily):
 
         if gd > 0:
             # V-groove pulley: rim has a groove cut in the middle
-            groove_half_w = round(gd / math.tan(math.radians(ga)), 3)
+            # Half-width at top of V = depth * tan(half_angle)
+            groove_half_w = round(gd * math.tan(math.radians(ga / 2)), 3)
             pts = [
                 # Inner bore bottom
                 [round(br, 3), round(-w2, 3)],
@@ -215,15 +220,24 @@ class PulleyFamily(BaseFamily):
             )
         )
 
-        # Spoked body — polar array of rectangular cutout pockets (hard)
+        # Spoked body — polar array of rectangular pockets cut through the web.
+        # Pulley revolves around Y axis (Y = axial). Each pocket box must:
+        #   - sit at world (pocket_r·cos(θ), 0, -pocket_r·sin(θ))
+        #   - be rotated around world Y by θ so its long axis stays radial
+        # NOTE: cq.Workplane.transformed applies offset FIRST then rotates the
+        # plane around its own (post-translation) origin. So passing a constant
+        # local offset + varying rotate keeps every cutter clustered at the
+        # same world position. Compute the world position with cos/sin instead
+        # and let rotate orient the box.
         n_sp = params.get("n_spokes")
         sw = params.get("spoke_width")
         if n_sp and sw:
             pocket_r = round((hr + rr - rt) / 2, 3)
             pocket_l = round(rr - rt - hr - 4, 3)
-            pocket_h = round(w - 4, 3)
             for i in range(n_sp):
-                angle_deg = round(360.0 * i / n_sp, 3)
+                angle_deg = 360.0 * i / n_sp
+                fx = round(pocket_r * math.cos(math.radians(angle_deg)), 3)
+                fz = round(-pocket_r * math.sin(math.radians(angle_deg)), 3)
                 ops.append(
                     Op(
                         "cut",
@@ -232,16 +246,16 @@ class PulleyFamily(BaseFamily):
                                 {
                                     "name": "transformed",
                                     "args": {
-                                        "offset": [pocket_r, 0.0, 0.0],
-                                        "rotate": [0.0, 0.0, angle_deg],
+                                        "offset": [fx, 0.0, fz],
+                                        "rotate": [0.0, round(angle_deg, 3), 0.0],
                                     },
                                 },
                                 {
                                     "name": "box",
                                     "args": {
                                         "length": pocket_l,
-                                        "width": sw,
-                                        "height": pocket_h * 2,
+                                        "width": round(w * 2, 3),
+                                        "height": sw,
                                         "centered": True,
                                     },
                                 },
@@ -250,15 +264,40 @@ class PulleyFamily(BaseFamily):
                     )
                 )
 
-        # Keyway (hard) — DIN 6885A dimensions from params
+        # Keyway (hard) — DIN 6885A slot in the BORE WALL, not through the
+        # entire pulley. Box is positioned so its bottom face sits on the bore
+        # surface (Z = br) and extends radially outward by kh into the hub
+        # material; axially it spans the full pulley width (Y = ±w/2 + ε).
+        # Tangential extent is kw (the keyway width).
         kw = params.get("keyway_width")
         kh = params.get("keyway_height")
         if kw and kh:
             tags["has_slot"] = True
-            ops.append(Op("workplane", {"selector": ">Y"}))
-            ops.append(Op("pushPoints", {"points": [(0.0, round(br, 3))]}))
-            ops.append(Op("rect", {"length": kw, "width": kh}))
-            ops.append(Op("cutThruAll", {}))
+            ops.append(
+                Op(
+                    "cut",
+                    {
+                        "ops": [
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": [0.0, 0.0, round(br + kh / 2, 3)],
+                                    "rotate": [0.0, 0.0, 0.0],
+                                },
+                            },
+                            {
+                                "name": "box",
+                                "args": {
+                                    "length": round(kw, 3),
+                                    "width": round(w + 2.0, 3),
+                                    "height": round(kh, 3),
+                                    "centered": True,
+                                },
+                            },
+                        ]
+                    },
+                )
+            )
 
         return Program(
             family=self.name,

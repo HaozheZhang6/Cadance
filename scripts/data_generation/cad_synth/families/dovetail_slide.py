@@ -36,7 +36,11 @@ class DovetailSlideFamily(BaseFamily):
     standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        variant = rng.choice(VARIANTS)
+        # Bias toward female at easy/hard — male trapezoid alone reads as plain wedge
+        if difficulty == "medium":
+            variant = str(rng.choice(VARIANTS))
+        else:
+            variant = str(rng.choice(VARIANTS, p=[0.3, 0.7]))
         width_top = rng.uniform(15, 55)  # male: wide end; female: groove wide end
         angle_deg = rng.uniform(45, 65)  # dovetail flank angle [°]
         # cap height so width_bottom >= width_top * 0.30 (avoid wedge shapes)

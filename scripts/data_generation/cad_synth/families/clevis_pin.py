@@ -3,9 +3,13 @@
 Precision cylindrical pin for clevis/fork joints. Length sampled from
 within the ISO 2340 table range for the chosen diameter.
 
-Easy:   plain cylinder + chamfered ends
-Medium: + cross-hole for split pin (ISO 1234)
-Hard:   + groove near end for snap ring (circlip groove)
+Easy:   plain cylinder + chamfered ends                   (ISO 2340 type A)
+Medium: + 1 cross-hole for split pin (ISO 1234) near end  (ISO 2340 type B, 1×)
+Hard:   + 2 cross-holes (one each end) — true type B      (ISO 2340 type B, 2×)
+
+ISO 2340 covers only type A (plain) and type B (with split-pin hole).
+Circlip retention is a different standard (DIN 1444 type/E, DIN 471) and
+is NOT included here to keep the family standard-pure.
 
 Reference: ISO 2340:1986 — Clevis pins without head; Table (d, l_min, l_max for d 3–50mm)
 """
@@ -108,7 +112,7 @@ class ClevisPinFamily(BaseFamily):
             450,
             500,
         ]
-        valid = [l for l in _len if l_min <= l <= l_max]
+        valid = [ln for ln in _len if l_min <= ln <= l_max]
         length = float(valid[int(rng.integers(0, len(valid)))])
         chamfer = round(min(1.0, d * 0.1), 1)
 
@@ -120,34 +124,37 @@ class ClevisPinFamily(BaseFamily):
         }
 
         if difficulty in ("medium", "hard"):
-            # Cross-hole for split pin, positioned near pin end
+            # Cross-hole for split pin, positioned near pin end (ISO 2340 type B)
             sp_d = _SPLIT_PIN_D.get(d, round(d * 0.2, 1))
             params["split_pin_diameter"] = sp_d
-            # Hole centre at ~10% from end (or at least d/2+2 from end)
+            # Hole centre offset from bottom end: at least d/2+2, ~10% length
             params["split_pin_offset"] = round(max(d / 2 + 2, length * 0.1), 1)
 
         if difficulty == "hard":
-            # Circlip groove near the other end
-            params["groove_width"] = round(d * 0.12, 1)
-            params["groove_depth"] = round(d * 0.06, 1)
-            params["groove_offset"] = round(max(d / 2 + 3, length * 0.12), 1)
+            # Type B with 2 cross-holes — second hole near the OPPOSITE end
+            params["split_pin_offset_2"] = round(max(d / 2 + 2, length * 0.1), 1)
 
         return params
 
     def validate_params(self, params: dict) -> bool:
         d = params["diameter"]
-        l = params["length"]
-        if d < 4 or l < d * 1.5:
+        ln = params["length"]
+        if d < 4 or ln < d * 1.5:
             return False
         sp = params.get("split_pin_diameter", 0)
         if sp and sp >= d * 0.5:
+            return False
+        # 2 cross-holes must not overlap: gap ≥ d
+        sp1 = params.get("split_pin_offset", 0)
+        sp2 = params.get("split_pin_offset_2", 0)
+        if sp2 and (ln - sp1 - sp2) < d:
             return False
         return True
 
     def make_program(self, params: dict) -> Program:
         difficulty = params.get("difficulty", "easy")
         d = params["diameter"]
-        l = params["length"]
+        ln = params["length"]
         ch = params.get("chamfer_length", 0)
 
         ops, tags = [], {
@@ -158,35 +165,73 @@ class ClevisPinFamily(BaseFamily):
             "rotational": True,
         }
 
-        ops.append(Op("cylinder", {"height": l, "radius": round(d / 2, 4)}))
+        ops.append(Op("cylinder", {"height": ln, "radius": round(d / 2, 4)}))
 
         if ch:
             ops.append(Op("edges", {"selector": "|Z"}))
             ops.append(Op("chamfer", {"length": round(ch, 3)}))
 
-        # Cross-hole for split pin (medium+)
+        # Cross-holes for split pin (medium = 1 hole, hard = 2 holes)
+        # Cylinder is centered at origin, axis along Z, so z spans -ln/2..+ln/2.
+        # Drill radially: cut a Y-axis cylinder at z=hole_z (rotate=[90,0,0]
+        # makes local Z align with world -Y, so the cylinder built on this
+        # workplane has its axis along Y → cuts diametrically through the pin).
         sp_d = params.get("split_pin_diameter")
         sp_off = params.get("split_pin_offset")
         if sp_d and sp_off:
             tags["has_hole"] = True
-            # Drill radially through pin at sp_off from bottom
-            ops.append(Op("workplane", {"selector": "XZ"}))
-            ops.append(Op("moveTo", {"x": 0, "y": round(sp_off - l / 2, 3)}))
-            ops.append(Op("circle", {"radius": round(sp_d / 2, 3)}))
-            ops.append(Op("cutThruAll", {}))
+            hole_z = round(-ln / 2 + sp_off, 3)
+            ops.append(
+                Op(
+                    "cut",
+                    {
+                        "ops": [
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": [0, 0, hole_z],
+                                    "rotate": [90, 0, 0],
+                                },
+                            },
+                            {
+                                "name": "cylinder",
+                                "args": {
+                                    "height": round(d * 1.5, 3),
+                                    "radius": round(sp_d / 2, 3),
+                                },
+                            },
+                        ]
+                    },
+                )
+            )
 
-        # Circlip groove (hard)
-        gw = params.get("groove_width")
-        gd = params.get("groove_depth")
-        g_off = params.get("groove_offset")
-        if gw and gd and g_off:
-            tags["has_slot"] = True
-            inner_r = round(d / 2 - gd, 3)
-            # Revolve a small rect around axis at groove position
-            ops.append(Op("workplane", {"selector": "XZ"}))
-            ops.append(Op("moveTo", {"x": inner_r, "y": round(l / 2 - g_off, 3)}))
-            ops.append(Op("rect", {"length": gd, "width": gw}))
-            ops.append(Op("cutThruAll", {}))
+        # Second cross-hole near top end (hard)
+        sp_off_2 = params.get("split_pin_offset_2")
+        if sp_d and sp_off_2:
+            hole_z_2 = round(ln / 2 - sp_off_2, 3)
+            ops.append(
+                Op(
+                    "cut",
+                    {
+                        "ops": [
+                            {
+                                "name": "transformed",
+                                "args": {
+                                    "offset": [0, 0, hole_z_2],
+                                    "rotate": [90, 0, 0],
+                                },
+                            },
+                            {
+                                "name": "cylinder",
+                                "args": {
+                                    "height": round(d * 1.5, 3),
+                                    "radius": round(sp_d / 2, 3),
+                                },
+                            },
+                        ]
+                    },
+                )
+            )
 
         return Program(
             family=self.name,

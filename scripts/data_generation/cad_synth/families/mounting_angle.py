@@ -45,7 +45,8 @@ class MountingAngleFamily(BaseFamily):
         leg, thick = pool[int(rng.integers(0, len(pool)))]
         arm_w = float(leg)
         web_h = float(leg)
-        depth = round(rng.uniform(max(20.0, leg * 2), leg * 6), 0)
+        # Cap depth ≤ 4×leg to avoid spindly/sliver-like proportions at montage scale.
+        depth = round(rng.uniform(max(20.0, leg * 1.5), leg * 4), 0)
         # Bolt hole diameter: < 0.7 × thick to pass validate; min 2mm
         hole_d = round(max(2.0, min(thick * 0.6, 8.0)), 1)
         n_base = int(rng.choice([1, 2, 3]))

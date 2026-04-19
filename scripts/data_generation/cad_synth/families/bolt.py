@@ -1,12 +1,15 @@
-"""Hex-head bolt — hexagonal head + cylindrical shaft.
+"""Hex-head bolt — hexagonal head + cylindrical shaft + (hard) real V-threads.
 
 ISO 4014 / ISO 4017 hex head bolts, M-series per ISO 261.
 Dimensions from ISO 4014 Table 1 (partial thread) — exact standard values only.
 
-Table: (M_nominal, s_across_flats, k_head_height)
-Standard lengths sampled from ISO 888 preferred length series.
+Easy:   hex head + smooth shaft
+Medium: + head top chamfer
+Hard:   + real ISO metric V-thread cut at shaft tip via helix-swept triangular
+        cutter (60° flank angle, pitch from ISO 261 coarse series)
 
-Reference: ISO 4014:2011 — Table 1 (s, k, e for M3–M64); ISO 888:2012 preferred lengths
+Reference: ISO 4014:2011 — Table 1 (s, k, e for M3–M64); ISO 888:2012 preferred lengths;
+ISO 261:1998 — coarse-pitch series for M-thread.
 """
 
 import math
@@ -36,6 +39,28 @@ _ISO4014 = [
     (42, 65.0, 26.0),
     (48, 75.0, 30.0),
 ]
+
+# ISO 261 coarse-pitch series (M_nominal → pitch_mm)
+_ISO261_PITCH = {
+    3: 0.5,
+    4: 0.7,
+    5: 0.8,
+    6: 1.0,
+    8: 1.25,
+    10: 1.5,
+    12: 1.75,
+    14: 2.0,
+    16: 2.0,
+    18: 2.5,
+    20: 2.5,
+    22: 2.5,
+    24: 3.0,
+    27: 3.0,
+    30: 3.5,
+    36: 4.0,
+    42: 4.5,
+    48: 5.0,
+}
 
 # ISO 888 preferred length series (mm)
 _ISO888_LENGTHS = [
@@ -114,7 +139,7 @@ class BoltFamily(BaseFamily):
             # ISO 4014 thread length per standard (approx b = 2M + 6 for M≤125mm)
             thread_l = round(min(2 * M + 6, shaft_len * 0.6), 1)
             params["thread_length"] = thread_l
-            params["thread_relief"] = round(M * 0.05, 2)
+            params["thread_pitch"] = float(_ISO261_PITCH[M])
 
         return params
 
@@ -138,6 +163,9 @@ class BoltFamily(BaseFamily):
         tl = params.get("thread_length", 0)
         if tl and tl >= sl * 0.8:
             return False
+        tp = params.get("thread_pitch", 0)
+        if tp and tp >= M * 0.5:
+            return False
 
         return True
 
@@ -151,47 +179,43 @@ class BoltFamily(BaseFamily):
         ops = []
         tags = {"has_hole": False, "has_fillet": False, "has_chamfer": False}
 
-        # Hex head: polygon(6) + extrude upward from z=0
+        # Layout: tip at z=0, shaft up, head on top.
+        # This puts cq.Wire.makeHelix (built in absolute world coords starting
+        # at z=0) directly at the shaft tip, where threads belong.
+        # Shaft: circle + extrude upward from z=0 → spans z=[0, sl]
+        ops.append(Op("circle", {"radius": round(M / 2, 4)}))
+        ops.append(Op("extrude", {"distance": round(sl, 4)}))
+
+        # Hex head on top of shaft → spans z=[sl, sl+hh]
+        ops.append(Op("workplane", {"selector": ">Z"}))
         ops.append(Op("polygon", {"n": 6, "diameter": hd}))
-        ops.append(Op("extrude", {"distance": hh}))
+        ops.append(Op("extrude", {"distance": round(hh, 4)}))
 
         # Chamfer top edge of head (medium+)
         ch = params.get("chamfer")
         if ch:
             tags["has_chamfer"] = True
-            ops.append(Op("faces", {"selector": ">Z"}))
             ops.append(Op("edges", {"selector": ">Z"}))
             ops.append(Op("chamfer", {"length": ch}))
 
-        # Shaft: union cylinder below head (centered at z = -sl/2)
-        shaft_center_z = round(-sl / 2, 4)
-        ops.append(
-            Op(
-                "union",
-                {
-                    "ops": [
-                        {
-                            "name": "transformed",
-                            "args": {
-                                "offset": [0, 0, shaft_center_z],
-                                "rotate": [0, 0, 0],
-                            },
-                        },
-                        {
-                            "name": "cylinder",
-                            "args": {"height": sl, "radius": round(M / 2, 4)},
-                        },
-                    ]
-                },
-            )
-        )
-
-        # Thread section: reduced-diameter cylinder at shaft tip (hard)
+        # Real ISO metric V-thread cut at shaft tip (hard).
+        # cq.Wire.makeHelix is built in WORLD coordinates from z=0 to z=height,
+        # so the layout above (tip at z=0) puts the helix directly on the
+        # threaded portion. Profile pattern follows worm_screw.py: rotate the
+        # workplane to the radial-axial frame, place the V apex pointing
+        # radially OUTWARD so the swept solid lies INSIDE the shaft → cuts
+        # V-grooves spiralling around the tip.
         tl = params.get("thread_length")
-        tr = params.get("thread_relief", 0)
-        if tl and tr:
-            # Cut a thin annulus from the threaded portion to show reduced diameter
-            thread_center_z = round(-sl + tl / 2, 4)
+        tp = params.get("thread_pitch")
+        if tl and tp:
+            r_shaft = M / 2.0
+            h_cut = round(tp * 0.4, 4)  # 60° V depth ≈ 0.4 × pitch
+            half_w = round(h_cut * math.tan(math.radians(30.0)), 4)
+            profile_pts = [
+                [0.0, half_w],
+                [-h_cut, 0.0],
+                [0.0, -half_w],
+            ]
             ops.append(
                 Op(
                     "cut",
@@ -200,38 +224,31 @@ class BoltFamily(BaseFamily):
                             {
                                 "name": "transformed",
                                 "args": {
-                                    "offset": [0, 0, thread_center_z],
-                                    "rotate": [0, 0, 0],
+                                    "offset": [0.0, 0.0, 0.0],
+                                    "rotate": [90.0, 0.0, 0.0],
                                 },
                             },
                             {
-                                "name": "cylinder",
-                                "args": {
-                                    "height": round(tl, 4),
-                                    "radius": round(M / 2, 4),
-                                },
+                                "name": "center",
+                                "args": {"x": round(r_shaft, 4), "y": 0.0},
                             },
-                        ]
-                    },
-                )
-            )
-            ops.append(
-                Op(
-                    "union",
-                    {
-                        "ops": [
+                            {"name": "polyline", "args": {"points": profile_pts}},
+                            {"name": "close"},
                             {
-                                "name": "transformed",
+                                "name": "sweep",
                                 "args": {
-                                    "offset": [0, 0, thread_center_z],
-                                    "rotate": [0, 0, 0],
-                                },
-                            },
-                            {
-                                "name": "cylinder",
-                                "args": {
-                                    "height": round(tl, 4),
-                                    "radius": round((M - tr * 2) / 2, 4),
+                                    "path_type": "helix",
+                                    "path_args": {
+                                        "pitch": round(tp, 4),
+                                        "height": round(tl, 4),
+                                        "radius": round(r_shaft, 4),
+                                    },
+                                    # isFrenet=False: with the small V-cutter
+                                    # profile, Frenet rotates the apex into
+                                    # invalid positions and fragments the
+                                    # shaft (8-solid result). Fixed-frame
+                                    # sweep produces one clean solid.
+                                    "isFrenet": False,
                                 },
                             },
                         ]

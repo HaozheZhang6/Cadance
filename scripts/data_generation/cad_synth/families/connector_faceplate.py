@@ -20,12 +20,13 @@ class ConnectorFaceplateFamily(BaseFamily):
         thick = rng.uniform(2, 6)
         inset = rng.uniform(6, min(18, length / 8, width / 6))
 
-        # Primary connector cutout — large opening, visible from any angle
-        max_cw = min(length - 2 * inset - 6, length * 0.6)
-        max_ch = min(width - 2 * inset - 6, width * 0.72)
-        cut_w = rng.uniform(max(20, max_cw * 0.35), max_cw)
+        # Primary cutout in left half — leaves space on right for secondary.
+        max_cw = min(length - 2 * inset - 6, length * 0.40)
+        max_ch = min(width - 2 * inset - 6, width * 0.65)
+        cut_w = rng.uniform(max(18, max_cw * 0.45), max_cw)
         cut_h = rng.uniform(max(14, max_ch * 0.45), max_ch)
-        cut_x = rng.uniform(-length / 5, length / 5)  # offset from center
+        # Push primary to one side so secondary has room
+        cut_x = -rng.uniform(length * 0.12, length * 0.22)
 
         params = {
             "length": round(length, 1),
@@ -41,15 +42,20 @@ class ConnectorFaceplateFamily(BaseFamily):
 
         if difficulty in ("medium", "hard"):
             params["chamfer_length"] = round(rng.uniform(0.3, min(1.2, thick / 3)), 1)
-            # Second cutout on other side — also large
-            max_c2w = min(length - 2 * inset - 6, length * 0.5)
-            max_c2h = min(width - 2 * inset - 6, width * 0.65)
-            cut2_w = rng.uniform(max(15, max_c2w * 0.35), max_c2w)
-            cut2_h = rng.uniform(max(12, max_c2h * 0.45), max_c2h)
-            cut2_x = round(-cut_x + rng.uniform(-8, 8), 1)
+            # Second cutout in right half (primary pushed left). Cap width at
+            # space remaining after primary + 8mm gap.
+            right_edge = length / 2 - inset
+            cut2_x_min = max(0, cut_x + cut_w / 2 + 8)  # right of primary + gap
+            cut2_x = rng.uniform(cut2_x_min, max(cut2_x_min + 1, right_edge * 0.5))
+            available_w = (right_edge - cut2_x) * 2
+            max_c2w = min(length * 0.30, available_w * 0.85)
+            max_c2w = max(10, max_c2w)
+            cut2_w = rng.uniform(max(10, max_c2w * 0.4), max_c2w)
+            max_c2h = min(width - 2 * inset - 6, width * 0.55)
+            cut2_h = rng.uniform(max(10, max_c2h * 0.45), max_c2h)
             params["cutout2_width"] = round(cut2_w, 1)
             params["cutout2_height"] = round(cut2_h, 1)
-            params["cutout2_x_offset"] = cut2_x
+            params["cutout2_x_offset"] = round(cut2_x, 1)
 
         if difficulty == "hard":
             # Small vent slot array

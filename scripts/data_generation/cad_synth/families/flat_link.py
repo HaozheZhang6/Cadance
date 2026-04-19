@@ -28,9 +28,9 @@ class FlatLinkFamily(BaseFamily):
             "difficulty": difficulty,
         }
 
-        if difficulty in ("medium", "hard"):
-            bore_r = round(rng.uniform(boss_r * 0.25, boss_r * 0.55), 1)
-            params["bore_radius"] = bore_r
+        # Bores in both bosses define link identity — present at all difficulties.
+        bore_r = round(rng.uniform(boss_r * 0.30, boss_r * 0.55), 1)
+        params["bore_radius"] = bore_r
 
         if difficulty == "hard":
             slot_w = round(rng.uniform(boss_r * 0.3, boss_r * 0.7), 1)

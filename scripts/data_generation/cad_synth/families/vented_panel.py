@@ -34,15 +34,16 @@ class VentedPanelFamily(BaseFamily):
         }
 
         if difficulty == "easy":
-            # Round holes
+            # Round holes — ensure visible at montage scale (≥ min(plate_dim)/15)
             nx = int(rng.choice([3, 4, 5]))
             ny = int(rng.choice([2, 3, 4]))
             max_hole_d = min(
                 (length - 2 * margin) / (nx + 0.5),
                 (width - 2 * margin) / (ny + 0.5),
-                12.0,
+                14.0,
             )
-            hole_d = rng.uniform(3.0, max(3.5, max_hole_d * 0.7))
+            min_hole_d = max(5.0, min(length, width) / 15)
+            hole_d = rng.uniform(min_hole_d, max(min_hole_d + 0.5, max_hole_d * 0.85))
             spacing_x = (length - 2 * margin) / max(1, nx - 1) if nx > 1 else length
             spacing_y = (width - 2 * margin) / max(1, ny - 1) if ny > 1 else width
             params.update(
@@ -56,15 +57,16 @@ class VentedPanelFamily(BaseFamily):
             )
 
         elif difficulty == "medium":
-            # Round holes + plate edge chamfer
+            # Round holes + plate edge chamfer — visible at montage scale
             nx = int(rng.choice([4, 5, 6]))
             ny = int(rng.choice([3, 4, 5]))
             max_hole_d = min(
                 (length - 2 * margin) / (nx + 0.5),
                 (width - 2 * margin) / (ny + 0.5),
-                10.0,
+                12.0,
             )
-            hole_d = rng.uniform(3.0, max(3.5, max_hole_d * 0.65))
+            min_hole_d = max(4.0, min(length, width) / 18)
+            hole_d = rng.uniform(min_hole_d, max(min_hole_d + 0.5, max_hole_d * 0.8))
             spacing_x = (length - 2 * margin) / max(1, nx - 1) if nx > 1 else length
             spacing_y = (width - 2 * margin) / max(1, ny - 1) if ny > 1 else width
             chamfer = rng.uniform(0.5, min(2.0, thickness / 3))

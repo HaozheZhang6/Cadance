@@ -1,5 +1,6 @@
 """Base interface for parametric CadQuery part families."""
 
+import math
 from abc import ABC, abstractmethod
 
 from ..pipeline.builder import Program, build_from_program, render_program_to_code
@@ -33,6 +34,58 @@ def din6885a_keyway(bore_d: float) -> tuple[float, float]:
     # Outside table range: proportional fallback
     b = round(bore_d * 0.25, 0)
     return b, round(b * 0.5, 1)
+
+
+def iso606_sprocket_profile(
+    num_teeth: int, pitch: float, roller_diam: float, n_arc_pts: int = 8
+) -> list[tuple[float, float]]:
+    """Continuous CCW polyline of an ISO 606 roller-chain sprocket outline.
+
+    Each tooth gap = circular root seating arc + straight tooth flank +
+    tip-circle midpoint. Adjacent gaps share their tip midpoint, giving a
+    single closed wire — extrude in one shot to avoid boolean-cut crashes.
+
+    Reference: ISO 606:2015 §8.2 (tooth form), DIN 8187:1996.
+    """
+    dp = pitch / math.sin(math.pi / num_teeth)
+    do = dp + 0.6 * roller_diam
+    ri = 0.505 * roller_diam
+    beta_half = math.radians(140 - 90 / num_teeth) / 2
+
+    pts: list[tuple[float, float]] = []
+    for i in range(num_teeth):
+        base = i * (2 * math.pi / num_teeth)
+        cos_g = math.cos(base)
+        sin_g = math.sin(base)
+
+        right_half: list[tuple[float, float]] = []
+        for j in range(n_arc_pts):
+            alpha = math.pi - (j / (n_arc_pts - 1)) * beta_half
+            right_half.append((dp / 2 + ri * math.cos(alpha), ri * math.sin(alpha)))
+
+        x_re, y_re = right_half[-1]
+        theta_re = math.atan2(y_re, x_re)
+        delta = 0.2 * pitch / do
+        theta_tip = max((math.pi / num_teeth) - delta, theta_re + 0.01)
+        right_half.append(
+            ((do / 2) * math.cos(theta_tip), (do / 2) * math.sin(theta_tip))
+        )
+        right_half.append(
+            (
+                (do / 2) * math.cos(math.pi / num_teeth),
+                (do / 2) * math.sin(math.pi / num_teeth),
+            )
+        )
+
+        left_half = [(x, -y) for x, y in reversed(right_half)]
+        gap_pts = left_half[:-1] + right_half
+
+        for x, y in gap_pts[:-1]:
+            rx = x * cos_g - y * sin_g
+            ry = x * sin_g + y * cos_g
+            pts.append((round(rx, 4), round(ry, 4)))
+
+    return pts
 
 
 class BaseFamily(ABC):

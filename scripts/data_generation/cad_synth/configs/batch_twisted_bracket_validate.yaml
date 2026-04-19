@@ -1,0 +1,11 @@
+run_name: batch_twisted_bracket_apr18
+num_samples: 18
+seed: 4418
+n_workers: 4
+family_mix:
+  twisted_bracket: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true

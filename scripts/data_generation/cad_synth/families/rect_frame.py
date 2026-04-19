@@ -47,8 +47,9 @@ class RectFrameFamily(BaseFamily):
             params["hole_diameter"] = hole_d
 
         if difficulty == "hard":
-            slot_d = round(min(rail * 0.55, 10.0), 1)
-            slot_d = max(4.0, slot_d)
+            # Cap slot depth ≤ 0.40×rail so remaining rail ≥ 0.6×rail (avoid wireframe).
+            slot_d = round(min(rail * 0.40, 7.0), 1)
+            slot_d = max(3.0, slot_d)
             params["side_slot_depth"] = slot_d
 
         return params
@@ -76,7 +77,7 @@ class RectFrameFamily(BaseFamily):
             return False
 
         sd = params.get("side_slot_depth", 0)
-        if sd and sd >= rail * 0.7:
+        if sd and sd >= rail * 0.55:
             return False
 
         return True

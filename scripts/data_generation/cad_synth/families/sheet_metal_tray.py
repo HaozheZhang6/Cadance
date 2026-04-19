@@ -20,7 +20,10 @@ class SheetMetalTrayFamily(BaseFamily):
         length = rng.uniform(40, 200)
         width = rng.uniform(30, 150)
         height = rng.uniform(10, 60)
-        sheet_t = rng.uniform(1.0, min(4.0, height * 0.15))
+        # Sheet ≥ 2.5 mm at easy so rim/opening reads at montage scale
+        # (very thin shell on closed-looking iso view hides the open top).
+        t_lo = 2.5 if difficulty == "easy" else 1.5
+        sheet_t = rng.uniform(t_lo, max(t_lo + 0.3, min(5.0, height * 0.15)))
 
         params = {
             "length": round(length, 1),
