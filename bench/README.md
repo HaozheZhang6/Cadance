@@ -1,9 +1,10 @@
 # Cadance Bench — quickstart
 
-Zero local-data dependency: clone → `uv sync` → `.env` → one command pulls smoke dataset from HF and runs eval end-to-end. Two parallel tasks:
+Zero local-data dependency: clone → `uv sync` → `.env` → one command pulls smoke dataset from HF and runs eval end-to-end. Three parallel tasks:
 
 - **Code bench** — `image → CadQuery code`，再 exec + IoU/Chamfer/Feature-F1
-- **QA bench** — `image + 数值问题列表 → 数字数组`，算 symmetric ratio accuracy
+- **QA bench (image)** — `image + 数值问题列表 → 数字数组`，算 symmetric ratio accuracy
+- **QA bench (code)** — `gt_code + 数值问题列表 → 数字数组`，同评分（纯文本 LLM，不渲染）
 
 ---
 
@@ -28,8 +29,15 @@ uv run python bench/test/run_test.py \
     --model gpt-4o \
     --save-code                    # 跳过 --save-render 则完全不需要 vtk
 
-# 3b. QA bench — image + questions → numeric answers → ratio accuracy
+# 3b. QA bench (image) — image + questions → numeric answers → ratio accuracy
 uv run python bench/eval_qa.py \
+    --repo Hula0401/cad_synth_bench_smoke \
+    --split test_iid \
+    --limit 12 \
+    --model gpt-4o
+
+# 3c. QA bench (code) — gt_code + questions → numeric answers → ratio accuracy
+uv run python bench/eval_qa_code.py \
     --repo Hula0401/cad_synth_bench_smoke \
     --split test_iid \
     --limit 12 \
@@ -71,7 +79,8 @@ Outputs:
 | `bench/models/__init__.py` | VLM dispatch。`call_vlm(model, pil_img, api_key)` — 支持 `gpt-*` / `o1` / `o3` 走 OpenAI，`local:<path>` 走 Qwen2-VL/2.5-VL |
 | `bench/metrics/__init__.py` | `compute_iou` (voxel 64³), `compute_chamfer` (2048 pts), `extract_features` (regex), `feature_f1` |
 | `bench/eval.py` | Full code-bench runner（所有 split、stratified sample、resume） |
-| `bench/eval_qa.py` | QA-bench runner（image + qa_pairs → numeric answers → qa_score） |
+| `bench/eval_qa.py` | QA-bench runner (image)（image + qa_pairs → numeric answers → qa_score） |
+| `bench/eval_qa_code.py` | QA-bench runner (code)（gt_code + qa_pairs → numeric answers → qa_score，text-only） |
 | `bench/test/run_test.py` | E2E code smoke runner（fetch → verify → eval → summary，逐样本 flush jsonl） |
 | `bench/smoke_upload.py` | 把本地 synth_parts.csv 里挑 N × 3 diff stratified 打成 HF dataset（**需要本地数据**，只 generator 跑） |
 
@@ -135,9 +144,10 @@ uv run python bench/eval.py --model local:./checkpoints/cadrille-sft --split tes
 - `feature_f1`— regex feature 集合 F1（hole/fillet/chamfer），[0,1]
 - `detail_score` — `0.4·iou + 0.6·feature_f1`
 
-### QA bench (`bench/eval_qa.py`)
+### QA bench (`bench/eval_qa.py` image / `bench/eval_qa_code.py` code)
 - 每个 sample 2–3 个 numeric 问题（integer count / ratio / dim in mm），问题由 `qa_generator.py` 按 family 生成
-- Model 输入：composite image + `QA_SYSTEM_PROMPT` + `questions: list[str]`
+- Image runner 输入：composite image + `QA_SYSTEM_PROMPT` + `questions: list[str]`
+- Code runner 输入：`gt_code` + `QA_CODE_SYSTEM_PROMPT` + `questions: list[str]`（纯文本，不走 vision）
 - Model 输出：**严格 JSON array of numbers**（解析失败计 `parse_fail`）
 - 评分：`qa_score_single = min(pred, gt) / max(pred, gt)` — 对称，[0,1]
 - `qa_score` per-sample = 平均；summary 输出 overall + per-family

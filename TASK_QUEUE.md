@@ -4,7 +4,18 @@
 
 ## ⚠️ USER-ASSIGNED — 进行中
 
-### UA-19 — Edit Benchmark data gen (1000-2000 pair, L1/L2, 小 delta) 🔵 IN-PROGRESS (2026-04-20)
+### UA-19 — Edit Benchmark data gen (1000-2000 pair, L1/L2, 小 delta) ✅ DONE (2026-04-20)
+
+**结果：**
+- 1228 pairs (L1×614 + L2×614) 落地 `data/data_generation/bench_edit/pairs.jsonl`
+- 105 families（排除 worm_screw，UA-16 已知 OCCT 崩溃）; 97.5% yield (1228/1260 max)
+- Per-family 产量极均匀：最低 bearing_retainer_cap 4 records（2 axis×2 level，另 2 axis variant-only skip），其他家族 6-12
+- Filter 总丢失 12：validate×3, constraint×3, build×2, skip_not_in_root×4
+- pair_builder 加了增量 flush（每 family 一刷）防 OCCT C 层崩溃丢数据；`--exclude` CLI flag
+- 产物：`codes/` 820 个、`steps/` 820 个、`pair_stats.json`
+- 遗留：worm_screw 待 UA-16 修复后补跑（~24 records 缺口）
+
+
 
 **目标：** 生成一套独立的 CAD edit benchmark 数据集。模型输入：原始 CQ code + NL 指令；输出：修改后 CQ code。零训练，纯 zero-shot 评测。
 
@@ -52,6 +63,14 @@ data/data_generation/bench_edit/
 ### UA-20 — QA bench runner (image + numeric Q → answers → ratio acc) ✅ DONE (2026-04-20)
 
 **结果：** 见 UA-18 同一 session。`bench/eval_qa.py` + `QA_SYSTEM_PROMPT` + `call_vlm_qa` + HF schema `qa_pairs`/`iso_tags` 列。GPT-4o 12 样本 qa_score 0.562, parse 12/12。
+
+### UA-21 — QA bench runner (code → numeric Q → answers) ✅ DONE (2026-04-20)
+
+**结果：** 纯文本 LLM path，输入 `gt_code` + questions，输出 JSON 数字数组，复用 `qa_score`。
+- 新 `bench/eval_qa_code.py` + `QA_CODE_SYSTEM_PROMPT` + `call_openai_qa_code` / `call_llm_qa_code`
+- HF 数据复用既有 smoke（`gt_code` + `qa_pairs` 都已 embedded，无需重传）
+- GPT-4o 12 样本 parse 12/12, qa_score 0.526；per-family: bolt 1.000 / ball_knob 0.854 / clevis_pin 0.250 / bevel_gear 0.000
+- README 更新：三 bench 一键启动命令 + code-runner 说明
 
 ### UA-16 — 修 `worm_screw` medium+hard 变体 chamfer 后几何塌陷 🟠 MED (2026-04-19)
 

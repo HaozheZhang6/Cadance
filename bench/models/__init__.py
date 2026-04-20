@@ -326,3 +326,74 @@ def call_vlm_qa(
     raise ValueError(
         f"Unsupported model: {model}. Use 'local:<path>' for local models."
     )
+
+
+# ── Code-only QA (text LLM reads CadQuery code and answers numeric Qs) ────────
+
+QA_CODE_SYSTEM_PROMPT = """You are an expert CAD engineer. You will be shown CadQuery Python code for a mechanical part. You will be given a list of numeric questions about the part this code produces.
+
+Rules:
+- Output ONLY a JSON array of numbers, one per question, in the same order.
+- No text, no keys, no explanation. Just the array.
+- For yes/no questions, use 1 for yes and 0 for no.
+- For count questions, use an integer (e.g. 12, not "twelve").
+- For ratio questions, use a decimal (e.g. 2.5).
+- For dimensional questions, assume mm unless the question specifies otherwise.
+
+Example input code creates a gear with 20 teeth and module 2.5.
+Example input questions: ["How many teeth?", "What is the module in mm?"]
+Example output: [20, 2.5]"""
+
+
+def call_openai_qa_code(
+    model: str, code: str, questions: list[str], api_key: str
+) -> tuple[list[float] | None, str | None]:
+    import json as _json
+
+    import openai
+
+    client = openai.OpenAI(api_key=api_key)
+    user_text = (
+        "CadQuery code:\n```python\n"
+        + code
+        + "\n```\n\nQuestions (answer each with a single number, JSON array):\n"
+        + _json.dumps(questions)
+    )
+    try:
+        tok_param = (
+            "max_completion_tokens" if model.startswith("gpt-5") else "max_tokens"
+        )
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": QA_CODE_SYSTEM_PROMPT},
+                {"role": "user", "content": user_text},
+            ],
+            **{tok_param: 512},
+            temperature=0.0,
+        )
+        raw = resp.choices[0].message.content or ""
+        arr = _parse_qa_answers(raw, len(questions))
+        if arr is None:
+            return None, f"parse_fail: {raw[:120]}"
+        return arr, None
+    except Exception as e:
+        return None, str(e)[:200]
+
+
+def call_llm_qa_code(
+    model: str, code: str, questions: list[str], api_key: str | None
+) -> tuple[list[float] | None, str | None]:
+    """Text-only LLM: read CadQuery code, answer numeric questions."""
+    if not questions:
+        return [], None
+    if model.startswith("local:"):
+        return None, "local code-QA not yet implemented"
+    if model.startswith(("gpt", "o1", "o3")):
+        key = (
+            api_key
+            or os.environ.get("OPENAI_API_KEY")
+            or os.environ.get("OPENAI_API_KEY1")
+        )
+        return call_openai_qa_code(model, code, questions, key)
+    raise ValueError(f"Unsupported model: {model}")

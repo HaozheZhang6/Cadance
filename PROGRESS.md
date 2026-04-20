@@ -1,4 +1,23 @@
 
+## 2026-04-20 (session 18) — UA-21 code→QA bench runner
+
+- 新 `bench/eval_qa_code.py`：纯文本 LLM 从 `gt_code` 读 CadQuery，回答 `qa_pairs` 问题，复用 `qa_score`
+- `bench/models/__init__.py` 新增 `QA_CODE_SYSTEM_PROMPT` + `call_openai_qa_code` + `call_llm_qa_code`（文本 API，`max_tokens` / `max_completion_tokens` 按 gpt-5.x 区分）
+- HF 数据复用既有 `Hula0401/cad_synth_bench_smoke`（`gt_code` + `qa_pairs` 都已 embedded）
+- E2E: GPT-4o 12 samples parse 12/12, qa_score 0.526; bolt 1.000 / ball_knob 0.854 / clevis_pin 0.250 / bevel_gear 0.000
+- README +3rd bench section；TASK_QUEUE UA-21 DONE
+
+## 2026-04-20 (session 17) — UA-19 Edit benchmark 数据生成
+
+- 新 `bench/edit_gen/` 包：`edit_axes.py`（106 fam EDIT_AXES 中心化配置, 316 axes, safe-direction 预挑）+ `pair_builder.py`（orig/GT code + STEP 导出 + JSONL + 增量 flush）
+- `scripts/data_generation/cad_synth/pipeline/builder.py` `render_program_to_code(..., include_params_hint=False)` 新增 flag：顶部注入 `# --- parameters ---` 注释块。默认关闭，原管线 byte-identical
+- Delta 策略：2-5% + 安全方向（inner→-, outer→+）；三层过滤：`validate_params` → axis constraints → 体积 ratio/bbox min sanity
+- 1 root × 2 diff (easy+hard) × 3 axes × 1 delta × 2 levels = 12 records/family
+- 跑全 106 fam（排除 worm_screw，OCCT 崩溃 → UA-16）→ 1228 pairs (614 L1 + 614 L2), 97.5% yield
+- 产物：`data/data_generation/bench_edit/{pairs.jsonl, codes/, steps/, pair_stats.json}`
+- 最低产量：bearing_retainer_cap 4（两 axis 走 disc 变体不出现，自动 skip）；其他 ≥6
+- Pair builder 增量 flush（每家族一刷 pair+stats）防 OCCT C 层崩溃丢进度；`--exclude` CLI flag
+
 ## 2026-04-20 (session 16) — Bench E2E：view alignment (UA-18) + QA bench + HF 零本地依赖
 
 - **UA-18 view alignment** DONE：
