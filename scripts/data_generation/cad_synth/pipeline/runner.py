@@ -10,6 +10,7 @@ import argparse
 import json
 import logging
 import multiprocessing as mp
+import subprocess
 import time
 from pathlib import Path
 
@@ -27,9 +28,9 @@ DATA = ROOT / "data" / "data_generation"
 logger = logging.getLogger("cad_synth")
 
 MAX_PARAM_RETRIES = 10
-BUILD_TIMEOUT_S   = 60   # per-sample build budget (seconds)
-EXPORT_TIMEOUT_S  = 120  # per-sample export+render budget (seconds)
-TOTAL_TIMEOUT_S   = BUILD_TIMEOUT_S + EXPORT_TIMEOUT_S
+BUILD_TIMEOUT_S = 60  # per-sample build budget (seconds)
+EXPORT_TIMEOUT_S = 120  # per-sample export+render budget (seconds)
+TOTAL_TIMEOUT_S = BUILD_TIMEOUT_S + EXPORT_TIMEOUT_S
 
 # Families whose revolve axis is hardcoded to Y → must stay on XY base plane.
 _XY_ONLY = {
@@ -64,10 +65,47 @@ def _step_exists(stem: str, run_name: str) -> bool:
     return p.exists()
 
 
+# ── Pre-flight: stuck-process detector ────────────────────────────────────────
+
+
+def _scan_stuck_workers() -> list[tuple[str, str, str]]:
+    """Return [(pid, etime, command), ...] for python processes in U state.
+
+    U state = uninterruptible IO wait. SIGKILL doesn't always reach them, and
+    they hold OCCT/render memory hostage → swap thrash on next batch launch.
+    """
+    try:
+        out = subprocess.check_output(
+            ["ps", "-axo", "pid,stat,etime,command"],
+            text=True,
+            timeout=5,
+        )
+    except (subprocess.SubprocessError, FileNotFoundError):
+        return []
+    stuck = []
+    for line in out.splitlines()[1:]:
+        parts = line.split(None, 3)
+        if len(parts) < 4:
+            continue
+        pid, stat, etime, cmd = parts
+        if stat.startswith("U") and "python" in cmd:
+            stuck.append((pid, etime, cmd))
+    return stuck
+
+
 # ── Worker ────────────────────────────────────────────────────────────────────
 
-def _worker(queue: mp.Queue, sample_id: int, stem: str, fam_name: str,
-            diff: str, params: dict, run_name: str, render: bool) -> None:
+
+def _worker(
+    queue: mp.Queue,
+    sample_id: int,
+    stem: str,
+    fam_name: str,
+    diff: str,
+    params: dict,
+    run_name: str,
+    render: bool,
+) -> None:
     """Runs in a subprocess. Result is put on queue."""
     result = {
         "sample_id": sample_id,
@@ -122,29 +160,35 @@ def _worker(queue: mp.Queue, sample_id: int, stem: str, fam_name: str,
 
 # ── Batch orchestrator ─────────────────────────────────────────────────────────
 
-def run_batch(config: dict, render: bool = True, resume: bool = False,
-              n_workers: int = 4) -> dict:
+
+def run_batch(
+    config: dict, render: bool = True, resume: bool = False, n_workers: int = 4
+) -> dict:
     """Run a full batch. Pre-sample params in main process, dispatch to workers."""
-    num_samples    = config["num_samples"]
-    seed           = config.get("seed", 42)
-    run_name       = config.get("run_name", f"synth_s{seed}")
-    family_mix     = config["family_mix"]
+    num_samples = config["num_samples"]
+    seed = config.get("seed", 42)
+    run_name = config.get("run_name", f"synth_s{seed}")
+    family_mix = config["family_mix"]
     difficulty_mix = config["difficulty_mix"]
 
     rng = np.random.default_rng(seed)
 
     logger.info(
         "Batch: %d samples, seed=%d, run=%s, workers=%d, resume=%s",
-        num_samples, seed, run_name, n_workers, resume,
+        num_samples,
+        seed,
+        run_name,
+        n_workers,
+        resume,
     )
 
     # ── Stage A+B: pre-sample all params (deterministic, single-threaded) ──
     sample_specs = []
     for i in range(num_samples):
         sample_id = i + 1
-        fam_name  = sample_family(family_mix, rng)
-        diff      = sample_difficulty(difficulty_mix, rng)
-        stem      = f"synth_{fam_name}_{sample_id:06d}_s{seed}"
+        fam_name = sample_family(family_mix, rng)
+        diff = sample_difficulty(difficulty_mix, rng)
+        stem = f"synth_{fam_name}_{sample_id:06d}_s{seed}"
 
         params = None
         for _ in range(MAX_PARAM_RETRIES):
@@ -156,67 +200,95 @@ def run_batch(config: dict, render: bool = True, resume: bool = False,
 
         if params is not None and "base_plane" not in params:
             params["base_plane"] = (
-                "XY" if fam_name in _XY_ONLY
-                else str(rng.choice(["XY", "YZ", "XZ"]))
+                "XY" if fam_name in _XY_ONLY else str(rng.choice(["XY", "YZ", "XZ"]))
             )
 
-        sample_specs.append({
-            "sample_id": sample_id,
-            "stem":      stem,
-            "fam_name":  fam_name,
-            "diff":      diff,
-            "params":    params,  # None → param_invalid
-        })
+        sample_specs.append(
+            {
+                "sample_id": sample_id,
+                "stem": stem,
+                "fam_name": fam_name,
+                "diff": diff,
+                "params": params,  # None → param_invalid
+            }
+        )
 
-    logger.info("Pre-sampling done. Dispatching %d samples to %d workers.",
-                num_samples, n_workers)
+    logger.info(
+        "Pre-sampling done. Dispatching %d samples to %d workers.",
+        num_samples,
+        n_workers,
+    )
 
     # ── Stages C–G: parallel execution with kill-on-timeout ────────────────
-    results      = []
-    pending      = list(sample_specs)
-    running: dict[mp.Process, tuple] = {}   # proc → (spec, queue, t_start)
+    results = []
+    pending = list(sample_specs)
+    running: dict[mp.Process, tuple] = {}  # proc → (spec, queue, t_start)
 
     while pending or running:
         # Launch new workers up to n_workers
         while pending and len(running) < n_workers:
             spec = pending.pop(0)
-            sid  = spec["sample_id"]
+            sid = spec["sample_id"]
 
             # param_invalid → no worker needed
             if spec["params"] is None:
-                results.append({
-                    "sample_id":    sid,
-                    "stem":         spec["stem"],
-                    "family":       spec["fam_name"],
-                    "difficulty":   spec["diff"],
-                    "status":       "rejected",
-                    "reject_stage": "param_invalid",
-                    "reject_reason":"exceeded_max_retries",
-                    "ops_used":     [],
-                    "feature_tags": {},
-                })
-                log_rejection(sid, spec["stem"], spec["fam_name"], spec["diff"],
-                              {}, "param_invalid", "exceeded_max_retries", run_name)
+                results.append(
+                    {
+                        "sample_id": sid,
+                        "stem": spec["stem"],
+                        "family": spec["fam_name"],
+                        "difficulty": spec["diff"],
+                        "status": "rejected",
+                        "reject_stage": "param_invalid",
+                        "reject_reason": "exceeded_max_retries",
+                        "ops_used": [],
+                        "feature_tags": {},
+                    }
+                )
+                log_rejection(
+                    sid,
+                    spec["stem"],
+                    spec["fam_name"],
+                    spec["diff"],
+                    {},
+                    "param_invalid",
+                    "exceeded_max_retries",
+                    run_name,
+                )
                 logger.debug("[%d] REJECT param_invalid: %s", sid, spec["stem"])
                 continue
 
             # resume skip
             if resume and _step_exists(spec["stem"], run_name):
-                results.append({
-                    "sample_id": sid, "stem": spec["stem"],
-                    "family": spec["fam_name"], "difficulty": spec["diff"],
-                    "status": "skipped_resume",
-                    "reject_stage": "", "reject_reason": "",
-                    "ops_used": [], "feature_tags": {},
-                })
+                results.append(
+                    {
+                        "sample_id": sid,
+                        "stem": spec["stem"],
+                        "family": spec["fam_name"],
+                        "difficulty": spec["diff"],
+                        "status": "skipped_resume",
+                        "reject_stage": "",
+                        "reject_reason": "",
+                        "ops_used": [],
+                        "feature_tags": {},
+                    }
+                )
                 logger.debug("[%d] SKIP (resume) %s", sid, spec["stem"])
                 continue
 
             q = mp.Queue()
             p = mp.Process(
                 target=_worker,
-                args=(q, sid, spec["stem"], spec["fam_name"],
-                      spec["diff"], spec["params"], run_name, render),
+                args=(
+                    q,
+                    sid,
+                    spec["stem"],
+                    spec["fam_name"],
+                    spec["diff"],
+                    spec["params"],
+                    run_name,
+                    render,
+                ),
                 daemon=True,
             )
             p.start()
@@ -235,11 +307,15 @@ def run_batch(config: dict, render: bool = True, resume: bool = False,
                     res = q.get_nowait()
                 else:
                     res = {
-                        "sample_id": sid, "stem": spec["stem"],
-                        "family": spec["fam_name"], "difficulty": spec["diff"],
-                        "status": "rejected", "reject_stage": "worker_crash",
+                        "sample_id": sid,
+                        "stem": spec["stem"],
+                        "family": spec["fam_name"],
+                        "difficulty": spec["diff"],
+                        "status": "rejected",
+                        "reject_stage": "worker_crash",
                         "reject_reason": "worker exited without result",
-                        "ops_used": [], "feature_tags": {},
+                        "ops_used": [],
+                        "feature_tags": {},
                     }
                 _log_result(res, run_name, elapsed)
                 results.append(res)
@@ -250,17 +326,29 @@ def run_batch(config: dict, render: bool = True, resume: bool = False,
                 proc.kill()
                 proc.join()
                 res = {
-                    "sample_id": sid, "stem": spec["stem"],
-                    "family": spec["fam_name"], "difficulty": spec["diff"],
-                    "status": "rejected", "reject_stage": "build_failed",
+                    "sample_id": sid,
+                    "stem": spec["stem"],
+                    "family": spec["fam_name"],
+                    "difficulty": spec["diff"],
+                    "status": "rejected",
+                    "reject_stage": "build_failed",
                     "reject_reason": f"timeout>{TOTAL_TIMEOUT_S}s",
-                    "ops_used": [], "feature_tags": {},
+                    "ops_used": [],
+                    "feature_tags": {},
                 }
-                log_rejection(sid, spec["stem"], spec["fam_name"], spec["diff"],
-                              spec["params"], "build_failed",
-                              f"timeout>{TOTAL_TIMEOUT_S}s", run_name)
-                logger.debug("[%d] REJECT timeout: %s (%.0fs)",
-                             sid, spec["stem"], elapsed)
+                log_rejection(
+                    sid,
+                    spec["stem"],
+                    spec["fam_name"],
+                    spec["diff"],
+                    spec["params"],
+                    "build_failed",
+                    f"timeout>{TOTAL_TIMEOUT_S}s",
+                    run_name,
+                )
+                logger.debug(
+                    "[%d] REJECT timeout: %s (%.0fs)", sid, spec["stem"], elapsed
+                )
                 results.append(res)
                 del running[proc]
 
@@ -273,8 +361,8 @@ def run_batch(config: dict, render: bool = True, resume: bool = False,
     # ── Stage H: report ────────────────────────────────────────────────────
     report = build_report(results)
     report["run_name"] = run_name
-    report["seed"]     = seed
-    report["config"]   = config
+    report["seed"] = seed
+    report["config"] = config
 
     report_path = (
         ROOT / "data" / "data_generation" / "synth_reports" / f"{run_name}.json"
@@ -282,8 +370,10 @@ def run_batch(config: dict, render: bool = True, resume: bool = False,
     write_report(report, report_path)
     logger.info(
         "Done: %d/%d accepted (%.1f%%). Report: %s",
-        report["accepted"], report["requested"],
-        report["accept_rate"], report_path,
+        report["accepted"],
+        report["requested"],
+        report["accept_rate"],
+        report_path,
     )
     return report
 
@@ -298,23 +388,39 @@ def _log_result(res: dict, run_name: str, elapsed: float) -> None:
         stage = res["reject_stage"]
         reason = res["reject_reason"]
         logger.debug("[%d] REJECT %s: %s — %s", sid, stage, res["stem"], reason)
-        if stage not in ("param_invalid",):   # already logged before dispatch
+        if stage not in ("param_invalid",):  # already logged before dispatch
             log_rejection(
-                sid, res["stem"], res["family"], res["difficulty"],
-                {}, stage, reason, run_name,
+                sid,
+                res["stem"],
+                res["family"],
+                res["difficulty"],
+                {},
+                stage,
+                reason,
+                run_name,
             )
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
+
 def main():
     ap = argparse.ArgumentParser(description="CadQuery Synthetic Data Harness")
-    ap.add_argument("--config",    required=True, help="YAML config path")
+    ap.add_argument("--config", required=True, help="YAML config path")
     ap.add_argument("--no-render", action="store_true", help="Skip rendering")
-    ap.add_argument("--resume",    action="store_true",
-                    help="Skip already-exported stems (RNG still advances deterministically)")
-    ap.add_argument("--workers",   type=int, default=4,
-                    help="Parallel worker processes (default: 4)")
+    ap.add_argument(
+        "--resume",
+        action="store_true",
+        help="Skip already-exported stems (RNG still advances deterministically)",
+    )
+    ap.add_argument(
+        "--workers", type=int, default=4, help="Parallel worker processes (default: 4)"
+    )
+    ap.add_argument(
+        "--ignore-stuck",
+        action="store_true",
+        help="Skip pre-flight U-state python scan (not recommended)",
+    )
     ap.add_argument("--verbose", "-v", action="store_true")
     args = ap.parse_args()
 
@@ -325,10 +431,34 @@ def main():
         datefmt="%H:%M:%S",
     )
 
+    if not args.ignore_stuck:
+        stuck = _scan_stuck_workers()
+        if stuck:
+            logger.error(
+                "Found %d python process(es) in U (uninterruptible IO) state:",
+                len(stuck),
+            )
+            for pid, etime, cmd in stuck:
+                logger.error("  PID %s  age %s  %s", pid, etime, cmd[:120])
+            logger.error(
+                "These hold memory + push swap → new batch will thrash. "
+                "Run `kill -9 %s` first, or pass --ignore-stuck to override.",
+                " ".join(p for p, _, _ in stuck),
+            )
+            raise SystemExit(2)
+
     config = load_config(args.config)
     n_workers = config.get("n_workers", args.workers)
-    report = run_batch(config, render=not args.no_render,
-                       resume=args.resume, n_workers=n_workers)
+    if n_workers > 4:
+        logger.warning(
+            "n_workers=%d is high; 4 is the safe default on this box "
+            "(8 workers × ~500MB OCCT can push swap). Override only if "
+            "the machine is otherwise idle.",
+            n_workers,
+        )
+    report = run_batch(
+        config, render=not args.no_render, resume=args.resume, n_workers=n_workers
+    )
     print(json.dumps(report, indent=2, default=str))
 
 

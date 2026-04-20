@@ -35,6 +35,7 @@ class Program:
 
 def _apply_op(wp, op: Op):
     """Apply a single Op to a CadQuery Workplane, return updated wp."""
+    global _pending_sketch
     name = op.name
     a = op.args
 
@@ -120,7 +121,8 @@ def _apply_op(wp, op: Op):
     elif name == "faces":
         wp = wp.faces(_remap_sel(a["selector"]))
     elif name == "edges":
-        wp = wp.edges(_remap_sel(a.get("selector", "|Z")))
+        sel = a.get("selector")
+        wp = wp.edges(_remap_sel(sel)) if sel else wp.edges()
     elif name == "revolve":
         axis_start = tuple(a.get("axisStart", (0, 0, 0)))
         axis_end = tuple(a.get("axisEnd", (0, 1, 0)))
@@ -169,14 +171,16 @@ def _apply_op(wp, op: Op):
     elif name == "union":
         import cadquery as cq
 
-        sub = cq.Workplane(_current_base_plane)
+        sub_plane = a.get("plane", _current_base_plane)
+        sub = cq.Workplane(sub_plane)
         for o in a["ops"]:
             sub = _apply_op(sub, Op(o["name"], o.get("args", {})))
         wp = wp.union(sub)
     elif name == "cut":
         import cadquery as cq
 
-        sub = cq.Workplane(_current_base_plane)
+        sub_plane = a.get("plane", _current_base_plane)
+        sub = cq.Workplane(sub_plane)
         for o in a["ops"]:
             sub = _apply_op(sub, Op(o["name"], o.get("args", {})))
         wp = wp.cut(sub)
@@ -205,17 +209,15 @@ def _apply_op(wp, op: Op):
             _t1 = 2 * _m.pi * _H / _p
             _tan0 = cq.Vector(-_R * _m.sin(_t0), _R * _m.cos(_t0), _dz)
             _tan1 = cq.Vector(-_R * _m.sin(_t1), _R * _m.cos(_t1), _dz)
-            _m0 = _m.sqrt(_tan0.x ** 2 + _tan0.y ** 2 + _tan0.z ** 2)
-            _m1 = _m.sqrt(_tan1.x ** 2 + _tan1.y ** 2 + _tan1.z ** 2)
+            _m0 = _m.sqrt(_tan0.x**2 + _tan0.y**2 + _tan0.z**2)
+            _m1 = _m.sqrt(_tan1.x**2 + _tan1.y**2 + _tan1.z**2)
             _tan0n = cq.Vector(_tan0.x / _m0, _tan0.y / _m0, _tan0.z / _m0)
             _tan1n = cq.Vector(_tan1.x / _m1, _tan1.y / _m1, _tan1.z / _m1)
             _leg1_start = _p_start - _tan0n.multiply(_ll)
             _leg2_end = _p_end + _tan1n.multiply(_ll)
             _leg1 = cq.Edge.makeLine(_leg1_start, _p_start)
             _leg2 = cq.Edge.makeLine(_p_end, _leg2_end)
-            path = cq.Wire.assembleEdges(
-                [_leg1] + list(_helix.Edges()) + [_leg2]
-            )
+            path = cq.Wire.assembleEdges([_leg1] + list(_helix.Edges()) + [_leg2])
         elif path_type == "spline":
             pts = [tuple(p) for p in a["path_points"]]
             path = cq.Workplane(a.get("path_plane", "XZ")).spline(pts)
@@ -237,6 +239,31 @@ def _apply_op(wp, op: Op):
         else:
             raise ValueError(f"Unknown sweep path_type: {path_type}")
         wp = wp.sweep(path, isFrenet=is_frenet)
+    elif name == "sketch_subtract":
+        import cadquery as cq
+
+        sk = cq.Sketch().circle(a["outer_radius"])
+        for prof in a["profiles"]:
+            sub = cq.Workplane(_current_base_plane)
+            for o in prof["wire_ops"]:
+                sub = _apply_op(sub, Op(o["name"], o.get("args", {})))
+            rot = prof.get("rotate_deg", 0.0)
+            if rot:
+                sub = sub.rotate((0.0, 0.0, 0.0), (0.0, 0.0, 1.0), rot)
+            sk = sk.face(sub.val(), mode="s")
+        _pending_sketch = sk.clean()
+    elif name == "placeSketch":
+        wp = wp.placeSketch(_pending_sketch)
+        _pending_sketch = None
+    elif name == "twistExtrude":
+        wp = wp.twistExtrude(a["distance"], a["angle"])
+    elif name == "intersect":
+        import cadquery as cq
+
+        sub = cq.Workplane(_current_base_plane)
+        for o in a["ops"]:
+            sub = _apply_op(sub, Op(o["name"], o.get("args", {})))
+        wp = wp.intersect(sub)
     else:
         raise ValueError(f"Unknown op: {name}")
     return wp
@@ -273,6 +300,11 @@ def _patch_ocp_hashcode():
 
 _current_base_plane = "XY"  # module-level so union/cut subs can inherit
 
+# Module-level sketch handoff between sketch_subtract → placeSketch Ops.
+# cq.Sketch is a non-Workplane object, so we can't thread it via wp alone.
+_pending_sketch = None
+_pending_sketch_code = None
+
 # Map selectors that reference the build axis (Z in XY) to the correct axis
 # for each standard workplane.  Only the axial/normal-direction selectors
 # are remapped; radial selectors (>X, <X when plane=XY, etc.) are left alone.
@@ -306,10 +338,11 @@ def build_from_program(program: Program):
     """Execute a Program and return the CadQuery Workplane result."""
     import cadquery as cq
 
-    global _current_base_plane
+    global _current_base_plane, _pending_sketch
 
     _patch_ocp_hashcode()
     _current_base_plane = program.base_plane or "XY"
+    _pending_sketch = None
     wp = cq.Workplane(_current_base_plane)
     for op in program.ops:
         wp = _apply_op(wp, op)
@@ -323,6 +356,7 @@ def build_from_program(program: Program):
 
 def _op_to_code(op: Op) -> str:
     """Render one Op as a CadQuery method call string."""
+    global _pending_sketch_code
     name = op.name
     a = op.args
 
@@ -391,8 +425,8 @@ def _op_to_code(op: Op) -> str:
     elif name == "faces":
         return f'.faces("{a["selector"]}")'
     elif name == "edges":
-        sel = a.get("selector", "|Z")
-        return f'.edges("{sel}")'
+        sel = a.get("selector")
+        return f'.edges("{sel}")' if sel else ".edges()"
     elif name == "revolve":
         ax0 = a.get("axisStart", (0, 0, 0))
         ax1 = a.get("axisEnd", (0, 1, 0))
@@ -444,11 +478,12 @@ def _op_to_code(op: Op) -> str:
     elif name == "workplane_offset":
         return f".workplane(offset={a['offset']})"
     elif name in ("union", "cut"):
+        sub_plane = a.get("plane", _current_base_plane)
         sub_lines = "".join(
             f"\n        {_op_to_code(Op(o['name'], o.get('args', {})))}"
             for o in a["ops"]
         )
-        return f'.{name}(\n    cq.Workplane("{_current_base_plane}"){sub_lines}\n)'
+        return f'.{name}(\n    cq.Workplane("{sub_plane}"){sub_lines}\n)'
     elif name == "sweep":
         path_type = a["path_type"]
         is_frenet = a.get("isFrenet", path_type == "helix")
@@ -481,15 +516,46 @@ def _op_to_code(op: Op) -> str:
             return (
                 f'.sweep(cq.Workplane("{plane}").{method}({pts}), isFrenet={is_frenet})'
             )
+    elif name == "sketch_subtract":
+        face_exprs = []
+        for prof in a["profiles"]:
+            wire_chain = "".join(
+                _op_to_code(Op(o["name"], o.get("args", {}))) for o in prof["wire_ops"]
+            )
+            wire_expr = f'cq.Workplane("{_current_base_plane}"){wire_chain}'
+            rot = prof.get("rotate_deg", 0.0)
+            if rot:
+                wire_expr = f"{wire_expr}.rotate((0,0,0),(0,0,1),{rot})"
+            face_exprs.append(f'\n        .face({wire_expr}.val(), mode="s")')
+        _pending_sketch_code = (
+            f"(\n        cq.Sketch()"
+            f"\n        .circle({a['outer_radius']})"
+            f"{''.join(face_exprs)}"
+            f"\n        .clean()\n    )"
+        )
+        return ""  # placeSketch emits the inlined Sketch expression
+    elif name == "placeSketch":
+        code = _pending_sketch_code
+        _pending_sketch_code = None
+        return f".placeSketch{code}"
+    elif name == "twistExtrude":
+        return f".twistExtrude({a['distance']}, {a['angle']})"
+    elif name == "intersect":
+        sub_lines = "".join(
+            f"\n        {_op_to_code(Op(o['name'], o.get('args', {})))}"
+            for o in a["ops"]
+        )
+        return f'.intersect(\n    cq.Workplane("{_current_base_plane}"){sub_lines}\n)'
     else:
         raise ValueError(f"Unknown op: {name}")
 
 
 def render_program_to_code(program: Program) -> str:
     """Render a Program to an executable Python source string."""
-    global _current_base_plane
+    global _current_base_plane, _pending_sketch_code
     bp = program.base_plane or "XY"
     _current_base_plane = bp
+    _pending_sketch_code = None
 
     def _uses_helix_with_legs(ops):
         for o in ops:
@@ -531,6 +597,8 @@ def render_program_to_code(program: Program) -> str:
     lines += ["", "result = (", f'    cq.Workplane("{bp}")']
     for op in program.ops:
         code = _op_to_code(op)
+        if not code:  # sketch_subtract is state-only; placeSketch emits the Sketch
+            continue
         # Re-indent every line of multi-line ops (union/cut/sweep)
         indented = "\n".join("    " + line for line in code.split("\n"))
         lines.append(indented)

@@ -1,4 +1,78 @@
 
+## 2026-04-19 (session 14) — UA-15 3 家族重做 (star_knob → lobed_knob, wing_nut, grease_nipple)
+
+- **star_knob → lobed_knob**: DIN 6336 claim 撤销（旧实现只是 N-lobe 花瓣，轮廓/比例差 DIN 太远）
+  - 文件 rename + 类 `LobedKnobFamily` + `standard="N/A"`；registry 同步
+  - 几何保留（central disc + N lobe union + bush + through-hole），纯作非标训练 structure
+- **wing_nut 重做** (DIN 315 rounded wings) — 按 user-verified `manual_wingnut.py` 完全照抄
+  - 旧版用 box 翼板 → 新版 polyline+threePointArc 椭圆化翼轮廓，extrude both=True（±Y）
+  - Arc 解析几何：`x=e/4+d2/4`, `R=(dX²+dZ²)/(2dZ)`，midpoint 按 atan2 角度插值
+  - 9 档 DIN 315 (M3–M20)；M8 bbox 39.89×16×19.96 完美匹配 manual
+  - 辅助 `_ear_polyline_ops(sign, ...)` 用 `sign=±1` 生成 +X / -X 翼 sub-ops（builder 不支持 `mirror("YZ")`，用坐标取反平替）
+- **grease_nipple 重做** (DIN 71412 Type A) — 按 `manual_grease_nipple_adj.py`
+  - 旧版 4-solid unioned (shank+hex+neck+sphere)  → 新版单一 revolve body (9-pt polyline on XZ → revolve 360° 绕 Z) + XY hex flange + axial bore
+  - `base_plane="XZ"` 主 wp；hex 与 bore 用 `union`/`cut` sub-op `plane="XY"`
+  - 头部 fixed geometry (h=16, l=5.5, d2=6.5, b=3.0, z=0.7)；6 规格 (d1, s 组合)
+  - Top fillet / bottom chamfer 跳过：`edges(">Z")` 在 `base_plane="XZ"` 会被 `_remap_sel` 错误映射到 ">Y"（基底 plane normal = -Y）；cosmetic only
+- **builder.py 增强**: `union` / `cut` sub-op 新增 `plane` 参数（默认为 `_current_base_plane`）→ 子 workplane 平面独立可选，execution + render_to_code 两路都支持
+- 全 27/27 (3 fam × 3 diff × 3 seed) bbox & render→exec roundtrip 完全 match
+- 88 data_gen tests pass；ruff + black clean
+
+## 2026-04-19 (session 13) — `twisted_drill` follow manual 重写
+
+- 按 `tmp/manual_family_previews/manual_twisted_drill.py` 重写 `families/twisted_drill.py`
+- `_arc_midpoint` + `_build_cutter_wire_ops` 数学全按 manual verbatim 移植（Ca/Cb 双弧 + rim arc 闭环）
+- 微观几何 fixed: `r_phi=0.18·R0`, `Ra=0.6·R0`, `phi_deg=30°`
+- sample_params: R0 ∈ {1.0,1.5,...,10.0}, L/R0 ∈ [8,15], P/R0 ∈ [11,13.5] (γ≈28°), θ ∈ {118,130,140}
+- validate_params: R0 ∈ [0.5,12], P ∈ [10R0,14R0], L ∈ [7R0,16R0], L > tip_height+2
+- tip 削尖：manual 的 `body.intersect(envelope)` 在本 OCCT build 对大多数参数崩（仅 R0=4 L=40 P=47 θ=118 能过）
+  → 改几何等价的 `body.cut(ring ∪ inner_notch)`：ring = cyl(2R0)∖cyl(R0)，inner_notch = cyl(R0)∖loft_cone(R0→apex)
+  → 没有 intersect、只用 cut/union/loft/extrude，稳定性显著好过 manual
+- 150+ 样本 fuzz: 97%+ OK，少量 zero_vol（OCCT 特定 P/L 组合数值不稳）由 runner `MAX_PARAM_RETRIES=10` 兜底
+- render→exec roundtrip: R0=3 L=30 vol=365.6 完全匹配
+- **Sliver fix**: cutter arcs 理论精确落在 R0 rim（tangent）→ OCCT 精度误差生成 sliver face；
+  base disk outer_radius 从 R0 改为 0.99·R0 → cutter 干净穿透 rim。
+  副作用：body 外径 R0 → 0.99·R0（体积 -2%，可忽略）
+  Fix 后 50/50 fuzz 全 ok，zero_vol 归零
+- 4 视觉 sample 渲染 OK；88 data_gen tests pass；ruff + black clean
+
+## 2026-04-19 (session 12) — 移除 `twisted_joint` (UA-17 撤销)
+
+- 2-section loft 产物视觉不是真正扭转（直纹 wedge），用户判定 不保留
+- 清理：删 `families/twisted_joint.py`；registry 去 import+注册；TASK_QUEUE UA-17 标 REMOVED；memory 同步
+- family 总数 91 → 90
+- 备注：保留 `tmp/manual_family_previews/manual_twisted_joint.py` 作为未来平滑扭转 Op 的参考实现
+
+## 2026-04-19 (session 11) — wing_nut + star_knob + grease_nipple (UA-15, 88-90)
+
+- 新增 3 family: `wing_nut` (DIN 315), `star_knob` (DIN 6336), `grease_nipple` (DIN 71412 H1)
+- 流程：communication.md 5 候选 → 过滤 2 冗余 (grooved_pin 与 dowel/clevis/taper_pin 重合; lifting_eye_nut 与 eyebolt 重合) → 手动原型 3 份 → Op 化 → pre-flight → render 验证 → 注册
+- **wing_nut**: 中心 hex boss + 2 翼板 (box, ±X)，翼端 |Y fillet，M3–M16 (8 档)
+- **star_knob**: 中心 disc + N lobe(circle 0.55·R_outer) union 成花瓣轮廓，下方 bush 突出，贯穿孔。N∈{3,5,6}, d_thread M5–M16
+  - 顶/底 fillet 移除：union 后 top 面只剩 5 凹谷 edges，OCCT 任意半径都 fail (chamfer 也 fail)
+  - 关键发现：`_apply_op` 的 fillet/chamfer 有 try/except 静默吞错 → Workplane 路径 "通过" 但 render→exec 路径裸抛 → 必须 roundtrip 验证才能发现
+- **grease_nipple**: thread shank + hex collar + neck + sphere ball head + axial bore，ball d=6.5 固定 (DIN 71412 通用 grease-gun 接口)
+  - validate 修正：`s*2/sqrt(3) > d` 而非 `s > d`（pipe thread d>AF 但仍入 hex across-corners）
+  - R1/4 行修正 s=11→14, d_neck=4.5→5.0（11mm AF 夹不住 13mm 螺纹）
+- 全 27/27 (3 fam × 3 diff × 3 seed) render→exec bbox 完全 match；9/9 composite PNG 视觉 OK
+- 总 family 数 87 → 90；88 data_gen tests pass；ruff clean；black clean
+
+## 2026-04-19 (session 9) — `twisted_drill` family + 4 new Ops (UA-14)
+
+- 新增 87th family `twisted_drill` (DIN 338 麻花钻 type N)
+- 几何: 两块 DIN 338 cutter 2D 轮廓（大 relief arc Ra + 小 back arc Rb + rim arc R0）→ sketch_subtract 从 outer circle 得到双槽刃面 → twistExtrude → cut "tip chimney" (big cyl ∖ cone-loft envelope) 刻点
+- 全 hard 难度（twist + arc 微几何本质难度高，不分 easy/medium）; `standard="DIN 338"`
+- `builder.py` 新增 4 Op + renderer：
+  - `sketch_subtract` — 从 outer circle 减去多个 rotate_deg 配置的 wire profile 构造 `cq.Sketch`
+  - `placeSketch` — 把 sketch 装到 Workplane
+  - `twistExtrude` — `wp.twistExtrude(distance, angle)` 
+  - `intersect` — （备用）`wp.intersect(sub_ops)`
+  - Sketch 对象通过模块级 `_pending_sketch` / `_pending_sketch_code` 串连（同 `_current_base_plane` 模式）
+- 关键坑：`body.intersect(cone_envelope)` OCCT intermittent "Bnd_Box is void" 崩溃 → 改 `body.cut(big_cyl ∖ envelope)` tip-chimney，稳定性 15/15 → 63/63 grid 全过
+- 采样约束：`total_twist = 360·(L+5)/P < 340°`（> 365° twistExtrude self-overlap）
+- 5 seed render→exec bbox 全 PASS；88 data_gen tests pass；ruff + black clean
+- E741 `I` → `Ipt` 重命名
+
 ## 2026-04-19 (session 8) — bolt/knob/pulley/clevis_pin hard 修复
 
 P0 — pulley keyway: cutThruAll 切穿全直径 → 改 cut(box) 在孔壁 (offset z=br+kh/2, height=kh)，槽只在 bore 表面

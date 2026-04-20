@@ -221,19 +221,25 @@ class PulleyFamily(BaseFamily):
         )
 
         # Spoked body — polar array of rectangular pockets cut through the web.
-        # Pulley revolves around Y axis (Y = axial). Each pocket box must:
-        #   - sit at world (pocket_r·cos(θ), 0, -pocket_r·sin(θ))
-        #   - be rotated around world Y by θ so its long axis stays radial
+        # Pulley revolves around Y axis (Y = axial). Each pocket box:
+        #   - sits at world (pocket_r·cos(θ), 0, -pocket_r·sin(θ))
+        #   - is rotated around world Y by θ so its long axis stays radial
         # NOTE: cq.Workplane.transformed applies offset FIRST then rotates the
         # plane around its own (post-translation) origin. So passing a constant
         # local offset + varying rotate keeps every cutter clustered at the
         # same world position. Compute the world position with cos/sin instead
         # and let rotate orient the box.
+        # `spoke_width` = tangential thickness of the SOLID arm. Pocket
+        # tangential extent = (full circumference at pocket_r − total arm
+        # material) / n_sp, so leftover web forms n_sp arms of width spoke_width.
         n_sp = params.get("n_spokes")
         sw = params.get("spoke_width")
         if n_sp and sw:
             pocket_r = round((hr + rr - rt) / 2, 3)
             pocket_l = round(rr - rt - hr - 4, 3)
+            arc_total = 2.0 * math.pi * pocket_r
+            pocket_tang = max(2.0, (arc_total - n_sp * sw) / n_sp)
+            pocket_tang = round(pocket_tang, 3)
             for i in range(n_sp):
                 angle_deg = 360.0 * i / n_sp
                 fx = round(pocket_r * math.cos(math.radians(angle_deg)), 3)
@@ -255,7 +261,7 @@ class PulleyFamily(BaseFamily):
                                     "args": {
                                         "length": pocket_l,
                                         "width": round(w * 2, 3),
-                                        "height": sw,
+                                        "height": pocket_tang,
                                         "centered": True,
                                     },
                                 },

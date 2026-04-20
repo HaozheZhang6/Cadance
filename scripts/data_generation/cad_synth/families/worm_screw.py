@@ -31,8 +31,8 @@ from .base import BaseFamily
 
 # ISO 54 preferred module series
 _MODULE_SERIES = [1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 3.15, 4.0, 5.0, 6.0, 6.3, 8.0, 10.0]
-# ISO 10828 preferred diameter quotient q values
-_Q_SERIES = [6.5, 8.0, 10.0, 12.5, 16.0, 20.0]
+# ISO 10828 preferred diameter quotient q values (q≥8 per ISO 10828 Table 1)
+_Q_SERIES = [8.0, 10.0, 12.5, 16.0, 20.0]
 
 
 class WormScrewFamily(BaseFamily):
@@ -45,14 +45,21 @@ class WormScrewFamily(BaseFamily):
         # with high lead + short thread_length can produce non-manifold geom)
         z1 = 1 if difficulty == "easy" else int(rng.choice([1, 2]))
         # ISO 10828 preferred q — easy uses small values (q=8–12.5 most common)
-        q_pool = _Q_SERIES[:4] if difficulty == "easy" else _Q_SERIES
+        q_pool = _Q_SERIES[:3] if difficulty == "easy" else _Q_SERIES
         q = float(rng.choice(q_pool))
         d1 = round(m * q, 1)
         alpha = 20.0
 
         z2 = int(rng.choice([20, 25, 30, 40, 50, 60, 80]))
         thread_length = round((11 + 0.06 * z2) * m, 1)
-        shaft_length = round(thread_length + rng.uniform(m * 8, m * 16), 1)
+        # Tighter shaft excess on hard: long bare shaft + bore exit looks like
+        # a flange when thread is centered on a much longer shaft.
+        extra = (
+            rng.uniform(m * 4, m * 8)
+            if difficulty == "hard"
+            else rng.uniform(m * 8, m * 16)
+        )
+        shaft_length = round(thread_length + extra, 1)
 
         params = {
             "module": m,
@@ -69,11 +76,13 @@ class WormScrewFamily(BaseFamily):
             params["chamfer"] = round(rng.uniform(0.5, max(0.6, m * 0.6)), 1)
 
         if difficulty == "hard":
+            # hard = medium + axial through-bore. Keyway dropped: small-bore
+            # cutThruAll on the worm body produces visually broken artefacts.
             df = d1 - 2 * 1.2 * m
-            bore_d = round(df * rng.uniform(0.25, 0.45), 1)
+            # Tighten bore range: ≥0.30·df (drop tiny holes that look like dots)
+            # and ≥3mm absolute floor.
+            bore_d = round(max(3.0, df * rng.uniform(0.30, 0.45)), 1)
             params["bore_diameter"] = bore_d
-            kw = round(bore_d * rng.uniform(0.3, 0.5), 1)
-            params["keyway_width"] = kw
 
         params["base_plane"] = "XY"
         return params
@@ -156,7 +165,29 @@ class WormScrewFamily(BaseFamily):
         ops.append(Op("circle", {"radius": round(df / 2, 3)}))
         ops.append(Op("extrude", {"distance": round(sl, 3)}))
 
-        # ── 2. Thread: XZ-plane profile swept along helix ──
+        # ── 2. Bore + chamfers on clean shaft (medium+) ──
+        # All solid-modification ops run BEFORE union-with-thread: sweep(helix,
+        # isFrenet) produces a non-manifold solid that causes OCCT's chamfer
+        # to over-propagate (bbox collapses) and cutThruAll to fail
+        # ("BRep_API: command not done"). Operating on the plain cylinder
+        # is topologically clean.
+        bd = params.get("bore_diameter")
+        if bd:
+            tags["has_hole"] = True
+            ops.append(Op("workplane", {"selector": ">Z"}))
+            ops.append(Op("hole", {"diameter": round(bd, 3)}))
+
+        cl = params.get("chamfer")
+        if cl:
+            tags["has_chamfer"] = True
+            ops.append(Op("faces", {"selector": "<Z"}))
+            ops.append(Op("edges", {}))
+            ops.append(Op("chamfer", {"length": round(cl, 3)}))
+            ops.append(Op("faces", {"selector": ">Z"}))
+            ops.append(Op("edges", {}))
+            ops.append(Op("chamfer", {"length": round(cl, 3)}))
+
+        # ── 3. Thread: XZ-plane profile swept along helix ──
         # Manual: Workplane('XZ').center(df/2, 0).polyline([...]).close()
         #         .sweep(makeHelix(lead, tl, df/2), isFrenet=True)
         # Op-system: union sub-op. Sub starts from Workplane('XY'),
@@ -196,32 +227,6 @@ class WormScrewFamily(BaseFamily):
                 },
             )
         )
-
-        # ── 3. End chamfers (medium+) ──
-        cl = params.get("chamfer")
-        if cl:
-            tags["has_chamfer"] = True
-            ops.append(Op("edges", {"selector": "<Z"}))
-            ops.append(Op("chamfer", {"length": round(cl, 3)}))
-            ops.append(Op("edges", {"selector": ">Z"}))
-            ops.append(Op("chamfer", {"length": round(cl, 3)}))
-
-        # ── 4. Bore (hard) ──
-        bd = params.get("bore_diameter")
-        if bd:
-            tags["has_hole"] = True
-            ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("hole", {"diameter": round(bd, 3)}))
-
-        # ── 5. Keyway (hard) ──
-        kw = params.get("keyway_width")
-        if kw and bd:
-            tags["has_slot"] = True
-            kh = round(kw * 0.6, 2)
-            ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("pushPoints", {"points": [(0.0, round(bd / 2, 3))]}))
-            ops.append(Op("rect", {"length": round(kw, 3), "width": kh}))
-            ops.append(Op("cutThruAll", {}))
 
         return Program(
             family=self.name,

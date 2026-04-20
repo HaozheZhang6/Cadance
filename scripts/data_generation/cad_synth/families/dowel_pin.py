@@ -10,7 +10,6 @@ Hard:   + second end differs (spring pin / grooved end style): axial groove cut
 Reference: ISO 8734:1997 — Parallel pins, of unhardened steel; Table (d, l series for d 1–20mm)
 """
 
-
 from ..pipeline.builder import Op, Program
 from .base import BaseFamily
 
@@ -43,7 +42,7 @@ class DowelPinFamily(BaseFamily):
         )  # up to d=12 for reasonable rendering
         min_l = max(6, int(d * 2))
         max_l = min(100, int(d * 12))
-        length_opts = [l for l in _LENGTH_OPTIONS if min_l <= l <= max_l]
+        length_opts = [v for v in _LENGTH_OPTIONS if min_l <= v <= max_l]
         if not length_opts:
             length_opts = [min_l]
         length = float(rng.choice(length_opts))
@@ -70,10 +69,10 @@ class DowelPinFamily(BaseFamily):
 
     def validate_params(self, params: dict) -> bool:
         d = params["diameter"]
-        l = params["length"]
+        ln = params["length"]
         ch = params["chamfer_length"]
 
-        if d < 1.0 or l < d * 2 or ch >= d * 0.3:
+        if d < 1.0 or ln < d * 2 or ch >= d * 0.3:
             return False
 
         cd = params.get("centre_drill_diameter", 0)
@@ -85,7 +84,7 @@ class DowelPinFamily(BaseFamily):
     def make_program(self, params: dict) -> Program:
         difficulty = params.get("difficulty", "easy")
         d = params["diameter"]
-        l = params["length"]
+        ln = params["length"]
         ch = params["chamfer_length"]
         r = round(d / 2, 4)
 
@@ -98,10 +97,10 @@ class DowelPinFamily(BaseFamily):
         }
 
         # Main cylinder
-        ops.append(Op("cylinder", {"height": l, "radius": r}))
+        ops.append(Op("cylinder", {"height": ln, "radius": r}))
 
-        # Chamfer both ends
-        ops.append(Op("edges", {"selector": "|Z"}))
+        # Chamfer both ends (circular edges at top+bottom faces)
+        ops.append(Op("edges", {"selector": ">Z or <Z"}))
         ops.append(Op("chamfer", {"length": ch}))
 
         # Centre drill (medium+) — small blind hole on +Z face

@@ -4,6 +4,47 @@
 
 ## ⚠️ USER-ASSIGNED — 进行中
 
+### UA-16 — 修 `worm_screw` medium+hard 变体 chamfer 后几何塌陷 🟠 MED (2026-04-19)
+
+**现象：** 只要开启 `chamfer`（medium 起）就可能触发，某些参数下 bbox 的 z 从 sl 缩到 0.7–0.8×sl，视觉上整根光轴消失、只剩螺旋+端盘。hard 路径（bore+keyway）更严重：要么 bbox 塌到 ~5×13×4，要么直接 OCCT 原生崩溃。
+**复现（medium，4 seed × 4 case）：**
+- seed=42 medium (m=2, z1=1, d1=32, tl=25, sl=56.6, chamfer=1.0) → bbox 36×36×43.2（z 缩 13.4mm）
+- seed=7 medium (m=4, z1=2, d1=40, sl=108.8, chamfer=0.5) → 光轴消失
+- seed=777 medium → 光轴消失
+- seed=123 medium (m=1, d1=8, sl=27.3) → 正常 ✓
+**复现（hard）：** `default_rng(42)` 第 3 次 hard → bbox 4.94×12.96×4.21；`default_rng(7)` 第 3 次 hard → OCCT 进程崩溃（exit 无 trace）。
+**Trace (hard s42)：** op[5]=chamfer(<Z,0.5) 后 z 已异常缩到 20.42（预期 24.0）；op[9]=hole(5.9) 把 bbox 打成 4.94×12.96×4.21。
+**根因推测：** `union` 后 `sweep(helix, isFrenet=True)` 在螺纹端点处产生非流形边或额外面；`edges("<Z")`/`edges(">Z")` 选到螺纹端面而非轴底/顶圆边，chamfer 把螺纹整段削掉。
+**影响范围：** medium 约 3/4 随机 seed 坏；hard 几乎全坏。easy（无 chamfer）不受影响。gid 4078 (medium) 参数偏小（d1=6.5→8）运气好没塌。
+**修复方向：** (a) sweep 前后对 shaft 和 thread 分别 `clean()`/`fuse()`；(b) chamfer 用 `.faces(">Z").edges()` / tag 路径而不是全局 `edges(">Z")`；(c) hole/keyway 走绝对 workplane 而非链式 `.faces(">Z").workplane()`。
+
+### UA-15 — 新增 3 family: `wing_nut` / `star_knob` / `grease_nipple` ✅ DONE (2026-04-19)
+
+**结果：**
+- 3 个 family (wing_nut/DIN 315, star_knob/DIN 6336, grease_nipple/DIN 71412 H1) 全部注册；总 family 88→91
+- 初筛 communication.md 5 候选 → skip grooved_pin (与 dowel/clevis/taper_pin 重合) + lifting_eye_nut (与 eyebolt 重合)
+- Manual 原型 3 份 → Op 化 → pre-flight 9/9 → roundtrip 27/27 (3 fam × 3 diff × 3 seed) bbox 完全 match → 9/9 composite PNG 视觉 OK
+- 关键坑：star_knob union 后 top 面只 5 凹谷 edges，OCCT 任意 r fillet/chamfer 都 fail → 完全移除 top/bottom fillet；`_apply_op` 的 fillet try/except 会静默吞错 → 必须 roundtrip 验证才暴露
+- grease_nipple validate 修正：`s*2/sqrt(3) > d` 而非 `s > d`（pipe thread d>AF）；R1/4 s=11→14
+- 88 data_gen tests pass；ruff clean；black clean
+
+### UA-17 — 新增 `twisted_joint` family (eye-plate 扭转接头) ❌ REMOVED (2026-04-19)
+
+**状态：** 2-section loft 产物被用户判定为"根本不是 twisted"（直纹 wedge 不是平滑螺旋扭面）。走真正平滑扭转需新增自由-API Op (`Face.Reversed` + `loft(parametrization="chordal")` + 4 段 eps 夹心 loft)。决定直接移除，不保留半成品。
+
+### UA-14 — 新增 `twisted_drill` family (DIN 338 麻花钻) ✅ DONE (2026-04-19)
+
+**结果：**
+- 第 87 个 family `twisted_drill` 注册 (pipeline/registry.py)
+- 新增 4 Op + renderer：`sketch_subtract` / `placeSketch` / `twistExtrude` / `intersect`
+- Sketch 跨 Op 通过 `_pending_sketch` / `_pending_sketch_code` 模块级 state 串连（同 `_current_base_plane` 模式）
+- 关键改动：OCCT `body.intersect(cone_envelope)` intermittent Bnd_Box 崩溃 → 改 `body.cut(big_cyl ∖ envelope)` tip-chimney
+- 采样约束：`total_twist = 360·(L+5)/P < 340°`；`L/P < 0.87`；R0 ∈ {2,2.5,3,4,5,6,8}mm；tip_angle ∈ {118,130,140}°
+- 全 hard 难度（用户指定）；standard="DIN 338"
+- 5 seed render→exec bbox 全 PASS；15/15 random hard 样本 build pass；88 data_gen tests pass；ruff + black clean
+
+**流程：** Op 扩展 → family 文件 → Pre-Flight 3-sample 测试 → 注册 → pytest/black/ruff → PROGRESS.md。
+
 ### UA-13 — 新增 `twisted_bracket` family (无 ISO 参考) ✅ DONE (2026-04-18)
 
 **目标：** 加一类 twisted_bracket family，无 ISO 约束，只需物理/常识合理。

@@ -28,6 +28,7 @@ from ..families.enclosure import EnclosureFamily
 from ..families.eyebolt import EyeboltFamily
 from ..families.fan_shroud import FanShroudFamily
 from ..families.flat_link import FlatLinkFamily
+from ..families.grease_nipple import GreaseNippleFamily
 from ..families.gusseted_bracket import GussetedBracketFamily
 from ..families.handwheel import HandwheelFamily
 from ..families.heat_sink import HeatSinkFamily
@@ -41,6 +42,7 @@ from ..families.impeller import ImpellerFamily
 from ..families.knob import KnobFamily
 from ..families.l_bracket import LBracketFamily
 from ..families.lathe_turned_part import LatheTurnedPartFamily
+from ..families.lobed_knob import LobedKnobFamily
 from ..families.locator_block import LocatorBlockFamily
 from ..families.manifold_block import ManifoldBlockFamily
 from ..families.mesh_panel import MeshPanelFamily
@@ -80,10 +82,12 @@ from ..families.threaded_adapter import ThreadedAdapterFamily
 from ..families.torsion_spring import TorsionSpringFamily
 from ..families.torus_link import TorusLinkFamily
 from ..families.twisted_bracket import TwistedBracketFamily
+from ..families.twisted_drill import TwistedDrillFamily
 from ..families.u_channel import UChannelFamily
 from ..families.vented_panel import VentedPanelFamily
 from ..families.venturi_tube import VenturiTubeFamily
 from ..families.waffle_plate import WafflePlateFamily
+from ..families.wing_nut import WingNutFamily
 from ..families.wire_grid import WireGridFamily
 from ..families.worm_screw import WormScrewFamily
 from ..families.z_bracket import ZBracketFamily
@@ -180,6 +184,10 @@ def _register_builtins():
         SplineHubFamily,
         VenturiTubeFamily,
         TwistedBracketFamily,
+        TwistedDrillFamily,
+        WingNutFamily,
+        LobedKnobFamily,
+        GreaseNippleFamily,
     ]:
         _FAMILIES[cls.name] = cls()
 
