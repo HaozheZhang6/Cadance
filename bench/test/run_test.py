@@ -13,6 +13,7 @@ Usage:
     python bench/test/run_test.py --step fetch --limit 10
     python bench/test/run_test.py --step eval   # skip fetch if already done
 """
+
 from __future__ import annotations
 
 import argparse
@@ -24,23 +25,33 @@ import tempfile
 import time
 from pathlib import Path
 
-ROOT  = Path(__file__).resolve().parents[2]
-DATA  = Path(__file__).parent / "data"
+ROOT = Path(__file__).resolve().parents[2]
+DATA = Path(__file__).parent / "data"
 RESULTS = Path(__file__).parent / "results"
-LD    = os.environ.get("LD_LIBRARY_PATH", "/workspace/.local/lib")
+LD = os.environ.get("LD_LIBRARY_PATH", "/workspace/.local/lib")
 
 sys.path.insert(0, str(ROOT))
+
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(ROOT / ".env", override=False)
+except ImportError:
+    pass
 
 
 # ── Step 1: Fetch ─────────────────────────────────────────────────────────────
 
-def step_fetch(repo: str, split: str, limit: int, token: str | None,
-               per_family: int = 0) -> list[Path]:
+
+def step_fetch(
+    repo: str, split: str, limit: int, token: str | None, per_family: int = 0
+) -> list[Path]:
     """Download N samples from HF → save to disk. Returns list of meta.json paths.
 
     per_family>0: stratified — take N per family (up to limit total).
     """
     from collections import defaultdict
+
     from datasets import load_dataset
 
     DATA.mkdir(parents=True, exist_ok=True)
@@ -60,7 +71,7 @@ def step_fetch(repo: str, split: str, limit: int, token: str | None,
             continue
         stem = row["stem"]
         sample_dir = DATA / stem
-        meta_path  = sample_dir / "meta.json"
+        meta_path = sample_dir / "meta.json"
 
         if meta_path.exists():
             fam_counts[row["family"]] += 1
@@ -90,6 +101,7 @@ def step_fetch(repo: str, split: str, limit: int, token: str | None,
 
 # ── Step 2: Verify renders ────────────────────────────────────────────────────
 
+
 def step_render(meta_paths: list[Path]) -> list[Path]:
     """Check composite.png exists for each sample. Fail fast if missing."""
     print(f"\n[2/3] RENDER  verify {len(meta_paths)} local images")
@@ -97,7 +109,9 @@ def step_render(meta_paths: list[Path]) -> list[Path]:
     for mp in meta_paths:
         img_path = mp.parent / "composite.png"
         if not img_path.exists():
-            print(f"  MISSING {mp.parent.name}/composite.png — re-run with --step fetch")
+            print(
+                f"  MISSING {mp.parent.name}/composite.png — re-run with --step fetch"
+            )
             sys.exit(1)
         ok.append(mp)
     print(f"  all {len(ok)} images present")
@@ -126,8 +140,11 @@ except Exception as _e:
 
 
 def _exec_cq(code: str, timeout: int = 120) -> tuple[str | None, str | None]:
-    lines = [l for l in code.splitlines()
-             if l.strip() not in ("import cadquery as cq", "import cadquery")]
+    lines = [
+        l
+        for l in code.splitlines()
+        if l.strip() not in ("import cadquery as cq", "import cadquery")
+    ]
     script = _PREAMBLE + "\n".join(lines) + _SUFFIX
     with tempfile.NamedTemporaryFile(suffix=".step", delete=False) as f:
         out = f.name
@@ -135,7 +152,9 @@ def _exec_cq(code: str, timeout: int = 120) -> tuple[str | None, str | None]:
     try:
         r = subprocess.run(
             [sys.executable, "-c", script, out],
-            env=env, timeout=timeout, capture_output=True,
+            env=env,
+            timeout=timeout,
+            capture_output=True,
             cwd=tempfile.gettempdir(),
         )
         if r.returncode != 0:
@@ -149,24 +168,40 @@ def _exec_cq(code: str, timeout: int = 120) -> tuple[str | None, str | None]:
         return None, str(e)
 
 
-def _call_openai(model: str, img_path: Path, api_key: str) -> tuple[str | None, str | None]:
-    import base64, re, openai
+def _call_openai(
+    model: str, img_path: Path, api_key: str
+) -> tuple[str | None, str | None]:
+    import base64
+    import re
+
+    import openai
+
     b64 = base64.b64encode(img_path.read_bytes()).decode()
     sys.path.insert(0, str(ROOT))
     from bench.models import SYSTEM_PROMPT, USER_PROMPT
+
     client = openai.OpenAI(api_key=api_key)
     try:
-        tok_param = "max_completion_tokens" if model.startswith("gpt-5") else "max_tokens"
+        tok_param = (
+            "max_completion_tokens" if model.startswith("gpt-5") else "max_tokens"
+        )
         resp = client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": [
-                    {"type": "text", "text": USER_PROMPT},
-                    {"type": "image_url", "image_url": {
-                        "url": f"data:image/png;base64,{b64}", "detail": "high"
-                    }},
-                ]},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": USER_PROMPT},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{b64}",
+                                "detail": "high",
+                            },
+                        },
+                    ],
+                },
             ],
             **{tok_param: 2048},
             temperature=0.0,
@@ -180,21 +215,34 @@ def _call_openai(model: str, img_path: Path, api_key: str) -> tuple[str | None, 
 
 
 def _render_step(step_path: str, out_png: Path) -> bool:
-    """Render a STEP file to a composite PNG using the cad_synth renderer."""
+    """Render STEP → composite PNG via the cadrille-aligned renderer.
+
+    Uses the same `render_step_normalized` pipeline as GT renders so input
+    (GT composite on HF) and output (gen composite here) share identical
+    camera viewpoints [1,1,1], [-1,-1,-1], [-1,1,-1], [1,-1,1].
+    """
     try:
-        from scripts.data_generation.cad_synth.pipeline.exporter import render_views
-        render_views(step_path, out_png.parent, composite_name=out_png.name)
+        sys.path.insert(0, str(ROOT / "scripts" / "data_generation"))
+        from render_normalized_views import render_step_normalized
+
+        paths = render_step_normalized(step_path, str(out_png.parent))
+        src = Path(paths["composite"])
+        if src != out_png:
+            src.replace(out_png)
         return True
     except Exception:
         return False
 
 
-def step_eval(meta_paths: list[Path], model: str, api_key: str,
-              save_code: bool, save_render: bool) -> list[dict]:
-    from bench.metrics import compute_iou, compute_chamfer, extract_features, feature_f1
+def step_eval(
+    meta_paths: list[Path], model: str, api_key: str, save_code: bool, save_render: bool
+) -> list[dict]:
+    from bench.metrics import compute_chamfer, compute_iou, extract_features, feature_f1
 
-    print(f"\n[3/3] EVAL  model={model}  samples={len(meta_paths)}"
-          f"  save_code={save_code}  save_render={save_render}")
+    print(
+        f"\n[3/3] EVAL  model={model}  samples={len(meta_paths)}"
+        f"  save_code={save_code}  save_render={save_render}"
+    )
 
     RESULTS.mkdir(parents=True, exist_ok=True)
     out_jsonl = RESULTS / "results.jsonl"
@@ -219,15 +267,26 @@ def step_eval(meta_paths: list[Path], model: str, api_key: str,
                 continue
 
             img_path = mp.parent / "composite.png"
-            gt_features = json.loads(meta["feature_tags"]) if isinstance(meta["feature_tags"], str) else meta["feature_tags"]
+            gt_features = (
+                json.loads(meta["feature_tags"])
+                if isinstance(meta["feature_tags"], str)
+                else meta["feature_tags"]
+            )
 
             res = {
-                "stem": stem, "family": meta["family"],
-                "difficulty": meta["difficulty"], "base_plane": meta["base_plane"],
-                "model": model, "exec_ok": 0,
-                "iou": 0.0, "chamfer": float("inf"),
-                "feature_f1": 0.0, "detail_score": 0.0,
-                "gt_features": gt_features, "gen_features": {}, "error": None,
+                "stem": stem,
+                "family": meta["family"],
+                "difficulty": meta["difficulty"],
+                "base_plane": meta["base_plane"],
+                "model": model,
+                "exec_ok": 0,
+                "iou": 0.0,
+                "chamfer": float("inf"),
+                "feature_f1": 0.0,
+                "detail_score": 0.0,
+                "gt_features": gt_features,
+                "gen_features": {},
+                "error": None,
             }
 
             # Call VLM (reads image from disk, not memory)
@@ -255,7 +314,9 @@ def step_eval(meta_paths: list[Path], model: str, api_key: str,
                 res["error"] = f"exec_fail: {exec_err}"
                 res["detail_score"] = round(0.6 * res["feature_f1"], 4)
                 _write(fout, res, results)
-                print(f"  [{i+1}/{len(meta_paths)}] {stem}  EXEC FAIL  f1={res['feature_f1']:.3f}")
+                print(
+                    f"  [{i+1}/{len(meta_paths)}] {stem}  EXEC FAIL  f1={res['feature_f1']:.3f}"
+                )
                 continue
 
             res["exec_ok"] = 1
@@ -272,9 +333,9 @@ def step_eval(meta_paths: list[Path], model: str, api_key: str,
 
             # Geometry metrics
             iou, _ = compute_iou(gt_step, gen_step)
-            cd,  _ = compute_chamfer(gt_step, gen_step)
-            res["iou"]          = round(iou, 4)
-            res["chamfer"]      = round(cd, 6) if cd != float("inf") else float("inf")
+            cd, _ = compute_chamfer(gt_step, gen_step)
+            res["iou"] = round(iou, 4)
+            res["chamfer"] = round(cd, 6) if cd != float("inf") else float("inf")
             res["detail_score"] = round(0.4 * iou + 0.6 * res["feature_f1"], 4)
 
             if save_render:
@@ -286,9 +347,11 @@ def step_eval(meta_paths: list[Path], model: str, api_key: str,
             Path(gt_step).unlink(missing_ok=True)
 
             _write(fout, res, results)
-            print(f"  [{i+1}/{len(meta_paths)}] {stem}  "
-                  f"exec=1  iou={iou:.3f}  f1={res['feature_f1']:.3f}  "
-                  f"detail={res['detail_score']:.3f}")
+            print(
+                f"  [{i+1}/{len(meta_paths)}] {stem}  "
+                f"exec=1  iou={iou:.3f}  f1={res['feature_f1']:.3f}  "
+                f"detail={res['detail_score']:.3f}"
+            )
 
     return results
 
@@ -301,13 +364,14 @@ def _write(f, res: dict, results: list) -> None:
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 
+
 def print_summary(results: list[dict]) -> None:
     if not results:
         return
-    total   = len(results)
+    total = len(results)
     exec_ok = [r for r in results if r["exec_ok"]]
-    ious    = [r["iou"] for r in exec_ok]
-    f1s     = [r["feature_f1"] for r in results]
+    ious = [r["iou"] for r in exec_ok]
+    f1s = [r["feature_f1"] for r in results]
     details = [r["detail_score"] for r in results]
 
     print(f"\n{'='*50}")
@@ -322,31 +386,43 @@ def print_summary(results: list[dict]) -> None:
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+
 def main():
     ap = argparse.ArgumentParser(description="MechEval test run")
-    ap.add_argument("--repo",        default="Hula0401/cad_synth_bench")
-    ap.add_argument("--split",       default="test_iid")
-    ap.add_argument("--limit",       type=int, default=10)
-    ap.add_argument("--per-family",  type=int, default=0, help="stratified: N per family")
-    ap.add_argument("--model",       default="gpt-4o")
-    ap.add_argument("--step",        choices=["fetch", "render", "eval", "all"], default="all")
-    ap.add_argument("--save-code",   action="store_true", help="save gen_code.py per sample")
-    ap.add_argument("--save-render", action="store_true", help="save gen_render.png per sample")
-    ap.add_argument("--api-key",     default=None)
+    ap.add_argument("--repo", default="Hula0401/cad_synth_bench")
+    ap.add_argument("--split", default="test_iid")
+    ap.add_argument("--limit", type=int, default=10)
+    ap.add_argument(
+        "--per-family", type=int, default=0, help="stratified: N per family"
+    )
+    ap.add_argument("--model", default="gpt-4o")
+    ap.add_argument("--step", choices=["fetch", "render", "eval", "all"], default="all")
+    ap.add_argument(
+        "--save-code", action="store_true", help="save gen_code.py per sample"
+    )
+    ap.add_argument(
+        "--save-render", action="store_true", help="save gen_render.png per sample"
+    )
+    ap.add_argument("--api-key", default=None)
     args = ap.parse_args()
 
-    token   = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
-    api_key = args.api_key or os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY1")
+    token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
+    api_key = (
+        args.api_key
+        or os.environ.get("OPENAI_API_KEY")
+        or os.environ.get("OPENAI_API_KEY1")
+    )
 
     if not api_key and args.step in ("eval", "all"):
         sys.exit("OPENAI_API_KEY not set")
 
     # Step 1
     if args.step in ("fetch", "all"):
-        meta_paths = step_fetch(args.repo, args.split, args.limit, token,
-                                per_family=args.per_family)
+        meta_paths = step_fetch(
+            args.repo, args.split, args.limit, token, per_family=args.per_family
+        )
     else:
-        meta_paths = sorted(DATA.glob("*/meta.json"))[:args.limit]
+        meta_paths = sorted(DATA.glob("*/meta.json"))[: args.limit]
         if not meta_paths:
             sys.exit("No local data found. Run with --step fetch first.")
 
@@ -356,8 +432,9 @@ def main():
 
     # Step 3
     if args.step in ("eval", "all"):
-        results = step_eval(meta_paths, args.model, api_key,
-                            args.save_code, args.save_render)
+        results = step_eval(
+            meta_paths, args.model, api_key, args.save_code, args.save_render
+        )
         print_summary(results)
 
 

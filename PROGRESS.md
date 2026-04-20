@@ -1,4 +1,30 @@
 
+## 2026-04-20 (session 16) — Bench E2E：view alignment (UA-18) + QA bench + HF 零本地依赖
+
+- **UA-18 view alignment** DONE：
+  - `bench/models/__init__.py` SYSTEM_PROMPT 从 front/right/top/iso → cadrille 对角视角 `[1,1,1]/[-1,-1,-1]/[-1,1,-1]/[1,-1,1]`
+  - `bench/test/run_test.py` `_render_step` 换成真正存在的 `render_step_normalized`（之前 import `render_views` 从不存在，`--save-render` 静默失败半年）
+  - GPT-4o 输入和 gen_render.png 现在用同一 cadrille renderer, 268×268 完全对齐
+- **QA bench** 新增：
+  - `bench/smoke_upload.py` schema +`qa_pairs`+`iso_tags` 两列（json str）
+  - `bench/models/__init__.py` 新增 `QA_SYSTEM_PROMPT` + `call_vlm_qa(model, img, questions)` + `_parse_qa_answers`（严格 JSON array of numbers）
+  - 新文件 `bench/eval_qa.py`：image + qa_pairs → VLM → numeric answers → `qa_score`（对称 ratio accuracy）
+- **HF smoke re-upload**: `Hula0401/cad_synth_bench_smoke` 12 rows 加上 qa/iso 列 (235KB parquet)
+- **E2E verify (gpt-4o, 12 samples)**：
+  - Code bench: exec 58.3%, IoU 0.187, F1 0.139, detail 0.127
+  - QA bench: parse 12/12, qa_score 0.562 (bevel_gear 0.857 最好，clevis_pin 0.389 最差)
+- **README `bench/README.md`** 重写：vtk 只在 `--save-render` / upload 需要，GPT 默认 eval 不需要；一键启动、schema、指标定义全写清
+- 发现 `synth_clevis_pin_001840/002950` gt_code 自己都跑不动（bad 样本进了 accepted 集） — 另开 task 清理
+
+## 2026-04-19 (session 15) — +16 新 family (communication.md 12 + 3D-print 4)
+
+- communication.md 工业标准件 12 个 (全按 DIN/ISO/MS 标准表):
+  `u_bolt` DIN 3570 · `rivet` DIN 660 · `cotter_pin` ISO 1234 · `pull_handle` DIN 81396 · `pillow_block` ISO 113 UCP · `turnbuckle` DIN 1480 · `keyhole_plate` N/A (Häfele) · `pan_head_screw` ISO 1580 · `grommet` MS 35489 (XZ revolve H-profile) · `tee_nut` DIN 1624 (tapered prongs via `extrude(taper=)`) · `j_hook` DIN 3570 mod · `wall_anchor` ETAG 001 (longitudinal split slots + tapered tip revolve)
+- 3D-print popular 4 个: `gridfinity_bin` (42mm cells + label lip + optional divider) · `hex_key_organizer` (ISO 2936 hex pockets) · `battery_holder` (IEC 60086 cells: AAA/AA/18650/21700) · `phone_stand` (angled wedge + cable slot + relief pocket)
+- 关键 trick 发现: `Op("torus", ...)` 顶层 primitive 会**静默替换整个 workplane**（不是 union），所以 cotter_pin 改用 `union` 内嵌 `moveTo+circle+revolve(180°, axis=-Y)` 构造半环 (与 U-bolt bend 同 pattern)
+- 全 16 fam × 3 diff preflight (build + render→exec roundtrip) 全通过；tmp/_preflight_new.py + tmp/_render_grid_new.py
+- registry.py 注册 16 个；合成大图 `tmp/new_families_grid/new_families_16.png`
+
 ## 2026-04-19 (session 14) — UA-15 3 家族重做 (star_knob → lobed_knob, wing_nut, grease_nipple)
 
 - **star_knob → lobed_knob**: DIN 6336 claim 撤销（旧实现只是 N-lobe 花瓣，轮廓/比例差 DIN 太远）

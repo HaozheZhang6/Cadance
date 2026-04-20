@@ -1,112 +1,159 @@
-# Benchmark Plan
+# Cadance Bench — quickstart
 
-现在 `bench/` 里实现的是你这版最小 benchmark 流程：
+Zero local-data dependency: clone → `uv sync` → `.env` → one command pulls smoke dataset from HF and runs eval end-to-end. Two parallel tasks:
 
-1. 固定一份 test set
-2. 对 test set 跑模型，保存 `valid / iou / cd`
-3. 统计 overall 和 per-family baseline
+- **Code bench** — `image → CadQuery code`，再 exec + IoU/Chamfer/Feature-F1
+- **QA bench** — `image + 数值问题列表 → 数字数组`，算 symmetric ratio accuracy
 
-## 文件
+---
 
-- `bench/build_test_manifest.py`
-  从 `data/data_generation/synth_parts.csv` 里按 family 分层抽样，固定一份 test manifest。
-
-- `bench/score_benchmark.py`
-  读取预测结果，统计：
-  - `valid_rate`
-  - `mean_iou`
-  - `mean_cd`
-  - `per-family valid_rate / mean_iou / mean_cd`
-
-## 1. 固定 Test Set
-
-最简单是每个 family 留 20% 做 test。
+## 0. 一键启动（fresh machine）
 
 ```bash
-uv run python bench/build_test_manifest.py \
-  --source-csv data/data_generation/synth_parts.csv \
-  --test-ratio 0.2 \
-  --out bench/test_manifest.jsonl
+git clone <repo> Cadance && cd Cadance
+
+# 1. install (GPT eval 不需要 vtk；只有要 re-render 才加 --extra vision)
+uv sync                           # GPT code+QA eval 够用
+# uv sync --extra vision          # 需要 --save-render / 重新 upload 数据时再加
+
+# 2. set keys
+cp .env.example .env
+# edit .env: OPENAI_API_KEY=sk-... and HF_TOKEN=hf_...
+
+# 3a. Code bench — image → CadQuery → exec → IoU/CD
+uv run python bench/test/run_test.py \
+    --repo Hula0401/cad_synth_bench_smoke \
+    --split test_iid \
+    --limit 12 \
+    --model gpt-4o \
+    --save-code                    # 跳过 --save-render 则完全不需要 vtk
+
+# 3b. QA bench — image + questions → numeric answers → ratio accuracy
+uv run python bench/eval_qa.py \
+    --repo Hula0401/cad_synth_bench_smoke \
+    --split test_iid \
+    --limit 12 \
+    --model gpt-4o
 ```
 
-输出的每条 manifest 至少包含：
+Outputs:
+- `bench/test/data/<stem>/composite.png` + `meta.json` — 从 HF 下的 GT
+- `bench/test/results/<stem>/gen_code.py` — GPT 生成的 CadQuery
+- `bench/test/results/<stem>/gen_render.png` — 生成代码执行 + 渲染的 composite（和 GT 用同一 `render_step_normalized` pipeline，268×268，cadrille 视角）
+- `bench/test/results/results.jsonl` — 逐样本 metric (iou, chamfer, feature_f1, detail_score, errors)
+- stdout — overall summary
 
-- `sample_id`
-- `stem`
-- `family`
-- `difficulty`
-- `input_views`
-- `gt_code`
-- `gt_step`
-- `gt_mesh`
+---
 
-## 2. 预测结果格式
+## 1. 环境要求
 
-`bench/score_benchmark.py` 读取 JSON 或 JSONL。每条最少需要：
+- Python ≥3.11, `uv`
+- `.env`：
+  - `OPENAI_API_KEY` — 跑 GPT
+  - `HF_TOKEN` — 拉 HF dataset（public 可省）
+- **vtk 什么时候需要？** 只在要**渲染**时：
+  | 场景 | 需要 vtk？ |
+  |------|-----------|
+  | GPT 拉 HF composite + 生成 code + 算 IoU/CD | ❌（image 已预渲染；IoU 用 trimesh） |
+  | GPT QA eval                                 | ❌ |
+  | Local VLM (cadrille 等) 推理                | ❌ |
+  | `--save-render` (回渲 gen STEP 可视化)      | ✅ `uv sync --extra vision` |
+  | 上传新 smoke 批次 (`smoke_upload.py`)        | ✅ |
+- `LD_LIBRARY_PATH` 只在 Linux container 下 load OCCT；Mac fallback 到 `/workspace/.local/lib` 无害（subprocess 里才读，路径不存在 = 无影响）。
 
-- `sample_id`
-- `valid`
-- `iou`
-- `cd`
+---
 
-推荐格式：
+## 2. 核心组件
 
-```json
-{
-  "sample_id": "sample_000123",
-  "valid": true,
-  "iou": 0.87,
-  "cd": 0.09,
-  "pred_code": "runs/model_a/sample_000123.py",
-  "pred_mesh": "runs/model_a/sample_000123.stl"
-}
+| 文件 | 作用 |
+|------|------|
+| `bench/dataloader/__init__.py` | `load_hf(repo, split)` → list[dict]；支持 `split="all"` 合并三个 test split |
+| `bench/models/__init__.py` | VLM dispatch。`call_vlm(model, pil_img, api_key)` — 支持 `gpt-*` / `o1` / `o3` 走 OpenAI，`local:<path>` 走 Qwen2-VL/2.5-VL |
+| `bench/metrics/__init__.py` | `compute_iou` (voxel 64³), `compute_chamfer` (2048 pts), `extract_features` (regex), `feature_f1` |
+| `bench/eval.py` | Full code-bench runner（所有 split、stratified sample、resume） |
+| `bench/eval_qa.py` | QA-bench runner（image + qa_pairs → numeric answers → qa_score） |
+| `bench/test/run_test.py` | E2E code smoke runner（fetch → verify → eval → summary，逐样本 flush jsonl） |
+| `bench/smoke_upload.py` | 把本地 synth_parts.csv 里挑 N × 3 diff stratified 打成 HF dataset（**需要本地数据**，只 generator 跑） |
+
+---
+
+## 3. 现成 HF 数据集
+
+| Repo | splits | rows | 备注 |
+|------|--------|------|------|
+| `Hula0401/cad_synth_bench`       | test_iid / test_ood_family / test_ood_plane | ~994 | 完整 bench_1k_apr14 |
+| `Hula0401/cad_synth_bench_smoke` | test_iid                                    | 12   | 4 family × 3 diff，smoke 用 |
+
+每行 schema：
+```
+stem, family, difficulty, base_plane, split,
+feature_tags (json str), feature_count, ops_used (json str),
+gt_code (CadQuery Python),
+composite_png (HF Image, 268×268, cadrille 视角),
+qa_pairs (json str — list of {question, answer, type}),
+iso_tags (json str — derived ISO values)
 ```
 
-如果预测文件里没有 `family` / `difficulty`，脚本会用 manifest 里的信息补齐。
+---
 
-## 3. 计分
+## 4. View alignment（重要）
 
-运行：
+输入给模型的 `composite_png` 和模型输出代码 re-render 出来的 `gen_render.png` 用**同一个** renderer `scripts/data_generation/render_normalized_views.py`：
+
+- `CAMERA_FRONTS = [[1,1,1], [-1,-1,-1], [-1,1,-1], [1,-1,1]]`（cadrille 约定）
+- 2×2 composite，每视图 128+3px border = 134，总 268×268
+- normalized 到 bbox center=[0.5,0.5,0.5], longest→[0,1]
+
+`bench/models/__init__.py` 的 `SYSTEM_PROMPT` 已按这组视角描述（UA-18）。不要改一边不改另一边。
+
+---
+
+## 5. 跑别的 model / 别的 dataset
 
 ```bash
-uv run python bench/score_benchmark.py \
-  runs/model_a/predictions.jsonl \
-  --manifest bench/test_manifest.jsonl \
-  --out bench/model_a_summary.json
+# Full bench (994 samples，~20 min on gpt-4o)
+uv run python bench/eval.py --model gpt-4o --split all --out results.jsonl
+
+# Stratified: 1 sample per family
+uv run python bench/eval.py --model gpt-4o --split all --per-family 1 --out results.jsonl
+
+# Resume
+uv run python bench/eval.py --model gpt-4o --split test_iid --resume --out results.jsonl
+
+# Local Qwen2-VL checkpoint
+uv run python bench/eval.py --model local:./checkpoints/cadrille-sft --split test_iid
 ```
 
-它会输出两类结果。
+---
 
-Overall：
+## 6. 指标
 
-| metric | score |
-| --- | --- |
-| valid_rate | 执行成功率 |
-| mean_iou | 平均 IoU |
-| mean_cd | 平均 Chamfer Distance |
+### Code bench (`bench/eval.py` / `bench/test/run_test.py`)
+- `exec_ok`   — 生成代码能不能跑出 STEP（0/1）
+- `iou`       — voxel IoU (64³, filled)，[0,1]，越高越好
+- `chamfer`   — bidirectional squared chamfer (2048 pts)，越低越好
+- `feature_f1`— regex feature 集合 F1（hole/fillet/chamfer），[0,1]
+- `detail_score` — `0.4·iou + 0.6·feature_f1`
 
-Per family：
+### QA bench (`bench/eval_qa.py`)
+- 每个 sample 2–3 个 numeric 问题（integer count / ratio / dim in mm），问题由 `qa_generator.py` 按 family 生成
+- Model 输入：composite image + `QA_SYSTEM_PROMPT` + `questions: list[str]`
+- Model 输出：**严格 JSON array of numbers**（解析失败计 `parse_fail`）
+- 评分：`qa_score_single = min(pred, gt) / max(pred, gt)` — 对称，[0,1]
+- `qa_score` per-sample = 平均；summary 输出 overall + per-family
 
-| family | count | valid_rate | mean_iou | mean_cd |
-| --- | --- | --- | --- | --- |
+Summary 打印 overall + per-split / per-difficulty (code) 或 per-family (QA)。
 
-这样可以很快看出哪些 family 最弱。
+---
 
-## 4. 为什么这样做
+## 7. 上传新 smoke 批次（只开发者）
 
-这版 benchmark 先只回答三个问题：
+```bash
+# 从 synth_parts.csv 采样 4 family × 3 diff = 12 rows，打包推 HF
+uv run python bench/smoke_upload.py \
+    --repo Hula0401/cad_synth_bench_smoke \
+    --families bolt,bevel_gear,clevis_pin,ball_knob \
+    --seed 42
+```
 
-- 代码能不能跑
-- 几何是不是大体对
-- 哪些 family 明显更弱
-
-先把 baseline 跑通，比一开始就上复杂 feature score 更重要。
-
-## 5. 后面可以继续加
-
-如果这套 baseline 跑顺了，后面可以继续加：
-
-- difficulty 分层统计
-- weakest family / hardest case 排名
-- 多模型横向对比
-- 更细的 feature-level score
+`composite_png` 从 `render_dir/composite.png` 读 bytes → PIL → HF `Image()` feature，embedded 进 parquet shard（232 KB / 12 rows）。

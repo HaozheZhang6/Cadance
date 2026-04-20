@@ -30,10 +30,10 @@ FEATURES = ["has_hole", "has_fillet", "has_chamfer"]
 # ── AST regex (same as run_eval.py) ──────────────────────────────────────────
 
 _AST_PATTERNS = {
-    "has_hole":    re.compile(r"\b(hole|cutThruAll|cboreHole|cskHole)\s*\(", re.I),
-    "has_fillet":  re.compile(r"\bfillet\s*\(", re.I),
+    "has_hole": re.compile(r"\b(hole|cutThruAll|cboreHole|cskHole)\s*\(", re.I),
+    "has_fillet": re.compile(r"\bfillet\s*\(", re.I),
     "has_chamfer": re.compile(r"\bchamfer\s*\(", re.I),
-    "has_slot":    re.compile(r"\bslot2D\s*\(", re.I),
+    "has_slot": re.compile(r"\bslot2D\s*\(", re.I),
 }
 
 
@@ -163,7 +163,8 @@ def extract_step(step_path: str) -> tuple[dict[str, bool], dict]:
     LD = os.environ.get("LD_LIBRARY_PATH", "/workspace/.local/lib")
     r = subprocess.run(
         [sys.executable, "-c", _STEP_EXTRACT_SCRIPT, step_path],
-        capture_output=True, timeout=30,
+        capture_output=True,
+        timeout=30,
         env={**os.environ, "LD_LIBRARY_PATH": LD},
     )
     if r.returncode != 0:
@@ -174,6 +175,7 @@ def extract_step(step_path: str) -> tuple[dict[str, bool], dict]:
 
 
 # ── CC match + surface area error ────────────────────────────────────────────
+
 
 def cc_match(gt_data: dict, gen_data: dict) -> float:
     """1.0 if same number of solid bodies, else 0.0."""
@@ -187,7 +189,7 @@ def sa_error(gt_data: dict, gen_data: dict) -> float | None:
     normalize both shapes first; this function is intended for GT-vs-GT
     reliability checks where scale is shared.
     """
-    sa_gt  = gt_data.get("surface_area_mm2")
+    sa_gt = gt_data.get("surface_area_mm2")
     sa_gen = gen_data.get("surface_area_mm2")
     if not sa_gt or not sa_gen:
         return None
@@ -195,6 +197,7 @@ def sa_error(gt_data: dict, gen_data: dict) -> float | None:
 
 
 # ── Metrics ──────────────────────────────────────────────────────────────────
+
 
 def compute_metrics(results: list[dict], method: str) -> dict:
     """Compute per-feature precision/recall/F1 across all samples for one method."""
@@ -222,15 +225,18 @@ def compute_metrics(results: list[dict], method: str) -> dict:
     for feat, c in per_feat.items():
         tp, fp, fn, tn = c["tp"], c["fp"], c["fn"], c["tn"]
         prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-        rec  = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        f1   = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
-        acc  = (tp + tn) / (tp + fp + fn + tn) if (tp + fp + fn + tn) > 0 else 0.0
+        rec = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        f1 = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
+        acc = (tp + tn) / (tp + fp + fn + tn) if (tp + fp + fn + tn) > 0 else 0.0
         out[feat] = {
             "precision": round(prec, 3),
-            "recall":    round(rec, 3),
-            "f1":        round(f1, 3),
-            "accuracy":  round(acc, 3),
-            "tp": tp, "fp": fp, "fn": fn, "tn": tn,
+            "recall": round(rec, 3),
+            "f1": round(f1, 3),
+            "accuracy": round(acc, 3),
+            "tp": tp,
+            "fp": fp,
+            "fn": fn,
+            "tn": tn,
             "skipped": c["skipped"],
         }
     return out
@@ -257,6 +263,7 @@ def per_family_summary(results: list[dict], method: str) -> dict:
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", default="bench_1k_apr14")
@@ -278,10 +285,12 @@ def main():
 
     selected = []
     for fam, files in sorted(by_family.items()):
-        chosen = files[:args.per_family]
+        chosen = files[: args.per_family]
         selected.extend(chosen)
-    print(f"Selected {len(selected)} samples from {len(by_family)} families "
-          f"({args.per_family}/family)\n")
+    print(
+        f"Selected {len(selected)} samples from {len(by_family)} families "
+        f"({args.per_family}/family)\n"
+    )
 
     results = []
     errors_ast = 0
@@ -326,7 +335,7 @@ def main():
                     feats, diag = extract_step(str(step_path))
                     row["pred_step"] = feats
                     row["step_diag"] = diag
-                    row["n_solids_gt"]     = feats.get("n_solids", 1)
+                    row["n_solids_gt"] = feats.get("n_solids", 1)
                     row["surface_area_gt"] = feats.get("surface_area_mm2")
                 except Exception as e:
                     row["err_step"] = str(e)[:200]
@@ -339,7 +348,9 @@ def main():
 
         # Progress
         if (i + 1) % 20 == 0 or (i + 1) == len(selected):
-            print(f"  [{i+1}/{len(selected)}] ast_errs={errors_ast} step_errs={errors_step}")
+            print(
+                f"  [{i+1}/{len(selected)}] ast_errs={errors_ast} step_errs={errors_step}"
+            )
 
     # Save raw results
     out_path = Path(args.out)
@@ -364,30 +375,40 @@ def main():
     print("\n── GT Feature Distribution ─────────────────────────────────────────")
     for feat in FEATURES:
         pos = sum(1 for r in results if r["gt"].get(feat))
-        print(f"  {feat:<15} {pos:3d}/{len(results)} ({100*pos/len(results):.0f}% positive)")
+        print(
+            f"  {feat:<15} {pos:3d}/{len(results)} ({100*pos/len(results):.0f}% positive)"
+        )
 
     # Per-method overall metrics
     for method in methods:
-        print(f"\n── Method: {method.upper()} ─────────────────────────────────────────────")
+        print(
+            f"\n── Method: {method.upper()} ─────────────────────────────────────────────"
+        )
         m = compute_metrics(results, method)
         errs = sum(1 for r in results if r.get(f"err_{method}"))
         print(f"  Errors/skipped: {errs}/{len(results)}")
-        print(f"  {'Feature':<15} {'Prec':>6} {'Rec':>6} {'F1':>6} {'Acc':>6}  "
-              f"{'TP':>4} {'FP':>4} {'FN':>4} {'TN':>4}  skip")
-        print(f"  {'-'*15} {'-'*6} {'-'*6} {'-'*6} {'-'*6}  "
-              f"{'-'*4} {'-'*4} {'-'*4} {'-'*4}  ----")
+        print(
+            f"  {'Feature':<15} {'Prec':>6} {'Rec':>6} {'F1':>6} {'Acc':>6}  "
+            f"{'TP':>4} {'FP':>4} {'FN':>4} {'TN':>4}  skip"
+        )
+        print(
+            f"  {'-'*15} {'-'*6} {'-'*6} {'-'*6} {'-'*6}  "
+            f"{'-'*4} {'-'*4} {'-'*4} {'-'*4}  ----"
+        )
         for feat in FEATURES:
             c = m.get(feat, {})
             if not c:
                 continue
-            print(f"  {feat:<15} {c['precision']:>6.3f} {c['recall']:>6.3f} "
-                  f"{c['f1']:>6.3f} {c['accuracy']:>6.3f}  "
-                  f"{c['tp']:>4} {c['fp']:>4} {c['fn']:>4} {c['tn']:>4}  {c['skipped']}")
+            print(
+                f"  {feat:<15} {c['precision']:>6.3f} {c['recall']:>6.3f} "
+                f"{c['f1']:>6.3f} {c['accuracy']:>6.3f}  "
+                f"{c['tp']:>4} {c['fp']:>4} {c['fn']:>4} {c['tn']:>4}  {c['skipped']}"
+            )
 
     # Per-family comparison
     if len(methods) == 2:
         print("\n── Per-Family F1 Comparison (AST vs STEP) ──────────────────────────")
-        fam_ast  = per_family_summary(results, "ast")
+        fam_ast = per_family_summary(results, "ast")
         fam_step = per_family_summary(results, "step")
         all_fams = sorted(set(fam_ast) | set(fam_step))
         print(f"  {'Family':<25} {'N':>3}  {'AST-F1':>7}  {'STEP-F1':>8}  {'Δ':>6}")
@@ -397,7 +418,7 @@ def main():
             s = fam_step.get(fam, {})
             af1 = a.get("avg_f1", 0.0)
             sf1 = s.get("avg_f1", 0.0)
-            n   = a.get("n", s.get("n", 0))
+            n = a.get("n", s.get("n", 0))
             delta = sf1 - af1
             flag = "  <<<" if abs(delta) > 0.15 else ""
             print(f"  {fam:<25} {n:>3}  {af1:>7.3f}  {sf1:>8.3f}  {delta:>+6.3f}{flag}")
@@ -407,48 +428,56 @@ def main():
     for method in methods:
         print(f"\n  [{method.upper()}] False Negatives (GT=True, pred=False):")
         for feat in FEATURES:
-            fns = [r for r in results
-                   if r["gt"].get(feat)
-                   and r[f"pred_{method}"].get(feat) is False]
+            fns = [
+                r
+                for r in results
+                if r["gt"].get(feat) and r[f"pred_{method}"].get(feat) is False
+            ]
             if fns:
                 fam_counts = defaultdict(int)
                 for r in fns:
                     fam_counts[r["family"]] += 1
                 top = sorted(fam_counts.items(), key=lambda x: -x[1])[:5]
-                print(f"    {feat}: {len(fns)} FN  → families: "
-                      + ", ".join(f"{f}×{n}" for f, n in top))
+                print(
+                    f"    {feat}: {len(fns)} FN  → families: "
+                    + ", ".join(f"{f}×{n}" for f, n in top)
+                )
 
         print(f"\n  [{method.upper()}] False Positives (GT=False, pred=True):")
         for feat in FEATURES:
-            fps = [r for r in results
-                   if not r["gt"].get(feat)
-                   and r[f"pred_{method}"].get(feat) is True]
+            fps = [
+                r
+                for r in results
+                if not r["gt"].get(feat) and r[f"pred_{method}"].get(feat) is True
+            ]
             if fps:
                 fam_counts = defaultdict(int)
                 for r in fps:
                     fam_counts[r["family"]] += 1
                 top = sorted(fam_counts.items(), key=lambda x: -x[1])[:5]
-                print(f"    {feat}: {len(fps)} FP  → families: "
-                      + ", ".join(f"{f}×{n}" for f, n in top))
+                print(
+                    f"    {feat}: {len(fps)} FP  → families: "
+                    + ", ".join(f"{f}×{n}" for f, n in top)
+                )
 
     # ── AST vs STEP disagreement analysis ────────────────────────────────────
     if "ast" in methods and "step" in methods:
         print("\n── AST vs STEP Disagreement Analysis ───────────────────────────────")
         for feat in FEATURES:
             # 4 cells: both_correct, ast_only_correct, step_only_correct, both_wrong
-            both_right = []   # ast=gt, step=gt
-            ast_only   = []   # ast=gt, step≠gt
-            step_only  = []   # step=gt, ast≠gt
-            both_wrong = []   # ast≠gt, step≠gt
+            both_right = []  # ast=gt, step=gt
+            ast_only = []  # ast=gt, step≠gt
+            step_only = []  # step=gt, ast≠gt
+            both_wrong = []  # ast≠gt, step≠gt
 
             for r in results:
-                gt_val   = r["gt"].get(feat)
-                ast_val  = r["pred_ast"].get(feat)
+                gt_val = r["gt"].get(feat)
+                ast_val = r["pred_ast"].get(feat)
                 step_val = r["pred_step"].get(feat)
                 if ast_val is None or step_val is None:
                     continue
-                ast_ok  = (ast_val == gt_val)
-                step_ok = (step_val == gt_val)
+                ast_ok = ast_val == gt_val
+                step_ok = step_val == gt_val
                 row_info = (r["family"], gt_val, ast_val, step_val)
                 if ast_ok and step_ok:
                     both_right.append(row_info)
@@ -461,80 +490,110 @@ def main():
 
             n = len(both_right) + len(ast_only) + len(step_only) + len(both_wrong)
             print(f"\n  {feat}  (n={n})")
-            print(f"    Both correct  : {len(both_right):3d} ({100*len(both_right)/n:.0f}%)")
-            print(f"    AST only good : {len(ast_only):3d} ({100*len(ast_only)/n:.0f}%)  "
-                  f"← STEP wrong here")
-            print(f"    STEP only good: {len(step_only):3d} ({100*len(step_only)/n:.0f}%)  "
-                  f"← AST wrong here")
-            print(f"    Both wrong    : {len(both_wrong):3d} ({100*len(both_wrong)/n:.0f}%)")
+            print(
+                f"    Both correct  : {len(both_right):3d} ({100*len(both_right)/n:.0f}%)"
+            )
+            print(
+                f"    AST only good : {len(ast_only):3d} ({100*len(ast_only)/n:.0f}%)  "
+                f"← STEP wrong here"
+            )
+            print(
+                f"    STEP only good: {len(step_only):3d} ({100*len(step_only)/n:.0f}%)  "
+                f"← AST wrong here"
+            )
+            print(
+                f"    Both wrong    : {len(both_wrong):3d} ({100*len(both_wrong)/n:.0f}%)"
+            )
 
             # Show families where AST fails but STEP gets it right (step_only)
             if step_only:
                 from collections import Counter
+
                 fam_gt = Counter()
                 for fam, gt, ast, step in step_only:
                     fam_gt[f"{fam}(gt={gt},ast={ast},step={step})"] += 1
                 # Group by family
                 fam_c = Counter(fam for fam, *_ in step_only)
                 top = fam_c.most_common(5)
-                print(f"    STEP rescues AST → top families: "
-                      + ", ".join(f"{f}×{n}" for f, n in top))
+                print(
+                    f"    STEP rescues AST → top families: "
+                    + ", ".join(f"{f}×{n}" for f, n in top)
+                )
 
             # Show families where STEP fails but AST gets it right (ast_only)
             if ast_only:
                 fam_c = Counter(fam for fam, *_ in ast_only)
                 top = fam_c.most_common(5)
-                print(f"    AST rescues STEP → top families: "
-                      + ", ".join(f"{f}×{n}" for f, n in top))
+                print(
+                    f"    AST rescues STEP → top families: "
+                    + ", ".join(f"{f}×{n}" for f, n in top)
+                )
 
             # Show families where both fail
             if both_wrong:
                 fam_c = Counter(fam for fam, *_ in both_wrong)
                 top = fam_c.most_common(5)
                 # Separate FP and FN
-                fn = [(f, gt, a, s) for f, gt, a, s in both_wrong if gt and not a and not s]
+                fn = [
+                    (f, gt, a, s)
+                    for f, gt, a, s in both_wrong
+                    if gt and not a and not s
+                ]
                 fp = [(f, gt, a, s) for f, gt, a, s in both_wrong if not gt and a and s]
-                print(f"    Both wrong — FN:{len(fn)} FP:{len(fp)}  "
-                      + "families: " + ", ".join(f"{f}×{n}" for f, n in top))
+                print(
+                    f"    Both wrong — FN:{len(fn)} FP:{len(fp)}  "
+                    + "families: "
+                    + ", ".join(f"{f}×{n}" for f, n in top)
+                )
 
         # Oracle: what if we take OR of AST and STEP for has_hole?
         print("\n── Oracle: AST OR STEP (union) for has_hole ────────────────────────")
         for feat in FEATURES:
             tp = fp = fn = tn = 0
             for r in results:
-                gt_val   = r["gt"].get(feat)
-                ast_val  = r["pred_ast"].get(feat)
+                gt_val = r["gt"].get(feat)
+                ast_val = r["pred_ast"].get(feat)
                 step_val = r["pred_step"].get(feat)
                 if ast_val is None or step_val is None:
                     continue
-                pred = ast_val or step_val   # OR
-                if pred and gt_val:     tp += 1
-                elif pred and not gt_val: fp += 1
-                elif not pred and gt_val: fn += 1
-                else:                   tn += 1
-            prec = tp/(tp+fp) if (tp+fp) else 0
-            rec  = tp/(tp+fn) if (tp+fn) else 0
-            f1   = 2*prec*rec/(prec+rec) if (prec+rec) else 0
-            print(f"  {feat:<15} OR → prec={prec:.3f} rec={rec:.3f} F1={f1:.3f}  "
-                  f"(AST alone: see above, STEP alone: see above)")
+                pred = ast_val or step_val  # OR
+                if pred and gt_val:
+                    tp += 1
+                elif pred and not gt_val:
+                    fp += 1
+                elif not pred and gt_val:
+                    fn += 1
+                else:
+                    tn += 1
+            prec = tp / (tp + fp) if (tp + fp) else 0
+            rec = tp / (tp + fn) if (tp + fn) else 0
+            f1 = 2 * prec * rec / (prec + rec) if (prec + rec) else 0
+            print(
+                f"  {feat:<15} OR → prec={prec:.3f} rec={rec:.3f} F1={f1:.3f}  "
+                f"(AST alone: see above, STEP alone: see above)"
+            )
 
         print("\n── Oracle: AST AND STEP (intersection) for high-precision ─────────")
         for feat in FEATURES:
             tp = fp = fn = tn = 0
             for r in results:
-                gt_val   = r["gt"].get(feat)
-                ast_val  = r["pred_ast"].get(feat)
+                gt_val = r["gt"].get(feat)
+                ast_val = r["pred_ast"].get(feat)
                 step_val = r["pred_step"].get(feat)
                 if ast_val is None or step_val is None:
                     continue
-                pred = ast_val and step_val   # AND
-                if pred and gt_val:     tp += 1
-                elif pred and not gt_val: fp += 1
-                elif not pred and gt_val: fn += 1
-                else:                   tn += 1
-            prec = tp/(tp+fp) if (tp+fp) else 0
-            rec  = tp/(tp+fn) if (tp+fn) else 0
-            f1   = 2*prec*rec/(prec+rec) if (prec+rec) else 0
+                pred = ast_val and step_val  # AND
+                if pred and gt_val:
+                    tp += 1
+                elif pred and not gt_val:
+                    fp += 1
+                elif not pred and gt_val:
+                    fn += 1
+                else:
+                    tn += 1
+            prec = tp / (tp + fp) if (tp + fp) else 0
+            rec = tp / (tp + fn) if (tp + fn) else 0
+            f1 = 2 * prec * rec / (prec + rec) if (prec + rec) else 0
             print(f"  {feat:<15} AND → prec={prec:.3f} rec={rec:.3f} F1={f1:.3f}")
 
     # ── CC / SA distribution on GT (sanity check) ─────────────────────────
@@ -543,26 +602,37 @@ def main():
         sa_rows = [r for r in results if r.get("surface_area_gt") is not None]
         if cc_rows:
             from collections import Counter
+
             cc_dist = Counter(r["n_solids_gt"] for r in cc_rows)
-            print("\n── GT Connected Components Distribution ────────────────────────────")
+            print(
+                "\n── GT Connected Components Distribution ────────────────────────────"
+            )
             for k, v in sorted(cc_dist.items()):
                 print(f"  n_solids={k}: {v} samples ({100*v/len(cc_rows):.0f}%)")
         if sa_rows:
             import statistics
+
             sas = [r["surface_area_gt"] for r in sa_rows]
-            print("\n── GT Surface Area Distribution (mm²) ──────────────────────────────")
-            print(f"  min={min(sas):.0f}  median={statistics.median(sas):.0f}  "
-                  f"max={max(sas):.0f}  mean={statistics.mean(sas):.0f}")
+            print(
+                "\n── GT Surface Area Distribution (mm²) ──────────────────────────────"
+            )
+            print(
+                f"  min={min(sas):.0f}  median={statistics.median(sas):.0f}  "
+                f"max={max(sas):.0f}  mean={statistics.mean(sas):.0f}"
+            )
             # Per-family median SA (top 10 by SA)
             by_fam_sa = defaultdict(list)
             for r in sa_rows:
                 by_fam_sa[r["family"]].append(r["surface_area_gt"])
-            top_sa = sorted(by_fam_sa.items(),
-                            key=lambda x: statistics.median(x[1]), reverse=True)[:10]
+            top_sa = sorted(
+                by_fam_sa.items(), key=lambda x: statistics.median(x[1]), reverse=True
+            )[:10]
             print("  Top-10 families by median SA:")
             for fam, vals in top_sa:
-                print(f"    {fam:<25} median={statistics.median(vals):.0f} mm²  "
-                      f"n={len(vals)}")
+                print(
+                    f"    {fam:<25} median={statistics.median(vals):.0f} mm²  "
+                    f"n={len(vals)}"
+                )
 
     print("\n" + "=" * 70)
 

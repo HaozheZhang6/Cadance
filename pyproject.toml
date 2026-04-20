@@ -24,6 +24,7 @@ dependencies = [
     "nptyping>=2.5.0",
     "casadi>=3.7.2",
     "streamlit>=1.56.0",
+    "python-dotenv>=1.2.2",
 ]
 
 [project.optional-dependencies]

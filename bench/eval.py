@@ -16,6 +16,7 @@ Usage:
     # Resume interrupted run
     python bench/eval.py --model gpt-4o --split test_iid --resume --out results.jsonl
 """
+
 from __future__ import annotations
 
 import argparse
@@ -64,7 +65,8 @@ except Exception as _e:
 
 def _clean(code: str) -> str:
     return "\n".join(
-        l for l in code.splitlines()
+        l
+        for l in code.splitlines()
         if l.strip() not in ("import cadquery as cq", "import cadquery")
     )
 
@@ -77,7 +79,9 @@ def exec_cq(code: str, timeout: int = 60) -> tuple[str | None, str | None]:
     try:
         r = subprocess.run(
             [sys.executable, "-c", script, out],
-            env=env, timeout=timeout, capture_output=True,
+            env=env,
+            timeout=timeout,
+            capture_output=True,
             cwd=tempfile.gettempdir(),
         )
         if r.returncode != 0:
@@ -93,16 +97,29 @@ def exec_cq(code: str, timeout: int = 60) -> tuple[str | None, str | None]:
 
 # ── Per-sample eval ───────────────────────────────────────────────────────────
 
+
 def eval_sample(row: dict, model: str, api_key: str | None) -> dict:
-    gt_features = json.loads(row["feature_tags"]) if isinstance(row["feature_tags"], str) else row["feature_tags"]
+    gt_features = (
+        json.loads(row["feature_tags"])
+        if isinstance(row["feature_tags"], str)
+        else row["feature_tags"]
+    )
     res = {
-        "stem": row["stem"], "family": row["family"],
-        "difficulty": row["difficulty"], "base_plane": row["base_plane"],
-        "split": row["split"], "feature_count": row["feature_count"],
-        "gt_features": gt_features, "model": model,
-        "exec_ok": 0, "iou": 0.0, "chamfer": float("inf"),
-        "feature_f1": 0.0, "detail_score": 0.0,
-        "gen_features": {}, "error": None,
+        "stem": row["stem"],
+        "family": row["family"],
+        "difficulty": row["difficulty"],
+        "base_plane": row["base_plane"],
+        "split": row["split"],
+        "feature_count": row["feature_count"],
+        "gt_features": gt_features,
+        "model": model,
+        "exec_ok": 0,
+        "iou": 0.0,
+        "chamfer": float("inf"),
+        "feature_f1": 0.0,
+        "detail_score": 0.0,
+        "gen_features": {},
+        "error": None,
     }
 
     t0 = time.time()
@@ -133,11 +150,13 @@ def eval_sample(row: dict, model: str, api_key: str | None) -> dict:
         return res
 
     iou, iou_err = compute_iou(gt_step, gen_step)
-    cd,  cd_err  = compute_chamfer(gt_step, gen_step)
-    res["iou"]     = round(iou, 4)
+    cd, cd_err = compute_chamfer(gt_step, gen_step)
+    res["iou"] = round(iou, 4)
     res["chamfer"] = round(cd, 6) if cd != float("inf") else float("inf")
-    if iou_err: res["iou_error"] = iou_err
-    if cd_err:  res["cd_error"]  = cd_err
+    if iou_err:
+        res["iou_error"] = iou_err
+    if cd_err:
+        res["cd_error"] = cd_err
     res["detail_score"] = round(0.4 * iou + 0.6 * res["feature_f1"], 4)
 
     Path(gen_step).unlink(missing_ok=True)
@@ -147,23 +166,34 @@ def eval_sample(row: dict, model: str, api_key: str | None) -> dict:
 
 # ── Report ────────────────────────────────────────────────────────────────────
 
+
 def report(results: list[dict]) -> None:
     total = len(results)
     if not total:
         print("No results.")
         return
     exec_ok = [r for r in results if r["exec_ok"]]
-    ious    = [r["iou"] for r in exec_ok]
-    cds     = [r["chamfer"] for r in exec_ok if r.get("chamfer", float("inf")) != float("inf")]
-    f1s     = [r["feature_f1"] for r in results]
+    ious = [r["iou"] for r in exec_ok]
+    cds = [
+        r["chamfer"] for r in exec_ok if r.get("chamfer", float("inf")) != float("inf")
+    ]
+    f1s = [r["feature_f1"] for r in results]
     details = [r["detail_score"] for r in results]
 
     print(f"\n{'='*60}")
     print(f"Model: {results[0].get('model','?')}  |  N={total}")
     print(f"{'='*60}")
     print(f"Exec%:        {len(exec_ok)/total*100:.1f}%  ({len(exec_ok)}/{total})")
-    print(f"IoU (exec'd): {sum(ious)/len(ious):.3f}  (n={len(ious)})" if ious else "IoU: —")
-    print(f"CD  (exec'd): {sum(cds)/len(cds):.4f}  (n={len(cds)})  [lower=better]" if cds else "CD: —")
+    print(
+        f"IoU (exec'd): {sum(ious)/len(ious):.3f}  (n={len(ious)})"
+        if ious
+        else "IoU: —"
+    )
+    print(
+        f"CD  (exec'd): {sum(cds)/len(cds):.4f}  (n={len(cds)})  [lower=better]"
+        if cds
+        else "CD: —"
+    )
     print(f"Feat-F1:      {sum(f1s)/len(f1s):.3f}")
     print(f"Detail↑:      {sum(details)/len(details):.3f}")
 
@@ -173,11 +203,13 @@ def report(results: list[dict]) -> None:
     print(f"\n{'Split':<22} {'N':>5} {'Exec%':>7} {'IoU':>6} {'F1':>6} {'Detail':>7}")
     print("-" * 57)
     for sp, rs in sorted(by_split.items()):
-        ex  = [x for x in rs if x["exec_ok"]]
+        ex = [x for x in rs if x["exec_ok"]]
         iou = sum(x["iou"] for x in ex) / len(ex) if ex else 0.0
-        f1  = sum(x["feature_f1"] for x in rs) / len(rs)
+        f1 = sum(x["feature_f1"] for x in rs) / len(rs)
         det = sum(x["detail_score"] for x in rs) / len(rs)
-        print(f"{sp:<22} {len(rs):>5} {len(ex)/len(rs)*100:>6.1f}% {iou:>6.3f} {f1:>6.3f} {det:>7.3f}")
+        print(
+            f"{sp:<22} {len(rs):>5} {len(ex)/len(rs)*100:>6.1f}% {iou:>6.3f} {f1:>6.3f} {det:>7.3f}"
+        )
 
     by_diff = defaultdict(list)
     for r in results:
@@ -186,31 +218,42 @@ def report(results: list[dict]) -> None:
     print("-" * 42)
     for d in ["easy", "medium", "hard"]:
         rs = by_diff.get(d, [])
-        if not rs: continue
-        ex  = [x for x in rs if x["exec_ok"]]
+        if not rs:
+            continue
+        ex = [x for x in rs if x["exec_ok"]]
         iou = sum(x["iou"] for x in ex) / len(ex) if ex else 0.0
         det = sum(x["detail_score"] for x in rs) / len(rs)
-        print(f"{d:<12} {len(rs):>5} {len(ex)/len(rs)*100:>6.1f}% {iou:>6.3f} {det:>7.3f}")
+        print(
+            f"{d:<12} {len(rs):>5} {len(ex)/len(rs)*100:>6.1f}% {iou:>6.3f} {det:>7.3f}"
+        )
     print("=" * 60)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+
 def main():
     ap = argparse.ArgumentParser(description="MechEval — CAD generation benchmark")
-    ap.add_argument("--model",      default="gpt-4o")
-    ap.add_argument("--split",      default="test_iid",
-                    choices=["test_iid", "test_ood_family", "test_ood_plane", "all"])
-    ap.add_argument("--repo",       default="Hula0401/cad_synth_bench")
-    ap.add_argument("--limit",      type=int, default=0, help="0=all")
+    ap.add_argument("--model", default="gpt-4o")
+    ap.add_argument(
+        "--split",
+        default="test_iid",
+        choices=["test_iid", "test_ood_family", "test_ood_plane", "all"],
+    )
+    ap.add_argument("--repo", default="Hula0401/cad_synth_bench")
+    ap.add_argument("--limit", type=int, default=0, help="0=all")
     ap.add_argument("--per-family", type=int, default=0, help="stratified N per family")
-    ap.add_argument("--out",        default="results.jsonl")
-    ap.add_argument("--api-key",    default=None)
-    ap.add_argument("--resume",     action="store_true")
+    ap.add_argument("--out", default="results.jsonl")
+    ap.add_argument("--api-key", default=None)
+    ap.add_argument("--resume", action="store_true")
     args = ap.parse_args()
 
-    token   = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
-    api_key = args.api_key or os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY1")
+    token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
+    api_key = (
+        args.api_key
+        or os.environ.get("OPENAI_API_KEY")
+        or os.environ.get("OPENAI_API_KEY1")
+    )
 
     print(f"Loading {args.repo} ...")
     rows = load_hf(args.repo, args.split, token=token)
@@ -218,7 +261,7 @@ def main():
     if args.per_family:
         rows = stratified_sample(rows, args.per_family)
     elif args.limit:
-        rows = rows[:args.limit]
+        rows = rows[: args.limit]
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -238,7 +281,9 @@ def main():
             results.append(res)
             f_out.write(json.dumps(res) + "\n")
             f_out.flush()
-            status = f"iou={res['iou']:.3f} f1={res['feature_f1']:.3f} exec={res['exec_ok']}"
+            status = (
+                f"iou={res['iou']:.3f} f1={res['feature_f1']:.3f} exec={res['exec_ok']}"
+            )
             if res.get("error"):
                 status += f"  ERR={res['error'][:60]}"
             print(status)

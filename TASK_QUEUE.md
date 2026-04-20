@@ -4,6 +4,55 @@
 
 ## ⚠️ USER-ASSIGNED — 进行中
 
+### UA-19 — Edit Benchmark data gen (1000-2000 pair, L1/L2, 小 delta) 🔵 IN-PROGRESS (2026-04-20)
+
+**目标：** 生成一套独立的 CAD edit benchmark 数据集。模型输入：原始 CQ code + NL 指令；输出：修改后 CQ code。零训练，纯 zero-shot 评测。
+
+**配置：**
+- 范围：106 families 全量（registry.py `list_families()`）
+- 每 family：2 roots (easy + hard) × 3 axes × 1 delta × 2 levels (L1/L2) = 12 records
+- 总量目标：~1000-2000 pairs
+- Delta 策略：**2-5% 小幅度 + 预选安全方向**
+  - 内径/孔径 → 缩小 (-)
+  - 外径/外框/长宽高/厚度 → 放大 (+)
+  - 齿数/孔数 等离散/拓扑参数 → 不选
+- L1: `"Set <human> to <value> <unit>."`（4 位小数）
+- L2: `"Change <human> by <sign><pct>%."`
+
+**产出：**
+```
+data/data_generation/bench_edit/
+  pairs.jsonl
+  codes/<rid>_{orig,gt}.py
+  steps/<rid>_{orig,gt}.step
+  pair_stats.json
+```
+
+**改动/新增：**
+1. `bench/edit_gen/edit_axes.py` (新) — 106 家族 EDIT_AXES 中心化配置
+2. `bench/edit_gen/pair_builder.py` (新) — 生成 pair + 写 STEP/code
+3. `scripts/data_generation/cad_synth/pipeline/builder.py` — `render_program_to_code` 顶部加参数注释块（给模型语义 hint，不参数化代码本体）
+
+**三层过滤（防翻车）：**
+1. `fam.validate_params(p1)` — 家族内置约束
+2. `check_axis_constraints(p1)` — axis 级 ordering (e.g. inner < outer)
+3. `sanity_ok(step0, step1)` — post-build 几何 sanity（体积塌缩、bbox 爆炸）
+
+**评分（本任务不含，eval 阶段实现）：** `norm_improve = (IoU(out,gt) - IoU(orig,gt)) / (1 - IoU(orig,gt))` + `exec_rate`
+
+### UA-18 — Bench view alignment: GPT prompt + gen render 都走 cadrille 视角 ✅ DONE (2026-04-20)
+
+**结果：**
+- `bench/models/__init__.py` SYSTEM_PROMPT 改到 cadrille 对角视角 `[1,1,1]/[-1,-1,-1]/[-1,1,-1]/[1,-1,1]`
+- `bench/test/run_test.py` `_render_step` 换成真 `render_step_normalized`（之前 import 的 `render_views` 根本不存在）
+- GPT-4o 12 样本 e2e 跑通：composite (GT) 和 gen_render 都 268×268, 同 renderer, view 完全对齐
+- 同批顺带做完：bench/smoke_upload.py schema +qa_pairs/+iso_tags 列；`bench/eval_qa.py` 新增；`bench/models/call_vlm_qa` 新增；`Hula0401/cad_synth_bench_smoke` 重推
+- README 更新：`uv sync` 默认够 GPT eval，`--extra vision` 只 re-render 时必要
+
+### UA-20 — QA bench runner (image + numeric Q → answers → ratio acc) ✅ DONE (2026-04-20)
+
+**结果：** 见 UA-18 同一 session。`bench/eval_qa.py` + `QA_SYSTEM_PROMPT` + `call_vlm_qa` + HF schema `qa_pairs`/`iso_tags` 列。GPT-4o 12 样本 qa_score 0.562, parse 12/12。
+
 ### UA-16 — 修 `worm_screw` medium+hard 变体 chamfer 后几何塌陷 🟠 MED (2026-04-19)
 
 **现象：** 只要开启 `chamfer`（medium 起）就可能触发，某些参数下 bbox 的 z 从 sl 缩到 0.7–0.8×sl，视觉上整根光轴消失、只剩螺旋+端盘。hard 路径（bore+keyway）更严重：要么 bbox 塌到 ~5×13×4，要么直接 OCCT 原生崩溃。
