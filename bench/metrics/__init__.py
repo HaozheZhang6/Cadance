@@ -68,6 +68,20 @@ def _load_normalized_mesh(step_path: str):
     return trimesh.Trimesh(vertices=verts, faces=tris, process=False)
 
 
+def _vox_dense(vox, size: int):
+    import numpy as np
+
+    m = vox.matrix.astype(bool)
+    out = np.zeros((size, size, size), dtype=bool)
+    s = np.array(m.shape)
+    o = ((size - s) // 2).clip(0)
+    e = (o + s).clip(max=size)
+    out[o[0] : e[0], o[1] : e[1], o[2] : e[2]] = m[
+        : e[0] - o[0], : e[1] - o[1], : e[2] - o[2]
+    ]
+    return out
+
+
 def compute_iou(gt_step: str, gen_step: str) -> tuple[float, str | None]:
     try:
         import numpy as np
@@ -78,24 +92,87 @@ def compute_iou(gt_step: str, gen_step: str) -> tuple[float, str | None]:
         res = 64
         gt_vox = gt_mesh.voxelized(pitch=1.0 / res).fill()
         gen_vox = gen_mesh.voxelized(pitch=1.0 / res).fill()
-
-        def _dense(vox, size=res + 4):
-            m = vox.matrix.astype(bool)
-            out = np.zeros((size, size, size), dtype=bool)
-            s = np.array(m.shape)
-            o = ((size - s) // 2).clip(0)
-            e = (o + s).clip(max=size)
-            out[o[0] : e[0], o[1] : e[1], o[2] : e[2]] = m[
-                : e[0] - o[0], : e[1] - o[1], : e[2] - o[2]
-            ]
-            return out
-
-        gt_d, gen_d = _dense(gt_vox), _dense(gen_vox)
-        inter = __import__("numpy").logical_and(gt_d, gen_d).sum()
-        union = __import__("numpy").logical_or(gt_d, gen_d).sum()
+        gt_d = _vox_dense(gt_vox, res + 4)
+        gen_d = _vox_dense(gen_vox, res + 4)
+        inter = np.logical_and(gt_d, gen_d).sum()
+        union = np.logical_or(gt_d, gen_d).sum()
         return (float(inter / union), None) if union else (0.0, "union empty")
     except Exception as e:
         return 0.0, str(e)[:100]
+
+
+# ── Rotation-invariant IoU ────────────────────────────────────────────────────
+
+
+def _cube_rotations(n: int):
+    """Axis-aligned rotations of a unit cube.
+
+    n=6  → 6 face-up orientations (no in-plane spin)
+    n=24 → full octahedral rotation group (6 face-up × 4 in-plane)
+    """
+    from scipy.spatial.transform import Rotation as R
+
+    faces = [
+        R.identity(),
+        R.from_euler("x", 180, degrees=True),
+        R.from_euler("x", 90, degrees=True),
+        R.from_euler("x", -90, degrees=True),
+        R.from_euler("y", 90, degrees=True),
+        R.from_euler("y", -90, degrees=True),
+    ]
+    if n == 6:
+        return [f.as_matrix() for f in faces]
+    if n == 24:
+        return [
+            (f * R.from_euler("z", 90 * k, degrees=True)).as_matrix()
+            for f in faces
+            for k in range(4)
+        ]
+    raise ValueError(f"n must be 6 or 24, got {n}")
+
+
+def compute_rotation_invariant_iou(
+    gt_step: str, gen_step: str, n_orientations: int = 24
+) -> tuple[float, int, str | None]:
+    """Max IoU over axis-aligned rotations of gen mesh around bbox center.
+
+    Both meshes are first normalized (bbox center→[0.5]³, longest→[0,1]).
+    Then for each of N rotations (6 face-up or 24 full cube group) rotation
+    is applied to gen vertices around [0.5]³, voxelized at 64³, IoU vs gt.
+
+    Returns (best_iou, best_rotation_index, error).
+    """
+    try:
+        import numpy as np
+        import trimesh
+
+        gt_mesh = _load_normalized_mesh(gt_step)
+        gen_mesh = _load_normalized_mesh(gen_step)
+        mats = _cube_rotations(n_orientations)
+
+        res = 64
+        gt_vox = gt_mesh.voxelized(pitch=1.0 / res).fill()
+        gt_d = _vox_dense(gt_vox, res + 4)
+
+        best_iou, best_idx = 0.0, 0
+        for i, M in enumerate(mats):
+            v = gen_mesh.vertices
+            v_rot = (v - 0.5) @ M.T + 0.5
+            rot_mesh = trimesh.Trimesh(
+                vertices=v_rot, faces=gen_mesh.faces, process=False
+            )
+            gen_vox = rot_mesh.voxelized(pitch=1.0 / res).fill()
+            gen_d = _vox_dense(gen_vox, res + 4)
+            inter = np.logical_and(gt_d, gen_d).sum()
+            union = np.logical_or(gt_d, gen_d).sum()
+            if not union:
+                continue
+            iou = float(inter / union)
+            if iou > best_iou:
+                best_iou, best_idx = iou, i
+        return best_iou, best_idx, None
+    except Exception as e:
+        return 0.0, -1, str(e)[:100]
 
 
 # ── QA scoring ────────────────────────────────────────────────────────────────

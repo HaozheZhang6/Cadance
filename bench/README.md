@@ -139,10 +139,11 @@ uv run python bench/eval.py --model local:./checkpoints/cadrille-sft --split tes
 
 ### Code bench (`bench/eval.py` / `bench/test/run_test.py`)
 - `exec_ok`   — 生成代码能不能跑出 STEP（0/1）
-- `iou`       — voxel IoU (64³, filled)，[0,1]，越高越好
+- `iou`       — voxel IoU (64³, filled)，[0,1]，越高越好。算前 bbox center→[0.5]³, longest→[0,1]³ 做 normalize
+- `iou_rot`   — (可选) rotation-invariant IoU：对 gen mesh 枚举 6 或 24 个 axis-aligned 旋转 (`compute_rotation_invariant_iou`)，取最大。`--rot-invariant 6` 只 face-up，`--rot-invariant 24` 全 cube group。`detail_score` 用 `max(iou, iou_rot)`
 - `chamfer`   — bidirectional squared chamfer (2048 pts)，越低越好
 - `feature_f1`— regex feature 集合 F1（hole/fillet/chamfer），[0,1]
-- `detail_score` — `0.4·iou + 0.6·feature_f1`
+- `detail_score` — `0.4·iou + 0.6·feature_f1`（开 rot-invariant 时 iou 替换为 max(iou, iou_rot)）
 
 ### QA bench (`bench/eval_qa.py` image / `bench/eval_qa_code.py` code)
 - 每个 sample 2–3 个 numeric 问题（integer count / ratio / dim in mm），问题由 `qa_generator.py` 按 family 生成

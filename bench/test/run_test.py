@@ -235,9 +235,20 @@ def _render_step(step_path: str, out_png: Path) -> bool:
 
 
 def step_eval(
-    meta_paths: list[Path], model: str, api_key: str, save_code: bool, save_render: bool
+    meta_paths: list[Path],
+    model: str,
+    api_key: str,
+    save_code: bool,
+    save_render: bool,
+    rot_invariant: int = 0,
 ) -> list[dict]:
-    from bench.metrics import compute_chamfer, compute_iou, extract_features, feature_f1
+    from bench.metrics import (
+        compute_chamfer,
+        compute_iou,
+        compute_rotation_invariant_iou,
+        extract_features,
+        feature_f1,
+    )
 
     print(
         f"\n[3/3] EVAL  model={model}  samples={len(meta_paths)}"
@@ -336,7 +347,16 @@ def step_eval(
             cd, _ = compute_chamfer(gt_step, gen_step)
             res["iou"] = round(iou, 4)
             res["chamfer"] = round(cd, 6) if cd != float("inf") else float("inf")
-            res["detail_score"] = round(0.4 * iou + 0.6 * res["feature_f1"], 4)
+            if rot_invariant in (6, 24):
+                rot_iou, rot_idx, _ = compute_rotation_invariant_iou(
+                    gt_step, gen_step, n_orientations=rot_invariant
+                )
+                res["iou_rot"] = round(rot_iou, 4)
+                res["iou_rot_idx"] = rot_idx
+                score_iou = max(iou, rot_iou)
+            else:
+                score_iou = iou
+            res["detail_score"] = round(0.4 * score_iou + 0.6 * res["feature_f1"], 4)
 
             if save_render:
                 render_out = RESULTS / stem / "gen_render.png"
@@ -403,6 +423,13 @@ def main():
     ap.add_argument(
         "--save-render", action="store_true", help="save gen_render.png per sample"
     )
+    ap.add_argument(
+        "--rot-invariant",
+        type=int,
+        default=0,
+        choices=[0, 6, 24],
+        help="0=off, 6=face-up only, 24=full cube group; detail_score uses max(iou, iou_rot)",
+    )
     ap.add_argument("--api-key", default=None)
     args = ap.parse_args()
 
@@ -433,7 +460,12 @@ def main():
     # Step 3
     if args.step in ("eval", "all"):
         results = step_eval(
-            meta_paths, args.model, api_key, args.save_code, args.save_render
+            meta_paths,
+            args.model,
+            api_key,
+            args.save_code,
+            args.save_render,
+            rot_invariant=args.rot_invariant,
         )
         print_summary(results)
 
