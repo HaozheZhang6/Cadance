@@ -1,312 +1,197 @@
-# Cadance Platform
+# Cadance
 
-Engineering design automation using hypergraph-based multi-agent architecture.
+Engineering design automation + CAD synthesis research repo. Three main subprojects:
+
+| Subproject | Path | Purpose |
+|---|---|---|
+| **Data generation** | `scripts/data_generation/` | Synth CAD pipeline — 106 parametric families → renders + CadQuery + QA pairs → HF datasets |
+| **Benchmarks** | `bench/` | Evaluate VLMs/LLMs on image→code, image→QA, code→QA (zero local data, all on HF) |
+| **Intent pipeline** | `src/` | Hypergraph G→R→S intent refinement + CAD artifact gen + verification |
+
+---
 
 ## Quick Start
 
 ```bash
-# 1. Install core dependencies
-uv sync
+git clone <repo> Cadance && cd Cadance
+uv sync                              # default — fine for bench + intent pipeline
+# uv sync --extra vision             # only if re-rendering CAD (vtk); see per-subproject README
 
-# 2. Set API keys (copy .env.example to .env and fill in values)
-cp .env.example .env   # then edit .env
-
-# 3. Run
-uv run python -m src.cli --intent "Design a mounting bracket for a 5kg load"
+cp .env.example .env                 # fill in OPENAI_API_KEY, HF_TOKEN (optional)
 ```
 
-### API Keys (.env)
+### Run benchmarks (zero local data — pulls from HF)
 
-Copy `.env.example` to `.env` and set the following:
-
-| Variable | Description |
-|----------|-------------|
-| `OPENAI_API_KEY` | OpenAI API key (primary for data gen + intent pipeline) |
-| `OPENAI_API_KEY1` | Alternate OpenAI key for key rotation |
-| `OPENAI_MODEL` | Default model (e.g. `gpt-4o`) |
-| `ZHIPU_API_KEY` | Zhipu AI (ZAI) key — fallback provider for data generation |
-| `HYPERGRAPH_STORE_PATH` | Path for persisting the hypergraph store |
-
-> **Note:** All keys live in `.env` (git-ignored). Never commit secrets.
-> The data pipeline loads `.env` automatically via `python-dotenv`.
-
-### Optional: Vision Rendering for Intent-to-CAD
-
-Vision-based geometry evaluation is **optional**. The `[vision]` extra is **not** included in `uv sync` by default.
-
-To enable vision evaluation, install **ONE** of the following:
-
-**Option 1 (Recommended): Inkscape**
 ```bash
-brew install inkscape
-# No Python packages needed - inkscape CLI is used directly
+# 1. Image → CadQuery code (IoU / Chamfer / Feature-F1)
+uv run python bench/test/run_test.py --repo Hula0401/cad_synth_bench_smoke --split test_iid --limit 12 --model gpt-4o
+
+# 2. Image → numeric QA
+uv run python bench/eval_qa.py       --repo Hula0401/cad_synth_bench_smoke --split test_iid --limit 12 --model gpt-4o
+
+# 3. Code → numeric QA (text-only)
+uv run python bench/eval_qa_code.py  --repo Hula0401/cad_synth_bench_smoke --split test_iid --limit 12 --model gpt-4o
 ```
 
-**Option 2: librsvg (rsvg-convert)**
+Details: [`bench/README.md`](bench/README.md).
+
+### Run intent pipeline
+
 ```bash
-brew install librsvg
-# No Python packages needed - rsvg-convert CLI is used directly
+uv run python -m src.cli --intent "Design a mounting bracket for a 5kg load" --auto
 ```
 
-**Option 3: cairosvg (Python library, requires C library)**
+Details below under [Intent Pipeline](#intent-pipeline).
+
+### Synth Monitor UI
+
+Streamlit dashboard for data gen runs (family/difficulty distribution, render previews, QA scores):
+
 ```bash
-# First install Cairo C library via Homebrew
-brew install cairo
-
-# Then install Python vision extra
-uv sync --extra vision
+uv run streamlit run scripts/data_generation/ui/app.py --server.port 8501
 ```
 
-**Note**: If no converter is installed, vision evaluation will gracefully skip with a warning. The pipeline will still complete successfully using rule-based evaluation.
+---
 
-**Troubleshooting**: If vision rendering fails, see [docs/VISION_RENDERING_TROUBLESHOOTING.md](docs/VISION_RENDERING_TROUBLESHOOTING.md)
+## .env keys
 
-## How It Works
+| Variable | Used by |
+|---|---|
+| `OPENAI_API_KEY` / `OPENAI_API_KEY1` | bench, intent pipeline, data gen |
+| `OPENAI_MODEL` | default model (e.g. `gpt-4o`, `gpt-5.2`) |
+| `ZHIPU_API_KEY` | data gen fallback |
+| `HF_TOKEN` | pull/push HF datasets |
+| `HYPERGRAPH_STORE_PATH` | intent pipeline state |
 
-**Intent Refinement Pipeline:**
+All keys live in `.env` (git-ignored). Data pipeline auto-loads via `python-dotenv`.
 
-```
-User Intent ("Design a mounting bracket for 5kg load")
-    │
-    ▼
-┌─────────────────────────────────────────┐
-│  Step 1: G→R→S Hierarchical Tree        │
-│  ├── Goals → Requirements → Specs       │
-│  └── Iterative free-text feedback       │
-└─────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────┐
-│  Step 2: Contract Extraction            │
-│  ├── Spec citations + regime screening  │
-│  └── SATISFIES edges to requirements    │
-└─────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────┐
-│  Step 2.5: Pre-Artifact Gate            │
-│  ├── V0+V1: Schema + domain rules       │
-│  ├── V3: IEEE 830 syntactic (specs/reqs)│
-│  ├── V4: Z3 SAT (cross-spec + contract) │
-│  ├── Hard/soft fail categorization      │
-│  ├── Regen loop (up to 3x) + auto-repair│
-│  └── --auto stops on gate failure       │
-└─────────────────────────────────────────┘
-    │ PASS
-    ▼
-┌─────────────────────────────────────────┐
-│  Step 3: Artifact Generation            │
-│  ├── LLM generates ops_program from specs│
-│  └── CadQuery/FreeCAD geometry validation│
-└─────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────┐
-│  Step 4: Mechanical Verification        │
-│  ├── DFM checks (holes, walls, fillets) │
-│  └── Evidence/Unknown node creation     │
-└─────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────┐
-│  Step 4.5: DFM Optimization (NLopt)     │
-│  └── Parameter optimization if DFM viols│
-└─────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────┐
-│  Step 5: Verification (V0+V1)           │
-│  ├── Schema checks on all node types    │
-│  └── Domain rules + contract gating     │
-└─────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────┐
-│  Step 6: Auto-Refinement (if VIOLATED)  │
-│  ├── LLM suggests design fixes          │
-│  └── Re-verify until SATISFIED          │
-└─────────────────────────────────────────┘
-    │
-    ▼
-Hypergraph (nodes, edges, full traceability)
-```
+---
 
-See [Dataflow Diagram](docs/intent-refinement/dataflow-z3-branch.md) for detailed data flowing between steps.
+## Benchmarks (`bench/`)
 
-## Output Structure
+Three parallel benchmarks, same HF dataset:
 
-| Node Type | Description | Created By |
-|-----------|-------------|------------|
-| Intent | Root-level user intent | refine-grs |
-| Goal | High-level goal (ACHIEVE/MAINTAIN/AVOID type) | refine-grs |
-| Requirement | Engineering requirements (SHALL format) | refine-grs |
-| Specification | Derived spec with parameters and tolerances | refine-grs |
-| Contract | Interface contracts (assumptions → guarantees) | extract-contracts |
+| Bench | Runner | Input → Output |
+|---|---|---|
+| Code | `bench/test/run_test.py` | composite image → CadQuery code → re-render → IoU/Chamfer/Feature-F1 |
+| QA (image) | `bench/eval_qa.py` | image + `qa_pairs[].question` → JSON[number] → ratio accuracy |
+| QA (code) | `bench/eval_qa_code.py` | `gt_code` + questions → JSON[number] → ratio accuracy |
 
-**Additional node types:**
-| Node Type | Description | Created By |
-|-----------|-------------|------------|
-| Artifact | Design artifacts (ops_program, STEP files) | artifact-gen |
-| Evidence | Verification evidence from mech checks | mech-verify |
-| Unknown | Unresolved verification items | mech-verify |
-| ToolInvocation | Records of tool executions | mech-verify |
+HF datasets:
+- `Hula0401/cad_synth_bench` — full (≈994 rows, 3 splits: iid / ood_family / ood_plane)
+- `Hula0401/cad_synth_bench_smoke` — 12 rows (4 families × 3 difficulties)
 
-Other types: Budget, Softgoal, Obstacle
+All view alignment follows cadrille convention: cameras at `[1,1,1] / [-1,-1,-1] / [-1,1,-1] / [1,-1,1]`, 2×2 composite 268×268, bbox normalized to `[0,1]³` centered at `[0.5,0.5,0.5]`.
 
-## Graph Relationships
+Full docs: [`bench/README.md`](bench/README.md).
 
-```
-Intent ←─[DERIVES_FROM]── Goal ──[HAS_CHILD]→ Requirement ──[HAS_CHILD]→ Specification
-                                                   ↑
-                                                   └──[SATISFIES]── Contract
+---
 
-Contract ──[HAS_CHILD]→ Unknown
-    └──[VALIDATES]── Evidence
-```
+## Data generation (`scripts/data_generation/`)
 
-## CLI Commands
+Parametric CadQuery family registry → sample params → build → render 4-view composite → QA generator → HF upload.
 
-### Intent Refinement Pipeline
+- **Registry:** `scripts/data_generation/cad_synth/pipeline/registry.py` — 106 families (bolts, gears, brackets, knobs, springs, …). Call `list_families()` for current count; never trust docstrings.
+- **Families:** `scripts/data_generation/cad_synth/families/*.py` — each defines `sample_params`, `validate_params`, `make_program`, ISO/DIN reference.
+- **Renderer:** `scripts/data_generation/render_normalized_views.py` — VTK, cadrille 4-view diagonals, normalized bbox.
+- **HF upload:** `scripts/data_generation/cad_synth/upload_bench_hf.py`, `bench/smoke_upload.py`.
+- **Edit benchmark:** `bench/edit_gen/` — 2–5% param deltas → pairs of `orig_code` / `gt_code` for zero-shot edit eval.
+
+### Primary data tables
+
+| Path | Description |
+|---|---|
+| `data/data_generation/verified_parts.csv` | **Primary** — iou≥0.99 verified pairs |
+| `data/data_generation/parts.csv` | Full stem registry (all runs, all statuses) |
+| `data/data_generation/synth_parts.csv` | Synth samples (accepted / rejected / production) |
+| `data/data_generation/sft/sft_img2cq.jsonl` | SFT pairs (image → CadQuery) |
+| `data/data_generation/bench_edit/pairs.jsonl` | Edit benchmark pairs |
+
+All CSV/JSONL queries should use pandas (`pd.read_csv(...).query(...)`).
+
+### Pre-flight rule (new families)
+
+Before registering any new family:
+
 ```bash
-# Full pipeline (--intent runs all 6 steps, interactive)
-uv run python -m src.cli --intent "Design a mounting bracket for a 5kg load"
-
-# Non-interactive mode (auto-accepts all steps)
-uv run python -m src.cli --intent "Design a mounting bracket" --auto
-
-# Verbose output (SAT details, per-contract breakdown, witness values)
-uv run python -m src.cli --intent "..." --auto --verbose
-
-# Debug logging
-uv run python -m src.cli --intent "..." --auto --debug
-
-# Skip cache (for testing new implementations)
-uv run python -m src.cli --intent "..." --auto --no-cache
-
-# Force re-run (ignore cache hit, still stores result)
-uv run python -m src.cli --intent "..." --force-run
-
-# With explicit artifact (skips auto-generation)
-uv run python -m src.cli pipeline --intent "..." --artifact ops_program.json
-
-# Step-by-step (interactive)
-uv run python -m src.cli refine-grs --intent "..."     # G→R→S tree
-uv run python -m src.cli extract-contracts              # Contracts from GRS
-uv run python -m src.cli verify                         # Run verification
+uv run python3 -c "
+import numpy as np; rng = np.random.default_rng(42)
+from scripts.data_generation.cad_synth.pipeline.registry import get_family
+from scripts.data_generation.cad_synth.pipeline.builder import build_from_program
+fam = get_family('FAMILY_NAME')
+for diff in ['easy','medium','hard']:
+    p = fam.sample_params(diff, rng)
+    if fam.validate_params(p):
+        wp = build_from_program(fam.make_program(p))
+        bb = wp.val().BoundingBox()
+        print(diff, 'bbox', round(bb.xlen,1), round(bb.ylen,1), round(bb.zlen,1))
+"
 ```
 
-### DAG Multi-Agent Orchestrator
+Then visually verify via Synth Monitor. See `CLAUDE.md` for full protocol.
+
+---
+
+## Intent Pipeline (`src/`)
+
+Hypergraph-based intent → specs → CAD artifact → verification. Not used for bench/data-gen; standalone subproject.
+
 ```bash
-# Wave-scheduled DAG execution (intent → decomp → CAD → verify)
-uv run python -m src.cli dag-run --intent "Design a mounting bracket for a 5kg load" --auto
-
-# Alias
-uv run python -m src.cli multi-agent --intent "Design a mounting bracket for a 5kg load" --auto
-
-# Offline deterministic mode (no API calls)
-uv run python -m src.cli dag-run --intent "Design a mounting bracket for a 5kg load" --auto --mock-llm
+uv run python -m src.cli --intent "Design a mounting bracket for a 5kg load" --auto
 ```
 
-**Overview:** The DAG orchestrator builds a coupling-aware execution graph, spins up
-Decomposition/CAD/Verifier agents, and persists run artifacts to `agent_runs/`.
-Mock mode uses deterministic fixtures to keep tests fast and offline.
+6-step flow: G→R→S tree → contract extraction → pre-artifact gate (V0/V1/V3/V4) → artifact gen → mech verification → auto-refinement. Full diagram and options in earlier README history; key CLI commands:
 
-### Graph Inspection
 ```bash
-uv run python -m src.cli show-graph                      # View full hypergraph state
-uv run python -m src.cli show-node <id>                  # View specific node details
-uv run python -m src.cli list-nodes                      # List all nodes
-uv run python -m src.cli list-nodes goal                 # List goals only
-uv run python -m src.cli list-nodes requirement          # List requirements only
-uv run python -m src.cli list-nodes specification        # List specifications only
-uv run python -m src.cli list-nodes contract --full      # Contracts with full details
-uv run python -m src.cli confidence-tree                 # View confidence propagation
-uv run python -m src.cli export -o out.json              # Export graph to JSON
+uv run python -m src.cli --intent "..." --auto --verbose    # SAT details + per-contract
+uv run python -m src.cli show-graph                         # inspect hypergraph state
+uv run python -m src.cli dag-run --intent "..." --auto      # multi-agent orchestrator
+mech-verify verify part.step -o ./output                    # standalone STEP verifier
 ```
 
-### Verification
-```bash
-uv run python -m src.cli verify                          # Run verification pipeline
-```
+Docs:
+- [End-to-End Pipeline](docs/end_to_end/README.md)
+- [Memory Layer](docs/MEMORY_LAYER.md) (mem0 + ChromaDB intent cache)
+- [Mech Verifier](docs/MECH_VERIFIER.md) / [EDA Verifier](docs/EDA_VERIFIER.md)
+- [Verifier Core](docs/VERIFIER_CORE.md)
 
-### Cache Management
-```bash
-uv run python -m src.cli cache list                      # List cached intents
-uv run python -m src.cli cache stats                     # Show statistics
-uv run python -m src.cli cache clear                     # Clear all
-```
-
-### Mechanical Verification
-```bash
-# Verify STEP parts/assemblies
-mech-verify verify part.step -o ./output
-
-# With PMI requirement
-mech-verify verify part.step --require-pmi -o ./output
-
-# With ops program (for DFM checks with explicit features)
-mech-verify verify part.step --ops-program ops.json -o ./output
-
-# With external tools (FreeCAD/SFA)
-mech-verify verify part.step --use-external-tools -o ./output
-
-# With SHACL validation
-mech-verify verify part.step --shacl -o ./output
-
-# Assembly verification (multi-part STEP)
-mech-verify verify assembly.step -o ./output
-
-# See docs/MECH_VERIFIER.md for full documentation
-```
-
-## Project Structure
-
-```
-src/
-├── cli.py                   # CLI entry point
-├── config.py                # Environment config
-├── agents/
-│   ├── grs_refinement.py    # G→R→S tree generation with feedback
-│   ├── contract_extraction.py # Contract extraction from GRS
-│   ├── llm.py               # OpenAI client
-│   └── schemas.py           # Pydantic schemas for LLM output
-├── hypergraph/
-│   ├── models.py            # Node/Edge types
-│   ├── engine.py            # Graph operations
-│   └── store.py             # JSON persistence
-├── memory/
-│   └── intent_cache.py      # mem0 + ChromaDB intent caching
-├── verification/
-│   ├── pipeline.py          # Tiered verification (V0–V4)
-│   ├── syntactic/           # V3: IEEE 830 + schema rules
-│   └── semantic/            # V4: Z3 SAT, unit canonicalization, symbol tables
-├── verifier_core/           # Domain-agnostic verification framework
-├── mech_verifier/           # Mechanical verification (STEP/CAD)
-└── uncertainty/
-    └── propagation.py       # Confidence propagation
-```
+---
 
 ## Development
 
 ```bash
-uv run pytest              # Run tests
-uv run black .             # Format code
-uv run ruff check .        # Lint
+uv run pytest                 # tests
+uv run pytest tests/test_<name>.py
+uv run black .                # format
+uv run ruff check .           # lint
+uv run ruff check --fix .     # lint + autofix
 ```
 
-## Documentation
+Pre-commit (enforced):
+1. `uv run black .`
+2. `uv run ruff check .`
+3. `uv run pytest`
+4. Update `PROGRESS.md`
 
-### Core Documentation
-- [End-to-End Pipeline](docs/end_to_end/README.md) - Intent to verification flow
-- [Memory Layer](docs/MEMORY_LAYER.md) - Intent caching with mem0 + ChromaDB
-- [Verifier Core Overview](docs/VERIFIER_CORE.md) - Domain-agnostic verification framework
-- [Mech Verifier Overview](docs/MECH_VERIFIER.md) - Mechanical verification (STEP/assembly/DFM/PMI)
-- [EDA Verifier Overview](docs/EDA_VERIFIER.md) - Electronic design verification (PCB/schematic/CDS)
+See `CLAUDE.md` for full repo conventions (family pre-flight, task tracking, report formats, data-path map, harness rules).
 
-### Module-Specific
-- [Verifier Core README](src/verifier_core/README.md) - Core models and API
-- [Mech Verifier README](src/mech_verifier/README.md) - Mech quick start and API
-- [Mech Verifier Architecture](src/mech_verifier/ARCHITECTURE.md) - System architecture
-- [Mech Verifier Data Flow](src/mech_verifier/DATAFLOW.md) - Data flow diagrams
-- [EDA Verifier README](src/eda_verifier/README.md) - EDA framework detailed docs
-- [Tools Framework](src/tools/README.md) - CadQuery gateway and subprocess isolation
+---
+
+## Layout
+
+```
+src/                              # Intent pipeline (hypergraph, verification, mech/eda verifiers)
+scripts/data_generation/          # Synth CAD pipeline
+  cad_synth/
+    families/                     # 106 parametric CAD families
+    pipeline/                     # registry, builder, runner, renderer
+    configs/                      # batch run configs
+  ui/app.py                       # Streamlit Synth Monitor
+bench/                            # Three benchmarks (code / QA-image / QA-code)
+  edit_gen/                       # Edit benchmark data gen
+data/data_generation/             # CSV/JSONL tables, renders, SFT pairs (git-ignored)
+docs/                             # Architecture docs
+CLAUDE.md                         # Repo conventions (read this first)
+TASK_QUEUE.md                     # User-assigned tasks + history
+PROGRESS.md                       # Session log
+```
