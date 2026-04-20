@@ -539,36 +539,8 @@ _FAMILY_COLOR = {
 }
 _DIFF_COLOR = {"easy": "#66BB6A", "medium": "#FFA726", "hard": "#EF5350"}
 
-# ISO/DIN standard for each family (exact-table families only)
-_FAMILY_ISO = {
-    "bolt":                "ISO 4014",
-    "hex_nut":             "ISO 4032",
-    "washer":              "ISO 7089/7090",
-    "sprocket":            "ISO 606",
-    "circlip":             "DIN 471",
-    "dowel_pin":           "ISO 8734",
-    "i_beam":              "EN 10034",
-    "u_channel":           "EN 10279",
-    "shaft_collar":        "DIN 705",
-    "handwheel":           "DIN 950",
-    "t_slot_rail":         "ISO 299",
-    "parallel_key":        "DIN 6885A",
-    "clevis_pin":          "ISO 2340",
-    "taper_pin":           "ISO 2339",
-    "hex_standoff":        "ISO 272",
-    "hollow_tube":         "EN 10219",
-    "bearing_retainer_cap": "ISO 15",
-    "pulley":              "ISO 22",
-    "spur_gear":           "ISO 54",
-    "helical_gear":        "ISO 54",
-    "bevel_gear":          "ISO 54",
-    "worm_screw":          "ISO 54",
-}
-
-
-def _iso_badge(family: str) -> str:
-    std = _FAMILY_ISO.get(family)
-    if not std:
+def _iso_badge(std: str | None) -> str:
+    if not std or str(std).strip() in ("", "N/A", "None", "nan"):
         return ""
     return (
         f'<span style="background:#1565C0;color:#E3F2FD;padding:1px 6px;'
@@ -670,7 +642,15 @@ def page_synth():
         st.caption("**Family**")
         fc = acc["family"].value_counts().reset_index()
         fc.columns = ["family", "n"]
-        fc["ISO/DIN"] = fc["family"].map(lambda f: _FAMILY_ISO.get(f, ""))
+        fam_std = (
+            acc.dropna(subset=["standard"])
+            .drop_duplicates("family")
+            .set_index("family")["standard"]
+            if "standard" in acc.columns else {}
+        )
+        fc["ISO/DIN"] = fc["family"].map(
+            lambda f: "" if (s := fam_std.get(f, "")) in ("N/A", "None", None) else s
+        )
         st.dataframe(fc, use_container_width=True, hide_index=True, height=200)
     with d2:
         st.caption("**Difficulty**")
@@ -780,7 +760,7 @@ def page_synth():
                     )
 
                 # Badges + stem
-                iso_b = _iso_badge(family)
+                iso_b = _iso_badge(_s(row.get("standard", "")))
                 bp_badge = (
                     f'<span style="background:#37474F;color:#CFD8DC;padding:1px 5px;'
                     f'border-radius:8px;font-size:10px">{bp}</span>' if bp else ""

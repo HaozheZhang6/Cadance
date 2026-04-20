@@ -270,15 +270,20 @@ class PulleyFamily(BaseFamily):
                     )
                 )
 
-        # Keyway (hard) — DIN 6885A slot in the BORE WALL, not through the
-        # entire pulley. Box is positioned so its bottom face sits on the bore
-        # surface (Z = br) and extends radially outward by kh into the hub
-        # material; axially it spans the full pulley width (Y = ±w/2 + ε).
-        # Tangential extent is kw (the keyway width).
+        # Keyway (hard) — DIN 6885A slot in the BORE WALL. Pulley axis is Y,
+        # so bore is cylinder X²+Z²=br². Box bottom must sit BELOW the bore
+        # chord at X=±kw/2 (Z = sqrt(br² - (kw/2)²)), otherwise the corners
+        # of the box sit above the curved bore surface and the keyway appears
+        # disconnected from the bore. Bite a small safety margin into the bore.
         kw = params.get("keyway_width")
         kh = params.get("keyway_height")
         if kw and kh:
             tags["has_slot"] = True
+            chord_z = math.sqrt(max(0.0, br * br - (kw / 2) ** 2))
+            z_bottom = chord_z - 0.5  # bite 0.5mm past chord into bore
+            z_top = br + kh
+            z_center = round((z_bottom + z_top) / 2, 3)
+            box_h = round(z_top - z_bottom, 3)
             ops.append(
                 Op(
                     "cut",
@@ -287,7 +292,7 @@ class PulleyFamily(BaseFamily):
                             {
                                 "name": "transformed",
                                 "args": {
-                                    "offset": [0.0, 0.0, round(br + kh / 2, 3)],
+                                    "offset": [0.0, 0.0, z_center],
                                     "rotate": [0.0, 0.0, 0.0],
                                 },
                             },
@@ -296,7 +301,7 @@ class PulleyFamily(BaseFamily):
                                 "args": {
                                     "length": round(kw, 3),
                                     "width": round(w + 2.0, 3),
-                                    "height": round(kh, 3),
+                                    "height": box_h,
                                     "centered": True,
                                 },
                             },

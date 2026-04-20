@@ -12,7 +12,7 @@ from .base import BaseFamily
 
 class MotorEndCapFamily(BaseFamily):
     name = "motor_end_cap"
-    standard = "N/A"
+    standard = "IEC 60072-1"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         od = rng.uniform(60, 200)

@@ -162,20 +162,15 @@ class HelicalGearFamily(BaseFamily):
             ops.append(Op("close", {}))
             ops.append(Op("loft", {"combine": True}))
 
-        else:  # herringbone: lower half (0 → +twist) union upper half (0 → -twist)
-            # Both halves are built independently; upper half translated in Z
+        else:  # herringbone: chevron profile — pts at z=0, pts_twisted at
+            # z=half, pts at z=fw (mirror V). One loft over 3 sections.
+            # Previous impl used `workplane(>Z)` for the upper half, which
+            # breaks on base_plane=XZ/YZ because >Z picks the world-Z-max
+            # face, not the loft top.
             half = round(fw / 2, 3)
-            # Lower half: unrotated at z=0, twisted at z=half
             ops.append(Op("polyline", {"points": pts}))
             ops.append(Op("close", {}))
             ops.append(Op("workplane_offset", {"offset": half}))
-            ops.append(Op("polyline", {"points": pts_twisted}))
-            ops.append(Op("close", {}))
-            ops.append(Op("loft", {"combine": True}))
-
-            # Upper half: pts_twisted at z=half, unrotated at z=fw — as separate extrude
-            # Approximate: just extrude untwisted for upper half (visually herringbone-like)
-            ops.append(Op("workplane", {"selector": ">Z"}))
             ops.append(Op("polyline", {"points": pts_twisted}))
             ops.append(Op("close", {}))
             ops.append(Op("workplane_offset", {"offset": half}))

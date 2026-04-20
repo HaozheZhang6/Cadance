@@ -10,7 +10,7 @@ class RoundFlangeFamily(BaseFamily):
     """Parametric round flange: outer cylinder + center bore + bolt pattern."""
 
     name = "round_flange"
-    standard = "N/A"
+    standard = "ASME B16.5"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         """Sample params for a round flange at given difficulty."""

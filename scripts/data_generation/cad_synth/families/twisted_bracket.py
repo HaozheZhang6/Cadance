@@ -24,7 +24,7 @@ from .base import BaseFamily
 
 class TwistedBracketFamily(BaseFamily):
     name = "twisted_bracket"
-    standard = "None"
+    standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         if difficulty == "easy":

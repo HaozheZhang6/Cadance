@@ -14,7 +14,7 @@ class PipeFlangeFamily(BaseFamily):
     """Parametric pipe flange: plate with central bore and corner bolt holes."""
 
     name = "pipe_flange"
-    standard = "N/A"
+    standard = "ASME B16.5"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         """Sample params for a pipe flange."""
