@@ -1,0 +1,26 @@
+run_name: batch_new16_apr20_zup6
+num_samples: 200
+seed: 62025
+n_workers: 4
+family_mix:
+  u_bolt: 1
+  rivet: 1
+  cotter_pin: 1
+  pull_handle: 1
+  pillow_block: 1
+  turnbuckle: 1
+  keyhole_plate: 1
+  pan_head_screw: 1
+  grommet: 1
+  tee_nut: 1
+  j_hook: 1
+  wall_anchor: 1
+  gridfinity_bin: 1
+  hex_key_organizer: 1
+  battery_holder: 1
+  phone_stand: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true

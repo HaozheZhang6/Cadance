@@ -109,7 +109,9 @@ class ConnectingRodFamily(BaseFamily):
         # Big end boss at origin — cylinder centered at z=0
         ops.append(Op("cylinder", {"height": t, "radius": br}))
 
-        # Shank — 0.5 mm overlap into each boss to ensure watertight union
+        # Shank — I-beam orientation: narrow along pin axis (Z=t),
+        # deep perpendicular to pin (Y=sw, the rod height). 0.5 mm
+        # overlap into each boss ensures watertight union.
         shank_len = round(cd - br - sr, 3)
         shank_cx = round(br + shank_len / 2, 3)
         shank_ext = round(shank_len + 1.0, 3)  # extra 0.5mm each side
@@ -129,8 +131,8 @@ class ConnectingRodFamily(BaseFamily):
                             "name": "box",
                             "args": {
                                 "length": shank_ext,
-                                "width": sw,
-                                "height": t,
+                                "width": t,
+                                "height": sw,
                                 "centered": True,
                             },
                         },
@@ -184,11 +186,13 @@ class ConnectingRodFamily(BaseFamily):
             )
         )
 
-        # Side ribs (medium+) — flat plates on ±X sides of shank
+        # Side ribs (medium+) — flange plates on top/bottom of the shank.
+        # Rotated in sync with shank: attach to shank's ±Z faces (±sw/2),
+        # width in Y matches shank Y=t.
         rib_h = params.get("rib_height")
         rib_t = params.get("rib_thickness")
         if rib_h and rib_t:
-            rib_z = round(t / 2 + rib_h / 2 - 0.5, 3)
+            rib_z = round(sw / 2 + rib_h / 2 - 0.5, 3)
             ops.append(
                 Op(
                     "union",
@@ -205,7 +209,7 @@ class ConnectingRodFamily(BaseFamily):
                                 "name": "box",
                                 "args": {
                                     "length": round(shank_len * 0.8, 3),
-                                    "width": sw,
+                                    "width": t,
                                     "height": rib_h,
                                     "centered": True,
                                 },
@@ -230,7 +234,7 @@ class ConnectingRodFamily(BaseFamily):
                                 "name": "box",
                                 "args": {
                                     "length": round(shank_len * 0.8, 3),
-                                    "width": sw,
+                                    "width": t,
                                     "height": rib_h,
                                     "centered": True,
                                 },

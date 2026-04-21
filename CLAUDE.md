@@ -4,6 +4,11 @@
 - PROGRESS.md is where you write down what you've done.
 - Before writing new features/functions always ask: is this necessary, has it been done, how will it interact with other modules?
 
+## CAD Family Registry
+
+Source of truth: `scripts/data_generation/cad_synth/pipeline/registry.py` (`list_families()`).
+Current count: **106** registered families (as of 2026-04-19). Never quote family counts from stale commit messages or docstrings — always check `registry.py` or run `list_families()`.
+
 ## CAD Family Pre-Flight Rule (enforce before deploying any new family)
 
 Before adding a new family to registry.py or starting a batch run:

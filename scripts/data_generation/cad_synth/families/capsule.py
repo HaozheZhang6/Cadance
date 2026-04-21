@@ -2,15 +2,15 @@
 
 Represents: pill/capsule container, pressure vessel, fluid reservoir.
 
-Profile is revolved 360° around Y axis (XY_ONLY).
-x = radial distance (≥0), y = height (0=bottom apex, H=top apex).
+Built from primitive union: cylinder (axis=Z) centered at origin + two spheres
+at z=±h_cyl/2. Previous impl revolved a profile whose wire touched the axis of
+revolution; the resulting pole singularity caused tessellation gaps at the
+apices — rendered as a dark "rim" that made the solid pill look hollow.
 
 Easy:   solid capsule body.
 Medium: + equatorial weld ring (annular band at mid-height, union).
-Hard:   + two end port stubs (short cylinders at top and bottom apices).
+Hard:   + two end port stubs (short cylinders embedded into the hemispheres).
 """
-
-import math
 
 from ..pipeline.builder import Op, Program
 from .base import BaseFamily
@@ -69,116 +69,83 @@ class CapsuleFamily(BaseFamily):
 
     def make_program(self, params: dict) -> Program:
         difficulty = params.get("difficulty", "easy")
-        r = params["radius"]
-        h_cyl = params["cyl_height"]
-        H = round(h_cyl + 2 * r, 4)  # total height
-
-        s2 = math.sqrt(2) / 2  # sin/cos 45°
-
-        # Bottom hemisphere arc: from (0,0) to (r, r)
-        # Circle center at (0, r); midpoint at 45° = (r*s2, r - r*s2) = (r*s2, r*(1-s2))
-        bot_mid_x = round(r * s2, 4)
-        bot_mid_y = round(r * (1.0 - s2), 4)
-
-        # Top hemisphere arc: from (r, r+h_cyl) to (0, H)
-        # Circle center at (0, r+h_cyl); midpoint at 45° = (r*s2, r+h_cyl + r*s2)
-        top_start_y = round(r + h_cyl, 4)
-        top_mid_x = round(r * s2, 4)
-        top_mid_y = round(r + h_cyl + r * s2, 4)
+        r = round(params["radius"], 4)
+        h_cyl = round(params["cyl_height"], 4)
+        # All primitives along Z, body centered at origin:
+        #   cylinder:  z ∈ [-h_cyl/2, h_cyl/2]
+        #   top sphere centered at z=+h_cyl/2
+        #   bottom sphere centered at z=-h_cyl/2
+        # Total extent: z ∈ [-h_cyl/2 - r, h_cyl/2 + r]
+        top_z = round(h_cyl / 2, 4)
+        bot_z = round(-h_cyl / 2, 4)
 
         ops = []
         tags = {"has_hole": False, "has_fillet": False, "has_chamfer": False}
 
-        # Profile: bottom apex → bottom arc → cylinder wall → top arc → close
-        ops.append(Op("moveTo", {"x": 0.0, "y": 0.0}))
+        ops.append(Op("cylinder", {"height": h_cyl, "radius": r}))
         ops.append(
             Op(
-                "threePointArc",
+                "union",
                 {
-                    "point1": [bot_mid_x, bot_mid_y],
-                    "point2": [round(r, 4), round(r, 4)],
+                    "ops": [
+                        {
+                            "name": "transformed",
+                            "args": {"offset": [0.0, 0.0, top_z], "rotate": [0, 0, 0]},
+                        },
+                        {"name": "sphere", "args": {"radius": r}},
+                    ]
                 },
             )
         )
-        ops.append(Op("lineTo", {"x": round(r, 4), "y": top_start_y}))
         ops.append(
             Op(
-                "threePointArc",
+                "union",
                 {
-                    "point1": [top_mid_x, top_mid_y],
-                    "point2": [0.0, H],
-                },
-            )
-        )
-        ops.append(Op("close", {}))
-        ops.append(
-            Op(
-                "revolve",
-                {
-                    "angleDeg": 360,
-                    "axisStart": [0, 0, 0],
-                    "axisEnd": [0, 1, 0],
+                    "ops": [
+                        {
+                            "name": "transformed",
+                            "args": {"offset": [0.0, 0.0, bot_z], "rotate": [0, 0, 0]},
+                        },
+                        {"name": "sphere", "args": {"radius": r}},
+                    ]
                 },
             )
         )
 
-        # Weld ring at equator (medium+): thin annular band
+        # Weld ring at equator (medium+): outer annular band, cylinder along Z
+        # at z=0, radius=r+rw, height=rh. Union overlaps the body for radii ≤r
+        # (no-op inside the body) and adds the r..r+rw annulus.
         rw = params.get("ring_width")
         rh = params.get("ring_height")
         if rw and rh:
-            equator_y = round(H / 2, 4)
-            ring_r = round(r + rw, 4)
-            # Union a wide cylinder at equator, then cut inner bore so it's a ring
             ops.append(
                 Op(
                     "union",
                     {
                         "ops": [
                             {
-                                "name": "transformed",
-                                "args": {
-                                    "offset": [0.0, equator_y, 0.0],
-                                    "rotate": [-90, 0, 0],
-                                },
-                            },
-                            {
-                                "name": "cylinder",
-                                "args": {"height": round(rh, 4), "radius": ring_r},
-                            },
-                        ]
-                    },
-                )
-            )
-            ops.append(
-                Op(
-                    "cut",
-                    {
-                        "ops": [
-                            {
-                                "name": "transformed",
-                                "args": {
-                                    "offset": [0.0, equator_y, 0.0],
-                                    "rotate": [-90, 0, 0],
-                                },
-                            },
-                            {
                                 "name": "cylinder",
                                 "args": {
-                                    "height": round(rh + 1, 4),
-                                    "radius": round(r, 4),
+                                    "height": round(rh, 4),
+                                    "radius": round(r + rw, 4),
                                 },
-                            },
+                            }
                         ]
                     },
                 )
             )
 
-        # End port stubs (hard): short cylinders at top and bottom apices
+        # End port stubs (hard): short cylinders at top and bottom poles,
+        # embedded `overlap` mm into the hemispheres so the union has a
+        # non-degenerate volumetric intersection (not just a tangent point).
         sr = params.get("stub_radius")
         sh = params.get("stub_height")
         if sr and sh:
-            tags["has_hole"] = False  # stubs are solid protrusions
-            # Bottom stub: points in -Y from y=0
+            overlap = round(min(sr * 0.6, sh * 0.3, r * 0.5), 4)
+            # Top stub: tip at z = top_z + r + sh - overlap, base at z = top_z + r - overlap
+            #   → center at z = top_z + r - overlap + sh/2
+            top_stub_z = round(top_z + r - overlap + sh / 2, 4)
+            bot_stub_z = round(bot_z - r + overlap - sh / 2, 4)
             ops.append(
                 Op(
                     "union",
@@ -187,8 +154,8 @@ class CapsuleFamily(BaseFamily):
                             {
                                 "name": "transformed",
                                 "args": {
-                                    "offset": [0.0, -round(sh / 2, 4), 0.0],
-                                    "rotate": [90, 0, 0],
+                                    "offset": [0.0, 0.0, top_stub_z],
+                                    "rotate": [0, 0, 0],
                                 },
                             },
                             {
@@ -202,7 +169,6 @@ class CapsuleFamily(BaseFamily):
                     },
                 )
             )
-            # Top stub: points in +Y from y=H
             ops.append(
                 Op(
                     "union",
@@ -211,8 +177,8 @@ class CapsuleFamily(BaseFamily):
                             {
                                 "name": "transformed",
                                 "args": {
-                                    "offset": [0.0, round(H + sh / 2, 4), 0.0],
-                                    "rotate": [-90, 0, 0],
+                                    "offset": [0.0, 0.0, bot_stub_z],
+                                    "rotate": [0, 0, 0],
                                 },
                             },
                             {

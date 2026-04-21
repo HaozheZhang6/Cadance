@@ -3,6 +3,7 @@
 from ..families.ball_knob import BallKnobFamily
 from ..families.base import BaseFamily
 from ..families.bearing_retainer_cap import BearingRetainerCapFamily
+from ..families.battery_holder import BatteryHolderFamily
 from ..families.bellows import BellowsFamily
 from ..families.bevel_gear import BevelGearFamily
 from ..families.bolt import BoltFamily
@@ -17,6 +18,7 @@ from ..families.clevis_pin import ClevisPinFamily
 from ..families.coil_spring import CoilSpringFamily
 from ..families.connecting_rod import ConnectingRodFamily
 from ..families.connector_faceplate import ConnectorFaceplateFamily
+from ..families.cotter_pin import CotterPinFamily
 from ..families.cruciform import CruciformFamily
 from ..families.dog_bone import DogBoneFamily
 from ..families.dome_cap import DomeCapFamily
@@ -29,16 +31,21 @@ from ..families.eyebolt import EyeboltFamily
 from ..families.fan_shroud import FanShroudFamily
 from ..families.flat_link import FlatLinkFamily
 from ..families.grease_nipple import GreaseNippleFamily
+from ..families.gridfinity_bin import GridfinityBinFamily
+from ..families.grommet import GrommetFamily
 from ..families.gusseted_bracket import GussetedBracketFamily
 from ..families.handwheel import HandwheelFamily
 from ..families.heat_sink import HeatSinkFamily
 from ..families.helical_gear import HelicalGearFamily
+from ..families.hex_key_organizer import HexKeyOrganizerFamily
 from ..families.hex_nut import HexNutFamily
 from ..families.hex_standoff import HexStandoffFamily
 from ..families.hinge import HingeFamily
 from ..families.hollow_tube import HollowTubeFamily
 from ..families.i_beam import IBeamFamily
 from ..families.impeller import ImpellerFamily
+from ..families.j_hook import JHookFamily
+from ..families.keyhole_plate import KeyholePlateFamily
 from ..families.knob import KnobFamily
 from ..families.l_bracket import LBracketFamily
 from ..families.lathe_turned_part import LatheTurnedPartFamily
@@ -50,17 +57,22 @@ from ..families.motor_end_cap import MotorEndCapFamily
 from ..families.mounting_angle import MountingAngleFamily
 from ..families.mounting_plate import MountingPlateFamily
 from ..families.nozzle import NozzleFamily
+from ..families.pan_head_screw import PanHeadScrewFamily
 from ..families.parallel_key import ParallelKeyFamily
 from ..families.pcb_standoff_plate import PcbStandoffPlateFamily
+from ..families.phone_stand import PhoneStandFamily
+from ..families.pillow_block import PillowBlockFamily
 from ..families.pipe_elbow import PipeElbowFamily
 from ..families.pipe_flange import PipeFlangeFamily
 from ..families.piston import PistonFamily
 from ..families.plain_washer import WasherFamily
 from ..families.propeller import PropellerFamily
+from ..families.pull_handle import PullHandleFamily
 from ..families.pulley import PulleyFamily
 from ..families.ratchet_sector import RatchetSectorFamily
 from ..families.rect_frame import RectFrameFamily
 from ..families.rib_plate import RibPlateFamily
+from ..families.rivet import RivetFamily
 from ..families.round_flange import RoundFlangeFamily
 from ..families.shaft_collar import ShaftCollarFamily
 from ..families.sheet_metal_tray import SheetMetalTrayFamily
@@ -78,15 +90,19 @@ from ..families.t_slot_rail import TSlotRailFamily
 from ..families.table import TableFamily
 from ..families.taper_pin import TaperPinFamily
 from ..families.tapered_boss import TaperedBossFamily
+from ..families.tee_nut import TeeNutFamily
 from ..families.threaded_adapter import ThreadedAdapterFamily
 from ..families.torsion_spring import TorsionSpringFamily
 from ..families.torus_link import TorusLinkFamily
+from ..families.turnbuckle import TurnbuckleFamily
 from ..families.twisted_bracket import TwistedBracketFamily
 from ..families.twisted_drill import TwistedDrillFamily
+from ..families.u_bolt import UBoltFamily
 from ..families.u_channel import UChannelFamily
 from ..families.vented_panel import VentedPanelFamily
 from ..families.venturi_tube import VenturiTubeFamily
 from ..families.waffle_plate import WafflePlateFamily
+from ..families.wall_anchor import WallAnchorFamily
 from ..families.wing_nut import WingNutFamily
 from ..families.wire_grid import WireGridFamily
 from ..families.worm_screw import WormScrewFamily
@@ -188,6 +204,22 @@ def _register_builtins():
         WingNutFamily,
         LobedKnobFamily,
         GreaseNippleFamily,
+        UBoltFamily,
+        RivetFamily,
+        CotterPinFamily,
+        PullHandleFamily,
+        PillowBlockFamily,
+        TurnbuckleFamily,
+        KeyholePlateFamily,
+        PanHeadScrewFamily,
+        GrommetFamily,
+        TeeNutFamily,
+        JHookFamily,
+        WallAnchorFamily,
+        GridfinityBinFamily,
+        HexKeyOrganizerFamily,
+        BatteryHolderFamily,
+        PhoneStandFamily,
     ]:
         _FAMILIES[cls.name] = cls()
 

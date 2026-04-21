@@ -236,10 +236,28 @@ class PulleyFamily(BaseFamily):
         sw = params.get("spoke_width")
         if n_sp and sw:
             pocket_r = round((hr + rr - rt) / 2, 3)
-            pocket_l = round(rr - rt - hr - 4, 3)
-            arc_total = 2.0 * math.pi * pocket_r
-            pocket_tang = max(2.0, (arc_total - n_sp * sw) / n_sp)
-            pocket_tang = round(pocket_tang, 3)
+            # Angular sizing: arm must occupy ≥55% of each sector so visible
+            # web material remains between pockets. Previous impl treated the
+            # tangential pocket as flat chord ≈ arc length, which over-cut when
+            # pocket_r was large — arms shrank to slivers.
+            sector_angle = 2.0 * math.pi / n_sp
+            arm_angle = max(sw / pocket_r, sector_angle * 0.55)
+            pocket_angle = max(math.radians(8), sector_angle - arm_angle)
+            pocket_tang = round(2.0 * pocket_r * math.sin(pocket_angle / 2), 3)
+            # Radial length constrained by both hub and rim. The box is a
+            # rectangle — outer corners lie at radius
+            # sqrt((pocket_r + pocket_l/2)^2 + (pocket_tang/2)^2); must stay
+            # inside rim inner with margin. Inner edge midpoint at radius
+            # (pocket_r - pocket_l/2); must stay outside hub with margin.
+            margin = 4.0
+            max_len_hub = 2.0 * (pocket_r - hr - margin)
+            rim_target = rr - rt - margin
+            inner_sq = rim_target * rim_target - (pocket_tang / 2.0) ** 2
+            if inner_sq <= 0:
+                max_len_rim = 2.0
+            else:
+                max_len_rim = 2.0 * (math.sqrt(inner_sq) - pocket_r)
+            pocket_l = round(max(2.0, min(max_len_hub, max_len_rim)), 3)
             for i in range(n_sp):
                 angle_deg = 360.0 * i / n_sp
                 fx = round(pocket_r * math.cos(math.radians(angle_deg)), 3)

@@ -550,8 +550,14 @@ def _op_to_code(op: Op) -> str:
         raise ValueError(f"Unknown op: {name}")
 
 
-def render_program_to_code(program: Program) -> str:
-    """Render a Program to an executable Python source string."""
+def render_program_to_code(program: Program, include_params_hint: bool = False) -> str:
+    """Render a Program to an executable Python source string.
+
+    If include_params_hint is True, emits a `# --- parameters ---` comment
+    block listing numeric params at the top (for edit-bench, where models
+    need to ground instructions to parameter semantics). Default False to
+    preserve byte-identical output for existing pipeline consumers.
+    """
     global _current_base_plane, _pending_sketch_code
     bp = program.base_plane or "XY"
     _current_base_plane = bp
@@ -572,6 +578,13 @@ def render_program_to_code(program: Program) -> str:
         return False
 
     lines = ["import cadquery as cq"]
+    if include_params_hint and program.params:
+        hint_lines = ["", "# --- parameters ---"]
+        for k, v in program.params.items():
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                hint_lines.append(f"# {k} = {v}")
+        if len(hint_lines) > 2:
+            lines += hint_lines
     if _uses_helix_with_legs(program.ops):
         lines += [
             "import math",

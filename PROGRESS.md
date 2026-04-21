@@ -17,6 +17,12 @@
 - 产物：`data/data_generation/bench_edit/{pairs.jsonl, codes/, steps/, pair_stats.json}`
 - 最低产量：bearing_retainer_cap 4（两 axis 走 disc 变体不出现，自动 skip）；其他 ≥6
 - Pair builder 增量 flush（每家族一刷 pair+stats）防 OCCT C 层崩溃丢进度；`--exclude` CLI flag
+- Runner + scorer 跑通（smoke 10 samples, gpt-4o）：
+  - `bench/edit_gen/run_edit.py`：text-only OpenAI 调用，subprocess exec code → STEP
+  - `bench/edit_gen/score_edit.py`：复用 `bench.metrics.compute_iou` → `norm_improve = (IoU(gen,gt) - IoU(orig,gt)) / (1 - IoU(orig,gt))`
+  - 10/10 api+exec pass, gen_iou 0.9929, 6/10 degenerate（orig/GT IoU>0.999，ball_knob 小 delta 64³ voxel 测不出）
+  - 产物：`runs/<model>/{gen_code, gen_step, results.jsonl, scored.jsonl, score_summary.json}`
+- 遗留：degenerate rate 需要决策（pre-filter orig/GT IoU<0.99，还是升 voxel 到 128，还是承认作 easy signal）
 
 ## 2026-04-20 (session 16) — Bench E2E：view alignment (UA-18) + QA bench + HF 零本地依赖
 

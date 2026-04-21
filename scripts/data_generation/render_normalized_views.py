@@ -22,9 +22,9 @@ from pathlib import Path
 import numpy as np
 
 CAMERA_FRONTS = [[1, 1, 1], [-1, -1, -1], [-1, 1, -1], [1, -1, 1]]
-CAMERA_DISTANCE = -0.9   # applied to unnormalized front vector
-IMG_SIZE = 128            # per-view size before border
-BORDER = 3                # black border → final per-view 134×134, composite 268×268
+CAMERA_DISTANCE = -0.9  # applied to unnormalized front vector
+IMG_SIZE = 128  # per-view size before border
+BORDER = 3  # black border → final per-view 134×134, composite 268×268
 LOOKAT = np.array([0.5, 0.5, 0.5], dtype=np.float64)
 MESH_COLOR = np.array([255, 255, 136]) / 255.0
 EDGE_COLOR = (0.12, 0.12, 0.12)
@@ -33,13 +33,14 @@ EDGE_LINE_WIDTH = 1.6
 
 # ── VTK renderer (matches reference camera spec) ──────────────────────────────
 
+
 def _mesh_to_image_vtk(verts, tris, front, img_size=IMG_SIZE):
     """Render one view via VTK OffscreenRenderer."""
     import vtk
     from vtk.util.numpy_support import numpy_to_vtk
 
     front_arr = np.array(front, dtype=np.float64)
-    up = np.array([0.0, 1.0, 0.0])
+    up = np.array([0.0, 0.0, 1.0])
 
     eye = LOOKAT + front_arr * CAMERA_DISTANCE
 
@@ -120,6 +121,7 @@ def _mesh_to_image_vtk(verts, tris, front, img_size=IMG_SIZE):
     w2i.Update()
 
     import vtk.util.numpy_support as nps
+
     img_data = w2i.GetOutput()
     dims = img_data.GetDimensions()
     arr = nps.vtk_to_numpy(img_data.GetPointData().GetScalars())
@@ -128,6 +130,7 @@ def _mesh_to_image_vtk(verts, tris, front, img_size=IMG_SIZE):
 
     # Resize to img_size×img_size
     from PIL import Image
+
     img_pil = Image.fromarray(arr)
     img_pil = img_pil.resize((img_size, img_size), Image.LANCZOS)
     return np.array(img_pil)
@@ -140,12 +143,29 @@ def _step_to_mesh(step_path: str, linear_deflection: float = 0.05):
     """
     import cadquery as cq
     from pathlib import Path as _Path
-    from OCP.TopoDS import (TopoDS_Shape, TopoDS_Face, TopoDS_Edge,
-                             TopoDS_Vertex, TopoDS_Wire, TopoDS_Shell,
-                             TopoDS_Solid, TopoDS_Compound, TopoDS_CompSolid)
-    for _cls in [TopoDS_Shape, TopoDS_Face, TopoDS_Edge, TopoDS_Vertex,
-                 TopoDS_Wire, TopoDS_Shell, TopoDS_Solid,
-                 TopoDS_Compound, TopoDS_CompSolid]:
+    from OCP.TopoDS import (
+        TopoDS_Shape,
+        TopoDS_Face,
+        TopoDS_Edge,
+        TopoDS_Vertex,
+        TopoDS_Wire,
+        TopoDS_Shell,
+        TopoDS_Solid,
+        TopoDS_Compound,
+        TopoDS_CompSolid,
+    )
+
+    for _cls in [
+        TopoDS_Shape,
+        TopoDS_Face,
+        TopoDS_Edge,
+        TopoDS_Vertex,
+        TopoDS_Wire,
+        TopoDS_Shell,
+        TopoDS_Solid,
+        TopoDS_Compound,
+        TopoDS_CompSolid,
+    ]:
         if not hasattr(_cls, "HashCode"):
             _cls.HashCode = lambda self, ub=2147483647: id(self) % ub
 
@@ -159,14 +179,66 @@ def _step_to_mesh(step_path: str, linear_deflection: float = 0.05):
             solid = solids[0]
         return solid.tessellate(linear_deflection)
 
+    def _manual_tessellate():
+        """Walk faces, skip any whose triangulation is None (revolve pole
+        seams sometimes produce such faces after STEP roundtrip)."""
+        from OCP.BRep import BRep_Tool
+        from OCP.BRepMesh import BRepMesh_IncrementalMesh
+        from OCP.TopAbs import TopAbs_FACE
+        from OCP.TopExp import TopExp_Explorer
+        from OCP.TopLoc import TopLoc_Location
+        from OCP.TopoDS import TopoDS
+
+        shape = cq.importers.importStep(str(step_path))
+        s = shape.val().wrapped
+        mesher = BRepMesh_IncrementalMesh(s, linear_deflection, False, 0.5, True)
+        mesher.Perform()
+        exp = TopExp_Explorer(s, TopAbs_FACE)
+        vs: list = []
+        ts: list = []
+
+        class _V:
+            __slots__ = ("x", "y", "z")
+
+            def __init__(self, x, y, z):
+                self.x, self.y, self.z = x, y, z
+
+        while exp.More():
+            face = TopoDS.Face_s(exp.Current())
+            loc = TopLoc_Location()
+            tri = BRep_Tool.Triangulation_s(face, loc)
+            if tri is not None:
+                trsf = loc.Transformation()
+                n = tri.NbNodes()
+                base = len(vs)
+                for i in range(1, n + 1):
+                    p = tri.Node(i).Transformed(trsf)
+                    vs.append(_V(p.X(), p.Y(), p.Z()))
+                m = tri.NbTriangles()
+                for i in range(1, m + 1):
+                    a, b, c = tri.Triangle(i).Get()
+                    ts.append((base + a - 1, base + b - 1, base + c - 1))
+            exp.Next()
+        if not vs or not ts:
+            raise ValueError("manual tessellate empty")
+        return vs, ts
+
     try:
         verts_raw, tris_raw = _try_tessellate()
     except Exception:
-        # Fall back to mesh.stl in same directory
-        stl_path = _Path(step_path).with_name("mesh.stl")
+        try:
+            verts_raw, tris_raw = _manual_tessellate()
+        except Exception:
+            verts_raw, tris_raw = None, None
+    if verts_raw is None:
+        # Fall back to <stem>.stl next to the STEP, then mesh.stl as last resort
+        stl_path = _Path(step_path).with_suffix(".stl")
         if not stl_path.exists():
-            raise ValueError(f"Tessellation failed and no mesh.stl found at {stl_path}")
+            stl_path = _Path(step_path).with_name("mesh.stl")
+        if not stl_path.exists():
+            raise ValueError(f"Tessellation failed and no STL found near {step_path}")
         import trimesh as _trimesh
+
         m = _trimesh.load(str(stl_path), force="mesh")
         verts = np.array(m.vertices, dtype=np.float64)
         tris = np.array(m.faces, dtype=np.int64)
@@ -179,7 +251,7 @@ def _step_to_mesh(step_path: str, linear_deflection: float = 0.05):
         return verts, tris
 
     verts = np.array([[v.x, v.y, v.z] for v in verts_raw], dtype=np.float64)
-    tris  = np.array([[t[0], t[1], t[2]] for t in tris_raw], dtype=np.int64)
+    tris = np.array([[t[0], t[1], t[2]] for t in tris_raw], dtype=np.int64)
 
     if len(verts) == 0 or len(tris) == 0:
         raise ValueError(f"Empty tessellation for {step_path}")
@@ -194,6 +266,7 @@ def _step_to_mesh(step_path: str, linear_deflection: float = 0.05):
 
 
 # ── public API ────────────────────────────────────────────────────────────────
+
 
 def render_step_normalized(
     step_path: str,
@@ -220,10 +293,14 @@ def render_step_normalized(
         img = ImageOps.expand(Image.fromarray(arr), border=BORDER, fill="black")
         imgs.append(img)
 
-    composite = Image.fromarray(np.vstack((
-        np.hstack((np.array(imgs[0]), np.array(imgs[1]))),
-        np.hstack((np.array(imgs[2]), np.array(imgs[3]))),
-    )))
+    composite = Image.fromarray(
+        np.vstack(
+            (
+                np.hstack((np.array(imgs[0]), np.array(imgs[1]))),
+                np.hstack((np.array(imgs[2]), np.array(imgs[3]))),
+            )
+        )
+    )
 
     paths = {}
     for i, img in enumerate(imgs):
@@ -239,14 +316,17 @@ def render_step_normalized(
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
+
 def main():
     ap = argparse.ArgumentParser(description="Normalized STEP multi-view renderer")
     ap.add_argument("--step", required=True)
-    ap.add_argument("--out",  required=True)
+    ap.add_argument("--out", required=True)
     ap.add_argument("--size", type=int, default=IMG_SIZE)
     ap.add_argument("--prefix", default="")
     args = ap.parse_args()
-    paths = render_step_normalized(args.step, args.out, size=args.size, prefix=args.prefix)
+    paths = render_step_normalized(
+        args.step, args.out, size=args.size, prefix=args.prefix
+    )
     print(f"composite: {paths['composite']}")
 
 

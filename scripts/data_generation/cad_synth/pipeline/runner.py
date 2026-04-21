@@ -32,20 +32,41 @@ BUILD_TIMEOUT_S = 60  # per-sample build budget (seconds)
 EXPORT_TIMEOUT_S = 120  # per-sample export+render budget (seconds)
 TOTAL_TIMEOUT_S = BUILD_TIMEOUT_S + EXPORT_TIMEOUT_S
 
-# Families whose revolve axis is hardcoded to Y → must stay on XY base plane.
-_XY_ONLY = {
-    "pipe_elbow",
-    "coil_spring",
-    "worm_screw",
-    "dome_cap",
-    "capsule",
-    "torus_link",
-    "piston",
-    "duct_elbow",
-    "bucket",
-    "nozzle",
-    "bellows",
+# Per-family allowed base planes. Families whose ops use world-Z axes or
+# hard-coded selectors break on non-XY planes — restrict to what actually
+# produces a correct assembly.
+_ALLOWED_PLANES: dict[str, tuple[str, ...]] = {
+    # XY-only (revolve/helix/sweep axis is world-fixed, or offsets assume Z=up)
+    "pipe_elbow": ("XY",),
+    "coil_spring": ("XY",),
+    "worm_screw": ("XY",),
+    "dome_cap": ("XY",),
+    "capsule": ("XY",),
+    "torus_link": ("XY",),
+    "piston": ("XY",),
+    "duct_elbow": ("XY",),
+    "bucket": ("XY",),
+    "nozzle": ("XY",),
+    "bellows": ("XY",),
+    "u_bolt": ("XY",),
+    "cotter_pin": ("XY",),
+    "pan_head_screw": ("XY",),
+    "tee_nut": ("XY",),
+    "j_hook": ("XY",),
+    "gridfinity_bin": ("XY",),
+    "phone_stand": ("XY",),
+    "eyebolt": ("XY",),
+    "torsion_spring": ("XY",),
+    "wing_nut": ("XY",),
+    "twisted_drill": ("XY",),
+    "wall_anchor": ("XY",),
+    "battery_holder": ("XY",),
+    "hex_key_organizer": ("XY",),
+    # partial restrictions
+    "grease_nipple": ("YZ", "XZ"),  # XY assembly wrong
+    "knob": ("XY", "YZ"),  # XZ assembly wrong
 }
+_XY_ONLY = {f for f, pl in _ALLOWED_PLANES.items() if pl == ("XY",)}
 
 
 def load_config(path: str | Path) -> dict:
@@ -199,8 +220,9 @@ def run_batch(
                 break
 
         if params is not None and "base_plane" not in params:
+            allowed = _ALLOWED_PLANES.get(fam_name, ("XY", "YZ", "XZ"))
             params["base_plane"] = (
-                "XY" if fam_name in _XY_ONLY else str(rng.choice(["XY", "YZ", "XZ"]))
+                allowed[0] if len(allowed) == 1 else str(rng.choice(allowed))
             )
 
         sample_specs.append(
@@ -319,6 +341,9 @@ def run_batch(
                     }
                 _log_result(res, run_name, elapsed)
                 results.append(res)
+                q.close()
+                q.join_thread()
+                proc.close()
                 del running[proc]
 
             elif elapsed > TOTAL_TIMEOUT_S:
@@ -350,6 +375,9 @@ def run_batch(
                     "[%d] REJECT timeout: %s (%.0fs)", sid, spec["stem"], elapsed
                 )
                 results.append(res)
+                q.close()
+                q.join_thread()
+                proc.close()
                 del running[proc]
 
         if running:
