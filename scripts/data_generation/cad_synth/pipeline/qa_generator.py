@@ -11,12 +11,14 @@ Design rule:
   directly answerable from images without knowing absolute dimensions.
   Use absolute mm only for ISO-mandated standard values (module, pitch).
 """
+
 from __future__ import annotations
 
 import math
 from typing import Any
 
 # ── helpers ───────────────────────────────────────────────────────────────────
+
 
 def _q(question: str, answer: float, qtype: str = "ratio") -> dict:
     return {"question": question, "answer": round(float(answer), 4), "type": qtype}
@@ -31,6 +33,7 @@ def _ratio(a: float, b: float) -> float:
 
 # ── family → QA + ISO ─────────────────────────────────────────────────────────
 
+
 def get_qa_and_iso(family: str, params: dict) -> tuple[list[dict], dict]:
     fn = _REGISTRY.get(family)
     if fn is None:
@@ -42,17 +45,22 @@ def get_qa_and_iso(family: str, params: dict) -> tuple[list[dict], dict]:
 # GEARS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 def _spur_gear(p: dict):
     m, z = p["module"], p["n_teeth"]
     qa = [
         _q("How many teeth does this gear have?", z, "integer"),
         _q("What is the gear module in mm?", m, "ratio"),
-        _q("What is the outer-to-pitch diameter ratio?",
-           _ratio(m * (z + 2), m * z)),
+        _q("What is the outer-to-pitch diameter ratio?", _ratio(m * (z + 2), m * z)),
     ]
     iso = {
-        "iso_53": True, "iso_54": True, "iso_1328_grade": {"easy": 10, "medium": 7, "hard": 4}.get(p.get("difficulty", "medium"), 7),
-        "module": m, "n_teeth": z,
+        "iso_53": True,
+        "iso_54": True,
+        "iso_1328_grade": {"easy": 10, "medium": 7, "hard": 4}.get(
+            p.get("difficulty", "medium"), 7
+        ),
+        "module": m,
+        "n_teeth": z,
         "tip_diameter_mm": round(m * (z + 2), 3),
         "root_diameter_mm": round(m * (z - 2.5), 3),
         "pitch_diameter_mm": round(m * z, 3),
@@ -68,7 +76,13 @@ def _helical_gear(p: dict):
         _q("What is the normal module in mm?", m, "ratio"),
         _q("What is the helix angle in degrees?", ha, "ratio"),
     ]
-    iso = {"iso_53": True, "iso_54": True, "module": m, "n_teeth": z, "helix_angle_deg": ha}
+    iso = {
+        "iso_53": True,
+        "iso_54": True,
+        "module": m,
+        "n_teeth": z,
+        "helix_angle_deg": ha,
+    }
     return qa, iso
 
 
@@ -81,7 +95,13 @@ def _bevel_gear(p: dict):
         _q("What is the module in mm?", m, "ratio"),
         _q("What is the pitch cone angle in degrees?", ca, "ratio"),
     ]
-    iso = {"iso_23509": True, "iso_54": True, "module": m, "n_teeth": z, "pitch_cone_angle_deg": round(ca, 2)}
+    iso = {
+        "iso_23509": True,
+        "iso_54": True,
+        "module": m,
+        "n_teeth": z,
+        "pitch_cone_angle_deg": round(ca, 2),
+    }
     return qa, iso
 
 
@@ -106,15 +126,22 @@ def _sprocket(p: dict):
         _q("What is the chain pitch in mm?", pitch, "ratio"),
     ]
     if hub_d:
-        qa.append(_q("What is the pitch circle to hub diameter ratio?", _ratio(pcd, hub_d)))
-    iso = {"iso_606": True, "n_teeth": z, "chain_pitch_mm": pitch,
-           "pitch_diameter_mm": round(pcd, 3)}
+        qa.append(
+            _q("What is the pitch circle to hub diameter ratio?", _ratio(pcd, hub_d))
+        )
+    iso = {
+        "iso_606": True,
+        "n_teeth": z,
+        "chain_pitch_mm": pitch,
+        "pitch_diameter_mm": round(pcd, 3),
+    }
     return qa[:3], iso
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # FASTENERS
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def _bolt(p: dict):
     # bolt family uses shaft_diameter + shaft_length
@@ -127,7 +154,12 @@ def _bolt(p: dict):
     ]
     if pitch:
         qa.append(_q("What is the thread pitch in mm?", pitch, "ratio"))
-    iso = {"iso_261": True, "iso_4014": True, "nominal_diameter_mm": round(d, 2), "length_mm": round(l, 2)}
+    iso = {
+        "iso_261": True,
+        "iso_4014": True,
+        "nominal_diameter_mm": round(d, 2),
+        "length_mm": round(l, 2),
+    }
     if pitch:
         iso["thread_pitch_mm"] = round(pitch, 3)
     return qa[:3], iso
@@ -143,7 +175,11 @@ def _hex_nut(p: dict):
         _q("What is the nominal thread diameter in mm?", M, "ratio"),
         _q("What is the nut height in mm?", m, "ratio"),
     ]
-    iso = {"iso_4032": True, "nominal_size_mm": round(M, 2), "across_flats_mm": round(s, 2)}
+    iso = {
+        "iso_4032": True,
+        "nominal_size_mm": round(M, 2),
+        "across_flats_mm": round(s, 2),
+    }
     return qa[:3], iso
 
 
@@ -157,8 +193,13 @@ def _washer(p: dict):
         _q("What is the nominal size in mm?", M, "ratio"),
         _q("What is the washer thickness in mm?", h, "ratio"),
     ]
-    iso = {"iso_7089": True, "iso_7090": True, "nominal_size_mm": M,
-           "bore_diameter_mm": round(d1, 2), "outer_diameter_mm": round(d2, 2)}
+    iso = {
+        "iso_7089": True,
+        "iso_7090": True,
+        "nominal_size_mm": M,
+        "bore_diameter_mm": round(d1, 2),
+        "outer_diameter_mm": round(d2, 2),
+    }
     return qa[:3], iso
 
 
@@ -221,6 +262,7 @@ def _circlip(p: dict):
 # PIPES & FLANGES
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 def _pipe_flange(p: dict):
     # pipe_flange is a rectangular plate with bore: length × width × bore_diameter
     l = p["length"]
@@ -244,7 +286,11 @@ def _round_flange(p: dict):
     ]
     if nb:
         qa.append(_q("How many bolt holes does the flange have?", nb, "integer"))
-    iso = {"iso_7005": True, "outer_radius_mm": round(or_, 2), "inner_radius_mm": round(ir, 2)}
+    iso = {
+        "iso_7005": True,
+        "outer_radius_mm": round(or_, 2),
+        "inner_radius_mm": round(ir, 2),
+    }
     if nb:
         iso["n_bolts"] = nb
     return qa[:3], iso
@@ -260,7 +306,11 @@ def _t_pipe_fitting(p: dict):
     ]
     if nb:
         qa.append(_q("How many flange bolt holes?", nb, "integer"))
-    iso = {"iso_1127": True, "outer_diameter_mm": round(od, 2), "wall_thickness_mm": round(wall, 2)}
+    iso = {
+        "iso_1127": True,
+        "outer_diameter_mm": round(od, 2),
+        "wall_thickness_mm": round(wall, 2),
+    }
     if nb:
         iso["n_bolts"] = nb
     return qa[:3], iso
@@ -304,13 +354,17 @@ def _nozzle(p: dict):
         _q("What is the inlet-to-outlet radius ratio?", _ratio(r_in, r_out)),
         _q("What is the length to inlet diameter ratio?", _ratio(l, r_in * 2)),
     ]
-    iso = {"iso_5167": True, "beta_ratio": round(min(r_in, r_out) / max(r_in, r_out), 4)}
+    iso = {
+        "iso_5167": True,
+        "beta_ratio": round(min(r_in, r_out) / max(r_in, r_out), 4),
+    }
     return qa, iso
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SHAFTS & FITS
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def _stepped_shaft(p: dict):
     d_max = p.get("max_diameter", p.get("base_diameter", p.get("d1", 20.0)))
@@ -320,7 +374,11 @@ def _stepped_shaft(p: dict):
         _q("What is the total length to max diameter ratio?", _ratio(l_tot, d_max)),
         _q("How many diameter steps does the shaft have?", n_steps, "integer"),
     ]
-    iso = {"iso_286": True, "max_diameter_mm": round(d_max, 2), "total_length_mm": round(l_tot, 2)}
+    iso = {
+        "iso_286": True,
+        "max_diameter_mm": round(d_max, 2),
+        "total_length_mm": round(l_tot, 2),
+    }
     return qa, iso
 
 
@@ -331,7 +389,11 @@ def _shaft_collar(p: dict):
         _q("What is the outer to bore diameter ratio?", _ratio(od, id_)),
         _q("What is the bore diameter in mm?", id_, "ratio"),
     ]
-    iso = {"iso_286": True, "bore_diameter_mm": round(id_, 2), "outer_diameter_mm": round(od, 2)}
+    iso = {
+        "iso_286": True,
+        "bore_diameter_mm": round(id_, 2),
+        "outer_diameter_mm": round(od, 2),
+    }
     return qa, iso
 
 
@@ -343,8 +405,15 @@ def _lathe_turned_part(p: dict):
     has_bore = p.get("bore_diameter") is not None
     qa = [
         _q("What is the large-to-small diameter ratio?", _ratio(d1, d2)),
-        _q("What is the total length to max diameter ratio?", _ratio(h1 + h2, max(d1, d2))),
-        _q("Does this part have a central bore? (1=yes, 0=no)", 1.0 if has_bore else 0.0, "integer"),
+        _q(
+            "What is the total length to max diameter ratio?",
+            _ratio(h1 + h2, max(d1, d2)),
+        ),
+        _q(
+            "Does this part have a central bore? (1=yes, 0=no)",
+            1.0 if has_bore else 0.0,
+            "integer",
+        ),
     ]
     iso = {"iso_286": True}
     return qa, iso
@@ -374,13 +443,19 @@ def _spacer_ring(p: dict):
     ]
     if split:
         qa.append(_q("Is this a split ring?", 1, "integer"))
-    iso = {"din_988": True, "outer_diameter_mm": round(od, 2), "bore_diameter_mm": round(bd, 2), "thickness_mm": round(s, 2)}
+    iso = {
+        "din_988": True,
+        "outer_diameter_mm": round(od, 2),
+        "bore_diameter_mm": round(bd, 2),
+        "thickness_mm": round(s, 2),
+    }
     return qa, iso
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SPRINGS
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def _coil_spring(p: dict):
     n_active = p.get("n_active_coils", p.get("n_coils", 5))
@@ -390,13 +465,18 @@ def _coil_spring(p: dict):
         _q("How many active coils does the spring have?", n_active, "integer"),
         _q("What is the spring index (mean coil D / wire D)?", _ratio(d_mean, d_wire)),
     ]
-    iso = {"iso_2162": True, "n_active_coils": n_active, "spring_index": round(d_mean / d_wire, 3)}
+    iso = {
+        "iso_2162": True,
+        "n_active_coils": n_active,
+        "spring_index": round(d_mean / d_wire, 3),
+    }
     return qa, iso
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STRUCTURAL PROFILES
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def _i_beam(p: dict):
     fw = p["flange_width"]
@@ -409,7 +489,11 @@ def _i_beam(p: dict):
     ]
     if nb:
         qa.append(_q("How many bolt holes per flange?", nb, "integer"))
-    iso = {"iso_657_1": True, "total_height_mm": round(h, 1), "flange_width_mm": round(fw, 1)}
+    iso = {
+        "iso_657_1": True,
+        "total_height_mm": round(h, 1),
+        "flange_width_mm": round(fw, 1),
+    }
     return qa[:3], iso
 
 
@@ -430,7 +514,9 @@ def _t_slot_rail(p: dict):
     l = p["length"]
     qa = [
         _q("What is the rail length to cross-section size ratio?", _ratio(l, size)),
-        _q("What is the slot width in mm?", p.get("slot_opening", size * 0.45), "ratio"),
+        _q(
+            "What is the slot width in mm?", p.get("slot_opening", size * 0.45), "ratio"
+        ),
     ]
     iso = {"iso_299": True, "slot_size_mm": float(size)}
     return qa, iso
@@ -439,6 +525,7 @@ def _t_slot_rail(p: dict):
 # ══════════════════════════════════════════════════════════════════════════════
 # ROTATING MACHINERY
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def _impeller(p: dict):
     nb = p.get("n_blades", 5)
@@ -522,7 +609,10 @@ def _cam(p: dict):
         ]
     else:
         qa = [
-            _q("What is the eccentricity to base radius ratio?", _ratio(ecc, base_r) if ecc > 0 else 1.0),
+            _q(
+                "What is the eccentricity to base radius ratio?",
+                _ratio(ecc, base_r) if ecc > 0 else 1.0,
+            ),
             _q("What is the base radius to bore radius ratio?", _ratio(base_r, bore_r)),
         ]
     return qa, {}
@@ -531,6 +621,7 @@ def _cam(p: dict):
 # ══════════════════════════════════════════════════════════════════════════════
 # MACHINE ELEMENTS
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def _hinge(p: dict):
     nk = p["n_knuckles"]
@@ -556,8 +647,14 @@ def _bearing_retainer_cap(p: dict):
         qa.append(_q("How many bolt holes?", nb, "integer"))
     fod = p.get("flange_diameter")
     if fod:
-        qa.append(_q("What is the flange to boss diameter ratio?", _ratio(fod, boss_od)))
-    iso = {"iso_281": True, "bore_diameter_mm": round(bore_d, 2), "boss_diameter_mm": round(boss_od, 2)}
+        qa.append(
+            _q("What is the flange to boss diameter ratio?", _ratio(fod, boss_od))
+        )
+    iso = {
+        "iso_281": True,
+        "bore_diameter_mm": round(bore_d, 2),
+        "boss_diameter_mm": round(boss_od, 2),
+    }
     return qa[:3], iso
 
 
@@ -578,8 +675,14 @@ def _connecting_rod(p: dict):
     small_r = p["small_end_radius"]
     cd = p["center_distance"]
     qa = [
-        _q("What is the big-end to small-end bore radius ratio?", _ratio(big_r, small_r)),
-        _q("What is the center distance to big-end diameter ratio?", _ratio(cd, big_r * 2)),
+        _q(
+            "What is the big-end to small-end bore radius ratio?",
+            _ratio(big_r, small_r),
+        ),
+        _q(
+            "What is the center distance to big-end diameter ratio?",
+            _ratio(cd, big_r * 2),
+        ),
     ]
     return qa, {}
 
@@ -611,7 +714,10 @@ def _flat_link(p: dict):
     boss_r = p["boss_radius"]
     cc = p["cc_distance"]
     qa = [
-        _q("What is the center-to-center distance to boss diameter ratio?", _ratio(cc, boss_r * 2)),
+        _q(
+            "What is the center-to-center distance to boss diameter ratio?",
+            _ratio(cc, boss_r * 2),
+        ),
     ]
     return qa, {}
 
@@ -621,7 +727,10 @@ def _dog_bone(p: dict):
     cc = p["cc_distance"]
     waist_r = p.get("waist_radius", boss_r * 0.6)
     qa = [
-        _q("What is the center-to-center to boss diameter ratio?", _ratio(cc, boss_r * 2)),
+        _q(
+            "What is the center-to-center to boss diameter ratio?",
+            _ratio(cc, boss_r * 2),
+        ),
         _q("What is the boss to waist radius ratio?", _ratio(boss_r, waist_r)),
     ]
     return qa, {}
@@ -632,8 +741,10 @@ def _manifold_block(p: dict):
     cd = p["channel_diameter"]
     qa = [
         _q("How many channels does this manifold have?", nc, "integer"),
-        _q("What is the block length to channel diameter ratio?",
-           _ratio(p.get("length", 60.0), cd)),
+        _q(
+            "What is the block length to channel diameter ratio?",
+            _ratio(p.get("length", 60.0), cd),
+        ),
     ]
     iso = {"iso_4401": True, "n_channels": nc}
     return qa, iso
@@ -651,6 +762,7 @@ def _torus_link(p: dict):
 # ══════════════════════════════════════════════════════════════════════════════
 # PLATES & BRACKETS
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def _mounting_plate(p: dict):
     l = p.get("length", 80.0)
@@ -723,7 +835,11 @@ def _l_bracket(p: dict):
     has_hole = p.get("hole_diameter") is not None
     qa = [
         _q("What is the arm1 to arm2 length ratio?", _ratio(a1, a2)),
-        _q("Does this bracket have mounting holes? (1=yes, 0=no)", 1.0 if has_hole else 0.0, "integer"),
+        _q(
+            "Does this bracket have mounting holes? (1=yes, 0=no)",
+            1.0 if has_hole else 0.0,
+            "integer",
+        ),
     ]
     return qa, {}
 
@@ -755,7 +871,11 @@ def _gusseted_bracket(p: dict):
     has_pocket = p.get("pocket_depth") is not None
     qa = [
         _q("What is the flange width to gusset height ratio?", _ratio(fw, gh)),
-        _q("Does this bracket have a pocket? (1=yes, 0=no)", 1.0 if has_pocket else 0.0, "integer"),
+        _q(
+            "Does this bracket have a pocket? (1=yes, 0=no)",
+            1.0 if has_pocket else 0.0,
+            "integer",
+        ),
     ]
     return qa, {}
 
@@ -786,6 +906,7 @@ def _rect_frame(p: dict):
 # ══════════════════════════════════════════════════════════════════════════════
 # PERFORATED PANELS & GRIDS
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def _vented_panel(p: dict):
     nx = p.get("nx", p.get("n_cols", 4))
@@ -860,6 +981,7 @@ def _connector_faceplate(p: dict):
 # ══════════════════════════════════════════════════════════════════════════════
 # MISC / ORGANIC
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def _ball_knob(p: dict):
     ball_r = p.get("ball_radius", p.get("radius", 20.0))
@@ -960,7 +1082,11 @@ def _snap_clip(p: dict):
     ]
     if has_lug:
         qa.append(_q("Does this snap ring have lug holes?", 1, "integer"))
-    return qa[:3], {"din_6799": True, "shaft_diameter_mm": round(shaft_d, 2), "ring_od_mm": round(ring_od, 2)}
+    return qa[:3], {
+        "din_6799": True,
+        "shaft_diameter_mm": round(shaft_d, 2),
+        "ring_od_mm": round(ring_od, 2),
+    }
 
 
 def _locator_block(p: dict):
@@ -1025,7 +1151,11 @@ def _clevis_pin(p: dict):
     has_hole = p.get("split_pin_diameter") is not None
     qa = [
         _q("What is the pin length to diameter ratio?", _ratio(l, d)),
-        _q("Does this pin have a cross hole? (1=yes, 0=no)", 1.0 if has_hole else 0.0, "integer"),
+        _q(
+            "Does this pin have a cross hole? (1=yes, 0=no)",
+            1.0 if has_hole else 0.0,
+            "integer",
+        ),
     ]
     iso = {"iso_2340": True, "diameter_mm": round(d, 1)}
     return qa, iso
@@ -1047,94 +1177,94 @@ def _taper_pin(p: dict):
 
 _REGISTRY: dict[str, Any] = {
     # gears
-    "spur_gear":            _spur_gear,
-    "helical_gear":         _helical_gear,
-    "bevel_gear":           _bevel_gear,
-    "worm_screw":           _worm_screw,
-    "sprocket":             _sprocket,
+    "spur_gear": _spur_gear,
+    "helical_gear": _helical_gear,
+    "bevel_gear": _bevel_gear,
+    "worm_screw": _worm_screw,
+    "sprocket": _sprocket,
     # fasteners
-    "bolt":                 _bolt,
-    "hex_nut":              _hex_nut,
-    "hex_standoff":         _hex_standoff,
-    "standoff":             _standoff,
-    "threaded_adapter":     _threaded_adapter,
-    "dowel_pin":            _dowel_pin,
-    "circlip":              _circlip,
-    "washer":               _washer,
+    "bolt": _bolt,
+    "hex_nut": _hex_nut,
+    "hex_standoff": _hex_standoff,
+    "standoff": _standoff,
+    "threaded_adapter": _threaded_adapter,
+    "dowel_pin": _dowel_pin,
+    "circlip": _circlip,
+    "washer": _washer,
     # pipes & flanges
-    "pipe_flange":          _pipe_flange,
-    "round_flange":         _round_flange,
-    "t_pipe_fitting":       _t_pipe_fitting,
-    "pipe_elbow":           _pipe_elbow,
-    "hollow_tube":          _hollow_tube,
-    "nozzle":               _nozzle,
+    "pipe_flange": _pipe_flange,
+    "round_flange": _round_flange,
+    "t_pipe_fitting": _t_pipe_fitting,
+    "pipe_elbow": _pipe_elbow,
+    "hollow_tube": _hollow_tube,
+    "nozzle": _nozzle,
     # shafts & fits
-    "stepped_shaft":        _stepped_shaft,
-    "shaft_collar":         _shaft_collar,
-    "lathe_turned_part":    _lathe_turned_part,
-    "tapered_boss":         _tapered_boss,
-    "spacer_ring":          _spacer_ring,
+    "stepped_shaft": _stepped_shaft,
+    "shaft_collar": _shaft_collar,
+    "lathe_turned_part": _lathe_turned_part,
+    "tapered_boss": _tapered_boss,
+    "spacer_ring": _spacer_ring,
     # springs
-    "coil_spring":          _coil_spring,
+    "coil_spring": _coil_spring,
     # structural profiles
-    "i_beam":               _i_beam,
-    "u_channel":            _u_channel,
-    "t_slot_rail":          _t_slot_rail,
+    "i_beam": _i_beam,
+    "u_channel": _u_channel,
+    "t_slot_rail": _t_slot_rail,
     # rotating machinery
-    "impeller":             _impeller,
-    "propeller":            _propeller,
-    "fan_shroud":           _fan_shroud,
-    "pulley":               _pulley,
-    "handwheel":            _handwheel,
-    "motor_end_cap":        _motor_end_cap,
-    "cam":                  _cam,
+    "impeller": _impeller,
+    "propeller": _propeller,
+    "fan_shroud": _fan_shroud,
+    "pulley": _pulley,
+    "handwheel": _handwheel,
+    "motor_end_cap": _motor_end_cap,
+    "cam": _cam,
     # machine elements
-    "hinge":                _hinge,
+    "hinge": _hinge,
     "bearing_retainer_cap": _bearing_retainer_cap,
-    "piston":               _piston,
-    "connecting_rod":       _connecting_rod,
-    "clevis":               _clevis,
-    "dovetail_slide":       _dovetail_slide,
-    "flat_link":            _flat_link,
-    "dog_bone":             _dog_bone,
-    "manifold_block":       _manifold_block,
-    "torus_link":           _torus_link,
+    "piston": _piston,
+    "connecting_rod": _connecting_rod,
+    "clevis": _clevis,
+    "dovetail_slide": _dovetail_slide,
+    "flat_link": _flat_link,
+    "dog_bone": _dog_bone,
+    "manifold_block": _manifold_block,
+    "torus_link": _torus_link,
     # plates & brackets
-    "mounting_plate":       _mounting_plate,
-    "slotted_plate":        _slotted_plate,
-    "waffle_plate":         _waffle_plate,
-    "rib_plate":            _rib_plate,
-    "sheet_metal_tray":     _sheet_metal_tray,
-    "heat_sink":            _heat_sink,
-    "l_bracket":            _l_bracket,
-    "z_bracket":            _z_bracket,
-    "mounting_angle":       _mounting_angle,
-    "gusseted_bracket":     _gusseted_bracket,
-    "enclosure":            _enclosure,
-    "rect_frame":           _rect_frame,
+    "mounting_plate": _mounting_plate,
+    "slotted_plate": _slotted_plate,
+    "waffle_plate": _waffle_plate,
+    "rib_plate": _rib_plate,
+    "sheet_metal_tray": _sheet_metal_tray,
+    "heat_sink": _heat_sink,
+    "l_bracket": _l_bracket,
+    "z_bracket": _z_bracket,
+    "mounting_angle": _mounting_angle,
+    "gusseted_bracket": _gusseted_bracket,
+    "enclosure": _enclosure,
+    "rect_frame": _rect_frame,
     # panels & grids
-    "vented_panel":         _vented_panel,
-    "mesh_panel":           _mesh_panel,
-    "wire_grid":            _wire_grid,
-    "cable_routing_panel":  _cable_routing_panel,
-    "pcb_standoff_plate":   _pcb_standoff_plate,
-    "connector_faceplate":  _connector_faceplate,
+    "vented_panel": _vented_panel,
+    "mesh_panel": _mesh_panel,
+    "wire_grid": _wire_grid,
+    "cable_routing_panel": _cable_routing_panel,
+    "pcb_standoff_plate": _pcb_standoff_plate,
+    "connector_faceplate": _connector_faceplate,
     # misc
-    "ball_knob":            _ball_knob,
-    "knob":                 _knob,
-    "dome_cap":             _dome_cap,
-    "bellows":              _bellows,
-    "capsule":              _capsule,
-    "star_blank":           _star_blank,
-    "cruciform":            _cruciform,
-    "ratchet_sector":       _ratchet_sector,
-    "snap_clip":            _snap_clip,
-    "locator_block":        _locator_block,
-    "bucket":               _bucket,
-    "table":                _table,
-    "duct_elbow":           _duct_elbow,
+    "ball_knob": _ball_knob,
+    "knob": _knob,
+    "dome_cap": _dome_cap,
+    "bellows": _bellows,
+    "capsule": _capsule,
+    "star_blank": _star_blank,
+    "cruciform": _cruciform,
+    "ratchet_sector": _ratchet_sector,
+    "snap_clip": _snap_clip,
+    "locator_block": _locator_block,
+    "bucket": _bucket,
+    "table": _table,
+    "duct_elbow": _duct_elbow,
     # pins & keys
-    "parallel_key":         _parallel_key,
-    "clevis_pin":           _clevis_pin,
-    "taper_pin":            _taper_pin,
+    "parallel_key": _parallel_key,
+    "clevis_pin": _clevis_pin,
+    "taper_pin": _taper_pin,
 }

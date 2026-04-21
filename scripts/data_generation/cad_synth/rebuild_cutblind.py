@@ -24,12 +24,27 @@ sys.path.insert(0, str(ROOT))
 
 def _patch_ocp_hashcode():
     from OCP.TopoDS import (
-        TopoDS_Compound, TopoDS_CompSolid, TopoDS_Edge, TopoDS_Face,
-        TopoDS_Shape, TopoDS_Shell, TopoDS_Solid, TopoDS_Vertex, TopoDS_Wire,
+        TopoDS_Compound,
+        TopoDS_CompSolid,
+        TopoDS_Edge,
+        TopoDS_Face,
+        TopoDS_Shape,
+        TopoDS_Shell,
+        TopoDS_Solid,
+        TopoDS_Vertex,
+        TopoDS_Wire,
     )
+
     for cls in [
-        TopoDS_Shape, TopoDS_Face, TopoDS_Edge, TopoDS_Vertex,
-        TopoDS_Wire, TopoDS_Shell, TopoDS_Solid, TopoDS_Compound, TopoDS_CompSolid,
+        TopoDS_Shape,
+        TopoDS_Face,
+        TopoDS_Edge,
+        TopoDS_Vertex,
+        TopoDS_Wire,
+        TopoDS_Shell,
+        TopoDS_Solid,
+        TopoDS_Compound,
+        TopoDS_CompSolid,
     ]:
         if not hasattr(cls, "HashCode"):
             cls.HashCode = lambda self, ub=2147483647: id(self) % ub
@@ -39,7 +54,8 @@ def rebuild_one(row, dry_run: bool) -> str:
     """Rebuild one sample. Returns 'ok', 'skip', or 'fail:<msg>'."""
     import cadquery as cq
     from scripts.data_generation.cad_synth.pipeline.builder import (
-        build_from_program, render_program_to_code,
+        build_from_program,
+        render_program_to_code,
     )
     from scripts.data_generation.cad_synth.pipeline.registry import get_family
 
@@ -65,6 +81,7 @@ def rebuild_one(row, dry_run: bool) -> str:
 
     # Sync GT STEP
     import shutil
+
     gt_step.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(step_path, gt_step)
 
@@ -78,12 +95,18 @@ def rebuild_one(row, dry_run: bool) -> str:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true", help="Parse only, no writes")
-    ap.add_argument("--families", nargs="+",
-                    default=["helical_gear", "bevel_gear"],
-                    help="Families to rebuild")
-    ap.add_argument("--difficulties", nargs="+",
-                    default=["medium", "hard"],
-                    help="Difficulties to rebuild")
+    ap.add_argument(
+        "--families",
+        nargs="+",
+        default=["helical_gear", "bevel_gear"],
+        help="Families to rebuild",
+    )
+    ap.add_argument(
+        "--difficulties",
+        nargs="+",
+        default=["medium", "hard"],
+        help="Difficulties to rebuild",
+    )
     ap.add_argument("--run", default="synth_gears_kw_s1502")
     args = ap.parse_args()
 

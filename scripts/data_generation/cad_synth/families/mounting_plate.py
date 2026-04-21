@@ -1,6 +1,5 @@
 """Mounting plate family — rectangular plate with optional holes/fillets."""
 
-
 from ..pipeline.builder import Op, Program
 from .base import BaseFamily
 

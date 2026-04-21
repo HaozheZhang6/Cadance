@@ -31,9 +31,9 @@ _ASME_B1201_NPT = [
     ("NPS 2", 60.3, 65, 15.5),
 ]
 
-_SMALL = _ASME_B1201_NPT[:4]   # NPS 1/8 – 1/2
-_MID = _ASME_B1201_NPT[1:7]    # NPS 1/4 – 1-1/4
-_ALL = _ASME_B1201_NPT          # NPS 1/8 – 2
+_SMALL = _ASME_B1201_NPT[:4]  # NPS 1/8 – 1/2
+_MID = _ASME_B1201_NPT[1:7]  # NPS 1/4 – 1-1/4
+_ALL = _ASME_B1201_NPT  # NPS 1/8 – 2
 
 
 class ThreadedAdapterFamily(BaseFamily):
@@ -43,7 +43,11 @@ class ThreadedAdapterFamily(BaseFamily):
     def sample_params(self, difficulty: str, rng) -> dict:
         # hard requires a smaller nps2 — exclude the smallest two entries
         hard_pool = _ASME_B1201_NPT[2:]  # NPS 3/8 and up (always have a smaller nps2)
-        pool = _SMALL if difficulty == "easy" else (_MID if difficulty == "medium" else hard_pool)
+        pool = (
+            _SMALL
+            if difficulty == "easy"
+            else (_MID if difficulty == "medium" else hard_pool)
+        )
         nps, stub_od, af, eng = pool[int(rng.integers(0, len(pool)))]
 
         stub_r = round(stub_od / 2, 2)
@@ -153,7 +157,10 @@ class ThreadedAdapterFamily(BaseFamily):
                     "ops": [
                         {
                             "name": "transformed",
-                            "args": {"offset": [0, 0, round(hh + shr / 2, 3)], "rotate": [0, 0, 0]},
+                            "args": {
+                                "offset": [0, 0, round(hh + shr / 2, 3)],
+                                "rotate": [0, 0, 0],
+                            },
                         },
                         {"name": "cylinder", "args": {"height": shr, "radius": srr}},
                     ]
@@ -167,7 +174,10 @@ class ThreadedAdapterFamily(BaseFamily):
                     "ops": [
                         {
                             "name": "transformed",
-                            "args": {"offset": [0, 0, round(hh + shr + sh / 2, 3)], "rotate": [0, 0, 0]},
+                            "args": {
+                                "offset": [0, 0, round(hh + shr + sh / 2, 3)],
+                                "rotate": [0, 0, 0],
+                            },
                         },
                         {"name": "cylinder", "args": {"height": sh, "radius": sr}},
                     ]
@@ -195,9 +205,15 @@ class ThreadedAdapterFamily(BaseFamily):
                         "ops": [
                             {
                                 "name": "transformed",
-                                "args": {"offset": [0, 0, round(-sh2h / 2, 3)], "rotate": [0, 0, 0]},
+                                "args": {
+                                    "offset": [0, 0, round(-sh2h / 2, 3)],
+                                    "rotate": [0, 0, 0],
+                                },
                             },
-                            {"name": "cylinder", "args": {"height": sh2h, "radius": sh2r}},
+                            {
+                                "name": "cylinder",
+                                "args": {"height": sh2h, "radius": sh2r},
+                            },
                         ]
                     },
                 )
@@ -209,9 +225,15 @@ class ThreadedAdapterFamily(BaseFamily):
                         "ops": [
                             {
                                 "name": "transformed",
-                                "args": {"offset": [0, 0, round(-sh2h - s2h / 2, 3)], "rotate": [0, 0, 0]},
+                                "args": {
+                                    "offset": [0, 0, round(-sh2h - s2h / 2, 3)],
+                                    "rotate": [0, 0, 0],
+                                },
                             },
-                            {"name": "cylinder", "args": {"height": s2h, "radius": s2r}},
+                            {
+                                "name": "cylinder",
+                                "args": {"height": s2h, "radius": s2r},
+                            },
                         ]
                     },
                 )
@@ -231,7 +253,10 @@ class ThreadedAdapterFamily(BaseFamily):
                         "ops": [
                             {
                                 "name": "transformed",
-                                "args": {"offset": [0, 0, knurl_z], "rotate": [0, 0, 0]},
+                                "args": {
+                                    "offset": [0, 0, knurl_z],
+                                    "rotate": [0, 0, 0],
+                                },
                             },
                             {"name": "cylinder", "args": {"height": kh, "radius": kr}},
                         ]
@@ -247,7 +272,10 @@ class ThreadedAdapterFamily(BaseFamily):
                             "ops": [
                                 {
                                     "name": "transformed",
-                                    "args": {"offset": [kr, 0, knurl_z], "rotate": [0, 0, angle_deg]},
+                                    "args": {
+                                        "offset": [kr, 0, knurl_z],
+                                        "rotate": [0, 0, angle_deg],
+                                    },
                                 },
                                 {
                                     "name": "box",

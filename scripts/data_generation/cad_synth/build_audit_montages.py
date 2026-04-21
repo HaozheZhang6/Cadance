@@ -62,18 +62,18 @@ def build_montage(family: str, by_diff: dict, out_path: Path, per_diff: int = 2)
     canvas = Image.new("RGB", (img_w, img_h), (245, 245, 245))
     draw = ImageDraw.Draw(canvas)
     try:
-        font_title = ImageFont.truetype(
-            "/System/Library/Fonts/Helvetica.ttc", 22
-        )
-        font_label = ImageFont.truetype(
-            "/System/Library/Fonts/Helvetica.ttc", 14
-        )
+        font_title = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 22)
+        font_label = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 14)
     except Exception:
         font_title = ImageFont.load_default()
         font_label = ImageFont.load_default()
 
-    draw.text((pad, 6), f"{family}  ({sum(len(by_diff.get(d, [])) for d in diffs)} samples)",
-              fill=(20, 20, 20), font=font_title)
+    draw.text(
+        (pad, 6),
+        f"{family}  ({sum(len(by_diff.get(d, [])) for d in diffs)} samples)",
+        fill=(20, 20, 20),
+        font=font_title,
+    )
 
     for r, diff in enumerate(diffs):
         samples = by_diff.get(diff, [])[:per_diff]
@@ -91,25 +91,35 @@ def build_montage(family: str, by_diff: dict, out_path: Path, per_diff: int = 2)
                         cy = y0 + (cell_h - im.height) // 2
                         canvas.paste(im, (cx, cy))
                     except Exception:
-                        draw.rectangle([x0, y0, x0 + cell_w, y0 + cell_h],
-                                       outline=(200, 0, 0), width=2)
+                        draw.rectangle(
+                            [x0, y0, x0 + cell_w, y0 + cell_h],
+                            outline=(200, 0, 0),
+                            width=2,
+                        )
                 idx = stem.split("_")[-2]
                 lbl = f"{diff} #{idx}"
-                draw.text((x0, y0 + cell_h + 4), lbl,
-                          fill=(60, 60, 60), font=font_label)
+                draw.text(
+                    (x0, y0 + cell_h + 4), lbl, fill=(60, 60, 60), font=font_label
+                )
             else:
-                draw.rectangle([x0, y0, x0 + cell_w, y0 + cell_h],
-                               outline=(200, 200, 200), width=1)
-                draw.text((x0 + 8, y0 + cell_h // 2 - 8),
-                          f"no {diff} samples", fill=(180, 0, 0),
-                          font=font_label)
+                draw.rectangle(
+                    [x0, y0, x0 + cell_w, y0 + cell_h], outline=(200, 200, 200), width=1
+                )
+                draw.text(
+                    (x0 + 8, y0 + cell_h // 2 - 8),
+                    f"no {diff} samples",
+                    fill=(180, 0, 0),
+                    font=font_label,
+                )
 
     canvas.save(out_path)
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--batch", required=True, help="batch run name (e.g. batch_audit_apr18)")
+    ap.add_argument(
+        "--batch", required=True, help="batch run name (e.g. batch_audit_apr18)"
+    )
     ap.add_argument("--out", required=True, help="output dir for montages")
     ap.add_argument("--per-diff", type=int, default=2)
     args = ap.parse_args()

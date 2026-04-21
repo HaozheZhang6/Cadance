@@ -24,7 +24,7 @@ class TSlotRailFamily(BaseFamily):
     # DIN 650 slot profile: (slot_opening, bolt_m, size, back_w, depth, wall_t)
     # back_w ≈ 1.5×slot_opening; depth ≈ slot_opening; wall_t ≈ 0.15×size
     _ISO299 = [
-        (8,  "M8",  20, 12, 8,  3),
+        (8, "M8", 20, 12, 8, 3),
         (10, "M10", 25, 15, 10, 4),
         (12, "M12", 30, 18, 12, 5),
         (16, "M16", 40, 24, 16, 6),
@@ -73,9 +73,7 @@ class TSlotRailFamily(BaseFamily):
         if difficulty == "hard":
             max_cbd = round((size / 2 - slot_depth) * 2 - 1, 1)
             if max_cbd >= 3:
-                params["center_bore_diameter"] = round(
-                    min(max_cbd, size * 0.28), 1
-                )
+                params["center_bore_diameter"] = round(min(max_cbd, size * 0.28), 1)
             params["fillet_radius"] = round(wall_t * 0.25, 1)
 
         return params

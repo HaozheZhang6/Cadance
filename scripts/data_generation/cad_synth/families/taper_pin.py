@@ -11,7 +11,6 @@ Hard:   + threaded extraction hole on large end (blind, tapped)
 Reference: ISO 2339:1986 — Taper pins, unhardened; Table (d_nom, l_min, l_max for d 0.6–50mm)
 """
 
-
 from ..pipeline.builder import Op, Program
 from .base import BaseFamily
 

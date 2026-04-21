@@ -5,7 +5,6 @@ Medium: round holes + chamfer on plate edges
 Hard:   rectangular slots + chamfer
 """
 
-
 from ..pipeline.builder import Op, Program
 from .base import BaseFamily
 

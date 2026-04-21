@@ -4,7 +4,6 @@ Geometry: box → shell (open top face).  Medium/hard add mounting holes on the
 bottom floor and fillets on inner bottom edges.
 """
 
-
 from ..pipeline.builder import Op, Program
 from .base import BaseFamily
 

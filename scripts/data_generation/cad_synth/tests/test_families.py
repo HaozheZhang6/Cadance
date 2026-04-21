@@ -7,7 +7,6 @@ from ..families.mounting_plate import MountingPlateFamily
 from ..families.round_flange import RoundFlangeFamily
 from ..pipeline.builder import Program, render_program_to_code
 
-
 FAMILIES = [MountingPlateFamily(), RoundFlangeFamily()]
 DIFFICULTIES = ["easy", "medium", "hard"]
 
@@ -57,9 +56,13 @@ class TestValidateParams:
     def test_reject_bad_flange(self):
         """Flange rejects inner >= outer."""
         f = RoundFlangeFamily()
-        assert not f.validate_params({
-            "outer_radius": 20, "inner_radius": 25, "height": 10,
-        })
+        assert not f.validate_params(
+            {
+                "outer_radius": 20,
+                "inner_radius": 25,
+                "height": 10,
+            }
+        )
 
 
 class TestMakeProgram:

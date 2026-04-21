@@ -1,5 +1,6 @@
 # CadQuery isolated venv (auto-created on first run)
 tools/cadquery/.venv/
+tmp/
 
 # Files
 *.pdf
@@ -7,6 +8,18 @@ tools/cadquery/.venv/
 *.svg
 .DS_Store
 *.step
+*.stl
+*.iges
+*.dxf
+*.dwg
+*.dwfx
+*.dwfx
+*.dwfx
+*.dwfx
+*.dwfxs
+*.status
+*.jpg
+*.txt
 
 # Generated data and runtime state
 data/

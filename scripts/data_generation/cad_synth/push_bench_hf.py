@@ -4,6 +4,7 @@ Usage:
     HF_TOKEN=... uv run python3 scripts/data_generation/cad_synth/push_bench_hf.py \
         --run bench_1k_apr14 --repo Hula0401/test_bench
 """
+
 import argparse
 import json
 import os
@@ -13,11 +14,25 @@ ROOT = Path(__file__).resolve().parents[3]
 DATA = ROOT / "data" / "data_generation" / "generated_data" / "fusion360"
 
 OOD_FAMILIES = {
-    "bellows", "worm_screw", "torus_link", "impeller", "propeller",
-    "chair", "table", "snap_clip",
-    "waffle_plate", "wire_grid", "mesh_panel",
-    "t_pipe_fitting", "pipe_elbow", "duct_elbow",
-    "dome_cap", "capsule", "coil_spring", "bucket", "nozzle",
+    "bellows",
+    "worm_screw",
+    "torus_link",
+    "impeller",
+    "propeller",
+    "chair",
+    "table",
+    "snap_clip",
+    "waffle_plate",
+    "wire_grid",
+    "mesh_panel",
+    "t_pipe_fitting",
+    "pipe_elbow",
+    "duct_elbow",
+    "dome_cap",
+    "capsule",
+    "coil_spring",
+    "bucket",
+    "nozzle",
 }
 
 
@@ -48,18 +63,20 @@ def build_rows(run_name: str) -> list[dict]:
         code_path = run_dir / "code.py"
         code = code_path.read_text() if code_path.exists() else ""
 
-        rows.append({
-            "stem": m["stem"],
-            "family": family,
-            "difficulty": m["difficulty"],
-            "base_plane": base_plane,
-            "split": split,
-            "feature_tags": json.dumps(m["feature_tags"]),
-            "feature_count": sum(1 for v in m["feature_tags"].values() if v),
-            "ops_used": json.dumps(m["ops_used"]),
-            "gt_code": code,
-            "composite_png": img_bytes,   # raw bytes → datasets will handle as Image
-        })
+        rows.append(
+            {
+                "stem": m["stem"],
+                "family": family,
+                "difficulty": m["difficulty"],
+                "base_plane": base_plane,
+                "split": split,
+                "feature_tags": json.dumps(m["feature_tags"]),
+                "feature_count": sum(1 for v in m["feature_tags"].values() if v),
+                "ops_used": json.dumps(m["ops_used"]),
+                "gt_code": code,
+                "composite_png": img_bytes,  # raw bytes → datasets will handle as Image
+            }
+        )
     return rows
 
 
@@ -91,7 +108,11 @@ def main():
         pil_rows.append(row)
 
     # Split into subsets (HF split names must be word chars only)
-    split_map = {"test-iid": "test_iid", "test-ood-family": "test_ood_family", "test-ood-plane": "test_ood_plane"}
+    split_map = {
+        "test-iid": "test_iid",
+        "test-ood-family": "test_ood_family",
+        "test-ood-plane": "test_ood_plane",
+    }
     splits_data = {"test_iid": [], "test_ood_family": [], "test_ood_plane": []}
     for row in pil_rows:
         key = split_map[row["split"]]
@@ -101,12 +122,18 @@ def main():
     dd = {}
     for split_name, split_rows in splits_data.items():
         if split_rows:
-            dd[split_name] = Dataset.from_list(split_rows).cast_column("composite_png", Image())
+            dd[split_name] = Dataset.from_list(split_rows).cast_column(
+                "composite_png", Image()
+            )
             print(f"  {split_name}: {len(split_rows)} samples")
 
     ds = DatasetDict(dd)
     print(f"Pushing to {args.repo} ...")
-    ds.push_to_hub(args.repo, token=token, commit_message="bench_1k_apr14: 994 synth CAD bench samples")
+    ds.push_to_hub(
+        args.repo,
+        token=token,
+        commit_message="bench_1k_apr14: 994 synth CAD bench samples",
+    )
     print(f"Done! https://huggingface.co/datasets/{args.repo}")
 
 

@@ -6,6 +6,7 @@ Usage:
         --repo Hula0401/test_bench \
         [--dry-run]
 """
+
 import argparse
 import json
 import os
@@ -18,11 +19,25 @@ DATA = ROOT / "data" / "data_generation" / "generated_data" / "fusion360"
 
 # 19 OOD families (held-out from train)
 OOD_FAMILIES = {
-    "bellows", "worm_screw", "torus_link", "impeller", "propeller",
-    "chair", "table", "snap_clip",
-    "waffle_plate", "wire_grid", "mesh_panel",
-    "t_pipe_fitting", "pipe_elbow", "duct_elbow",
-    "dome_cap", "capsule", "coil_spring", "bucket", "nozzle",
+    "bellows",
+    "worm_screw",
+    "torus_link",
+    "impeller",
+    "propeller",
+    "chair",
+    "table",
+    "snap_clip",
+    "waffle_plate",
+    "wire_grid",
+    "mesh_panel",
+    "t_pipe_fitting",
+    "pipe_elbow",
+    "duct_elbow",
+    "dome_cap",
+    "capsule",
+    "coil_spring",
+    "bucket",
+    "nozzle",
 }
 
 
@@ -82,8 +97,15 @@ def stage_dataset(rows: list[dict], stage_dir: Path) -> None:
         run_dir = ROOT / row["gt_code_path"].replace("/code.py", "")
 
         # Copy key files
-        for fname in ["code.py", "gen.step", "meta.json",
-                      "render_0.png", "render_1.png", "render_2.png", "render_3.png"]:
+        for fname in [
+            "code.py",
+            "gen.step",
+            "meta.json",
+            "render_0.png",
+            "render_1.png",
+            "render_2.png",
+            "render_3.png",
+        ]:
             src = run_dir / fname
             if src.exists():
                 shutil.copy2(src, dest / fname)
@@ -107,6 +129,7 @@ def stage_dataset(rows: list[dict], stage_dir: Path) -> None:
 
     # Stats
     from collections import Counter
+
     splits = Counter(r["split"] for r in rows)
     fams = Counter(r["family"] for r in rows)
     diffs = Counter(r["difficulty"] for r in rows)
@@ -146,7 +169,9 @@ def main():
     ap.add_argument("--repo", default="Hula0401/test_bench")
     ap.add_argument("--stage-dir", default="/workspace/tmp/bench_hf_stage")
     ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--manifest-only", action="store_true", help="only build manifest, skip upload")
+    ap.add_argument(
+        "--manifest-only", action="store_true", help="only build manifest, skip upload"
+    )
     args = ap.parse_args()
 
     token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")

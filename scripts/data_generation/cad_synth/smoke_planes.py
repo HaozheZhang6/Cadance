@@ -3,6 +3,7 @@ Smoke-test all registered families across XY / YZ / XZ base planes.
 For each family × plane, builds easy+medium+hard, checks bbox is non-degenerate.
 Prints a summary table: PASS / FAIL per family × plane.
 """
+
 import sys, traceback
 import numpy as np
 
@@ -10,10 +11,17 @@ sys.path.insert(0, "/workspace/scripts/data_generation")
 sys.path.insert(0, "/workspace")
 
 PLANES = ["XY", "YZ", "XZ"]
-DIFFS  = ["easy", "medium", "hard"]
+DIFFS = ["easy", "medium", "hard"]
 
 # Families known to be sweep-path-sensitive — still test but flag separately
-SWEEP_FAMILIES = {"coil_spring", "worm_screw", "pipe_elbow", "t_pipe_fitting", "propeller", "bellows"}
+SWEEP_FAMILIES = {
+    "coil_spring",
+    "worm_screw",
+    "pipe_elbow",
+    "t_pipe_fitting",
+    "propeller",
+    "bellows",
+}
 
 
 def test_family(fam_name: str) -> dict:
@@ -69,10 +77,7 @@ def main():
     results = {}  # family → {plane: (ok, msg)}
     for fam in families:
         results[fam] = test_family(fam)
-        row = "  ".join(
-            ("✓" if results[fam][p][0] else "✗") + p
-            for p in PLANES
-        )
+        row = "  ".join(("✓" if results[fam][p][0] else "✗") + p for p in PLANES)
         sweep_tag = " [sweep]" if fam in SWEEP_FAMILIES else ""
         print(f"{fam:<28} {row}{sweep_tag}")
         if not all(results[fam][p][0] for p in PLANES):
@@ -84,8 +89,12 @@ def main():
     # Summary
     print("\n--- SUMMARY ---")
     all_pass = [f for f in families if all(results[f][p][0] for p in PLANES)]
-    xy_only  = [f for f in families if results[f]["XY"][0] and not all(results[f][p][0] for p in PLANES)]
-    broken   = [f for f in families if not results[f]["XY"][0]]
+    xy_only = [
+        f
+        for f in families
+        if results[f]["XY"][0] and not all(results[f][p][0] for p in PLANES)
+    ]
+    broken = [f for f in families if not results[f]["XY"][0]]
     print(f"All-plane pass : {len(all_pass):3d}  {all_pass}")
     print(f"XY-only (partial): {len(xy_only):3d}  {xy_only}")
     print(f"XY broken      : {len(broken):3d}  {broken}")

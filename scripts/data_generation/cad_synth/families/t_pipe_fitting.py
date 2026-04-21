@@ -36,8 +36,8 @@ _NPS_SCH40 = [
     ("NPS 3", 88.9, 5.49),
     ("NPS 4", 114.3, 6.02),
 ]
-_SMALL_NPS = _NPS_SCH40[:5]   # NPS 1/2 – 1-1/2
-_MID_NPS = _NPS_SCH40[2:7]    # NPS 1 – 2-1/2
+_SMALL_NPS = _NPS_SCH40[:5]  # NPS 1/2 – 1-1/2
+_MID_NPS = _NPS_SCH40[2:7]  # NPS 1 – 2-1/2
 _ALL_NPS = _NPS_SCH40
 
 VARIANTS = ["tee"]
@@ -49,7 +49,8 @@ class TPipeFittingFamily(BaseFamily):
 
     def sample_params(self, difficulty: str, rng) -> dict:
         pool = (
-            _SMALL_NPS if difficulty == "easy"
+            _SMALL_NPS
+            if difficulty == "easy"
             else (_MID_NPS if difficulty == "medium" else _ALL_NPS)
         )
         nps, od, wall = pool[int(rng.integers(0, len(pool)))]

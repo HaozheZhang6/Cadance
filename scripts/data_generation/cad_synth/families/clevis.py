@@ -26,8 +26,8 @@ _DIN71751 = [
     (32, 30, 33),
     (40, 36, 41),
 ]
-_SMALL = _DIN71751[:4]   # d 5–10
-_MID = _DIN71751[2:7]    # d 8–20
+_SMALL = _DIN71751[:4]  # d 5–10
+_MID = _DIN71751[2:7]  # d 8–20
 _ALL = _DIN71751
 
 
@@ -36,7 +36,11 @@ class ClevisFamily(BaseFamily):
     standard = "DIN 71751"
 
     def sample_params(self, difficulty: str, rng) -> dict:
-        pool = _SMALL if difficulty == "easy" else (_MID if difficulty == "medium" else _ALL)
+        pool = (
+            _SMALL
+            if difficulty == "easy"
+            else (_MID if difficulty == "medium" else _ALL)
+        )
         pin_d, arm_t, gap = pool[int(rng.integers(0, len(pool)))]
         arm_h = round(pin_d * rng.uniform(2.5, 5.0), 1)
         base_h = round(pin_d * rng.uniform(1.5, 3.0), 1)

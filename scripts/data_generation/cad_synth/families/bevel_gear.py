@@ -67,7 +67,11 @@ class BevelGearFamily(BaseFamily):
         z = int(rng.integers(12, 32))
         r_p = m * z / 2
         # ISO 23509 preferred pitch angles for straight bevel gears
-        pitch_angle = 45.0 if variant == "miter" else float(rng.choice([15.0, 20.0, 25.0, 30.0, 35.0, 40.0]))
+        pitch_angle = (
+            45.0
+            if variant == "miter"
+            else float(rng.choice([15.0, 20.0, 25.0, 30.0, 35.0, 40.0]))
+        )
         # Face width: ISO 23509 recommends b ≤ r_p/3 and b ≤ 10m; preferred ratio b/m in {4,5,6,7,8}
         fw_max = min(m * 8, r_p * 0.72)
         fw_choices = [m * k for k in [4, 5, 6, 7, 8] if m * k <= fw_max]

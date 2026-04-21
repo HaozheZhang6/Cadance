@@ -6,7 +6,14 @@ import yaml
 import pytest
 
 SPECS_DIR = Path(__file__).parent.parent / "specs"
-REQUIRED_KEYS = {"family", "difficulty_levels", "ops", "params", "constraints", "feature_tags"}
+REQUIRED_KEYS = {
+    "family",
+    "difficulty_levels",
+    "ops",
+    "params",
+    "constraints",
+    "feature_tags",
+}
 
 
 def _load_specs():
@@ -55,9 +62,9 @@ def test_spec_params_are_ranges(specs):
     """Every param value is a 2-element list [min, max]."""
     for name, spec in specs.items():
         for pname, prange in spec["params"].items():
-            assert isinstance(prange, list) and len(prange) == 2, (
-                f"{name}.params.{pname} not a [min,max] pair: {prange}"
-            )
-            assert prange[0] <= prange[1], (
-                f"{name}.params.{pname}: min > max ({prange})"
-            )
+            assert (
+                isinstance(prange, list) and len(prange) == 2
+            ), f"{name}.params.{pname} not a [min,max] pair: {prange}"
+            assert (
+                prange[0] <= prange[1]
+            ), f"{name}.params.{pname}: min > max ({prange})"

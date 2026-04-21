@@ -46,6 +46,7 @@ def axial_bot(base_plane: str) -> str:
 # Rotation around plane normal
 # ---------------------------------------------------------------------------
 
+
 def plane_rot(base_plane: str, angle: float) -> list:
     """Euler rotation [rx,ry,rz] to spin `angle` degrees around the plane normal.
 
@@ -59,6 +60,7 @@ def plane_rot(base_plane: str, angle: float) -> list:
 # ---------------------------------------------------------------------------
 # World-coordinate offset from plane-relative (u, v, w)
 # ---------------------------------------------------------------------------
+
 
 def plane_offset(base_plane: str, u: float, v: float, w: float) -> list:
     """Convert plane-relative (u, v, w) to a vector for `transformed(offset=...)`.
@@ -84,6 +86,7 @@ def plane_offset(base_plane: str, u: float, v: float, w: float) -> list:
 # Since `transformed(rotate=...)` uses LOCAL workplane coordinates and the
 # local axes are conceptually consistent across all planes, the rotations
 # are plane-independent.
+
 
 def cylinder_rot_to_lateral1(base_plane: str) -> list:
     """Rotate a base-plane cylinder so its axis aligns with the first lateral.
