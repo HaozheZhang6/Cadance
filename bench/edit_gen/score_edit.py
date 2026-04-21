@@ -6,8 +6,8 @@ Reads pairs.jsonl (paths to orig/gt STEP) and runs/<model>/results.jsonl, comput
   - norm_improve  : clip((iou_gen_gt - iou_orig_gt) / (1 - iou_orig_gt), 0, 1)
                     0 = no improvement (or made it worse), 1 = perfect match
 
-When iou_orig_gt > 0.999 the pair is degenerate (shouldn't happen given 2-5%
-delta + sanity filter), but we skip it from norm_improve aggregation if so.
+When iou_orig_gt > 0.99 the pair is degenerate (matches
+filter_iou_degenerate.py threshold); skip from norm_improve aggregation if so.
 
 Usage:
     python -m bench.edit_gen.score_edit --model gpt-4o
@@ -26,7 +26,7 @@ from bench.metrics import compute_iou
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_BENCH = ROOT / "data" / "data_generation" / "bench_edit"
-DEGEN_THRESH = 0.999
+DEGEN_THRESH = 0.99
 
 
 def score(bench_dir: Path, model: str) -> dict:
