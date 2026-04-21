@@ -1,4 +1,10 @@
 
+## 2026-04-21 (session 19) — Edit bench HF upload
+
+- 新 `bench/edit_gen/upload_edit_hf.py`：读 `pairs.jsonl` + codes/ + steps/，每行 embed `orig_code`/`gt_code` 文本 + `orig_step`/`gt_step` bytes + params/instruction/iou
+- 推到 `Hula0401/cad_synth_bench_edit` split=`test_iid`：724 rows, 104 families, L1×362+L2×362, 56MB parquet
+- gitignore 加 `website/`
+
 ## 2026-04-20 (session 18) — UA-21 code→QA bench runner
 
 - 新 `bench/eval_qa_code.py`：纯文本 LLM 从 `gt_code` 读 CadQuery，回答 `qa_pairs` 问题，复用 `qa_score`
