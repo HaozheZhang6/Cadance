@@ -1,32 +1,32 @@
-"""Hex standoff / hex bolt boss — hexagonal prism with through bore.
+"""Hex standoff — hexagonal prism spacer (male-female / female-female).
 
-Structural type: polygon cross-section. Completely different from round or square bodies.
-Covers: hex spacers, standoffs, hex bosses, hex flanged nuts.
+Easy:   hex prism + straight through-bore (female-female spacer)
+Medium: hex body + externally-threaded stud on top + blind tapping-drill hole on bottom
+Hard:   medium + chamfer on stud tip
 
-Dimensions from ISO 272 / DIN 934 wrench-size table: M-size → (af_mm, bore_d, h_min, h_max).
+Dimensions from ISO 272 / DIN 934 hex table plus standard tapping-drill diameters:
+  M-size → (af, d_nom, d_tap, h_min, h_max)
 
-Easy:   hex prism + center bore
-Medium: + flange base + chamfer
-Hard:   + partial blind bore (stepped) + fillet
-
-Reference: ISO 272:1982 — Hexagon sizes for bolts, screws and nuts; fastener catalogue
-  standoff height series per M-size (PCB/electronics hardware standards)
+Reference: ISO 272:1982 — Hexagon sizes; catalogue: KEYSTONE / HALDER male-female
+  standoff series (PCB electronics hardware standards).
 """
 
 from ..pipeline.builder import Op, Program
 from .base import BaseFamily
 
-# ISO 272 / DIN 934 hex standoff table — (m_size, af_mm, bore_d, h_min, h_max) mm
+# ISO 272 / DIN 934 hex standoff table
+# (m_size, af_mm, d_nom, d_tap, h_min, h_max) mm
+# d_tap = tapping-drill Ø for metric coarse thread (~0.84·d_nom).
 _ISO272 = [
-    (3, 5.5, 3.0, 5, 30),
-    (4, 7.0, 4.0, 6, 40),
-    (5, 8.0, 5.0, 8, 50),
-    (6, 10.0, 6.0, 10, 60),
-    (8, 13.0, 8.0, 12, 80),
-    (10, 16.0, 10.0, 15, 100),
-    (12, 18.0, 12.0, 18, 120),
-    (16, 24.0, 16.0, 20, 150),
-    (20, 30.0, 20.0, 25, 200),
+    (3, 5.5, 3.0, 2.5, 5, 30),
+    (4, 7.0, 4.0, 3.3, 6, 40),
+    (5, 8.0, 5.0, 4.2, 8, 50),
+    (6, 10.0, 6.0, 5.0, 10, 60),
+    (8, 13.0, 8.0, 6.8, 12, 80),
+    (10, 16.0, 10.0, 8.5, 15, 100),
+    (12, 18.0, 12.0, 10.2, 18, 120),
+    (16, 24.0, 16.0, 14.0, 20, 150),
+    (20, 30.0, 20.0, 17.5, 25, 200),
 ]
 _SMALL = _ISO272[:5]  # M3–M8
 _MID = _ISO272[2:7]  # M5–M12
@@ -69,7 +69,7 @@ class HexStandoffFamily(BaseFamily):
             if difficulty == "easy"
             else (_MID if difficulty == "medium" else _ALL)
         )
-        m_size, af, bore_d, h_min, h_max = pool[int(rng.integers(0, len(pool)))]
+        m_size, af, d_nom, d_tap, h_min, h_max = pool[int(rng.integers(0, len(pool)))]
         valid_h = [h for h in _H_SERIES if h_min <= h <= h_max]
         height = float(valid_h[int(rng.integers(0, len(valid_h)))])
 
@@ -77,67 +77,66 @@ class HexStandoffFamily(BaseFamily):
             "m_size": float(m_size),
             "across_flats": float(af),
             "height": height,
-            "bore_diameter": float(bore_d),
             "difficulty": difficulty,
         }
 
-        if difficulty in ("medium", "hard"):
-            # Flange OD: preferred multiples of AF
-            flange_od = round(af * float(rng.choice([1.4, 1.5, 1.6, 1.8])), 1)
-            flange_h = round(height * float(rng.choice([0.12, 0.15, 0.18, 0.22])), 1)
-            flange_h = max(flange_h, 2.0)
-            params["flange_diameter"] = flange_od
-            params["flange_height"] = flange_h
-            params["chamfer_length"] = round(min(1.5, height * 0.04), 1)
+        if difficulty == "easy":
+            # Female-female through-bore spacer: bore = clearance Ø (≈ d_nom)
+            params["bore_diameter"] = float(d_nom)
+        else:
+            # Male-female: stud on top, blind tap-drill hole on bottom
+            stud_length = float(rng.choice([4, 5, 6, 8, 10, 12]))
+            stud_length = min(stud_length, height * 0.45)  # stud ≤ ~half body
+            stud_length = max(stud_length, 3.0)
+            params["stud_diameter"] = float(d_nom)
+            params["stud_length"] = round(stud_length, 1)
+            params["hole_diameter"] = float(d_tap)
+            # Blind hole slightly deeper than stud for thread engagement clearance
+            params["hole_depth"] = round(stud_length + 2.0, 1)
 
         if difficulty == "hard":
-            # Stepped bore: standard clearance step ~ bore_d × 1.5
-            bore_step_d = round(bore_d * float(rng.choice([1.3, 1.4, 1.5, 1.6])), 1)
-            bore_step_h = round(height * float(rng.choice([0.20, 0.25, 0.30])), 1)
-            bore_step_h = max(bore_step_h, 2.0)
-            params["bore_step_diameter"] = bore_step_d
-            params["bore_step_height"] = bore_step_h
-            params["fillet_radius"] = round(af * 0.025, 1)
+            # Small chamfer on stud tip for thread lead-in
+            params["stud_chamfer"] = round(min(0.4, d_nom * 0.08), 2)
 
         return params
 
     def validate_params(self, params: dict) -> bool:
         af = params["across_flats"]
         h = params["height"]
-        bd = params["bore_diameter"]
+        diff = params.get("difficulty", "easy")
 
-        # hex circumradius = af / cos(30°) ≈ af / 0.866
-        hex_r = af / 0.866
-        if bd >= hex_r * 0.85 or bd < 3:
-            return False
-        if h < 5 or af < 6:
+        hex_inradius = af / 2  # distance from centre to flat
+        if h < 5 or af < 5:
             return False
 
-        flange_d = params.get("flange_diameter")
-        flange_h = params.get("flange_height")
-        if flange_d and flange_h:
-            if flange_d <= af or flange_h >= h:
+        if diff == "easy":
+            bd = params["bore_diameter"]
+            if bd >= hex_inradius * 1.7 or bd < 2.5:
                 return False
+            return True
 
-        bsd = params.get("bore_step_diameter")
-        bsh = params.get("bore_step_height")
-        if bsd and bsh:
-            if bsd >= hex_r * 0.85:
-                return False
-            if bsh >= h * 0.5:
-                return False
-
+        # medium/hard: stud on top + blind tap-drill on bottom
+        sd = params["stud_diameter"]
+        sl = params["stud_length"]
+        hd = params["hole_diameter"]
+        hdp = params["hole_depth"]
+        # Stud must fit within hex inradius (so it sits on the hex top face)
+        if sd >= hex_inradius * 1.6:
+            return False
+        # Tap hole must leave a bottom wall and not intrude past mid-body
+        if hdp >= h * 0.75:
+            return False
+        if hd >= hex_inradius * 1.5:
+            return False
+        if sl < 3:
+            return False
         return True
 
     def make_program(self, params: dict) -> Program:
         difficulty = params.get("difficulty", "easy")
         af = params["across_flats"]
         h = params["height"]
-        bd = params["bore_diameter"]
-
-        # polygon diameter = across-flats / cos(30°) * 1 = circumradius*2
-        # CadQuery polygon(n, diameter) takes circumradius*2 (across-corners)
-        hex_diameter = round(af / 0.866, 3)
+        hex_diameter = round(af / 0.866, 3)  # across-corners
 
         ops, tags = [], {
             "has_hole": True,
@@ -151,39 +150,43 @@ class HexStandoffFamily(BaseFamily):
         ops.append(Op("polygon", {"n": 6, "diameter": hex_diameter}))
         ops.append(Op("extrude", {"distance": h}))
 
-        # Flange base (medium+)
-        flange_d = params.get("flange_diameter")
-        flange_h = params.get("flange_height")
-        if flange_d and flange_h:
-            ops.append(Op("workplane", {"selector": "<Z"}))
-            ops.append(Op("circle", {"radius": flange_d / 2}))
-            ops.append(Op("extrude", {"distance": flange_h}))
-
-        # Through bore
-        ops.append(Op("workplane", {"selector": ">Z"}))
-        ops.append(Op("hole", {"diameter": bd}))
-
-        # Stepped bore (hard)
-        bsd = params.get("bore_step_diameter")
-        bsh = params.get("bore_step_height")
-        if bsd and bsh:
+        if difficulty == "easy":
+            # Through-bore (female-female spacer)
             ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("circle", {"radius": bsd / 2}))
-            ops.append(Op("cutBlind", {"depth": bsh}))
+            ops.append(Op("hole", {"diameter": params["bore_diameter"]}))
+            return Program(
+                family=self.name,
+                difficulty=difficulty,
+                params=params,
+                ops=ops,
+                feature_tags=tags,
+            )
 
-        # Chamfer top edges (medium+)
-        cl = params.get("chamfer_length")
-        if cl:
+        # Male-female: extrude stud on top
+        sd = params["stud_diameter"]
+        sl = params["stud_length"]
+        ops.append(Op("workplane", {"selector": ">Z"}))
+        ops.append(Op("circle", {"radius": round(sd / 2, 3)}))
+        ops.append(Op("extrude", {"distance": sl}))
+
+        # Optional stud-tip chamfer (hard)
+        stud_ch = params.get("stud_chamfer")
+        if stud_ch:
             tags["has_chamfer"] = True
-            ops.append(Op("faces", {"selector": ">Z"}))
-            ops.append(Op("chamfer", {"length": cl}))
+            ops.append(Op("edges", {"selector": ">Z"}))
+            ops.append(Op("chamfer", {"length": stud_ch}))
 
-        # Fillet (hard)
-        fr = params.get("fillet_radius")
-        if fr:
-            tags["has_fillet"] = True
-            ops.append(Op("edges", {"selector": "|Z"}))
-            ops.append(Op("fillet", {"radius": fr}))
+        # Blind tap-drill hole from bottom
+        ops.append(Op("workplane", {"selector": "<Z"}))
+        ops.append(
+            Op(
+                "hole",
+                {
+                    "diameter": params["hole_diameter"],
+                    "depth": params["hole_depth"],
+                },
+            )
+        )
 
         return Program(
             family=self.name,

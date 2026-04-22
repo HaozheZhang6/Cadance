@@ -11,10 +11,12 @@ import argparse
 import json
 import os
 import shutil
-import tempfile
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 DATA = ROOT / "data" / "data_generation" / "generated_data" / "fusion360"
 
 # 19 OOD families (held-out from train)
@@ -49,10 +51,36 @@ def assign_split(family: str, base_plane: str) -> str:
     return "test-iid"
 
 
-def build_manifest(run_name: str) -> list[dict]:
+def build_manifest(
+    run_name: str,
+    revalidate_code: bool = True,
+    workers: int = 8,
+    dropped_log: Path | None = None,
+) -> list[dict]:
+    from scripts.data_generation.cad_synth._upload_filter import (
+        accepted_stems,
+        filter_rows,
+    )
+
     pattern = f"*/verified_{run_name}/meta.json"
     meta_files = sorted(DATA.glob(pattern))
-    print(f"Found {len(meta_files)} samples for run '{run_name}'")
+    print(f"Found {len(meta_files)} samples for run '{run_name}' (pre-filter)")
+
+    stems_ok = accepted_stems(run_name)
+    print(f"  accepted stems in CSV for run: {len(stems_ok)}")
+    meta_files, drops = filter_rows(
+        meta_files,
+        stems_ok,
+        revalidate_code=revalidate_code,
+        workers=workers,
+        dropped_log=dropped_log,
+        pipeline_run=run_name,
+    )
+    print(f"After filter: {len(meta_files)} samples")
+    if drops:
+        print("  Dropped:")
+        for reason, n in sorted(drops.items(), key=lambda x: -x[1]):
+            print(f"    {reason}: {n}")
 
     rows = []
     for mf in meta_files:
@@ -172,13 +200,35 @@ def main():
     ap.add_argument(
         "--manifest-only", action="store_true", help="only build manifest, skip upload"
     )
+    ap.add_argument(
+        "--no-revalidate-code",
+        action="store_true",
+        help="skip re-exec of code.py (faster, but may ship cases broken under current env)",
+    )
+    ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument(
+        "--dropped-log",
+        default=None,
+        help="CSV path to log dropped stems + reasons (default: <stage-dir>/dropped.csv)",
+    )
     args = ap.parse_args()
 
     token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
     if not token and not args.dry_run and not args.manifest_only:
         raise SystemExit("HF_TOKEN not set")
 
-    rows = build_manifest(args.run)
+    dropped_log = (
+        Path(args.dropped_log)
+        if args.dropped_log
+        else Path(args.stage_dir) / "dropped.csv"
+    )
+
+    rows = build_manifest(
+        args.run,
+        revalidate_code=not args.no_revalidate_code,
+        workers=args.workers,
+        dropped_log=dropped_log,
+    )
     if not rows:
         raise SystemExit(f"No samples found for run '{args.run}'")
 

@@ -81,21 +81,9 @@ def _apply_op(wp, op: Op):
             a["diameter"], a["cboreDiameter"], a["cboreDepth"], depth=a.get("depth")
         )
     elif name == "fillet":
-        try:
-            wp = wp.fillet(a["radius"])
-        except Exception:
-            try:
-                wp = wp.newObject([wp.findSolid()])  # recover solid from context
-            except Exception:
-                pass
+        wp = wp.fillet(a["radius"])
     elif name == "chamfer":
-        try:
-            wp = wp.chamfer(a["length"])
-        except Exception:
-            try:
-                wp = wp.newObject([wp.findSolid()])  # recover solid from context
-            except Exception:
-                pass
+        wp = wp.chamfer(a["length"])
     elif name == "shell":
         wp = wp.shell(a["thickness"])
     elif name == "workplane":
@@ -423,10 +411,10 @@ def _op_to_code(op: Op) -> str:
     elif name == "moveTo":
         return f".moveTo({a['x']}, {a['y']})"
     elif name == "faces":
-        return f'.faces("{a["selector"]}")'
+        return f'.faces("{_remap_sel(a["selector"])}")'
     elif name == "edges":
         sel = a.get("selector")
-        return f'.edges("{sel}")' if sel else ".edges()"
+        return f'.edges("{_remap_sel(sel)}")' if sel else ".edges()"
     elif name == "revolve":
         ax0 = a.get("axisStart", (0, 0, 0))
         ax1 = a.get("axisEnd", (0, 1, 0))

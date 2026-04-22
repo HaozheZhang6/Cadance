@@ -119,7 +119,6 @@ class BearingRetainerCapFamily(BaseFamily):
             step_h = round(rng.uniform(boss_h * 0.20, boss_h * 0.50), 1)
             params["shoulder_diameter"] = step_d
             params["shoulder_height"] = step_h
-            params["boss_chamfer"] = round(rng.uniform(0.5, min(2.0, boss_h * 0.08)), 1)
 
         if difficulty == "hard":
             groove_w = round(rng.uniform(2.0, min(5.0, boss_h * 0.15)), 1)
@@ -448,14 +447,7 @@ class BearingRetainerCapFamily(BaseFamily):
                     )
                 )
 
-        # Boss top chamfer before bore (>Z has only outer edge before hole is cut)
-        bc = params.get("boss_chamfer")
-        if bc:
-            tags["has_chamfer"] = True
-            ops.append(Op("faces", {"selector": ">Z"}))
-            ops.append(Op("chamfer", {"length": bc}))
-
-        # Center bore through boss (after chamfer so bore inner edge doesn't interfere)
+        # Center bore through boss
         ops.append(Op("workplane", {"selector": ">Z"}))
         ops.append(Op("hole", {"diameter": round(bd, 3)}))
 

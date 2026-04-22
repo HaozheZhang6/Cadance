@@ -1,6 +1,54 @@
 """Geometry + realism validation (Stages E & F)."""
 
 
+def validate_roundtrip(program, wp) -> tuple[bool, str]:
+    """Reject samples whose emitted gt_code doesn't re-exec to matching geometry.
+
+    Catches families where _apply_op succeeded but the string-emitted code
+    crashes on re-exec (e.g. chamfer on a selector that silently produced an
+    empty edge list at build time but raises on re-exec), or where the two
+    paths produce different face counts (divergence between wp and code).
+    """
+    try:
+        from .builder import render_program_to_code
+
+        code = render_program_to_code(program)
+    except Exception as e:
+        return False, f"emit_fail: {type(e).__name__}: {str(e)[:120]}"
+
+    code_clean = "\n".join(
+        l
+        for l in code.splitlines()
+        if l.strip() not in ("import cadquery as cq", "import cadquery")
+    )
+
+    import cadquery as cq
+
+    globs = {
+        "cq": cq,
+        "show_object": lambda *a, **kw: None,
+    }
+    try:
+        exec(compile(code_clean, "<roundtrip>", "exec"), globs)
+    except Exception as e:
+        return False, f"roundtrip_exec_fail: {type(e).__name__}: {str(e)[:120]}"
+
+    r = globs.get("result") or globs.get("r")
+    if r is None:
+        return False, "roundtrip_no_result"
+
+    try:
+        wp_faces = len(wp.val().Faces())
+        r_faces = len(r.val().Faces())
+    except Exception as e:
+        return False, f"roundtrip_face_count_fail: {e}"
+
+    if abs(wp_faces - r_faces) > 2:
+        return False, f"roundtrip_face_mismatch: wp={wp_faces} code={r_faces}"
+
+    return True, ""
+
+
 def validate_geometry(wp) -> tuple[bool, str]:
     """Check CadQuery result for degenerate geometry (Stage E).
 

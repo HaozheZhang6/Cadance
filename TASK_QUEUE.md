@@ -4,6 +4,32 @@
 
 ## ⚠️ USER-ASSIGNED — 进行中
 
+### UA-20 — Edit bench curated subset (每 family 1-2 个 low-coupling edit)
+
+**动机：** 现 724 pairs 很多编辑耦合太深（knob total_height 要改 33 个 magic number），模型不可能逆推公式。
+
+**目标：** 每 family 手工挑 1-2 个 **低耦合** edit pair，模型能真正理解和执行。
+
+**选 axis 优先级（user 指示）：**
+- 后置无依赖的 feature：**fillet / chamfer / hole / bore 类**
+- 主体尺寸（会 cascade）：除非 dl 很小，否则避免
+
+**硬约束：**
+- IoU(orig_step, gt_step) < 0.99（normalized 后不能 = 1，否则 edit 不可见）
+- 每 family 1 个；能清晰分成 2 个不同 feature 的再加第 2 个；说不清的只 1
+
+**产出：**
+- `data/data_generation/bench_edit/pairs_curated.jsonl`（新文件，不覆盖 pairs.jsonl）
+- `data/data_generation/bench_edit/previews/<family>.png`（orig | gt side-by-side，cadrille 4-view）
+- 每 pair 汇报：改了哪个 param、orig_value → target_value、dl、iou
+
+**执行计划：**
+1. 识别每 family 可用的 low-coupling axes（从 edit_axes.py + rendered diff_lines）
+2. 对 54 dl≤4 families：直接用现有 pair（优先挑 bore/chamfer/fillet 轴）
+3. 对 50 dl>4 families：手动改 orig code 或补新 axis
+4. 渲染 preview
+5. 写 pairs_curated.jsonl
+
 ### UA-19 — Edit Benchmark data gen (1000-2000 pair, L1/L2, 小 delta) ✅ DONE (2026-04-20)
 
 **结果：**

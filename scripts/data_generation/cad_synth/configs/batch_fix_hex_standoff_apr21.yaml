@@ -1,0 +1,11 @@
+run_name: batch_fix_hex_standoff_apr21
+num_samples: 40
+seed: 4422
+n_workers: 4
+family_mix:
+  hex_standoff: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true

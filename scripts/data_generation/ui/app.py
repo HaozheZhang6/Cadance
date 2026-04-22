@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT / "scripts" / "data_generation"))
 VERIFIED_CSV = ROOT / "data/data_generation/verified_parts.csv"
 PARTS_CSV = ROOT / "data/data_generation/parts.csv"
 SYNTH_CSV = ROOT / "data/data_generation/synth_parts.csv"
+BLOCKLIST_CSV = ROOT / "data/data_generation/upload_blocklist.csv"
 STEM_FS = ROOT / "data/data_generation/generated_data/fusion360"
 
 st.set_page_config(page_title="CAD Pipeline Monitor", layout="wide")
@@ -40,6 +41,14 @@ def load_synth() -> pd.DataFrame:
     if not SYNTH_CSV.exists():
         return pd.DataFrame()
     return pd.read_csv(SYNTH_CSV)
+
+
+@st.cache_data(ttl=10)
+def load_blocklist() -> pd.DataFrame:
+    """Load upload filter blocklist (stem/reason/pipeline_run)."""
+    if not BLOCKLIST_CSV.exists():
+        return pd.DataFrame(columns=["stem", "reason", "pipeline_run"])
+    return pd.read_csv(BLOCKLIST_CSV)
 
 
 @st.cache_data(ttl=300)
@@ -825,6 +834,25 @@ def page_synth():
         elif pf_sel == "preflight only":
             gdf = gdf[gdf["sample_type"] == "test"]
 
+    # ── Upload-filter blocklist toggle ─────────────────────────────────────
+    block = load_blocklist()
+    if run_sel != "(all)":
+        block = block[block["pipeline_run"] == run_sel]
+    block_map = dict(zip(block["stem"], block["reason"])) if len(block) else {}
+    if block_map:
+        b1, b2 = st.columns([3, 1])
+        up_only = b1.checkbox(
+            f"Upload-ready only — hide {len(block_map)} filter-blocked stems",
+            value=True,
+            help="Hides stems dropped by the HF upload filter "
+            "(status!=accepted, missing files, code.py exec fails).",
+        )
+        show_reasons = b2.checkbox("Show block reason on cards", value=False)
+        if up_only:
+            gdf = gdf[~gdf["stem"].isin(block_map)]
+    else:
+        up_only, show_reasons = False, False
+
     if "created_at" in gdf.columns:
         gdf = gdf.sort_values("created_at", ascending=(sort_sel == "Oldest first"))
     gdf = gdf.reset_index(drop=True)
@@ -891,10 +919,17 @@ def page_synth():
                     if bp
                     else ""
                 )
+                block_reason = block_map.get(stem, "")
+                block_b = (
+                    f' {_badge("BLOCKED: " + block_reason, "#C62828")}'
+                    if block_reason and show_reasons
+                    else ""
+                )
                 st.markdown(
                     f"{_badge(family, fam_color)} {_badge(diff, diff_color)}"
                     + (f" {iso_b}" if iso_b else "")
                     + (f" {bp_badge}" if bp_badge else "")
+                    + block_b
                     + f'<br><span style="font-size:10px;color:#888">#{gid} · {sample_id} · {created}</span>',
                     unsafe_allow_html=True,
                 )

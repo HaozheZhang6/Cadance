@@ -1,0 +1,9 @@
+run_name: batch_20k_apr20
+num_samples: 100
+seed: 4423
+n_workers: 4
+family_mix:
+  pulley: 1
+difficulty_mix:
+  hard: 1
+render: true

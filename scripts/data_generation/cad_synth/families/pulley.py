@@ -243,12 +243,13 @@ class PulleyFamily(BaseFamily):
             sector_angle = 2.0 * math.pi / n_sp
             arm_angle = max(sw / pocket_r, sector_angle * 0.55)
             pocket_angle = max(math.radians(8), sector_angle - arm_angle)
-            pocket_tang = round(2.0 * pocket_r * math.sin(pocket_angle / 2), 3)
-            # Radial length constrained by both hub and rim. The box is a
-            # rectangle — outer corners lie at radius
-            # sqrt((pocket_r + pocket_l/2)^2 + (pocket_tang/2)^2); must stay
-            # inside rim inner with margin. Inner edge midpoint at radius
-            # (pocket_r - pocket_l/2); must stay outside hub with margin.
+            # Proportional caps keyed to rim radius: pocket is a decorative
+            # lightening feature, not a structural gap. Ref ratios (rr=45):
+            # pocket_l≤0.25·rr, pocket_tang≤0.4·rr (≈80% of observed safe max).
+            tang_cap = 0.4 * rr
+            pocket_tang = round(
+                min(2.0 * pocket_r * math.sin(pocket_angle / 2), tang_cap), 3
+            )
             margin = 4.0
             max_len_hub = 2.0 * (pocket_r - hr - margin)
             rim_target = rr - rt - margin
@@ -257,7 +258,8 @@ class PulleyFamily(BaseFamily):
                 max_len_rim = 2.0
             else:
                 max_len_rim = 2.0 * (math.sqrt(inner_sq) - pocket_r)
-            pocket_l = round(max(2.0, min(max_len_hub, max_len_rim)), 3)
+            len_cap = 0.25 * rr
+            pocket_l = round(max(2.0, min(max_len_hub, max_len_rim, len_cap)), 3)
             for i in range(n_sp):
                 angle_deg = 360.0 * i / n_sp
                 fx = round(pocket_r * math.cos(math.radians(angle_deg)), 3)

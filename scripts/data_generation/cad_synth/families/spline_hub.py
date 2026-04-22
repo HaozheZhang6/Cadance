@@ -176,7 +176,7 @@ class SplineHubFamily(BaseFamily):
             "has_hole": True,
             "has_slot": True,
             "has_fillet": False,
-            "has_chamfer": True,
+            "has_chamfer": False,
             "rotational": True,
         }
 
@@ -234,13 +234,9 @@ class SplineHubFamily(BaseFamily):
             )
         )
 
-        # 4. Chamfer outer edges (both ends)
-        ch = round(min(1.5, m * 0.6), 2)
-        if ch > 0:
-            ops.append(Op("edges", {"selector": ">Z"}))
-            ops.append(Op("chamfer", {"length": ch}))
-            ops.append(Op("edges", {"selector": "<Z"}))
-            ops.append(Op("chamfer", {"length": ch}))
+        # 4. Chamfer skipped — ">Z"/"<Z" selects every tooth edge on the gear
+        # profile and OCCT fails to build valid chamfer geometry on narrow
+        # involute edges. Gear hub chamfer is a non-essential detail.
 
         return Program(
             family=self.name,

@@ -21,7 +21,7 @@ from .exporter import export_sample, log_rejection
 from .registry import get_family
 from .reporter import build_report, write_report
 from .sampler import sample_difficulty, sample_family
-from .validator import validate_geometry, validate_realism
+from .validator import validate_geometry, validate_realism, validate_roundtrip
 
 ROOT = Path(__file__).resolve().parents[4]
 DATA = ROOT / "data" / "data_generation"
@@ -162,6 +162,17 @@ def _worker(
         if not real_ok:
             result["reject_stage"] = "realism_filter"
             result["reject_reason"] = real_reason
+            queue.put(result)
+            return
+
+        # Stage F2: roundtrip check — ensure emitted gt_code re-execs to
+        # geometry matching wp (catches families where _apply_op silently
+        # succeeded but the string code crashes, or where the two paths
+        # diverge in face count).
+        rt_ok, rt_reason = validate_roundtrip(program, wp)
+        if not rt_ok:
+            result["reject_stage"] = "roundtrip_mismatch"
+            result["reject_reason"] = rt_reason
             queue.put(result)
             return
 

@@ -33,7 +33,9 @@ _ISO2339 = [
 ]
 _SMALL = [r for r in _ISO2339 if r[0] <= 5]
 _MID = [r for r in _ISO2339 if 3 <= r[0] <= 12]
-_ALL = _ISO2339
+# Hard always gets a tapped extraction hole — ISO 2339 only specifies the hole
+# for d≥6mm, smaller pins use punch-out. Restrict pool accordingly.
+_HARD = [r for r in _ISO2339 if r[0] >= 6]
 
 
 class TaperPinFamily(BaseFamily):
@@ -46,7 +48,7 @@ class TaperPinFamily(BaseFamily):
         pool = (
             _SMALL
             if difficulty == "easy"
-            else (_MID if difficulty == "medium" else _ALL)
+            else (_MID if difficulty == "medium" else _HARD)
         )
         d_nom, l_min, l_max = pool[int(rng.integers(0, len(pool)))]
 
@@ -107,10 +109,17 @@ class TaperPinFamily(BaseFamily):
             params["chamfer_length"] = round(min(0.5, d_nom * 0.08), 2)
 
         if difficulty == "hard":
-            # Tapped extraction hole on large end (M-thread, depth=1.5d)
-            m_size = max(3.0, round(d_nom * 0.6, 0))
-            params["extraction_thread_m"] = m_size
-            params["extraction_depth"] = round(m_size * 1.5, 1)
+            # Tapped extraction hole on large end — only specified for ISO 2339
+            # pins d≥6; smaller pins use punch-out. Pick an M-thread that fits
+            # inside the large-end cross-section with clearance.
+            _M_SERIES = [2, 2.5, 3, 4, 5, 6, 8, 10]
+            # Hole drill Ø ≈ m*0.85 (metric coarse tap-drill). Must leave a
+            # ≥0.4·d_nom annular wall on the large end.
+            safe_m = [m for m in _M_SERIES if m * 0.85 < d_nom * 0.55]
+            if safe_m:
+                m_size = float(safe_m[-1])
+                params["extraction_thread_m"] = m_size
+                params["extraction_depth"] = round(m_size * 1.5, 1)
 
         return params
 
@@ -139,11 +148,11 @@ class TaperPinFamily(BaseFamily):
             "rotational": True,
         }
 
-        # Tapered cylinder via revolve of trapezoid profile in XZ plane
-        # Points: (r_small, 0) → (r_large, l) → (0, l) → (0, 0)
+        # Tapered cylinder via revolve of trapezoid profile in default XY plane.
+        # Points: (r_small, 0) → (r_large, l) → (0, l) → (0, 0); axis = Y.
+        # Pin extends along world Y, so end-face / end-edge selectors use Y.
         r_s = round(d_nom / 2, 4)
         r_l = round(d_lg / 2, 4)
-        ops.append(Op("workplane", {"selector": "XZ"}))
         ops.append(Op("moveTo", {"x": r_s, "y": 0.0}))
         ops.append(Op("lineTo", {"x": r_l, "y": l}))
         ops.append(Op("lineTo", {"x": 0.0, "y": l}))
@@ -154,7 +163,7 @@ class TaperPinFamily(BaseFamily):
         ch = params.get("chamfer_length")
         if ch:
             tags["has_chamfer"] = True
-            ops.append(Op("edges", {"selector": ">Z"}))
+            ops.append(Op("edges", {"selector": ">Y"}))
             ops.append(Op("chamfer", {"length": round(ch, 3)}))
 
         # Tapped extraction hole (hard)
@@ -162,7 +171,7 @@ class TaperPinFamily(BaseFamily):
         ext_d = params.get("extraction_depth")
         if ext_m and ext_d:
             tags["has_hole"] = True
-            ops.append(Op("workplane", {"selector": ">Z"}))
+            ops.append(Op("workplane", {"selector": ">Y"}))
             ops.append(
                 Op(
                     "hole",

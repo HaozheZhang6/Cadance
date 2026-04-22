@@ -1,0 +1,28 @@
+run_name: batch_fix_18fam_apr21
+num_samples: 3600
+seed: 4421
+n_workers: 4
+family_mix:
+  bearing_retainer_cap: 1
+  clevis_pin: 1
+  handwheel: 1
+  hex_nut: 1
+  hex_standoff: 1
+  hinge: 1
+  knob: 1
+  lathe_turned_part: 1
+  mounting_plate: 1
+  rib_plate: 1
+  spline_hub: 1
+  sprocket: 1
+  standoff: 1
+  taper_pin: 1
+  threaded_adapter: 1
+  u_channel: 1
+  washer: 1
+  worm_screw: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true

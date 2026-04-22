@@ -168,7 +168,7 @@ class ClevisPinFamily(BaseFamily):
         ops.append(Op("cylinder", {"height": ln, "radius": round(d / 2, 4)}))
 
         if ch:
-            ops.append(Op("edges", {"selector": "|Z"}))
+            ops.append(Op("edges", {"selector": ">Z or <Z"}))
             ops.append(Op("chamfer", {"length": round(ch, 3)}))
 
         # Cross-holes for split pin (medium = 1 hole, hard = 2 holes)

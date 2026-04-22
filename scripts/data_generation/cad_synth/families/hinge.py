@@ -67,7 +67,6 @@ class HingeFamily(BaseFamily):
         if difficulty == "hard":
             params["csk_diameter"] = round(params["screw_diameter"] * 2.0, 1)
             params["csk_angle"] = 82.0
-            params["fillet_radius"] = round(min(1.5, T * 0.25), 1)
 
         return params
 
@@ -119,6 +118,35 @@ class HingeFamily(BaseFamily):
         # Leaf plate
         ops.append(Op("box", {"length": lw, "width": lh, "height": lt}))
 
+        # Screw holes on bare leaf (before knuckle union so >Z is a single planar face)
+        n_screws = params.get("n_screws")
+        sd = params.get("screw_diameter")
+        if n_screws and sd:
+            screw_spacing = lh / (n_screws + 1)
+            screw_pts = [
+                [round(-lw / 4, 3), round(-lh / 2 + screw_spacing * (i + 1), 3)]
+                for i in range(n_screws)
+            ]
+            ops.append(Op("workplane", {"selector": ">Z"}))
+            ops.append(Op("pushPoints", {"points": screw_pts}))
+
+            csk_d = params.get("csk_diameter")
+            csk_a = params.get("csk_angle")
+            if csk_d and csk_a:
+                tags["has_chamfer"] = True
+                ops.append(
+                    Op(
+                        "cskHole",
+                        {
+                            "diameter": sd,
+                            "cskDiameter": csk_d,
+                            "cskAngle": csk_a,
+                        },
+                    )
+                )
+            else:
+                ops.append(Op("hole", {"diameter": sd}))
+
         # Knuckle Y positions — evenly spaced along leaf height
         gap = round((lh - n * kh) / (n + 1), 3)
         knuckle_ys = [
@@ -126,7 +154,6 @@ class HingeFamily(BaseFamily):
         ]
 
         # Knuckle barrels: second-lateral-axis cylinders attached to first-lateral edge.
-        # cylinder_rot_to_lateral2 tilts the sub-workplane cylinder to the second lateral.
         knuckle_rot = cylinder_rot_to_lateral2(bp)
         for y in knuckle_ys:
             ops.append(
@@ -171,9 +198,7 @@ class HingeFamily(BaseFamily):
                             {
                                 "name": "cylinder",
                                 "args": {
-                                    "height": round(
-                                        kh + 2, 3
-                                    ),  # +2 to punch fully through
+                                    "height": round(kh + 2, 3),
                                     "radius": pd_r,
                                 },
                             },
@@ -181,42 +206,6 @@ class HingeFamily(BaseFamily):
                     },
                 )
             )
-
-        # Screw holes on leaf face (medium+)
-        n_screws = params.get("n_screws")
-        sd = params.get("screw_diameter")
-        if n_screws and sd:
-            screw_spacing = lh / (n_screws + 1)
-            screw_pts = [
-                [round(-lw / 4, 3), round(-lh / 2 + screw_spacing * (i + 1), 3)]
-                for i in range(n_screws)
-            ]
-            ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("pushPoints", {"points": screw_pts}))
-
-            csk_d = params.get("csk_diameter")
-            csk_a = params.get("csk_angle")
-            if csk_d and csk_a:
-                tags["has_chamfer"] = True
-                ops.append(
-                    Op(
-                        "cskHole",
-                        {
-                            "diameter": sd,
-                            "cskDiameter": csk_d,
-                            "cskAngle": csk_a,
-                        },
-                    )
-                )
-            else:
-                ops.append(Op("hole", {"diameter": sd}))
-
-        # Fillet leaf plate edges (hard)
-        fr = params.get("fillet_radius")
-        if fr:
-            tags["has_fillet"] = True
-            ops.append(Op("edges", {"selector": "<Z"}))
-            ops.append(Op("fillet", {"radius": fr}))
 
         return Program(
             family=self.name,

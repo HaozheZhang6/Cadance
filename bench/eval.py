@@ -44,8 +44,11 @@ _PREAMBLE = """
 import cadquery as cq
 try:
     import OCP.TopoDS as _td
-    if not hasattr(_td.TopoDS_Shape, 'HashCode'):
-        _td.TopoDS_Shape.HashCode = lambda self, upper: self.__hash__() % upper
+    for _cls in (_td.TopoDS_Shape, _td.TopoDS_Face, _td.TopoDS_Edge, _td.TopoDS_Vertex,
+                 _td.TopoDS_Wire, _td.TopoDS_Shell, _td.TopoDS_Solid,
+                 _td.TopoDS_Compound, _td.TopoDS_CompSolid):
+        if not hasattr(_cls, 'HashCode'):
+            _cls.HashCode = lambda self, ub=2147483647: id(self) % ub
 except Exception:
     pass
 show_object = lambda *a, **kw: None
@@ -240,7 +243,8 @@ def main():
         default="test_iid",
         choices=["test_iid", "test_ood_family", "test_ood_plane", "all"],
     )
-    ap.add_argument("--repo", default="Hula0401/cad_synth_bench")
+    ap.add_argument("--repo", default="BenchCAD/cad_bench")
+    ap.add_argument("--config", default="main", help='HF config: "main" or "edit"')
     ap.add_argument("--limit", type=int, default=0, help="0=all")
     ap.add_argument("--per-family", type=int, default=0, help="stratified N per family")
     ap.add_argument("--out", default="results.jsonl")
@@ -248,15 +252,19 @@ def main():
     ap.add_argument("--resume", action="store_true")
     args = ap.parse_args()
 
-    token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
+    token = (
+        os.environ.get("BenchCAD_HF_TOKEN")
+        or os.environ.get("HF_TOKEN")
+        or os.environ.get("HUGGINGFACE_TOKEN")
+    )
     api_key = (
         args.api_key
         or os.environ.get("OPENAI_API_KEY")
         or os.environ.get("OPENAI_API_KEY1")
     )
 
-    print(f"Loading {args.repo} ...")
-    rows = load_hf(args.repo, args.split, token=token)
+    print(f"Loading {args.repo} (config={args.config}) ...")
+    rows = load_hf(args.repo, args.split, token=token, config=args.config)
 
     if args.per_family:
         rows = stratified_sample(rows, args.per_family)

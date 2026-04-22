@@ -1,13 +1,12 @@
-"""Washer — ISO 7089 (plain) / ISO 7090 (chamfered OD).
+"""Washer — ISO 7089 (plain).
 
 Difficulty controls geometry complexity:
-  Easy:   plain flat ring (ISO 7089), M5–M20 preferred sizes
-  Medium: + 45° OD chamfer (ISO 7090), full preferred range M5–M64
-  Hard:   chamfered, includes non-preferred sizes (harder to ID exact size)
+  Easy:   plain flat ring (ISO 7089), M5–M20 preferred
+  Medium: + small fillet on one face (top edges, both bore and outer)
+  Hard:   + fillets on both faces (top and bottom edges)
 
-Dimensions from ISO 7090 Table 1 only — no continuous sampling.
-
-Reference: ISO 7089:2000 — Plain washers, normal series; Table (nominal, d1, d2, h for M5–M64)
+Fillet radius is small and clamped to < min(thickness, wall) / 2 so OCCT
+cannot self-intersect. Reference: ISO 7089:2000 — Plain washers, normal series.
 """
 
 from ..pipeline.builder import Op, Program
@@ -72,8 +71,11 @@ class WasherFamily(BaseFamily):
         }
 
         if difficulty in ("medium", "hard"):
-            # ISO 7090 chamfer: ~0.3×h, min 0.3 mm
-            params["chamfer_length"] = round(max(0.3, h * 0.25), 2)
+            # Fillet < min(thickness, wall) * 0.35 so top+bottom fillets cannot
+            # meet through the thickness and OCCT stays stable.
+            wall = (d2 - d1) / 2
+            r = round(min(h * 0.25, wall * 0.25, 0.4), 2)
+            params["fillet_radius"] = max(r, 0.1)
 
         return params
 
@@ -81,12 +83,12 @@ class WasherFamily(BaseFamily):
         d1 = params["bore_diameter"]
         d2 = params["outer_diameter"]
         h = params["thickness"]
-        ch = params.get("chamfer_length", 0)
         if not (d2 > d1 > 0 and h > 0):
             return False
         if (d2 - d1) / 2 <= h * 0.1:
             return False
-        if ch and (ch >= h * 0.5 or ch >= (d2 - d1) / 4):
+        fr = params.get("fillet_radius", 0)
+        if fr and (fr >= h * 0.5 or fr >= (d2 - d1) / 2 * 0.5):
             return False
         return True
 
@@ -95,13 +97,13 @@ class WasherFamily(BaseFamily):
         d1 = params["bore_diameter"]
         d2 = params["outer_diameter"]
         h = params["thickness"]
-        ch = params.get("chamfer_length")
+        fr = params.get("fillet_radius")
 
         ops, tags = [], {
             "has_hole": True,
             "has_slot": False,
-            "has_fillet": False,
-            "has_chamfer": bool(ch),
+            "has_fillet": bool(fr),
+            "has_chamfer": False,
             "rotational": True,
         }
 
@@ -109,10 +111,13 @@ class WasherFamily(BaseFamily):
         ops.append(Op("workplane", {"selector": ">Z"}))
         ops.append(Op("hole", {"diameter": round(d1, 4)}))
 
-        if ch:
-            # chamfer outer top edge (|Z selector = vertical/radial edges)
-            ops.append(Op("edges", {"selector": "|Z"}))
-            ops.append(Op("chamfer", {"length": round(ch, 4)}))
+        if fr:
+            # Medium = one face, Hard = both faces. `>Z` on the ring picks both
+            # the outer and inner circular edges of the top face; `<Z` picks both
+            # on the bottom face.
+            sel = ">Z" if difficulty == "medium" else ">Z or <Z"
+            ops.append(Op("edges", {"selector": sel}))
+            ops.append(Op("fillet", {"radius": fr}))
 
         return Program(
             family=self.name,

@@ -8,11 +8,24 @@ from collections import defaultdict
 from pathlib import Path
 
 
-def load_hf(repo: str, split: str, token: str | None = None) -> list[dict]:
-    """Load one or all splits from an HF dataset repo."""
+def load_hf(
+    repo: str,
+    split: str,
+    token: str | None = None,
+    config: str | None = None,
+) -> list[dict]:
+    """Load one or all splits from an HF dataset repo.
+
+    `config` selects a named subset (e.g. "main" / "edit"). None = default.
+    """
     from datasets import load_dataset
 
-    ds = load_dataset(repo, token=token)
+    token = token or os.environ.get("BenchCAD_HF_TOKEN") or os.environ.get("HF_TOKEN")
+    ds = (
+        load_dataset(repo, name=config, token=token)
+        if config
+        else load_dataset(repo, token=token)
+    )
     if split == "all":
         rows = []
         for sp in ["test_iid", "test_ood_family", "test_ood_plane"]:

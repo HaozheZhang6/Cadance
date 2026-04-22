@@ -113,7 +113,8 @@ def report(results: list[dict]) -> None:
 
 def main():
     ap = argparse.ArgumentParser(description="Code-QA bench runner")
-    ap.add_argument("--repo", default="Hula0401/cad_synth_bench_smoke")
+    ap.add_argument("--repo", default="BenchCAD/cad_bench")
+    ap.add_argument("--config", default="main", help="HF config name")
     ap.add_argument("--split", default="test_iid")
     ap.add_argument("--limit", type=int, default=0, help="0 = all")
     ap.add_argument("--model", default="gpt-4o")
@@ -122,13 +123,17 @@ def main():
 
     from bench.dataloader import load_hf
 
-    token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
+    token = (
+        os.environ.get("BenchCAD_HF_TOKEN")
+        or os.environ.get("HF_TOKEN")
+        or os.environ.get("HUGGINGFACE_TOKEN")
+    )
     api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY1")
     if not api_key:
         sys.exit("OPENAI_API_KEY not set")
 
-    print(f"Loading {args.repo}[{args.split}] ...")
-    rows = load_hf(args.repo, args.split, token=token)
+    print(f"Loading {args.repo}[{args.split}] (config={args.config}) ...")
+    rows = load_hf(args.repo, args.split, token=token, config=args.config)
     if args.limit:
         rows = rows[: args.limit]
     print(f"N={len(rows)}  model={args.model}")

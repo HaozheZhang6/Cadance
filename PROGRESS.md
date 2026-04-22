@@ -1,5 +1,78 @@
 
-## 2026-04-21 (session 19) — Edit bench HF upload
+## 2026-04-22 (session 23) — pulley pocket cap + 20k dataset fix
+
+- Bug：pulley hard 的 spoke pocket 对大 pulley 失控（rr=250 pl=119.5 pt=105.7），占满 radial web
+- Fix `pulley.py:243-258`：pocket_tang 上限 0.4·rr、pocket_l 上限 0.25·rr（用户 ref rr=45→pl=13.5/pt=22.62 ratio 的 ~80%，避免破坏结构）
+- 188 hard sample 0 violation、30 roundtrip exec 0 fail
+- 20k dataset 更新踩坑：`--resume` 因其他 family 近期改过 (clevis_pin/hex_standoff/hinge/knob/...)  → RNG drift → sample#2 起 stem 名完全不同 → 37 min 白跑 1452 新样本（4 个恰好命中 hard pulley）
+- 清理：1177 与 OLD 同 fam+diff+params 的重复 stem 删除、275 unique-new（含 6 pulley）保留、85 空壳 hard pulley dir（参数已丢）删除
+- 重跑走独立 `batch_pulley_hard_apr22.yaml` (pulley-only, seed=4423, 100 hard, run_name 复用 batch_20k_apr20) → 100/100 accepted ~5 min，0 cap violation
+- 最终 pulley in batch_20k_apr20：80 easy + 69 medium + 104 hard（原 85 hard 替换为 100 新 hard）
+- 教训：跨 family 改过代码后 `--resume` 不再可靠；family-scoped topup 要单跑 config
+
+## 2026-04-22 (session 22) — UA-20 curated edit bench
+
+- 问题：724 pairs 有高耦合 edit（knob total_height → 33 处 magic number 联动），模型不可能答对
+- 两阶段 curate：新 body-line single-value edit + 现有 pairs.jsonl 低-dl 筛选
+- 新 `bench/edit_gen/curate_pairs.py`：对每 family 选一个 param（late-feature 优先 fillet/chamfer/bore），单值 regex 替换 + exec gt + IoU
+- 新 `bench/edit_gen/curate_preview.py`：side-by-side orig|gt 四视图 caption 预览
+- 新 `bench/edit_gen/curate_finalize.py`：`curate_final_plan.json` → `pairs_curated.jsonl`（L1+L2）
+- 过滤：drop capsule/rivet (tessellation iou=0), drop twisted_bracket (dl=20)，flat_link 改 cc_distance (iou=0.86)
+- 结果：101 families、--exclude-hard=89 families=178 records, dl∈[2,6] median=4, iou∈[0.58,0.99] median=0.94
+- 分布：length 23% / radius 14% / other-dim 15% / hole 12% / height 8% / diameter 8% / width 6% / fillet-chamfer 5% / thickness 5% / angle 2% / depth 2% / slot 1%
+- Preview: `data/data_generation/bench_edit/previews/<family>.png`
+- pulley root 换 gid=10233 synth (bore_radius 内孔 normalize 洗掉 → 改 rim_radius +3% iou=0.961)
+- 扩充 additive (add_hole/chamfer/fillet) + multi-param (2 axes)：
+  - `curate_additive_plan.json` 12 条：2 add_chamfer + 1 add_fillet + 9 add_hole；subprocess preamble 加 HashCode shim + 绝对 step path + smart strip (walk back 过 SELECTOR op 到 CONSTRUCT op)
+  - 迭代放大 target：drop iou>=0.999 的 8 条 (hole/fillet 太小 → 64³ 体素看不见)；handwheel chamfer 3.2→8 / locator_block hole 4→14 / manifold_block hole 5.5→18 / wing_nut fillet 0.6→2.0 / pipe_flange chamfer 放大后 geometry 炸 → drop
+  - `curate_multi_plan.json` 28 条 (2 param × 2 lvl)：dim 13 (旧) + 15 新 (8-15% pct 确保 iou<0.99)：ball_knob/hex_nut/knob/washer/round_flange/enclosure/hinge/battery_holder/fan_shroud/hex_key_organizer/keyhole_plate/connecting_rod/heat_sink/threaded_adapter/gusseted_bracket
+  - 旧 cable_routing_panel/eyebolt 重 multi 用 10-12% pct 把 iou 从 0.997 降到 0.98
+  - `curate_finalize.py` 重写支持 3 plan；`curate_preview.py` 泛化 title + 多 plan source
+- 最终 **248 records**：180 dim(L1+L2) + 12 add(L1) + 56 multi(L1+L2)；iou min=0.574 median=0.934 max=0.9899 (全部 <0.99)；95 unique family
+- Contact sheet: `data/data_generation/bench_edit/previews/_contact_enriched.png`
+- 补齐 4 孤儿 family（user 要求覆盖全 106）：
+  - worm_screw（orphan_fill, shaft_length +15% iou=0.573）
+  - twisted_bracket（orphan_fill, plate_length +15% iou=0.959）
+  - sprocket（orphan_gen, 重 sample seed=42 + disc_thickness +20% iou=0.979）
+  - capsule（orphan_reseed, seed=0 radius +10% iou=0.922）
+  - rivet（orphan_reseed, medium diff seed=10 shank_length +15% iou=0.943；easy 版 sphere_radius 导致 tessellation 失败，换 medium 带 tip_chamfer）
+- 再跑 finalize 不加 `--exclude-hard`（dim plan 全 iou<0.99，11 family dl>6 全保留）
+- **280 records**：212 dim(L1+L2) + 12 add(L1) + 56 multi(L1+L2)；iou min=0.573 med=0.935 max=0.9899 (0 violation)；**106 unique family**；dl mean=4.3 max=14
+- 扩 additive 12→41 / multi 28→59：v3/v4/v5 多轮尝试（strip-tail-op 失败的小特征改用 inject-big-hole 方案）
+  - additive drop 条件：iou≥0.99（小 chamfer/hole 在 64³ 体素下隐形）
+  - multi v4 用 `inspect_params.py` 提取 body 真实参数名（替换 v3 猜测的 derived 参数）
+  - 新家族 additive 覆盖：dowel_pin/parallel_key/pipe_flange/propeller/ratchet_sector/sheet_metal_tray/chair/mesh_panel/keyhole_plate/heat_sink
+  - 新家族 multi 覆盖：bearing_retainer_cap/cam/connector_faceplate/dovetail_slide/duct_elbow/grommet/hollow_tube/l_bracket/motor_end_cap/pillow_block/pipe_flange/shaft_collar/slotted_plate/stepped_shaft/t_pipe_fitting/z_bracket/helical_gear/pcb_standoff_plate/propeller/piston/ratchet_sector/sheet_metal_tray/star_blank/worm_screw/vented_panel/waffle_plate
+- **最终 371 records**：212 dim(L1+L2) + 41 add(L1) + 118 multi(L1+L2)；iou min=0.031 med=0.93 max=0.9899 (0 violation)；106 families；previews 213 张
+
+## 2026-04-21 (session 21) — silent-hole 检测 + hex_standoff 重写
+
+- user call-out：37619 hex_standoff flange 太宽；37520/37554 taper_pin hole>pin；washer 需要 fillet
+- hex_standoff 重写（ISO272 tap-drill 表）：easy=通孔；medium=hex+stud+盲孔（tap-drill）；hard +stud_chamfer。3000 样 pass
+- plain_washer：medium 单面 fillet, hard 双面。3000 样 pass
+- taper_pin hard：extraction_thread_m 只在 `m*0.85 < d_nom*0.55` 时加
+- 新检测 `tmp/_audit_hole_shrink.py`：每个 hole op 把 diameter 换成 0.1mm 重 build，比较 solid volume，drop > thresh 就疑似
+- 审计 23,323 accepted stems × per-family median+IQR outlier：49 taper_pin stems (hole=2.55 于 d_nom<5) 是 bug → `status=rejected reject_stage=audit_oversize_hole`
+- 其他 high-drop family (standoff/washer/spacer_ring/pipe_flange/flat_link/dog_bone/cruciform/round_flange) 均 design-intent 大孔，非 bug
+- propeller 2 stems drop=46% (blade-root 与 bore 相交)，非 oversize 孔，不动
+- hex_standoff 9 样 grid: `tmp/hex_standoff_preview_apr21/grid_9.png`（新几何；UI 未 rebatch 所以仍显示 flange 版本）
+
+## 2026-04-21 (session 20) — 20k gt_code 对齐修复
+
+- 根因：`_apply_op` 对 chamfer/fillet 静默 try/except → wp 建成功但 render 出的 gt_code 再 exec 必炸 → code/geo/render 不对齐
+- `pipeline/builder.py` 去掉 chamfer/fillet silent-swallow；`pipeline/validator.py` 新增 `validate_roundtrip` (Stage F2 post-filter，render→exec→face count 比对)
+- 18 家族源码修复：
+  - 显式 drop：knob、washer、hinge (fillet/chamfer 无标准要求) + bearing_retainer_cap (boss_chamfer) + hex_standoff (fillet)
+  - 重排：hex_standoff 把 chamfer 放在 stepped bore 之前；hinge 把 screw hole 放在 knuckle union 之前（`>Z` 单面）
+  - clevis_pin `|Z` → `>Z or <Z`；spline_hub drop chamfer；taper_pin 改 `>Y`
+  - 其余家族靠 silent-swallow 去除后 + roundtrip post-filter 自动修（handwheel、hex_nut、taper_pin、standoff、u_channel、spline_hub、mounting_plate、rib_plate、sprocket、threaded_adapter、lathe_turned_part）
+  - worm_screw 虚惊（subprocess STEP export 超时，in-process 30/30 OK）
+- 验证：全 18 家族 in-process roundtrip 30/30 pass（除 handwheel 25/25+5bf，mounting_plate 28/28+2bf，build fail 被 post-filter 拦截不入数据）
+- Replacement batch_fix_18fam_apr21：3600→3359 accepted (93.3%)；post-filter reject 241（112 build_fail + 100+ roundtrip_face_mismatch + 37 worker）
+- 全量审计 old batch_20k_apr20 18fam 3611 accepted → 1552 bad (43%)：clevis_pin 225/225、spline_hub 182/182 全炸；rejected 进 synth_parts.csv + 目录挪到 `tmp/trash_bad_apr21/`（可恢复）；`synth_parts.csv.bak_apr21` 备份
+- 最终 20k 等价数据 = 19964 good old + 3359 new = 23,323 aligned stems
+
+
 
 - 新 `bench/edit_gen/upload_edit_hf.py`：读 `pairs.jsonl` + codes/ + steps/，每行 embed `orig_code`/`gt_code` 文本 + `orig_step`/`gt_step` bytes + params/instruction/iou
 - 推到 `Hula0401/cad_synth_bench_edit` split=`test_iid`：724 rows, 104 families, L1×362+L2×362, 56MB parquet

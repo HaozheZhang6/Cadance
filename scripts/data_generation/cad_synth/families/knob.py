@@ -77,8 +77,6 @@ class KnobFamily(BaseFamily):
             n_flutes = int(rng.choice([8, 10, 12]))
             params["n_flutes"] = n_flutes
             params["flute_radius"] = round(max(0.8, r_base * 0.10), 1)
-            params["fillet_top"] = round(max(0.4, min(1.0, r_top * 0.18)), 2)
-            params["chamfer_bot"] = round(max(0.3, min(0.8, r_base * 0.08)), 2)
 
         if difficulty == "hard":
             params["bore_diameter"] = float(M)
@@ -144,21 +142,6 @@ class KnobFamily(BaseFamily):
             taper_deg = round(math.degrees(math.atan((rb - rt) / h)), 3)
             ops.append(Op("circle", {"radius": rb}))
             ops.append(Op("extrude", {"distance": round(h, 3), "taper": taper_deg}))
-
-        # Top crown fillet — apply BEFORE flutes/bore so the >Z face has only
-        # the outer rim circle (single edge), guaranteeing the fillet succeeds.
-        ft = params.get("fillet_top")
-        if ft:
-            tags["has_fillet"] = True
-            ops.append(Op("edges", {"selector": ">Z"}))
-            ops.append(Op("fillet", {"radius": ft}))
-
-        # Bottom chamfer — same reasoning, before the bore is cut.
-        cb = params.get("chamfer_bot")
-        if cb:
-            tags["has_chamfer"] = True
-            ops.append(Op("edges", {"selector": "<Z"}))
-            ops.append(Op("chamfer", {"length": cb}))
 
         # Side flutes — N axial cylinders cut at radius rt*1.05 near the crown.
         # Because the body is hourglass and the flutes sit just outside the

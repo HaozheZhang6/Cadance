@@ -44,11 +44,17 @@ except ImportError:
 
 
 def step_fetch(
-    repo: str, split: str, limit: int, token: str | None, per_family: int = 0
+    repo: str,
+    split: str,
+    limit: int,
+    token: str | None,
+    per_family: int = 0,
+    config: str | None = None,
 ) -> list[Path]:
     """Download N samples from HF → save to disk. Returns list of meta.json paths.
 
     per_family>0: stratified — take N per family (up to limit total).
+    config: HF dataset config (subset) name, e.g. "main".
     """
     from collections import defaultdict
 
@@ -60,7 +66,10 @@ def step_fetch(
 
     # Load only what we need to avoid filling RAM
     fetch_n = limit * 10 if per_family else limit
-    ds = load_dataset(repo, split=split, token=token).select(range(min(fetch_n, 9999)))
+    load_kw = {"split": split, "token": token}
+    if config:
+        load_kw["name"] = config
+    ds = load_dataset(repo, **load_kw).select(range(min(fetch_n, 9999)))
 
     saved, skipped = [], 0
     fam_counts: dict[str, int] = defaultdict(int)
@@ -124,8 +133,11 @@ _PREAMBLE = """
 import cadquery as cq
 try:
     import OCP.TopoDS as _td
-    if not hasattr(_td.TopoDS_Shape, 'HashCode'):
-        _td.TopoDS_Shape.HashCode = lambda self, upper: self.__hash__() % upper
+    for _cls in (_td.TopoDS_Shape, _td.TopoDS_Face, _td.TopoDS_Edge, _td.TopoDS_Vertex,
+                 _td.TopoDS_Wire, _td.TopoDS_Shell, _td.TopoDS_Solid,
+                 _td.TopoDS_Compound, _td.TopoDS_CompSolid):
+        if not hasattr(_cls, 'HashCode'):
+            _cls.HashCode = lambda self, ub=2147483647: id(self) % ub
 except Exception:
     pass
 show_object = lambda *a, **kw: None
@@ -409,7 +421,8 @@ def print_summary(results: list[dict]) -> None:
 
 def main():
     ap = argparse.ArgumentParser(description="MechEval test run")
-    ap.add_argument("--repo", default="Hula0401/cad_synth_bench")
+    ap.add_argument("--repo", default="BenchCAD/cad_bench")
+    ap.add_argument("--config", default="main", help='HF config: "main" or "edit"')
     ap.add_argument("--split", default="test_iid")
     ap.add_argument("--limit", type=int, default=10)
     ap.add_argument(
@@ -433,7 +446,11 @@ def main():
     ap.add_argument("--api-key", default=None)
     args = ap.parse_args()
 
-    token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
+    token = (
+        os.environ.get("BenchCAD_HF_TOKEN")
+        or os.environ.get("HF_TOKEN")
+        or os.environ.get("HUGGINGFACE_TOKEN")
+    )
     api_key = (
         args.api_key
         or os.environ.get("OPENAI_API_KEY")
@@ -446,7 +463,12 @@ def main():
     # Step 1
     if args.step in ("fetch", "all"):
         meta_paths = step_fetch(
-            args.repo, args.split, args.limit, token, per_family=args.per_family
+            args.repo,
+            args.split,
+            args.limit,
+            token,
+            per_family=args.per_family,
+            config=args.config,
         )
     else:
         meta_paths = sorted(DATA.glob("*/meta.json"))[: args.limit]
