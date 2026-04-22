@@ -6,9 +6,8 @@ Flow per sample:
 No image, no CadQuery exec, no STEP. Pure "read code, answer numeric Qs".
 
 Usage:
-    uv run python bench/eval_qa_code.py \
-        --repo Hula0401/cad_synth_bench_smoke \
-        --split test_iid --limit 12 --model gpt-4o
+    uv run python bench/eval_qa_code.py --limit 12 --model gpt-4o
+    # defaults: --repo BenchCAD/cad_bench --split test
 """
 
 from __future__ import annotations

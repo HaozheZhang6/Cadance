@@ -3,9 +3,11 @@
 For each pair: model gets (orig code + instruction) and must return modified code.
 We save the returned code, exec it to STEP, record success/error.
 
-Usage:
+Usage (zero-setup, read from HF):
     python -m bench.edit_gen.run_edit --model gpt-4o --n 10
-    python -m bench.edit_gen.run_edit --model gpt-5 --bench-dir data/data_generation/bench_edit
+
+Usage (local bench_dir with pairs.jsonl + codes/):
+    python -m bench.edit_gen.run_edit --model gpt-4o --bench-dir data/data_generation/bench_edit
 """
 
 from __future__ import annotations
@@ -134,21 +136,47 @@ def exec_cq(code: str, out_path: Path, timeout: int = 60) -> tuple[bool, str | N
         return False, str(e)[:200]
 
 
+def _load_records(
+    bench_dir: Path | None,
+    hf_repo: str | None,
+    hf_split: str,
+) -> tuple[list[dict], dict[str, str]]:
+    """Return (records, orig_code_map). orig_code_map keyed by record_id."""
+    if hf_repo:
+        from bench.dataloader import load_hf
+
+        rows = load_hf(hf_repo, hf_split)
+        orig_code_map = {r["record_id"]: r["orig_code"] for r in rows}
+        return list(rows), orig_code_map
+
+    assert bench_dir is not None
+    pairs_path = bench_dir / "pairs.jsonl"
+    records = [json.loads(ln) for ln in pairs_path.read_text().splitlines() if ln]
+    orig_code_map = {
+        r["record_id"]: (bench_dir / r["original_code_path"]).read_text()
+        for r in records
+    }
+    return records, orig_code_map
+
+
 def run(
-    bench_dir: Path,
+    bench_dir: Path | None,
     model: str,
     n: int | None,
     seed: int,
     skip_existing: bool,
+    hf_repo: str | None = None,
+    hf_split: str = "test",
+    out_dir: Path | None = None,
 ) -> dict:
-    pairs_path = bench_dir / "pairs.jsonl"
-    records = [json.loads(ln) for ln in pairs_path.read_text().splitlines() if ln]
+    records, orig_code_map = _load_records(bench_dir, hf_repo, hf_split)
 
     # Deterministic sampling: take first n per (family,difficulty,level) in file order
     if n:
         records = records[:n]
 
-    run_dir = bench_dir / "runs" / model.replace(":", "_").replace("/", "_")
+    run_root = out_dir or (bench_dir / "runs" if bench_dir else Path("bench_edit_runs"))
+    run_dir = run_root / model.replace(":", "_").replace("/", "_")
     gen_code_dir = run_dir / "gen_code"
     gen_step_dir = run_dir / "gen_step"
     gen_code_dir.mkdir(parents=True, exist_ok=True)
@@ -166,7 +194,7 @@ def run(
 
     for i, rec in enumerate(records):
         rid = rec["record_id"]
-        orig_code = (bench_dir / rec["original_code_path"]).read_text()
+        orig_code = orig_code_map[rid]
         instruction = rec["instruction"]
 
         gen_code_path = gen_code_dir / f"{rid}.py"
@@ -248,22 +276,46 @@ def run(
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--bench-dir", type=str, default=str(DEFAULT_BENCH))
+    ap.add_argument(
+        "--hf-repo",
+        type=str,
+        default="BenchCAD/cad_bench_edit",
+        help="HF dataset repo (default: BenchCAD/cad_bench_edit). Set empty to use --bench-dir.",
+    )
+    ap.add_argument("--split", type=str, default="test")
+    ap.add_argument(
+        "--bench-dir",
+        type=str,
+        default="",
+        help="Local bench dir (pairs.jsonl + codes/). Takes precedence over --hf-repo when set.",
+    )
     ap.add_argument("--model", type=str, default="gpt-4o")
     ap.add_argument("--n", type=int, default=None, help="Limit to first N records")
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument(
+        "--out",
+        type=str,
+        default="",
+        help="Output root dir (default: bench_edit_runs/ for HF, <bench-dir>/runs/ for local)",
+    )
     ap.add_argument(
         "--skip-existing",
         action="store_true",
         help="Skip records whose gen_code and gen_step already exist",
     )
     args = ap.parse_args()
+    bench_dir = Path(args.bench_dir) if args.bench_dir else None
+    hf_repo = args.hf_repo if not bench_dir else None
+    out_dir = Path(args.out) if args.out else None
     run(
-        Path(args.bench_dir),
+        bench_dir,
         args.model,
         args.n,
         args.seed,
         args.skip_existing,
+        hf_repo=hf_repo,
+        hf_split=args.split,
+        out_dir=out_dir,
     )
 
 

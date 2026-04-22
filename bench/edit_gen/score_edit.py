@@ -1,6 +1,7 @@
 """Score a CAD edit benchmark run.
 
-Reads pairs.jsonl (paths to orig/gt STEP) and runs/<model>/results.jsonl, computes:
+Reads the run's results.jsonl and pairs' orig/gt STEP (local path or HF bytes),
+computes:
   - iou_orig_gt   : baseline similarity (how close is orig to gt already)
   - iou_gen_gt    : final similarity after edit
   - norm_improve  : clip((iou_gen_gt - iou_orig_gt) / (1 - iou_orig_gt), 0, 1)
@@ -9,8 +10,10 @@ Reads pairs.jsonl (paths to orig/gt STEP) and runs/<model>/results.jsonl, comput
 When iou_orig_gt > 0.99 the pair is degenerate (matches
 filter_iou_degenerate.py threshold); skip from norm_improve aggregation if so.
 
-Usage:
+Usage (zero-setup, read STEP bytes from HF):
     python -m bench.edit_gen.score_edit --model gpt-4o
+
+Usage (local bench-dir):
     python -m bench.edit_gen.score_edit --model gpt-4o --bench-dir data/data_generation/bench_edit
 """
 
@@ -18,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import tempfile
 from collections import defaultdict
 from pathlib import Path
 from statistics import mean
@@ -29,16 +33,44 @@ DEFAULT_BENCH = ROOT / "data" / "data_generation" / "bench_edit"
 DEGEN_THRESH = 0.99
 
 
-def score(bench_dir: Path, model: str) -> dict:
-    pairs = {
-        r["record_id"]: r
-        for r in (
-            json.loads(ln)
-            for ln in (bench_dir / "pairs.jsonl").read_text().splitlines()
-            if ln
-        )
-    }
-    run_dir = bench_dir / "runs" / model.replace(":", "_").replace("/", "_")
+def _write_step_bytes(buf: bytes, tmpdir: Path, name: str) -> Path:
+    p = tmpdir / f"{name}.step"
+    p.write_bytes(buf)
+    return p
+
+
+def score(
+    bench_dir: Path | None,
+    model: str,
+    hf_repo: str | None = None,
+    hf_split: str = "test",
+    run_root: Path | None = None,
+) -> dict:
+    tmpdir_ctx: tempfile.TemporaryDirectory | None = None
+    if hf_repo:
+        from bench.dataloader import load_hf
+
+        rows = load_hf(hf_repo, hf_split)
+        tmpdir_ctx = tempfile.TemporaryDirectory()
+        tmpdir = Path(tmpdir_ctx.name)
+        pairs: dict = {}
+        for r in rows:
+            rid = r["record_id"]
+            gt_path = _write_step_bytes(r["gt_step"], tmpdir, f"{rid}_gt")
+            pairs[rid] = {**r, "_gt_step_abs": str(gt_path)}
+        run_base = run_root or Path("bench_edit_runs")
+    else:
+        assert bench_dir is not None
+        pairs = {
+            r["record_id"]: r
+            for r in (
+                json.loads(ln)
+                for ln in (bench_dir / "pairs.jsonl").read_text().splitlines()
+                if ln
+            )
+        }
+        run_base = run_root or (bench_dir / "runs")
+    run_dir = run_base / model.replace(":", "_").replace("/", "_")
     results_path = run_dir / "results.jsonl"
     if not results_path.exists():
         raise FileNotFoundError(f"no run results at {results_path}")
@@ -57,11 +89,24 @@ def score(bench_dir: Path, model: str) -> dict:
             return float(pair["iou_orig_gt"]), None
         k = (pair["family"], pair["difficulty"], pair["axis"], pair["pct_delta"])
         if k not in orig_iou_cache:
-            orig_iou_cache[k] = compute_iou(
-                str(bench_dir / pair["orig_step_path"]),
-                str(bench_dir / pair["gt_step_path"]),
-            )
+            if hf_repo:
+                orig_path = _write_step_bytes(
+                    pair["orig_step"],
+                    Path(tmpdir_ctx.name),
+                    f"{pair['record_id']}_orig",
+                )
+                orig_iou_cache[k] = compute_iou(str(orig_path), pair["_gt_step_abs"])
+            else:
+                orig_iou_cache[k] = compute_iou(
+                    str(bench_dir / pair["orig_step_path"]),
+                    str(bench_dir / pair["gt_step_path"]),
+                )
         return orig_iou_cache[k]
+
+    def _gt_step(pair: dict) -> str:
+        return (
+            pair["_gt_step_abs"] if hf_repo else str(bench_dir / pair["gt_step_path"])
+        )
 
     per_level: dict[str, list[float]] = defaultdict(list)
     per_difficulty: dict[str, list[float]] = defaultdict(list)
@@ -102,9 +147,7 @@ def score(bench_dir: Path, model: str) -> dict:
         n_exec_ok += 1
         gen_step = gen_step_dir / f"{rid}.step"
         iou_og, _ = _orig_iou(pair)
-        iou_gg, iou_err = compute_iou(
-            str(bench_dir / pair["gt_step_path"]), str(gen_step)
-        )
+        iou_gg, iou_err = compute_iou(_gt_step(pair), str(gen_step))
         gen_ious.append(iou_gg)
 
         if iou_og > DEGEN_THRESH:
@@ -174,10 +217,32 @@ def score(bench_dir: Path, model: str) -> dict:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--bench-dir", type=str, default=str(DEFAULT_BENCH))
+    ap.add_argument(
+        "--hf-repo",
+        type=str,
+        default="BenchCAD/cad_bench_edit",
+        help="HF dataset repo (default). Set empty to use --bench-dir.",
+    )
+    ap.add_argument("--split", type=str, default="test")
+    ap.add_argument("--bench-dir", type=str, default="")
     ap.add_argument("--model", type=str, default="gpt-4o")
+    ap.add_argument(
+        "--run-root",
+        type=str,
+        default="",
+        help="Directory containing <model>/results.jsonl (default matches run_edit.py)",
+    )
     args = ap.parse_args()
-    score(Path(args.bench_dir), args.model)
+    bench_dir = Path(args.bench_dir) if args.bench_dir else None
+    hf_repo = args.hf_repo if not bench_dir else None
+    run_root = Path(args.run_root) if args.run_root else None
+    score(
+        bench_dir,
+        args.model,
+        hf_repo=hf_repo,
+        hf_split=args.split,
+        run_root=run_root,
+    )
 
 
 if __name__ == "__main__":

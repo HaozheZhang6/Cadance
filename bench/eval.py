@@ -1,20 +1,21 @@
 """MechEval — CAD generation benchmark.
 
-Loads dataset from HuggingFace, calls a VLM, executes generated CadQuery code,
-computes IoU / Chamfer / Feature-F1, and reports aggregated metrics.
+Loads dataset from HuggingFace (default: BenchCAD/cad_bench, split=test), calls
+a VLM, executes generated CadQuery code, computes IoU / Chamfer / Feature-F1,
+and reports aggregated metrics.
 
 Usage:
-    # GPT-4o on IID split
-    python bench/eval.py --model gpt-4o --split test_iid --out results.jsonl
+    # GPT-4o (default repo + split)
+    python bench/eval.py --model gpt-4o --out results.jsonl
 
-    # All splits, 1 sample per family
-    python bench/eval.py --model gpt-4o --split all --per-family 1 --out results.jsonl
+    # 1 sample per family
+    python bench/eval.py --model gpt-4o --per-family 1 --out results.jsonl
 
     # Local Cadrille checkpoint
-    python bench/eval.py --model local:./checkpoints/cadrille-sft --split all --out results.jsonl
+    python bench/eval.py --model local:./checkpoints/cadrille-sft --out results.jsonl
 
     # Resume interrupted run
-    python bench/eval.py --model gpt-4o --split test_iid --resume --out results.jsonl
+    python bench/eval.py --model gpt-4o --resume --out results.jsonl
 """
 
 from __future__ import annotations
