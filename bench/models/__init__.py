@@ -397,3 +397,96 @@ def call_llm_qa_code(
         )
         return call_openai_qa_code(model, code, questions, key)
     raise ValueError(f"Unsupported model: {model}")
+
+
+# ── Edit with vision (image + code + instruction → modified code) ────────────
+
+EDIT_VLM_SYSTEM_PROMPT = """You are an expert CAD engineer. You will be given:
+1. A 2x2 composite image of the part from 4 diagonal viewpoints.
+2. A CadQuery Python script that builds the part.
+3. A natural-language edit instruction describing a numeric change.
+
+IMPORTANT — parameters are DERIVED, not literal:
+The `# --- parameters ---` comment block lists the logical parameter names
+(e.g. `hole_pitch_L = 120.0`), but the numbers in the actual code are USUALLY
+NOT equal to the parameter value. They are arithmetic expressions over it
+that have been pre-computed to floats. To edit correctly you MUST:
+  (a) identify every literal that depends on the target parameter,
+  (b) work out the formula from the literal + original parameter value,
+  (c) re-evaluate the formula with the new parameter value.
+
+Use the 2x2 image to disambiguate which literals correspond to which physical
+dimension when the code alone is ambiguous.
+
+Worked example
+--------------
+Original code (parameter comment says hole_pitch_L = 120.0):
+    .transformed(offset=cq.Vector(-60.0, 0, 16.45))   # -60  == -L/2
+    .transformed(offset=cq.Vector(60.0, 0, 16.45))    #  60  ==  L/2
+    .cylinder(130.2, 5.1)                              # 130.2 == L + 10.2
+
+Instruction: "Set the hole pitch L to 123.6 mm."
+You must update ALL THREE literals, not just the comment:
+    .transformed(offset=cq.Vector(-61.8, 0, 16.45))    # -123.6/2
+    .transformed(offset=cq.Vector(61.8, 0, 16.45))     #  123.6/2
+    .cylinder(133.8, 5.1)                               #  123.6 + 10.2
+and update the comment to `# hole_pitch_L = 123.6`.
+
+Rules
+-----
+- Output ONLY executable Python code, no explanation, no markdown fences.
+- For "Set X to V unit": set the parameter comment to V. For every literal that
+  depended on the old value, recompute with the new value (preserve the
+  inferred formula). Keep up to 4 decimals.
+- For "Change X by +P%" / "-P%": new_X = old_X * (1 + P/100); then apply the
+  same recomputation to every dependent literal.
+- Do NOT refactor, rename, reorder, or add imports.
+- Keep every literal that does NOT depend on X byte-identical."""
+
+
+def call_edit_vlm(
+    model: str,
+    orig_code: str,
+    instruction: str,
+    pil_img,
+    api_key: str,
+) -> tuple[str | None, str | None]:
+    import openai
+
+    client = openai.OpenAI(api_key=api_key)
+    b64 = image_to_b64(pil_img)
+    user_text = (
+        "Original CadQuery code:\n```python\n"
+        + orig_code
+        + "\n```\n\nEdit instruction: "
+        + instruction
+        + "\n\nReturn the full modified script."
+    )
+    try:
+        tok_param = (
+            "max_completion_tokens" if model.startswith("gpt-5") else "max_tokens"
+        )
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": EDIT_VLM_SYSTEM_PROMPT},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": user_text},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{b64}",
+                                "detail": "high",
+                            },
+                        },
+                    ],
+                },
+            ],
+            **{tok_param: 4096},
+            temperature=0.0,
+        )
+        return _strip_fences(resp.choices[0].message.content or ""), None
+    except Exception as e:
+        return None, str(e)[:200]

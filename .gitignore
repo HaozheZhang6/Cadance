@@ -273,3 +273,8 @@ PR15_REVIEW_REPORT.md
 # local data
 data/artifacts/runs/
 website/
+
+# bench run outputs
+bench_smoke_runs/
+bench_edit_runs/
+bench_edit_vlm_runs/
