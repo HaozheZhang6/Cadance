@@ -114,8 +114,7 @@ def report(results: list[dict]) -> None:
 def main():
     ap = argparse.ArgumentParser(description="Code-QA bench runner")
     ap.add_argument("--repo", default="BenchCAD/cad_bench")
-    ap.add_argument("--config", default="main", help="HF config name")
-    ap.add_argument("--split", default="test_iid")
+    ap.add_argument("--split", default="test")
     ap.add_argument("--limit", type=int, default=0, help="0 = all")
     ap.add_argument("--model", default="gpt-4o")
     ap.add_argument("--out", default="bench/test/results/qa_code_results.jsonl")
@@ -132,8 +131,8 @@ def main():
     if not api_key:
         sys.exit("OPENAI_API_KEY not set")
 
-    print(f"Loading {args.repo}[{args.split}] (config={args.config}) ...")
-    rows = load_hf(args.repo, args.split, token=token, config=args.config)
+    print(f"Loading {args.repo}[{args.split}] ...")
+    rows = load_hf(args.repo, args.split, token=token)
     if args.limit:
         rows = rows[: args.limit]
     print(f"N={len(rows)}  model={args.model}")

@@ -65,12 +65,7 @@ def build_rows() -> list[dict]:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--repo", default="BenchCAD/cad_bench")
-    ap.add_argument(
-        "--config",
-        default="edit",
-        help='HF config name — "edit" sits alongside "main" in the shared repo',
-    )
+    ap.add_argument("--repo", default="BenchCAD/cad_bench_edit")
     args = ap.parse_args()
 
     try:
@@ -100,16 +95,12 @@ def main():
     from datasets import Dataset, DatasetDict
 
     ds = Dataset.from_list(rows)
-    dd = DatasetDict({"test_iid": ds})
-    print(f"pushing to {args.repo} (config={args.config}) ...")
+    dd = DatasetDict({"test": ds})
+    print(f"pushing to {args.repo} ...")
     dd.push_to_hub(
         args.repo,
-        config_name=args.config,
         token=token,
-        commit_message=(
-            f"curated edit bench ({args.config}): {len(rows)} records "
-            f"({n_fam} fam, dim/multi/add)"
-        ),
+        commit_message=f"curated edit bench: {len(rows)} records ({n_fam} fam)",
     )
     print(f"done → https://huggingface.co/datasets/{args.repo}")
 

@@ -238,13 +238,8 @@ def report(results: list[dict]) -> None:
 def main():
     ap = argparse.ArgumentParser(description="MechEval — CAD generation benchmark")
     ap.add_argument("--model", default="gpt-4o")
-    ap.add_argument(
-        "--split",
-        default="test_iid",
-        choices=["test_iid", "test_ood_family", "test_ood_plane", "all"],
-    )
+    ap.add_argument("--split", default="test")
     ap.add_argument("--repo", default="BenchCAD/cad_bench")
-    ap.add_argument("--config", default="main", help='HF config: "main" or "edit"')
     ap.add_argument("--limit", type=int, default=0, help="0=all")
     ap.add_argument("--per-family", type=int, default=0, help="stratified N per family")
     ap.add_argument("--out", default="results.jsonl")
@@ -263,8 +258,8 @@ def main():
         or os.environ.get("OPENAI_API_KEY1")
     )
 
-    print(f"Loading {args.repo} (config={args.config}) ...")
-    rows = load_hf(args.repo, args.split, token=token, config=args.config)
+    print(f"Loading {args.repo}[{args.split}] ...")
+    rows = load_hf(args.repo, args.split, token=token)
 
     if args.per_family:
         rows = stratified_sample(rows, args.per_family)

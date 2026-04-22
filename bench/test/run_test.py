@@ -49,12 +49,10 @@ def step_fetch(
     limit: int,
     token: str | None,
     per_family: int = 0,
-    config: str | None = None,
 ) -> list[Path]:
     """Download N samples from HF → save to disk. Returns list of meta.json paths.
 
     per_family>0: stratified — take N per family (up to limit total).
-    config: HF dataset config (subset) name, e.g. "main".
     """
     from collections import defaultdict
 
@@ -66,10 +64,7 @@ def step_fetch(
 
     # Load only what we need to avoid filling RAM
     fetch_n = limit * 10 if per_family else limit
-    load_kw = {"split": split, "token": token}
-    if config:
-        load_kw["name"] = config
-    ds = load_dataset(repo, **load_kw).select(range(min(fetch_n, 9999)))
+    ds = load_dataset(repo, split=split, token=token).select(range(min(fetch_n, 9999)))
 
     saved, skipped = [], 0
     fam_counts: dict[str, int] = defaultdict(int)
@@ -422,8 +417,7 @@ def print_summary(results: list[dict]) -> None:
 def main():
     ap = argparse.ArgumentParser(description="MechEval test run")
     ap.add_argument("--repo", default="BenchCAD/cad_bench")
-    ap.add_argument("--config", default="main", help='HF config: "main" or "edit"')
-    ap.add_argument("--split", default="test_iid")
+    ap.add_argument("--split", default="test")
     ap.add_argument("--limit", type=int, default=10)
     ap.add_argument(
         "--per-family", type=int, default=0, help="stratified: N per family"
@@ -463,12 +457,7 @@ def main():
     # Step 1
     if args.step in ("fetch", "all"):
         meta_paths = step_fetch(
-            args.repo,
-            args.split,
-            args.limit,
-            token,
-            per_family=args.per_family,
-            config=args.config,
+            args.repo, args.split, args.limit, token, per_family=args.per_family
         )
     else:
         meta_paths = sorted(DATA.glob("*/meta.json"))[: args.limit]
