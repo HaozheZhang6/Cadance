@@ -93,8 +93,11 @@ _PREAMBLE = """
 import cadquery as cq
 try:
     import OCP.TopoDS as _td
-    if not hasattr(_td.TopoDS_Shape, 'HashCode'):
-        _td.TopoDS_Shape.HashCode = lambda self, upper: self.__hash__() % upper
+    for _cls in (_td.TopoDS_Shape, _td.TopoDS_Face, _td.TopoDS_Edge, _td.TopoDS_Vertex,
+                 _td.TopoDS_Wire, _td.TopoDS_Shell, _td.TopoDS_Solid,
+                 _td.TopoDS_Compound, _td.TopoDS_CompSolid):
+        if not hasattr(_cls, 'HashCode'):
+            _cls.HashCode = lambda self, ub=2147483647: id(self) % ub
 except Exception:
     pass
 show_object = lambda *a, **kw: None
@@ -117,9 +120,10 @@ def exec_cq(code: str, out_path: Path, timeout: int = 60) -> tuple[bool, str | N
     ]
     script = _PREAMBLE + "\n".join(lines) + _SUFFIX
     env = {**os.environ, "LD_LIBRARY_PATH": LD}
+    out_abs = out_path.resolve()
     try:
         r = subprocess.run(
-            [sys.executable, "-c", script, str(out_path)],
+            [sys.executable, "-c", script, str(out_abs)],
             env=env,
             timeout=timeout,
             capture_output=True,
