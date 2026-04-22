@@ -4,17 +4,29 @@ from __future__ import annotations
 
 import json
 import os
+import random
 from collections import defaultdict
 from pathlib import Path
 
 
-def load_hf(repo: str, split: str = "test", token: str | None = None) -> list[dict]:
-    """Load one split from an HF dataset repo (default split = 'test')."""
+def load_hf(
+    repo: str,
+    split: str = "test",
+    token: str | None = None,
+    shuffle_seed: int | None = None,
+) -> list[dict]:
+    """Load one split from an HF dataset repo (default split = 'test').
+
+    shuffle_seed: if set, shuffle rows deterministically (same seed → same order).
+    """
     from datasets import load_dataset
 
     token = token or os.environ.get("BenchCAD_HF_TOKEN") or os.environ.get("HF_TOKEN")
     ds = load_dataset(repo, token=token)
-    return list(ds[split])
+    rows = list(ds[split])
+    if shuffle_seed is not None:
+        random.Random(shuffle_seed).shuffle(rows)
+    return rows
 
 
 def stratified_sample(rows: list[dict], per_family: int) -> list[dict]:

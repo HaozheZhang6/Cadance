@@ -175,7 +175,10 @@ def run(
 ) -> dict:
     records, orig_code_map = _load_records(bench_dir, hf_repo, hf_split)
 
-    # Deterministic sampling: take first n per (family,difficulty,level) in file order
+    # Deterministic shuffle by seed → diverse subset when --n is set
+    import random as _random
+
+    _random.Random(seed).shuffle(records)
     if n:
         records = records[:n]
 

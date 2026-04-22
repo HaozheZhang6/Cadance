@@ -117,6 +117,7 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="0 = all")
     ap.add_argument("--model", default="gpt-4o")
     ap.add_argument("--out", default="bench/test/results/qa_code_results.jsonl")
+    ap.add_argument("--seed", type=int, default=None, help="shuffle rows before limit")
     args = ap.parse_args()
 
     from bench.dataloader import load_hf
@@ -131,7 +132,7 @@ def main():
         sys.exit("OPENAI_API_KEY not set")
 
     print(f"Loading {args.repo}[{args.split}] ...")
-    rows = load_hf(args.repo, args.split, token=token)
+    rows = load_hf(args.repo, args.split, token=token, shuffle_seed=args.seed)
     if args.limit:
         rows = rows[: args.limit]
     print(f"N={len(rows)}  model={args.model}")

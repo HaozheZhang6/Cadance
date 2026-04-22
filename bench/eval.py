@@ -246,6 +246,7 @@ def main():
     ap.add_argument("--out", default="results.jsonl")
     ap.add_argument("--api-key", default=None)
     ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--seed", type=int, default=None, help="shuffle rows before limit")
     args = ap.parse_args()
 
     token = (
@@ -260,7 +261,7 @@ def main():
     )
 
     print(f"Loading {args.repo}[{args.split}] ...")
-    rows = load_hf(args.repo, args.split, token=token)
+    rows = load_hf(args.repo, args.split, token=token, shuffle_seed=args.seed)
 
     if args.per_family:
         rows = stratified_sample(rows, args.per_family)

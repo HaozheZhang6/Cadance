@@ -49,10 +49,12 @@ def step_fetch(
     limit: int,
     token: str | None,
     per_family: int = 0,
+    seed: int | None = None,
 ) -> list[Path]:
     """Download N samples from HF → save to disk. Returns list of meta.json paths.
 
     per_family>0: stratified — take N per family (up to limit total).
+    seed: if set, shuffle the dataset deterministically before selecting rows.
     """
     from collections import defaultdict
 
@@ -60,11 +62,16 @@ def step_fetch(
 
     DATA.mkdir(parents=True, exist_ok=True)
     label = f"limit={limit}" + (f" per_family={per_family}" if per_family else "")
+    if seed is not None:
+        label += f" seed={seed}"
     print(f"\n[1/3] FETCH  {repo}  split={split}  {label}")
 
     # Load only what we need to avoid filling RAM
     fetch_n = limit * 10 if per_family else limit
-    ds = load_dataset(repo, split=split, token=token).select(range(min(fetch_n, 9999)))
+    ds_full = load_dataset(repo, split=split, token=token)
+    if seed is not None:
+        ds_full = ds_full.shuffle(seed=seed)
+    ds = ds_full.select(range(min(fetch_n, len(ds_full), 9999)))
 
     saved, skipped = [], 0
     fam_counts: dict[str, int] = defaultdict(int)
@@ -438,6 +445,9 @@ def main():
         help="0=off, 6=face-up only, 24=full cube group; detail_score uses max(iou, iou_rot)",
     )
     ap.add_argument("--api-key", default=None)
+    ap.add_argument(
+        "--seed", type=int, default=None, help="shuffle HF rows before limit (deterministic)"
+    )
     args = ap.parse_args()
 
     token = (
@@ -457,7 +467,12 @@ def main():
     # Step 1
     if args.step in ("fetch", "all"):
         meta_paths = step_fetch(
-            args.repo, args.split, args.limit, token, per_family=args.per_family
+            args.repo,
+            args.split,
+            args.limit,
+            token,
+            per_family=args.per_family,
+            seed=args.seed,
         )
     else:
         meta_paths = sorted(DATA.glob("*/meta.json"))[: args.limit]
