@@ -1122,6 +1122,33 @@ def _table(p: dict):
     return qa, {}
 
 
+def _chair(p: dict):
+    sl = p.get("seat_length", 100.0)
+    sw = p.get("seat_width", 80.0)
+    st = p.get("seat_thickness", 10.0)
+    lh = p.get("leg_height", 80.0)
+    bh = p.get("back_height", 60.0)
+    qa = [
+        _q("What is the seat length to width ratio?", _ratio(sl, sw)),
+        _q("What is the leg height to seat thickness ratio?", _ratio(lh, st)),
+        _q("What is the back height to leg height ratio?", _ratio(bh, lh)),
+    ]
+    return qa, {}
+
+
+def _lobed_knob(p: dict):
+    d1 = p.get("d1", 40.0)
+    h1 = p.get("h1", 18.0)
+    d_thread = p.get("d_thread", 6.0)
+    N = int(p.get("N", 5))
+    qa = [
+        _q("How many lobes does this knob have?", N, "integer"),
+        _q("What is the outer to thread diameter ratio?", _ratio(d1, d_thread)),
+        _q("What is the outer diameter to body height ratio?", _ratio(d1, h1)),
+    ]
+    return qa, {}
+
+
 def _duct_elbow(p: dict):
     dw = p.get("duct_width", 40.0)
     dh = p.get("duct_height", 40.0)
@@ -1170,6 +1197,369 @@ def _taper_pin(p: dict):
         _q("What is the large to small end diameter ratio?", _ratio(d_lg, d_nom)),
     ]
     iso = {"iso_2339": True, "d_nominal_mm": round(d_nom, 1), "taper": "1:50"}
+    return qa, iso
+
+
+def _battery_holder(p: dict):
+    n = int(p.get("cell_count", 2))
+    cd = p.get("cell_d", 14.5)
+    bL = p.get("block_L", 60.0)
+    bW = p.get("block_W", 18.0)
+    qa = [
+        _q("How many cells does the holder carry?", n, "integer"),
+        _q("What is the block length to width ratio?", _ratio(bL, bW)),
+        _q("What is the block width to cell diameter ratio?", _ratio(bW, cd)),
+    ]
+    return qa, {}
+
+
+def _cotter_pin(p: dict):
+    d = p.get("d", 3.0)
+    c = p.get("c", 5.8)
+    Ll = p.get("long_leg", 20.0)
+    Ls = p.get("short_leg", 16.0)
+    qa = [
+        _q("What is the eye diameter to wire diameter ratio?", _ratio(c, d)),
+        _q("What is the long to short leg length ratio?", _ratio(Ll, Ls)),
+        _q("What is the long leg length to wire diameter ratio?", _ratio(Ll, d)),
+    ]
+    iso = {"iso_1234": True, "d_nominal_mm": d}
+    return qa, iso
+
+
+def _double_simplex_sprocket(p: dict):
+    z = int(p.get("n_teeth", 18))
+    da = p.get("tip_diameter", 60.0)
+    df = p.get("root_diameter", 55.0)
+    b1 = p.get("tooth_width", 5.0)
+    tw = p.get("total_width", 20.0)
+    bore = p.get("bore_diameter", 15.0)
+    qa = [
+        _q("How many teeth per row?", z, "integer"),
+        _q("What is the tip to root diameter ratio?", _ratio(da, df)),
+        _q("What is the total to single tooth width ratio?", _ratio(tw, b1)),
+        _q("What is the tip diameter to bore ratio?", _ratio(da, bore)),
+    ]
+    iso = {"iso_606": True, "din_8187": True, "n_teeth": z}
+    return qa, iso
+
+
+def _eyebolt(p: dict):
+    d1 = p.get("d1", 12.0)
+    h = p.get("h", 53.0)
+    d3 = p.get("d3", 54.0)
+    d4 = p.get("d4", 30.0)
+    d2 = p.get("d2", 30.0)
+    qa = [
+        _q("What is the eye outer to inner diameter ratio?", _ratio(d3, d4)),
+        _q("What is the total height to thread diameter ratio?", _ratio(h, d1)),
+        _q("What is the collar to thread diameter ratio?", _ratio(d2, d1)),
+    ]
+    iso = {"din_580": True, "thread_d_mm": d1}
+    return qa, iso
+
+
+def _grease_nipple(p: dict):
+    d1 = p.get("d_thread", 6.0)
+    s = p.get("s", 7.0)
+    h = p.get("h", 16.0)
+    qa = [
+        _q("What is the hex across-flats to thread diameter ratio?", _ratio(s, d1)),
+        _q("What is the total height to thread diameter ratio?", _ratio(h, d1)),
+    ]
+    iso = {"din_71412": True, "thread_d_mm": d1, "hex_af_mm": s}
+    return qa, iso
+
+
+def _gridfinity_bin(p: dict):
+    ux = int(p.get("units_x", 1))
+    uy = int(p.get("units_y", 1))
+    uz = int(p.get("units_z", 3))
+    qa = [
+        _q("How many cells along the X axis?", ux, "integer"),
+        _q("How many cells along the Y axis?", uy, "integer"),
+        _q("How many 7 mm height units?", uz, "integer"),
+    ]
+    return qa, {}
+
+
+def _grommet(p: dict):
+    d1 = p.get("bore_d1", 4.0)
+    d2 = p.get("groove_d2", 8.0)
+    d3 = p.get("flange_d3", 11.0)
+    H = p.get("total_height_H", 6.0)
+    qa = [
+        _q("What is the flange to bore diameter ratio?", _ratio(d3, d1)),
+        _q("What is the groove to bore diameter ratio?", _ratio(d2, d1)),
+        _q("What is the total height to bore diameter ratio?", _ratio(H, d1)),
+    ]
+    return qa, {}
+
+
+def _hex_key_organizer(p: dict):
+    sizes = p.get("key_sizes", [])
+    n = len(sizes) if isinstance(sizes, list) else 0
+    bL = p.get("block_L", 50.0)
+    bT = p.get("block_T", 15.0)
+    depth = p.get("pocket_depth", 10.0)
+    qa = [
+        _q("How many hex-key pockets?", n, "integer"),
+        _q("What is the block length to thickness ratio?", _ratio(bL, bT)),
+        _q("What is the block thickness to pocket depth ratio?", _ratio(bT, depth)),
+    ]
+    return qa, {}
+
+
+def _j_hook(p: dict):
+    rod_d = p.get("rod_d", 8.0)
+    hook_id = p.get("hook_inner_D", 30.0)
+    leg = p.get("leg_length", 55.0)
+    total = p.get("total_length", 95.0)
+    qa = [
+        _q("What is the hook inner diameter to rod diameter ratio?", _ratio(hook_id, rod_d)),
+        _q("What is the leg length to rod diameter ratio?", _ratio(leg, rod_d)),
+        _q("What is the total to leg length ratio?", _ratio(total, leg)),
+    ]
+    return qa, {}
+
+
+def _keyhole_plate(p: dict):
+    D = p.get("keyhole_D", 10.0)
+    d = p.get("slot_width_d", 5.0)
+    pw = p.get("plate_width", 25.0)
+    ph = p.get("plate_height", 40.0)
+    sc = int(p.get("screw_count", 0))
+    qa = [
+        _q("How many mounting screw holes?", sc, "integer"),
+        _q("What is the keyhole to slot width ratio?", _ratio(D, d)),
+        _q("What is the plate height to width ratio?", _ratio(ph, pw)),
+    ]
+    return qa, {}
+
+
+def _pan_head_screw(p: dict):
+    d = p.get("nominal_size", 4.0)
+    dk = p.get("head_d_dk", 8.0)
+    k = p.get("head_h_k", 2.4)
+    L = p.get("screw_length_l", 16.0)
+    qa = [
+        _q("What is the head to shaft diameter ratio?", _ratio(dk, d)),
+        _q("What is the head diameter to height ratio?", _ratio(dk, k)),
+        _q("What is the length to shaft diameter ratio?", _ratio(L, d)),
+    ]
+    iso = {"iso_1580": True, "thread_d_mm": d}
+    return qa, iso
+
+
+def _phone_stand(p: dict):
+    base_L = p.get("base_depth", 70.0)
+    base_W = p.get("base_width", 80.0)
+    back_H = p.get("back_height", 90.0)
+    angle = p.get("back_angle_deg", 65.0)
+    qa = [
+        _q("What is the back-rest angle in degrees?", angle),
+        _q("What is the back height to base depth ratio?", _ratio(back_H, base_L)),
+        _q("What is the base width to depth ratio?", _ratio(base_W, base_L)),
+    ]
+    return qa, {}
+
+
+def _pillow_block(p: dict):
+    bore = p.get("shaft_bore_diameter", 20.0)
+    L = p.get("base_length_L", 130.0)
+    A = p.get("base_width_A", 40.0)
+    Ht = p.get("block_height_Ht", 70.0)
+    bh = p.get("bolt_hole_d", 12.0)
+    qa = [
+        _q("What is the base length to width ratio?", _ratio(L, A)),
+        _q("What is the shaft bore to bolt hole diameter ratio?", _ratio(bore, bh)),
+        _q("What is the total block height to bolt hole ratio?", _ratio(Ht, bh)),
+    ]
+    iso = {"iso_113": True, "shaft_bore_mm": bore}
+    return qa, iso
+
+
+def _pull_handle(p: dict):
+    L = p.get("hole_pitch_L", 120.0)
+    H = p.get("grasp_height_H", 50.0)
+    d = p.get("bar_diameter_d", 12.0)
+    qa = [
+        _q("What is the hole pitch to bar diameter ratio?", _ratio(L, d)),
+        _q("What is the grasp height to bar diameter ratio?", _ratio(H, d)),
+        _q("What is the hole pitch to grasp height ratio?", _ratio(L, H)),
+    ]
+    return qa, {}
+
+
+def _rivet(p: dict):
+    d = p.get("d", 4.0)
+    dk = p.get("d_k", 6.4)
+    k = p.get("k", 2.6)
+    L = p.get("shank_length", 12.0)
+    qa = [
+        _q("What is the head to shank diameter ratio?", _ratio(dk, d)),
+        _q("What is the head height to shank diameter ratio?", _ratio(k, d)),
+        _q("What is the shank length to shank diameter ratio?", _ratio(L, d)),
+    ]
+    iso = {"din_660": True, "d_nominal_mm": d}
+    return qa, iso
+
+
+def _spline_hub(p: dict):
+    m = p.get("module", 1.5)
+    z = int(p.get("n_teeth", 20))
+    hub_od = p.get("hub_outer_dia", 40.0)
+    hl = p.get("hub_length", 20.0)
+    sl = p.get("spline_length", 12.0)
+    qa = [
+        _q("How many spline teeth does the hub have?", z, "integer"),
+        _q("What is the spline module in mm?", m),
+        _q("What is the hub OD to pitch diameter ratio?", _ratio(hub_od, m * z)),
+        _q("What is the hub length to spline length ratio?", _ratio(hl, sl)),
+    ]
+    iso = {"din_5480": True, "module": m, "n_teeth": z}
+    return qa, iso
+
+
+def _tee_nut(p: dict):
+    d = p.get("thread_d", 6.0)
+    D = p.get("flange_D", 22.0)
+    H = p.get("barrel_H", 11.0)
+    bd = p.get("barrel_od", 9.0)
+    pc = int(p.get("prong_count", 0))
+    qa = [
+        _q("How many prongs does the tee nut have?", pc, "integer"),
+        _q("What is the flange to thread diameter ratio?", _ratio(D, d)),
+        _q("What is the barrel OD to thread diameter ratio?", _ratio(bd, d)),
+        _q("What is the barrel height to thread diameter ratio?", _ratio(H, d)),
+    ]
+    return qa, {}
+
+
+def _torsion_spring(p: dict):
+    c = p.get("spring_index", 8.0)
+    n = int(p.get("n_coils", 5))
+    wd = p.get("wire_diameter", 2.0)
+    h = p.get("height", 30.0)
+    ll = p.get("leg_length", 30.0)
+    cr = p.get("coil_radius", 10.0)
+    qa = [
+        _q("How many coils?", n, "integer"),
+        _q("What is the spring index (D/d)?", c),
+        _q("What is the coil height to wire diameter ratio?", _ratio(h, wd)),
+        _q("What is the leg length to coil radius ratio?", _ratio(ll, cr)),
+    ]
+    iso = {"din_2088": True, "spring_index": c}
+    return qa, iso
+
+
+def _turnbuckle(p: dict):
+    d = p.get("d", 10.0)
+    L1 = p.get("L1", 100.0)
+    b = p.get("b", 10.0)
+    boss_d = p.get("boss_d", 22.0)
+    total_L = p.get("total_length", 160.0)
+    qa = [
+        _q("What is the frame interior length to thread diameter ratio?", _ratio(L1, d)),
+        _q("What is the boss OD to thread diameter ratio?", _ratio(boss_d, d)),
+        _q("What is the total length to interior length ratio?", _ratio(total_L, L1)),
+        _q("What is the frame interior to bar width ratio?", _ratio(L1, b)),
+    ]
+    iso = {"din_1480": True, "thread_d_mm": d}
+    return qa, iso
+
+
+def _twisted_bracket(p: dict):
+    Lp = p.get("plate_length", 40.0)
+    h = p.get("plate_width", 20.0)
+    t = p.get("thickness", 4.0)
+    Lt = p.get("twist_length", 12.0)
+    n_holes = int(p.get("n_holes_per_flange", 1))
+    angle = p.get("twist_angle_deg", 90.0)
+    qa = [
+        _q("How many bolt holes per flange?", n_holes, "integer"),
+        _q("What is the twist angle in degrees?", angle),
+        _q("What is the plate length to width ratio?", _ratio(Lp, h)),
+        _q("What is the plate length to twist length ratio?", _ratio(Lp, Lt)),
+        _q("What is the plate width to thickness ratio?", _ratio(h, t)),
+    ]
+    return qa, {}
+
+
+def _twisted_drill(p: dict):
+    R0 = p.get("rod_radius", 3.0)
+    L = p.get("rod_length", 40.0)
+    P = p.get("pitch", 36.0)
+    theta = p.get("tip_angle", 118.0)
+    qa = [
+        _q("What is the tip angle in degrees?", theta),
+        _q("What is the rod length to diameter ratio?", _ratio(L, 2 * R0)),
+        _q("What is the helix pitch to rod diameter ratio?", _ratio(P, 2 * R0)),
+    ]
+    iso = {"din_338": True, "rod_diameter_mm": round(2 * R0, 3)}
+    return qa, iso
+
+
+def _u_bolt(p: dict):
+    rod_d = p.get("rod_diameter", 10.0)
+    e = p.get("center_distance", 50.0)
+    r = p.get("bend_radius", 25.0)
+    L = p.get("leg_length", 60.0)
+    qa = [
+        _q("What is the center distance to rod diameter ratio?", _ratio(e, rod_d)),
+        _q("What is the leg length to rod diameter ratio?", _ratio(L, rod_d)),
+        _q("What is the bend radius to rod diameter ratio?", _ratio(r, rod_d)),
+    ]
+    iso = {"din_3570": True, "rod_d_mm": rod_d}
+    return qa, iso
+
+
+def _venturi_tube(p: dict):
+    D = p.get("pipe_diameter", 100.0)
+    d = p.get("throat_diameter", 60.0)
+    t = p.get("thickness", 8.0)
+    il = p.get("inlet_len", 120.0)
+    ol = p.get("outlet_len", 80.0)
+    ca = p.get("conv_angle_deg", 21.0)
+    da = p.get("div_angle_deg", 7.0)
+    qa = [
+        _q("What is the pipe to throat diameter ratio?", _ratio(D, d)),
+        _q("What is the convergent half-angle in degrees?", ca),
+        _q("What is the divergent half-angle in degrees?", da),
+        _q("What is the inlet length to pipe diameter ratio?", _ratio(il, D)),
+        _q("What is the outlet to inlet length ratio?", _ratio(ol, il)),
+        _q("What is the wall thickness to pipe diameter ratio?", _ratio(D, t)),
+    ]
+    iso = {"iso_5167_4": True, "beta": round(d / D, 4)}
+    return qa, iso
+
+
+def _wall_anchor(p: dict):
+    d = p.get("d_nom", 6.0)
+    L = p.get("length_L", 30.0)
+    fd = p.get("flange_d", 9.0)
+    bd = p.get("pilot_bore_d", 3.5)
+    sc = int(p.get("slot_count", 2))
+    qa = [
+        _q("How many expansion slots?", sc, "integer"),
+        _q("What is the anchor length to nominal diameter ratio?", _ratio(L, d)),
+        _q("What is the flange to nominal diameter ratio?", _ratio(fd, d)),
+        _q("What is the nominal to pilot bore diameter ratio?", _ratio(d, bd)),
+    ]
+    return qa, {}
+
+
+def _wing_nut(p: dict):
+    d = p.get("d_thread", 6.0)
+    d2 = p.get("d2", 14.0)
+    e = p.get("e", 35.0)
+    h = p.get("h", 16.0)
+    qa = [
+        _q("What is the wing span to thread diameter ratio?", _ratio(e, d)),
+        _q("What is the hub to thread diameter ratio?", _ratio(d2, d)),
+        _q("What is the total height to thread diameter ratio?", _ratio(h, d)),
+    ]
+    iso = {"din_315": True, "thread_d_mm": d}
     return qa, iso
 
 
@@ -1262,9 +1652,41 @@ _REGISTRY: dict[str, Any] = {
     "locator_block": _locator_block,
     "bucket": _bucket,
     "table": _table,
+    "chair": _chair,
+    "lobed_knob": _lobed_knob,
     "duct_elbow": _duct_elbow,
+    "phone_stand": _phone_stand,
+    "battery_holder": _battery_holder,
+    "gridfinity_bin": _gridfinity_bin,
+    "hex_key_organizer": _hex_key_organizer,
+    "keyhole_plate": _keyhole_plate,
+    "pull_handle": _pull_handle,
+    "grommet": _grommet,
     # pins & keys
     "parallel_key": _parallel_key,
     "clevis_pin": _clevis_pin,
     "taper_pin": _taper_pin,
+    "cotter_pin": _cotter_pin,
+    "rivet": _rivet,
+    # fasteners (missing)
+    "eyebolt": _eyebolt,
+    "pan_head_screw": _pan_head_screw,
+    "tee_nut": _tee_nut,
+    "wing_nut": _wing_nut,
+    "wall_anchor": _wall_anchor,
+    "grease_nipple": _grease_nipple,
+    "u_bolt": _u_bolt,
+    "j_hook": _j_hook,
+    "turnbuckle": _turnbuckle,
+    # gears / shafts (missing)
+    "double_simplex_sprocket": _double_simplex_sprocket,
+    "spline_hub": _spline_hub,
+    # springs / tools (missing)
+    "torsion_spring": _torsion_spring,
+    "twisted_drill": _twisted_drill,
+    "twisted_bracket": _twisted_bracket,
+    # pipes (missing)
+    "venturi_tube": _venturi_tube,
+    # plates / brackets (missing)
+    "pillow_block": _pillow_block,
 }
