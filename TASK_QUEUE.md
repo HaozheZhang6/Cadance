@@ -4,7 +4,9 @@
 
 ## ⚠️ USER-ASSIGNED — 进行中
 
-### UA-20 — Edit bench curated subset (每 family 1-2 个 low-coupling edit)
+### UA-20 — Edit bench curated subset (每 family 1-2 个 low-coupling edit) ✅ DONE (2026-04-22)
+
+**结果：** 371 pairs 落地 `pairs_curated.jsonl`（106 families 覆盖；edit_types: dim 212 / multi_param 118 / add_hole 30 / add_chamfer 9 / add_fillet 2）。同批推至 `BenchCAD/cad_bench_edit` (test split, 371 行)。Previews dir: 215 files.
 
 **动机：** 现 724 pairs 很多编辑耦合太深（knob total_height 要改 33 个 magic number），模型不可能逆推公式。
 
