@@ -8,6 +8,7 @@ Usage (from upload scripts):
 
 from __future__ import annotations
 
+import datetime
 import signal
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
@@ -18,6 +19,10 @@ ROOT = Path(__file__).resolve().parents[3]
 SYNTH_CSV = ROOT / "data" / "data_generation" / "synth_parts.csv"
 # Canonical blocklist: stems dropped by the upload filter, readable by UI.
 BLOCKLIST_CSV = ROOT / "data" / "data_generation" / "upload_blocklist.csv"
+
+# Sticky exec-validation columns in synth_parts.csv. Preserved across runs so
+# future pushes skip already-checked stems. Not uploaded to HF.
+EXEC_CACHE_COLS = ("code_exec_ok", "code_exec_reason", "code_exec_checked_at")
 
 REQUIRED_FILES = (
     "code.py",
@@ -125,24 +130,153 @@ def _exec_code(args) -> tuple[str, str | None]:
         signal.alarm(0)
 
 
-def revalidate_exec(pairs: list[tuple[str, Path]], workers: int = 8) -> dict[str, str]:
-    """Return {stem: reason} for stems whose code.py fails to exec under current env."""
-    bad: dict[str, str] = {}
-    with ProcessPoolExecutor(max_workers=workers, initializer=_worker_init) as pool:
-        futs = {pool.submit(_exec_code, p): p[0] for p in pairs}
-        done = 0
-        n = len(pairs)
-        for fut in as_completed(futs):
+def _load_exec_cache() -> dict[str, tuple[str, str]]:
+    """Return {stem: (ok_str, reason)} from CSV — "" if column missing/empty."""
+    if not SYNTH_CSV.exists():
+        return {}
+    df = pd.read_csv(SYNTH_CSV)
+    for c in EXEC_CACHE_COLS:
+        if c not in df.columns:
+            return {}
+    oks = df["code_exec_ok"].fillna("").astype(str)
+    rsn = df["code_exec_reason"].fillna("").astype(str)
+    return {s: (ok, r) for s, ok, r in zip(df["stem"], oks, rsn) if isinstance(s, str)}
+
+
+def _write_exec_cache(updates: dict[str, tuple[str, str]]) -> None:
+    """Merge {stem: (ok_str, reason)} into synth_parts.csv. In-place.
+
+    Uses vectorized map + fillna to avoid pandas LossySetitemError when the
+    existing column was inferred as float64 from all-empty cells.
+    """
+    if not updates or not SYNTH_CSV.exists():
+        return
+    df = pd.read_csv(SYNTH_CSV)
+    for c in EXEC_CACHE_COLS:
+        if c not in df.columns:
+            df[c] = ""
+        df[c] = df[c].fillna("").astype(str).replace("nan", "")
+    ts = datetime.datetime.utcnow().isoformat() + "Z"
+    ok_map = {s: ok for s, (ok, _) in updates.items()}
+    reason_map = {s: r for s, (_, r) in updates.items()}
+    df["code_exec_ok"] = df["stem"].map(ok_map).fillna(df["code_exec_ok"]).astype(str)
+    df["code_exec_reason"] = (
+        df["stem"].map(reason_map).fillna(df["code_exec_reason"]).astype(str)
+    )
+    df.loc[df["stem"].isin(updates), "code_exec_checked_at"] = ts
+    df.to_csv(SYNTH_CSV, index=False)
+
+
+_CHECKPOINT_PATH = ROOT / "tmp" / "exec_cache_checkpoint.jsonl"
+
+
+def _checkpoint_append(updates: dict[str, tuple[str, str]]) -> None:
+    """Append a JSONL line per update. Side-channel for crash recovery."""
+    import json as _json
+
+    _CHECKPOINT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(_CHECKPOINT_PATH, "a") as f:
+        for stem, (ok, reason) in updates.items():
+            f.write(_json.dumps({"stem": stem, "ok": ok, "reason": reason}) + "\n")
+
+
+def _load_checkpoint() -> dict[str, tuple[str, str]]:
+    """Return accumulated {stem: (ok, reason)} from checkpoint JSONL (if any)."""
+    import json as _json
+
+    out: dict[str, tuple[str, str]] = {}
+    if not _CHECKPOINT_PATH.exists():
+        return out
+    with open(_CHECKPOINT_PATH) as f:
+        for line in f:
+            if not line.strip():
+                continue
             try:
-                stem, reason = fut.result(timeout=_EXEC_TIMEOUT_SEC * 4)
-            except Exception as e:
-                stem = futs[fut]
-                reason = f"worker_err:{type(e).__name__}"
-            if reason:
-                bad[stem] = reason
-            done += 1
-            if done % 500 == 0 or done == n:
-                print(f"    exec-check [{done}/{n}] bad so far: {len(bad)}", flush=True)
+                d = _json.loads(line)
+                out[d["stem"]] = (d["ok"], d.get("reason", ""))
+            except Exception:
+                continue
+    return out
+
+
+def revalidate_exec(
+    pairs: list[tuple[str, Path]],
+    workers: int = 8,
+    use_cache: bool = True,
+) -> dict[str, str]:
+    """Return {stem: reason} for stems whose code.py fails to exec under current env.
+
+    When use_cache=True, reads synth_parts.csv.code_exec_ok — skips True, records
+    False from cache, only executes unchecked stems. Writes results back to CSV.
+    """
+    # Merge persistent CSV cache + any crash-recovery checkpoint.
+    cache = _load_exec_cache() if use_cache else {}
+    if use_cache:
+        cache.update(_load_checkpoint())
+
+    to_run: list[tuple[str, Path]] = []
+    bad: dict[str, str] = {}
+    for stem, code_path in pairs:
+        ok, reason = cache.get(stem, ("", ""))
+        if ok == "True":
+            continue
+        if ok == "False":
+            bad[stem] = reason or "cached_exec_fail"
+            continue
+        to_run.append((stem, code_path))
+
+    if cache:
+        n_hit = sum(1 for s, _ in pairs if cache.get(s, ("", ""))[0] == "True")
+        n_bad_cache = sum(1 for s, _ in pairs if cache.get(s, ("", ""))[0] == "False")
+        print(
+            f"    cache: {n_hit} pass / {n_bad_cache} fail / {len(to_run)} to run",
+            flush=True,
+        )
+
+    updates: dict[str, tuple[str, str]] = {}
+    pending_checkpoint: dict[str, tuple[str, str]] = {}
+    if to_run:
+        with ProcessPoolExecutor(max_workers=workers, initializer=_worker_init) as pool:
+            futs = {pool.submit(_exec_code, p): p[0] for p in to_run}
+            done = 0
+            n = len(to_run)
+            for fut in as_completed(futs):
+                try:
+                    stem, reason = fut.result(timeout=_EXEC_TIMEOUT_SEC * 4)
+                except Exception as e:
+                    stem = futs[fut]
+                    reason = f"worker_err:{type(e).__name__}"
+                if reason:
+                    bad[stem] = reason
+                    updates[stem] = ("False", reason)
+                    pending_checkpoint[stem] = ("False", reason)
+                else:
+                    updates[stem] = ("True", "")
+                    pending_checkpoint[stem] = ("True", "")
+                done += 1
+                if done % 500 == 0 or done == n:
+                    new_bad = sum(1 for v in updates.values() if v[0] == "False")
+                    print(
+                        f"    exec-check [{done}/{n}] new bad: {new_bad}",
+                        flush=True,
+                    )
+                # Incremental checkpoint every 2000 to survive crashes.
+                if use_cache and len(pending_checkpoint) >= 2000:
+                    _checkpoint_append(pending_checkpoint)
+                    pending_checkpoint.clear()
+
+    if use_cache and pending_checkpoint:
+        _checkpoint_append(pending_checkpoint)
+
+    if use_cache and updates:
+        _write_exec_cache(updates)
+        print(f"    wrote exec cache for {len(updates)} stems", flush=True)
+        # Cache persisted to CSV — checkpoint now redundant.
+        try:
+            _CHECKPOINT_PATH.unlink()
+        except FileNotFoundError:
+            pass
+
     return bad
 
 

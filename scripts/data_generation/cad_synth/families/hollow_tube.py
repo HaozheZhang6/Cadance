@@ -47,7 +47,7 @@ _ALL = _EN10219_SHS + _EN10219_RHS
 
 class HollowTubeFamily(BaseFamily):
     name = "hollow_tube"
-    standard = "EN 10305"
+    standard = "EN 10219"
 
     def sample_params(self, difficulty: str, rng) -> dict:
         pool = (

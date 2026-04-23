@@ -4,6 +4,95 @@
 
 ## ⚠️ USER-ASSIGNED — 进行中
 
+### UA-23 — apr20-20k 数据集全清 + HF 重推 + 本地↔HF align ✅ DONE (2026-04-23)
+
+**结果：**
+- hollow_tube apr20 坏样本(YZ/XZ 下 box+rect 切成两块板)33 行已删 + rm stem 目录
+- hollow_tube.py standard 字段 `EN 10305 → EN 10219`(家族尺寸表本来就是 EN 10219),CSV 346 行回填
+- apr20 rejected 2920 行从 `synth_parts.csv` 删除
+- gid 全局重编 1..36176(原 985 duplicate gid 消除)
+- 新增 sticky exec-cache 列:`code_exec_ok` / `code_exec_reason` / `code_exec_checked_at`(加入 `exporter.SYNTH_FIELDS`,不 push HF)
+- `_upload_filter.revalidate_exec` 改造:cache-aware 跳过已检过,持久化到 CSV;增量 checkpoint `tmp/exec_cache_checkpoint.jsonl`(每 2000)防再丢
+- 全量 exec 校验 20221 apr20 accepted:**20143 pass / 78 fail**(0.39%)
+  - fail 分布:`double_simplex_sprocket` 50, `slotted_plate` 6, `motor_end_cap` 5, `stepped_shaft` 5, `torus_link` 4, `shaft_collar` 4, 其他 ≤2
+  - reason:`Standard_Failure` 69 / `exec_timeout` 5 / `zero_volume` 4
+- `HfApi.delete_repo(BenchCAD/cad_bench)` 删云端 → `push_bench_hf --workers 8` 全 revalidate 重推
+- **align 核对:HF test split = 20143 行,local (accepted apr20 ∩ exec_ok=True) = 20143,stem set 双向 diff = 0**
+- 备份:`synth_parts.csv.bak_ua23_{003145,011932,addcols}*` 三份
+- 一个坑:第一轮 `_write_exec_cache` pandas LossySetitemError(float64 列 setitem 字符串),results 丢失 40 分钟;已改 map-based 向量化 + 增量 checkpoint,重跑成功
+
+**未做(scope 外,下一任务):**
+- `exporter._next_gid()` race condition 根治(用 flock / SQLite 分配 gid),避免未来再产 duplicate
+- `exporter.py:87` `gt.step = gen.step` 让 IoU 校验自我通过的问题(与 apr20 无关,但是导致 hollow_tube 多 solid 进了 verified 的根因)
+- 其他 family 在 YZ/XZ 下是否也有类似 base_plane-fragile 问题,未系统扫
+
+### UA-23 — apr20-20k 数据集全清 + HF 重推 + 本地↔HF align (设计稿,落地见上面)
+
+**任务：** apr20-20k (`batch_20k_apr20`) 数据集搞干净,删云端重 push `BenchCAD/cad_bench`,保证 HF 官方 repo 和本地 CSV align。
+
+**用户决策：**
+- gid 列重排(985 重复 gid,race condition 产物 → 重编 1..N)
+- 清 rejected 行(apr20 scope 内 2920 行)
+- 多 solid 不过滤(hollow_tube apr20 33 行已单独删,其余家族不动)
+- HF 云端删了重 push(不留旧版本)
+- **不 re-exec 验证**,信任 CSV `accepted` 标签
+
+### UA-22 — Bench runner 通用化：即插即用 model + 固定 results/ 分任务落地 + 可复现分层采样 ✅ DONE (2026-04-22)
+
+**结果：**
+- 新增基础设施 5 文件：`bench/models/registry.py` + `providers/{openai,local_hf}.py` + `prompts.py` + `sampling.py` + `results.py`
+- 重命名（git mv）：`eval_qa.py → eval_qa_img.py`, `run_edit.py → run_edit_code.py`, `run_edit_vlm.py → run_edit_img.py`
+- 6 runner refactor：`bench/eval.py` (img2cq), `bench/eval_qa_img.py`, `bench/eval_qa_code.py`, `bench/test/run_test.py` (img2cq_test), `bench/edit_gen/run_edit_code.py`, `bench/edit_gen/run_edit_img.py`
+- `--model` 强制 required；去掉 `--out`/`--resume`/`--per-family`；统一 `--limit/--seed/--split/--repo`
+- Adapter 单一接口 `generate(system, user_text, images, max_tokens) → (text, err)`，runner 完全不知 provider 细节；加新 model = 加 `providers/<x>.py` 一行 `@register(...)`
+- Sampling：N≤200 shuffle+head；N>200 stratified（每 family ≥1 + 比例 fill）；同 `(rows, n, seed)` 完全确定
+- Results：扁平 pool/(task, model)，`results.jsonl` append-only dedup，`runs/<ts>__seed<s>__N<n>.json` sidecar
+- Smoke 验证：3 model × 2 task × N=3 → 同 seed 完全一致跨 model/task；N=3 → N=5 自动 done=3/todo=2；不同 model 子目录隔离
+- `pytest 83 pass`；新文件 ruff clean
+- 未做（不在本任务范围）：Anthropic adapter（架构留好，需要时新加 providers/anthropic.py）；删除 `bench/test/results/` 旧目录（已不被新 runner 写，留给用户决定）
+
+### UA-22 (设计稿，落地见上面 ✅ DONE 条目)
+
+**动机：** 现 4 runner (`bench/eval.py` / `eval_qa.py` / `eval_qa_code.py` / `test/run_test.py`) `--model` 默认 `gpt-4o`，提供商/max_tokens 切换是在 runner 里 `startswith("gpt-5")` 硬判；结果默认 `bench/test/results/*.jsonl`，任务间易覆盖、无 skip；limit 仅随机 shuffle 不保证 family 覆盖。
+
+**硬性要求：**
+
+1. **Model 即插即用** — runner 里不准写死 model/provider。统一走 `bench/models/registry.py` 之类的 dispatch：CLI 只传 `--model`，runner 不做 `startswith("gpt-5")` 判定。Provider、max_tokens key、system prompt 选择都在 model adapter 里。新增 model = 注册一条 adapter，不改 runner。
+
+2. **固定 results/ 目录 + 分任务子目录：**
+   ```
+   results/
+     img2cq/       ← bench/eval.py
+     vlm_qa/       ← bench/eval_qa.py
+     code_qa/      ← bench/eval_qa_code.py
+     img2cq_test/  ← bench/test/run_test.py
+     edit/         ← 未来 edit runner
+   ```
+   每次运行产物（code/step/render/result.jsonl）落到 `results/<task>/<model>/<run_id>/`，run_id 由 (task, model, split, seed, N) 决定。
+
+3. **不重复跑：** 每条 sample 按 `stem`（或 `rid` for edit）去重。runner 启动时扫 `results/<task>/<model>/` 下已完成 sample，跳过再拉新的补齐到 N。替换目前 `eval.py --resume` 的行为，扩到另外 3 个 runner。
+
+4. **每任务独立随机采样方法（可复现）：**
+   - 同一 `(task, seed, N)` → 取到的 sample 集合必须完全一致。
+   - QA codegen (img + code)：**N ≤ 200**：纯 shuffle 取前 N；**N > 200**：stratified — 每 family 至少 1 条，剩余名额按 family 规模 proportional 再填。
+   - Img2CQ：沿用现有 stratified_sample（已存在），但同样 seed → 同样采样结果。
+   - Edit：按 `edit_type` + family 两级分层（L1/L2 各自保均匀）。
+   - 采样函数抽到 `bench/sampling.py`，4 runner 共用。
+
+**产出：**
+- `bench/models/registry.py`（或扩现 `bench/models/__init__.py`）：model → adapter dispatch
+- `bench/sampling.py`：`stratified(rows, n, seed, task)` 返回固定顺序 rows
+- `bench/results.py`：`run_dir(task, model, ...)` + `load_done(run_dir)` 复用
+- 4 runner 重构到新 results/ 路径 + 用 sampling.py + 去重
+- `README.md` 一张新路径表
+
+**不在范围：** 新增 eval metric、新增 model provider、edit runner 本身（等 UA-22 基础设施落地后再开 UA-23）。
+
+**未解问题：**
+- run_id 要不要包含 git sha（便于 trace code 版本 vs results）？
+- `results/` 进不进 git？（预期 gitignore，只留 dir placeholder）
+- 历史 `bench/test/results/*.jsonl` 迁移还是保留？
+
 ### UA-20 — Edit bench curated subset (每 family 1-2 个 low-coupling edit) ✅ DONE (2026-04-22)
 
 **结果：** 371 pairs 落地 `pairs_curated.jsonl`（106 families 覆盖；edit_types: dim 212 / multi_param 118 / add_hole 30 / add_chamfer 9 / add_fillet 2）。同批推至 `BenchCAD/cad_bench_edit` (test split, 371 行)。Previews dir: 215 files.

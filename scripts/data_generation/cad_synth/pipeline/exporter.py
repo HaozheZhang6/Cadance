@@ -32,6 +32,11 @@ SYNTH_FIELDS = [
     "pipeline_run",
     "sample_type",  # "production" | "test"
     "created_at",
+    # Post-hoc exec validation cache — filled by _upload_filter.revalidate_exec.
+    # Sticky so re-runs don't re-exec. Not pushed to HF.
+    "code_exec_ok",  # "True" | "False" | "" (unchecked)
+    "code_exec_reason",  # error reason if False, else ""
+    "code_exec_checked_at",  # ISO timestamp of last check, else ""
 ]
 
 # Run names that are test/smoke/verification runs, not production batches

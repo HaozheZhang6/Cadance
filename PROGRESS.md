@@ -1,4 +1,58 @@
 
+## 2026-04-23 (session 27) — UA-23 apr20-20k 全清 + HF 重推 + 本地↔HF align
+
+- hollow_tube YZ/XZ base_plane 下 box+rect 切成两块板（33 apr20 sample），family op 序列只适配 XY → 直接删样本 + 家族 standard 字段 `EN 10305 → EN 10219`（尺寸表本来就是 EN 10219，346 行回填）
+- `exporter._next_gid()` race condition 造 985 个 duplicate gid：这次 renumber 1..N 抹平；根治（flock/SQLite）留下一任务
+- 发现 `exporter.py:87` `gt.step = gen.step` 让 IoU 校验永远 1.0 自通过（hollow_tube 多 solid 才进了 verified）；没动，下一任务
+- 新增 **sticky exec-cache 3 列**到 `synth_parts.csv`：`code_exec_ok` / `code_exec_reason` / `code_exec_checked_at`（写入 `exporter.SYNTH_FIELDS`；HF push 不 leak，因 push_bench_hf 从 meta.json 构 row 不读 CSV 列）
+- `_upload_filter.revalidate_exec` 改 cache-aware：load CSV → skip True / 取 False 不 rerun / 只 exec 未检过；增量 checkpoint `tmp/exec_cache_checkpoint.jsonl`（每 2000）防崩丢
+- 第一轮 `_write_exec_cache` 踩 pandas `LossySetitemError`（float64 列 setitem 字符串），40 min exec 结果丢光；改成 map-based 向量化 + `.fillna().astype(str)` 先拉成 object dtype 再写入
+- 全量 exec 校验 20221 apr20 accepted：**20143 pass / 78 fail (0.39%)**；fail 扎堆 `double_simplex_sprocket` 50 例，`Standard_Failure` 69 / `exec_timeout` 5 / `zero_volume` 4
+- 删 78 fail + rm stem 目录 + renumber gid → CSV 36098 行
+- 清 apr20 rejected 2920 行（没磁盘 artifact，纯 CSV bookkeeping）
+- `HfApi.delete_repo(BenchCAD/cad_bench)` 重推,cache 全命中秒过 exec，只耗 parquet 上传
+- **align 核对：HF test split = 20143，local (accepted apr20 ∩ exec_ok=True) = 20143，stem set 双向 diff = 0**
+- 3 份 CSV 备份 `.bak_ua23_*`(pre-clean / pre-addcols / pre-purge)
+- 余问题:78 fail 的 `double_simplex_sprocket` 批量 `Standard_Failure` 需定向查（fillet/chamfer 系列几何异常);`gt.step = gen.step` 复制 + `gid` race condition 两个根因 pipeline 未修
+
+## 2026-04-22 (session 26) — edit bench singleton 填补 + count-change 任务
+
+- 审 pairs_curated.jsonl：4 family 只 1 data point（L1+L2 算 1）→ capsule/turnbuckle/circlip/twisted_bracket
+- 新 `tmp/build_topup_edits.py`：6 条 add/remove edit via string-replace gt_builder + 每 edit per-edit orig regeneration（避免 stale STEP）
+  - turnbuckle add_chamfer 2.0mm 在 `|X` long outer edges（iou=0.9705）
+  - circlip add_chamfer 0.4mm 在 `>Z` top edges（iou=0.9898）
+  - table remove_leg 4→3（删 `(-93.75,-57.6,-78.25)` 腿，iou=0.9046；user 举例的 count-change）
+  - hex_standoff add_chamfer 0.5mm 在 top hex rim（iou=0.9936）
+  - tapered_boss add_hole 12.0mm 中心 bore（iou=0.9515）
+  - pan_head_screw add_chamfer 0.4mm 在 head 顶（iou=0.9805）
+- 踩坑：twisted_bracket 移孔 iou=1.0（体素 64³ 看不见 2.5mm 半径孔）+ dome_cap revolve+arc STEP 导出丢弧段（ylen 91.6→31.4）→ 两者 drop
+- twisted_bracket 改 `curate_supplementary_plan.json` dim 补位：plate_width 16→20 (+25%)，iou=0.7749
+- `curate_finalize.emit_additive_records` 支持 `remove_*` op_type：rid 直接用 `{family}_{op_type}_L1`，orig_value 从 plan entry 读，unit 默认 count（remove）/mm（add）
+- 最终 **433 records**：212 dim + 58 dim-supp(29×2) + 45 add(39+6) + 118 multi；106 families；1 singleton 剩 capsule（球面 tessellation iou metric bug，session 22 已记录）
+- 分布：77 family 2dp, 28 family 3dp, 1 family 1dp
+
+## 2026-04-22 (session 25) — UA-22 bench runner 通用化
+
+- 6 runner 重构成 plug-and-play model + 固定 `results/<task>/<model>/` 分任务落地 + dedup + 可复现 stratified 采样
+- 新增：`bench/models/registry.py` (ModelAdapter ABC + register/get_adapter), `providers/{openai,local_hf}.py`, `prompts.py` (集中所有 SYSTEM/USER 提示词 + parse_qa_answers), `bench/sampling.py` (n>200 自动 stratified, 每 family ≥1), `bench/results.py` (ResultsDir 管理 append-only pool + sidecar runs/)
+- 重命名：`eval_qa.py → eval_qa_img.py`, `run_edit.py → run_edit_code.py`, `run_edit_vlm.py → run_edit_img.py` (统一 `qa_img / qa_code / edit_img / edit_code` 命名)
+- 6 runner main 全部瘦身：`--model` required（去 default `gpt-4o`），去 `--out` / `--resume` / `--per-family`，统一 `--limit --seed --split --repo`
+- `bench/models/__init__.py` 留 5 个 back-compat shim (call_vlm/call_vlm_qa/call_llm_qa_code/call_edit_vlm/call_edit_code)，旧 import 不炸
+- Smoke：3 model (gpt-4o-mini / gpt-4o / gpt-4.1-mini) × 2 task (qa_img / qa_code) × N=3 seed=42 → ✅ 同 seed 3 stem 跨 model/task 完全一致；N=3→N=5 同 seed 自动跳过 done=3 todo=2；4 (task,model) 子目录互不污染
+- `pytest 83 pass`, `ruff` 我新加文件 0 error
+
+## 2026-04-22 (session 24) — edit bench add_* 指令自查
+
+- 审 41 个 add_* case：发现 2 个 broken（orig 是裸 box，GT 多 8-11 个操作）、4 个多孔说"a hole"、6 个 pattern 无位置/数量、1 个面搞反、2 个边选符错、2 个 "outer edges" 模糊
+- Fix：
+  - 删 `pipe_flange_add_chamfer` + `slotted_plate_add_chamfer`
+  - 改写 10 多孔指令（clevis "两孔一臂一个"、flat_link "两端"、manifold_block "三孔沿长轴"、mounting_angle "三孔沿腹板"、cruciform "四臂端"、dog_bone "两 lobe"、ratchet_sector "沿弧"、mounting_plate/sheet_metal_tray/locator_block "四角"）
+  - 16 单孔加 "through"（.hole() 默认即 through-all）
+  - 边选符：dowel_pin "top + bottom"、wing_nut "wing edges"、bucket "top rim"、parallel_key "long edges"
+  - `sheet_metal_tray` face 错：top→bottom（GT 确实 `<Z`）
+- 只改 `curate_additive_plan.json` + 跑 `curate_finalize.py`：41→39 additive records，总 371→369
+- Re-audit 0 mismatch
+
 ## 2026-04-22 (session 23) — pulley pocket cap + 20k dataset fix
 
 - Bug：pulley hard 的 spoke pocket 对大 pulley 失控（rr=250 pl=119.5 pt=105.7），占满 radial web
