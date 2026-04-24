@@ -75,9 +75,7 @@ def apply_edit(orig_text: str, param: str, old_value: float, new_value: float):
     head_replaced = False
     new_head_lines = []
     pat_head = re.compile(
-        rf"^(#\s*{re.escape(param)}\s*=\s*)"
-        + r"(-?\d+(?:\.\d+)?)"
-        + r"(\s*)$"
+        rf"^(#\s*{re.escape(param)}\s*=\s*)" + r"(-?\d+(?:\.\d+)?)" + r"(\s*)$"
     )
     for ln in head_lines:
         if not head_replaced:
@@ -262,13 +260,9 @@ def main():
         print(f"\nwrote {out_path}")
         n_ok = sum(1 for r in results if r["ok"])
         n_iou_bad = sum(
-            1
-            for r in results
-            if r["ok"] and r.get("iou_orig_gt", 0) >= 0.99
+            1 for r in results if r["ok"] and r.get("iou_orig_gt", 0) >= 0.99
         )
-        print(
-            f"  ok={n_ok}/{len(results)}, iou>=0.99 (too similar)={n_iou_bad}"
-        )
+        print(f"  ok={n_ok}/{len(results)}, iou>=0.99 (too similar)={n_iou_bad}")
 
 
 if __name__ == "__main__":

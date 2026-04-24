@@ -1,13 +1,14 @@
-"""QA bench — image + numeric questions → answers → ratio accuracy.
+"""QA-img bench — composite image + numeric questions → answers → ratio acc.
 
 Flow per sample:
-  composite_png (from HF) + qa_pairs (questions) → VLM → JSON[float] → qa_score
+  composite_png + qa_pairs → VLM (registry adapter) → JSON[float] → qa_score
 
-No CadQuery exec, no STEP, no IoU. Pure "look at render, answer numeric Qs".
+No CadQuery exec. Pure "look at render, answer numeric Qs".
+
+Results land in `results/qa_img/<model>/`, dedup by stem across runs.
 
 Usage:
-    uv run python bench/eval_qa.py --limit 12 --model gpt-4o
-    # defaults: --repo BenchCAD/cad_bench --split test
+    uv run python bench/eval_qa_img.py --model gpt-4o --limit 50 --seed 42
 """
 
 from __future__ import annotations
@@ -93,7 +94,7 @@ def report(results: list[dict]) -> None:
     ok = [r for r in results if r["error"] is None]
     scores = [r["qa_score"] for r in ok]
     print(f"\n{'=' * 60}")
-    print(f"QA Bench  |  model={results[0]['model']}  N={n}")
+    print(f"QA-Img Bench  |  model={results[0]['model']}  N={n}")
     print(f"{'=' * 60}")
     print(f"parse_ok : {len(ok)}/{n}  ({len(ok) / n * 100:.1f}%)")
     print(f"qa_score : {sum(scores) / len(scores):.3f}" if scores else "qa_score: —")
@@ -110,17 +111,18 @@ def report(results: list[dict]) -> None:
     print("=" * 60)
 
 
-def main():
-    ap = argparse.ArgumentParser(description="QA bench runner")
+def main() -> None:
+    from bench.dataloader import load_hf
+    from bench.results import ResultsDir
+    from bench.sampling import sample_rows
+
+    ap = argparse.ArgumentParser(description="QA-img bench")
+    ap.add_argument("--model", required=True)
     ap.add_argument("--repo", default="BenchCAD/cad_bench")
     ap.add_argument("--split", default="test")
-    ap.add_argument("--limit", type=int, default=0, help="0 = all")
-    ap.add_argument("--model", default="gpt-4o")
-    ap.add_argument("--out", default="bench/test/results/qa_results.jsonl")
-    ap.add_argument("--seed", type=int, default=None, help="shuffle rows before limit")
+    ap.add_argument("--limit", type=int, default=0, help="0=all; >200 stratified")
+    ap.add_argument("--seed", type=int, default=0)
     args = ap.parse_args()
-
-    from bench.dataloader import load_hf
 
     token = (
         os.environ.get("BenchCAD_HF_TOKEN")
@@ -132,30 +134,32 @@ def main():
         sys.exit("OPENAI_API_KEY not set")
 
     print(f"Loading {args.repo}[{args.split}] ...")
-    rows = load_hf(args.repo, args.split, token=token, shuffle_seed=args.seed)
-    if args.limit:
-        rows = rows[: args.limit]
-    print(f"N={len(rows)}  model={args.model}")
+    rows = load_hf(args.repo, args.split, token=token)
+    sampled = sample_rows(rows, args.limit, args.seed)
 
-    out_path = Path(args.out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    results: list[dict] = []
-    with open(out_path, "w") as f:
-        for i, row in enumerate(rows):
-            print(f"  [{i + 1}/{len(rows)}] {row['stem']}  ", end="", flush=True)
+    rd = ResultsDir(task="qa_img", model=args.model)
+    done = rd.done_keys("stem")
+    todo = [r for r in sampled if r["stem"] not in done]
+    rd.log_run(vars(args), sampled)
+
+    print(
+        f"Sampled {len(sampled)} (seed={args.seed})  done={len(done)}  todo={len(todo)}"
+    )
+    print(f"Results dir: {rd.root}")
+
+    with rd:
+        for i, row in enumerate(todo):
+            print(f"  [{i + 1}/{len(todo)}] {row['stem']}  ", end="", flush=True)
             res = eval_sample(row, args.model, api_key)
-            slim = {k: v for k, v in res.items() if k != "per_qa"}
-            slim["per_qa"] = res["per_qa"]
-            f.write(json.dumps(slim) + "\n")
-            f.flush()
-            results.append(res)
+            rd.append(res)
             if res["error"]:
                 print(f"ERR {res['error'][:80]}")
             else:
                 print(f"qa={res['qa_score']:.3f}  n={res['n_qa']}")
 
+    with open(rd.results_path) as f:
+        results = [json.loads(line) for line in f if line.strip()]
     report(results)
-    print(f"Results: {out_path}")
 
 
 if __name__ == "__main__":

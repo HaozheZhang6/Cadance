@@ -58,7 +58,7 @@ def score(
             rid = r["record_id"]
             gt_path = _write_step_bytes(r["gt_step"], tmpdir, f"{rid}_gt")
             pairs[rid] = {**r, "_gt_step_abs": str(gt_path)}
-        run_base = run_root or Path("bench_edit_runs")
+        run_base = run_root or (ROOT / "results" / "edit_code")
     else:
         assert bench_dir is not None
         pairs = {
@@ -69,14 +69,14 @@ def score(
                 if ln
             )
         }
-        run_base = run_root or (bench_dir / "runs")
+        run_base = run_root or (ROOT / "results" / "edit_code")
     run_dir = run_base / model.replace(":", "_").replace("/", "_")
     results_path = run_dir / "results.jsonl"
     if not results_path.exists():
         raise FileNotFoundError(f"no run results at {results_path}")
 
     results = [json.loads(ln) for ln in results_path.read_text().splitlines() if ln]
-    gen_step_dir = run_dir / "gen_step"
+    gen_step_dir = run_dir / "steps"
     scored_path = run_dir / "scored.jsonl"
     fh = scored_path.open("w")
 
@@ -230,7 +230,7 @@ def main():
         "--run-root",
         type=str,
         default="",
-        help="Directory containing <model>/results.jsonl (default matches run_edit.py)",
+        help="Directory containing <model>/results.jsonl (default matches run_edit_code.py)",
     )
     args = ap.parse_args()
     bench_dir = Path(args.bench_dir) if args.bench_dir else None

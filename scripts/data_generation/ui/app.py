@@ -30,8 +30,45 @@ DEEPCAD_RECON = ROOT / "data/data_generation/open_source/deepcad"
 
 @st.cache_data(ttl=30)
 def load_data():
-    vdf = pd.read_csv(VERIFIED_CSV) if VERIFIED_CSV.exists() else pd.DataFrame()
-    pdf = pd.read_csv(PARTS_CSV) if PARTS_CSV.exists() else pd.DataFrame()
+    verified_schema = {
+        "stem": "",
+        "data_source": "",
+        "sft_ready": "",
+        "cq_code_path": "",
+        "norm_cq_code_path": "",
+        "pipeline_run": "",
+        "timestamp": "",
+        "iou": pd.NA,
+        "norm_iou": pd.NA,
+        "gt_norm_step_path": "",
+        "gt_step_path": "",
+        "gt_views_norm_dir": "",
+    }
+    parts_schema = {
+        "stem": "",
+        "status": "",
+        "iou": pd.NA,
+        "pipeline_run": "",
+        "failure_code": "",
+        "retry_reason": "",
+        "gen_step_path": "",
+        "cq_code_path": "",
+        "run": "",
+        "source": "",
+    }
+
+    def _read_csv_or_empty(path: Path, schema: dict) -> pd.DataFrame:
+        if path.exists():
+            df = pd.read_csv(path)
+        else:
+            df = pd.DataFrame(columns=list(schema))
+        for col, default in schema.items():
+            if col not in df.columns:
+                df[col] = default
+        return df
+
+    vdf = _read_csv_or_empty(VERIFIED_CSV, verified_schema)
+    pdf = _read_csv_or_empty(PARTS_CSV, parts_schema)
     return vdf, pdf
 
 
@@ -73,6 +110,28 @@ def _strip_suffix(stem: str) -> str:
         if stem.endswith(sfx):
             return stem[: -len(sfx)]
     return stem
+
+
+def _display_value(v):
+    if pd.isna(v):
+        return ""
+    if isinstance(v, bytes):
+        try:
+            return v.decode("utf-8")
+        except UnicodeDecodeError:
+            return repr(v)
+    if isinstance(v, (list, tuple, dict, set)):
+        return repr(v)
+    return v
+
+
+def show_df(df: pd.DataFrame, **kwargs):
+    """Normalize mixed object columns so Streamlit/pyarrow can render them."""
+    safe = df.copy()
+    for col in safe.columns:
+        if pd.api.types.is_object_dtype(safe[col]):
+            safe[col] = safe[col].map(_display_value)
+    st.dataframe(safe, **kwargs)
 
 
 # ── overview page ─────────────────────────────────────────────────────────────
@@ -192,7 +251,7 @@ def page_overview():
             for c in ["stem", "iou", "pipeline_run", "failure_code"]
             if c in nm.columns
         ]
-        st.dataframe(
+        show_df(
             nm[cols].sort_values("iou", ascending=False).reset_index(drop=True),
             use_container_width=True,
         )
@@ -777,18 +836,18 @@ def page_synth():
         fc["ISO/DIN"] = fc["family"].map(
             lambda f: "" if (s := fam_std.get(f, "")) in ("N/A", "None", None) else s
         )
-        st.dataframe(fc, use_container_width=True, hide_index=True, height=200)
+        show_df(fc, use_container_width=True, hide_index=True, height=200)
     with d2:
         st.caption("**Difficulty**")
         dc = acc["difficulty"].value_counts().reset_index()
         dc.columns = ["difficulty", "n"]
-        st.dataframe(dc, use_container_width=True, hide_index=True, height=200)
+        show_df(dc, use_container_width=True, hide_index=True, height=200)
     with d3:
         st.caption("**Rejections**")
         if len(rej):
             rc_df = rej["reject_reason"].value_counts().reset_index()
             rc_df.columns = ["reason", "n"]
-            st.dataframe(rc_df, use_container_width=True, hide_index=True, height=200)
+            show_df(rc_df, use_container_width=True, hide_index=True, height=200)
         else:
             st.success("No rejections")
 
@@ -1005,7 +1064,7 @@ def page_synth():
                             for k, v in params_dict.items()
                             if k != "difficulty"
                         ]
-                        st.dataframe(
+                        show_df(
                             pd.DataFrame(p_rows),
                             hide_index=True,
                             use_container_width=True,
@@ -1019,7 +1078,7 @@ def page_synth():
                             {"tag": k, "value": "✓" if v else "✗"}
                             for k, v in tags_dict.items()
                         ]
-                        st.dataframe(
+                        show_df(
                             pd.DataFrame(t_rows),
                             hide_index=True,
                             use_container_width=True,
@@ -1334,7 +1393,7 @@ def main():
 
     with st.sidebar:
         page = st.radio(
-            "",
+            "Navigation",
             pages,
             key="nav_radio",
             label_visibility="collapsed",

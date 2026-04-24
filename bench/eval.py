@@ -1,21 +1,15 @@
-"""MechEval — CAD generation benchmark.
+"""MechEval — CAD generation benchmark (img → CadQuery code).
 
-Loads dataset from HuggingFace (default: BenchCAD/cad_bench, split=test), calls
-a VLM, executes generated CadQuery code, computes IoU / Chamfer / Feature-F1,
-and reports aggregated metrics.
+Loads HF dataset, calls a VLM via bench.models registry, executes generated
+CadQuery code, computes IoU / Chamfer / Feature-F1.
+
+Results land in `results/img2cq/<model>/` and are dedup'd by `stem` across
+runs — re-running with a different seed/N just expands the pool.
 
 Usage:
-    # GPT-4o (default repo + split)
-    python bench/eval.py --model gpt-4o --out results.jsonl
-
-    # 1 sample per family
-    python bench/eval.py --model gpt-4o --per-family 1 --out results.jsonl
-
-    # Local Cadrille checkpoint
-    python bench/eval.py --model local:./checkpoints/cadrille-sft --out results.jsonl
-
-    # Resume interrupted run
-    python bench/eval.py --model gpt-4o --resume --out results.jsonl
+    python bench/eval.py --model gpt-4o
+    python bench/eval.py --model gpt-4o --limit 50 --seed 42
+    python bench/eval.py --model local:./checkpoints/cadrille-sft --limit 100
 """
 
 from __future__ import annotations
@@ -33,11 +27,25 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(ROOT / ".env", override=False)
+except ImportError:
+    pass
+
 LD = os.environ.get("LD_LIBRARY_PATH", "/workspace/.local/lib")
 
-from bench.dataloader import load_hf, load_done_stems, stratified_sample
-from bench.metrics import compute_iou, compute_chamfer, extract_features, feature_f1
-from bench.models import call_vlm
+from bench.dataloader import load_hf  # noqa: E402
+from bench.metrics import (  # noqa: E402
+    compute_chamfer,
+    compute_iou,
+    extract_features,
+    feature_f1,
+)
+from bench.models import call_vlm  # noqa: E402
+from bench.results import ResultsDir  # noqa: E402
+from bench.sampling import sample_rows  # noqa: E402
 
 # ── CadQuery execution ────────────────────────────────────────────────────────
 
@@ -69,9 +77,9 @@ except Exception as _e:
 
 def _clean(code: str) -> str:
     return "\n".join(
-        l
-        for l in code.splitlines()
-        if l.strip() not in ("import cadquery as cq", "import cadquery")
+        ln
+        for ln in code.splitlines()
+        if ln.strip() not in ("import cadquery as cq", "import cadquery")
     )
 
 
@@ -112,9 +120,9 @@ def eval_sample(row: dict, model: str, api_key: str | None) -> dict:
         "stem": row["stem"],
         "family": row["family"],
         "difficulty": row["difficulty"],
-        "base_plane": row["base_plane"],
-        "split": row["split"],
-        "feature_count": row["feature_count"],
+        "base_plane": row.get("base_plane"),
+        "split": row.get("split", "test"),
+        "feature_count": row.get("feature_count"),
         "gt_features": gt_features,
         "model": model,
         "exec_ok": 0,
@@ -237,16 +245,13 @@ def report(results: list[dict]) -> None:
 
 
 def main():
-    ap = argparse.ArgumentParser(description="MechEval — CAD generation benchmark")
-    ap.add_argument("--model", default="gpt-4o")
+    ap = argparse.ArgumentParser(description="MechEval — img → CadQuery code")
+    ap.add_argument("--model", required=True)
     ap.add_argument("--split", default="test")
     ap.add_argument("--repo", default="BenchCAD/cad_bench")
-    ap.add_argument("--limit", type=int, default=0, help="0=all")
-    ap.add_argument("--per-family", type=int, default=0, help="stratified N per family")
-    ap.add_argument("--out", default="results.jsonl")
+    ap.add_argument("--limit", type=int, default=0, help="0=all; >200 stratified")
+    ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--api-key", default=None)
-    ap.add_argument("--resume", action="store_true")
-    ap.add_argument("--seed", type=int, default=None, help="shuffle rows before limit")
     args = ap.parse_args()
 
     token = (
@@ -261,31 +266,27 @@ def main():
     )
 
     print(f"Loading {args.repo}[{args.split}] ...")
-    rows = load_hf(args.repo, args.split, token=token, shuffle_seed=args.seed)
+    rows = load_hf(args.repo, args.split, token=token)
+    sampled = sample_rows(rows, args.limit, args.seed)
 
-    if args.per_family:
-        rows = stratified_sample(rows, args.per_family)
-    elif args.limit:
-        rows = rows[: args.limit]
+    rd = ResultsDir(task="img2cq", model=args.model)
+    done = rd.done_keys("stem")
+    todo = [r for r in sampled if r["stem"] not in done]
+    rd.log_run(vars(args), sampled)
 
-    out_path = Path(args.out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+    print(
+        f"Sampled {len(sampled)} (seed={args.seed})  done={len(done)}  todo={len(todo)}"
+        f"  model={args.model}  split={args.split}"
+    )
+    print(f"Results dir: {rd.root}")
 
-    if args.resume:
-        done = load_done_stems(out_path)
-        rows = [r for r in rows if r["stem"] not in done]
-        print(f"Resuming: {len(done)} done, {len(rows)} remaining")
-
-    print(f"Evaluating {len(rows)} samples  model={args.model}  split={args.split}")
-
-    results = []
-    with open(out_path, "a") as f_out:
-        for i, row in enumerate(rows):
-            print(f"[{i+1}/{len(rows)}] {row['stem']} ...", end=" ", flush=True)
+    with rd:
+        for i, row in enumerate(todo):
+            print(f"[{i+1}/{len(todo)}] {row['stem']} ...", end=" ", flush=True)
             res = eval_sample(row, args.model, api_key)
-            results.append(res)
-            f_out.write(json.dumps(res) + "\n")
-            f_out.flush()
+            if res.get("gen_code"):
+                rd.save_code(row["stem"], res["gen_code"])
+            rd.append(res)
             status = (
                 f"iou={res['iou']:.3f} f1={res['feature_f1']:.3f} exec={res['exec_ok']}"
             )
@@ -293,9 +294,9 @@ def main():
                 status += f"  ERR={res['error'][:60]}"
             print(status)
 
-    if args.resume and out_path.exists():
-        with open(out_path) as f:
-            results = [json.loads(l) for l in f if l.strip()]
+    # Final report = full pool for this (task, model)
+    with open(rd.results_path) as f:
+        results = [json.loads(line) for line in f if line.strip()]
     report(results)
 
 

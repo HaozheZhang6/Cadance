@@ -24,14 +24,23 @@ cp .env.example .env                 # fill in OPENAI_API_KEY, HF_TOKEN (optiona
 
 ```bash
 # 1. Image → CadQuery code (IoU / Chamfer / Feature-F1)
-uv run python bench/test/run_test.py --repo Hula0401/cad_synth_bench_smoke --split test_iid --limit 12 --model gpt-4o
+uv run python bench/eval.py            --model gpt-5.4 --limit 300 --seed 42
 
 # 2. Image → numeric QA
-uv run python bench/eval_qa.py       --repo Hula0401/cad_synth_bench_smoke --split test_iid --limit 12 --model gpt-4o
+uv run python bench/eval_qa_img.py     --model gpt-5.4 --limit 300 --seed 42
 
 # 3. Code → numeric QA (text-only)
-uv run python bench/eval_qa_code.py  --repo Hula0401/cad_synth_bench_smoke --split test_iid --limit 12 --model gpt-4o
+uv run python bench/eval_qa_code.py    --model gpt-5.4 --limit 300 --seed 42
+
+# 4. Code edit (orig code + NL instruction → modified code)
+uv run python -m bench.edit_gen.run_edit_code  --model gpt-5.4 --limit 200 --seed 42
+uv run python -m bench.edit_gen.run_edit_img   --model gpt-5.4 --limit 200 --seed 42
+uv run python -m bench.edit_gen.score_edit     --model gpt-5.4
 ```
+
+- Results land in `results/<task>/<model>/` (gitignored), dedup'd by stem across runs.
+- `N > 200` auto-stratifies to ≥1 sample per family.
+- Plug new model = add `bench/models/providers/<x>.py` with `@register("name")`; no runner changes.
 
 Details: [`bench/README.md`](bench/README.md).
 
@@ -69,17 +78,26 @@ All keys live in `.env` (git-ignored). Data pipeline auto-loads via `python-dote
 
 ## Benchmarks (`bench/`)
 
-Three parallel benchmarks, same HF dataset:
+Six runners, four task types, two HF repos:
 
-| Bench | Runner | Input → Output |
-|---|---|---|
-| Code | `bench/test/run_test.py` | composite image → CadQuery code → re-render → IoU/Chamfer/Feature-F1 |
-| QA (image) | `bench/eval_qa.py` | image + `qa_pairs[].question` → JSON[number] → ratio accuracy |
-| QA (code) | `bench/eval_qa_code.py` | `gt_code` + questions → JSON[number] → ratio accuracy |
+| Task | Runner | HF repo | Input → Output |
+|---|---|---|---|
+| **img2cq** | `bench/eval.py` | `BenchCAD/cad_bench` | image → CadQuery → exec → IoU/Chamfer/Feature-F1 |
+| **img2cq_test** | `bench/test/run_test.py` | `BenchCAD/cad_bench` | staged fetch+render+eval with disk cache |
+| **qa_img** | `bench/eval_qa_img.py` | `BenchCAD/cad_bench` | image + numeric Qs → JSON[number] → ratio accuracy |
+| **qa_code** | `bench/eval_qa_code.py` | `BenchCAD/cad_bench` | `gt_code` + numeric Qs → JSON[number] → ratio accuracy |
+| **edit_code** | `bench/edit_gen/run_edit_code.py` | `BenchCAD/cad_bench_edit` | orig code + NL instruction → modified code |
+| **edit_img** | `bench/edit_gen/run_edit_img.py` | `BenchCAD/cad_bench_edit` | orig code + 4-view image + NL instruction → modified code |
 
 HF datasets:
-- `Hula0401/cad_synth_bench` — full (≈994 rows, 3 splits: iid / ood_family / ood_plane)
-- `Hula0401/cad_synth_bench_smoke` — 12 rows (4 families × 3 difficulties)
+- `BenchCAD/cad_bench` — 20143 rows, test split (UA-23 2026-04-23 revalidated, 100% exec-pass)
+- `BenchCAD/cad_bench_edit` — 371 curated edit pairs, 106 families covered
+
+Runner infra (all 6 share):
+- `bench/models/registry.py` + `providers/` — plug-and-play model dispatch; `--model <name>` is all the CLI sees
+- `bench/sampling.py` — deterministic `(rows, n, seed)` → same samples; N>200 stratifies ≥1 per family + proportional fill
+- `bench/results.py` — `results/<task>/<model>/` append-only pool with `runs/<ts>__seed<S>__N<N>.json` provenance sidecar
+- `bench/models/prompts.py` — all system/user prompts + parsers centralized
 
 All view alignment follows cadrille convention: cameras at `[1,1,1] / [-1,-1,-1] / [-1,1,-1] / [1,-1,1]`, 2×2 composite 268×268, bbox normalized to `[0,1]³` centered at `[0.5,0.5,0.5]`.
 

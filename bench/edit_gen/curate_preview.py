@@ -30,9 +30,7 @@ def build_title(fam: str, entry: dict) -> tuple[str, str]:
     iou = float(entry["iou"])
     dl = int(entry["dl_est"])
     if "axes" in entry:
-        axs = " & ".join(
-            f"{a['axis']} {a['pct']:+d}%" for a in entry["axes"]
-        )
+        axs = " & ".join(f"{a['axis']} {a['pct']:+d}%" for a in entry["axes"])
         head = f"{fam} [multi] | {axs}"
         sub = f"IoU={iou:.3f} dl={dl} src={src}"
     elif entry.get("source") == "additive_strip":
@@ -102,10 +100,15 @@ def render_pair_preview(fam: str, entry: dict, out_path: Path, tag: str = ""):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--family", default=None)
-    ap.add_argument("--plan", default=None,
-                    help="explicit plan file; default: render dim+additive+multi")
+    ap.add_argument(
+        "--plan",
+        default=None,
+        help="explicit plan file; default: render dim+additive+multi",
+    )
     ap.add_argument("--limit", type=int, default=None)
-    ap.add_argument("--resume", action="store_true", help="skip families with existing preview png")
+    ap.add_argument(
+        "--resume", action="store_true", help="skip families with existing preview png"
+    )
     args = ap.parse_args()
 
     items: list[tuple[str, dict, str]] = []
@@ -122,7 +125,11 @@ def main():
                 items.append((k, v, tag))
 
     if args.family:
-        items = [(k, v, t) for (k, v, t) in items if k == args.family or v.get("family") == args.family]
+        items = [
+            (k, v, t)
+            for (k, v, t) in items
+            if k == args.family or v.get("family") == args.family
+        ]
     if args.limit:
         items = items[: args.limit]
 

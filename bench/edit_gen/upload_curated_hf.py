@@ -40,9 +40,6 @@ def build_rows() -> list[dict]:
                     "difficulty": r["difficulty"],
                     "level": r["level"],
                     "axis": r.get("axis") or "",
-                    "pct_delta": float(r.get("pct_delta") or 0.0),
-                    "orig_value": float(r.get("orig_value") or 0.0),
-                    "target_value": float(r.get("target_value") or 0.0),
                     "unit": r.get("unit") or "",
                     "human_name": r.get("human_name") or "",
                     "instruction": r["instruction"],
@@ -51,11 +48,6 @@ def build_rows() -> list[dict]:
                     "orig_step": orig_step.read_bytes(),
                     "gt_step": gt_step.read_bytes(),
                     "iou_orig_gt": float(r["iou_orig_gt"]),
-                    "dl_est": int(r["dl_est"]),
-                    "source": r["source"],
-                    "axes_detail": json.dumps(r.get("axes_detail") or []),
-                    "pct_deltas": json.dumps(r.get("pct_deltas") or []),
-                    "split": "test_iid",
                 }
             )
     if skipped:

@@ -1,13 +1,13 @@
-"""Run the CAD edit benchmark.
+"""Edit-code bench — code-only edit (model sees orig CQ code + NL instruction).
 
-For each pair: model gets (orig code + instruction) and must return modified code.
-We save the returned code, exec it to STEP, record success/error.
+Results land in `results/edit_code/<model>/`, dedup by record_id across runs.
 
-Usage (zero-setup, read from HF):
-    python -m bench.edit_gen.run_edit --model gpt-4o --n 10
+Usage (zero-setup, HF):
+    python -m bench.edit_gen.run_edit_code --model gpt-4o --limit 20 --seed 42
 
-Usage (local bench_dir with pairs.jsonl + codes/):
-    python -m bench.edit_gen.run_edit --model gpt-4o --bench-dir data/data_generation/bench_edit
+Usage (local bench dir):
+    python -m bench.edit_gen.run_edit_code --model gpt-4o \
+        --bench-dir data/data_generation/bench_edit
 """
 
 from __future__ import annotations
@@ -15,7 +15,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import subprocess
 import sys
 import tempfile
@@ -23,9 +22,10 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_BENCH = ROOT / "data" / "data_generation" / "bench_edit"
 LD = os.environ.get("LD_LIBRARY_PATH", "/workspace/.local/lib")
 
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 try:
     from dotenv import load_dotenv
@@ -33,60 +33,6 @@ try:
     load_dotenv(ROOT / ".env", override=False)
 except ImportError:
     pass
-
-
-EDIT_SYSTEM_PROMPT = """You are an expert CAD engineer. You will be given:
-1. A CadQuery Python script that builds a parametric mechanical part.
-2. A natural-language edit instruction describing a single numeric change.
-
-Your task: return the script with that one change applied. Keep every other line
-and value exactly the same.
-
-Rules:
-- Output ONLY executable Python code, no explanation, no markdown fences.
-- The top of the script has a `# --- parameters ---` comment block listing the
-  numeric parameters by name. Use those names to find the value to change.
-- If the instruction says "Set X to V unit", set the value to V (respect the unit).
-- If the instruction says "Change X by +P%" or "-P%", multiply the current value
-  by (1 + P/100) and keep up to 4 decimal places.
-- Do NOT refactor, rename, reorder, or add imports."""
-
-
-def _strip_fences(code: str) -> str:
-    code = re.sub(r"^```(?:python)?\s*", "", code, flags=re.M)
-    code = re.sub(r"```\s*$", "", code, flags=re.M)
-    return code.strip()
-
-
-def call_edit(
-    model: str, orig_code: str, instruction: str, api_key: str
-) -> tuple[str | None, str | None]:
-    import openai
-
-    client = openai.OpenAI(api_key=api_key)
-    user_text = (
-        "Original CadQuery code:\n```python\n"
-        + orig_code
-        + "\n```\n\nEdit instruction: "
-        + instruction
-        + "\n\nReturn the full modified script."
-    )
-    try:
-        tok_param = (
-            "max_completion_tokens" if model.startswith("gpt-5") else "max_tokens"
-        )
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": EDIT_SYSTEM_PROMPT},
-                {"role": "user", "content": user_text},
-            ],
-            **{tok_param: 4096},
-            temperature=0.0,
-        )
-        return _strip_fences(resp.choices[0].message.content or ""), None
-    except Exception as e:
-        return None, str(e)[:200]
 
 
 _PREAMBLE = """
@@ -141,11 +87,9 @@ def exec_cq(code: str, out_path: Path, timeout: int = 60) -> tuple[bool, str | N
 
 
 def _load_records(
-    bench_dir: Path | None,
-    hf_repo: str | None,
-    hf_split: str,
+    bench_dir: Path | None, hf_repo: str | None, hf_split: str
 ) -> tuple[list[dict], dict[str, str]]:
-    """Return (records, orig_code_map). orig_code_map keyed by record_id."""
+    """Return (records, orig_code_map) keyed by record_id."""
     if hf_repo:
         from bench.dataloader import load_hf
 
@@ -166,79 +110,63 @@ def _load_records(
 def run(
     bench_dir: Path | None,
     model: str,
-    n: int | None,
+    n: int,
     seed: int,
-    skip_existing: bool,
-    hf_repo: str | None = None,
-    hf_split: str = "test",
-    out_dir: Path | None = None,
+    hf_repo: str | None,
+    hf_split: str,
 ) -> dict:
+    from bench.models import call_edit_code
+    from bench.results import ResultsDir
+    from bench.sampling import sample_rows
+
     records, orig_code_map = _load_records(bench_dir, hf_repo, hf_split)
+    sampled = sample_rows(records, n, seed, stratify_key="family", id_key="record_id")
 
-    # Deterministic shuffle by seed → diverse subset when --n is set
-    import random as _random
+    rd = ResultsDir(task="edit_code", model=model)
+    done = rd.done_keys("record_id")
+    todo = [r for r in sampled if r["record_id"] not in done]
+    rd.log_run(
+        {
+            "seed": seed,
+            "limit": n,
+            "split": hf_split,
+            "model": model,
+            "hf_repo": hf_repo,
+        },
+        sampled,
+        id_key="record_id",
+    )
 
-    _random.Random(seed).shuffle(records)
-    if n:
-        records = records[:n]
+    print(f"Sampled {len(sampled)} (seed={seed})  done={len(done)}  todo={len(todo)}")
+    print(f"Results dir: {rd.root}")
 
-    run_root = out_dir or (bench_dir / "runs" if bench_dir else Path("bench_edit_runs"))
-    run_dir = run_root / model.replace(":", "_").replace("/", "_")
-    gen_code_dir = run_dir / "gen_code"
-    gen_step_dir = run_dir / "gen_step"
-    gen_code_dir.mkdir(parents=True, exist_ok=True)
-    gen_step_dir.mkdir(parents=True, exist_ok=True)
-    results_path = run_dir / "results.jsonl"
-
-    key = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY1")
-    if not key:
-        raise RuntimeError("set OPENAI_API_KEY or OPENAI_API_KEY1")
-
-    fh = results_path.open("w")
-    n_total = len(records)
+    n_total = len(todo)
     n_api_ok = n_exec_ok = 0
     t0 = time.time()
 
-    for i, rec in enumerate(records):
-        rid = rec["record_id"]
-        orig_code = orig_code_map[rid]
-        instruction = rec["instruction"]
+    with rd:
+        for i, rec in enumerate(todo):
+            rid = rec["record_id"]
+            orig_code = orig_code_map[rid]
+            instruction = rec["instruction"]
 
-        gen_code_path = gen_code_dir / f"{rid}.py"
-        gen_step_path = gen_step_dir / f"{rid}.step"
+            t_api = time.time()
+            code, api_err = call_edit_code(model, orig_code, instruction)
+            api_dt = time.time() - t_api
+            api_ok = code is not None
+            exec_ok = False
+            exec_err = None
 
-        if skip_existing and gen_code_path.exists() and gen_step_path.exists():
-            n_api_ok += 1
-            n_exec_ok += 1
-            fh.write(
-                json.dumps(
-                    {
-                        "record_id": rid,
-                        "api_ok": True,
-                        "exec_ok": True,
-                        "skipped": True,
-                    }
-                )
-                + "\n"
-            )
-            continue
+            if api_ok:
+                rd.save_code(rid, code)
+                n_api_ok += 1
+                rd.steps.mkdir(parents=True, exist_ok=True)
+                step_path = rd.steps / f"{rid}.step"
+                exec_ok, exec_err = exec_cq(code, step_path)
+                if exec_ok:
+                    n_exec_ok += 1
 
-        t_api = time.time()
-        code, api_err = call_edit(model, orig_code, instruction, key)
-        api_dt = time.time() - t_api
-        api_ok = code is not None
-        exec_ok = False
-        exec_err = None
-
-        if api_ok:
-            gen_code_path.write_text(code)
-            n_api_ok += 1
-            exec_ok, exec_err = exec_cq(code, gen_step_path)
-            if exec_ok:
-                n_exec_ok += 1
-
-        fh.write(
-            json.dumps(
+            rd.append(
                 {
                     "record_id": rid,
                     "family": rec["family"],
@@ -246,6 +174,7 @@ def run(
                     "level": rec["level"],
                     "axis": rec["axis"],
                     "pct_delta": rec["pct_delta"],
+                    "model": model,
                     "api_ok": api_ok,
                     "api_err": api_err,
                     "api_latency_s": round(api_dt, 3),
@@ -253,19 +182,13 @@ def run(
                     "exec_err": exec_err,
                 }
             )
-            + "\n"
-        )
-        fh.flush()
+            print(
+                f"[{i + 1:3d}/{n_total}] {rid:60s} api={'Y' if api_ok else 'N'}"
+                f" exec={'Y' if exec_ok else 'N'} {api_dt:4.1f}s",
+                flush=True,
+            )
 
-        print(
-            f"[{i+1:3d}/{n_total}] {rid:60s} api={'Y' if api_ok else 'N'}"
-            f" exec={'Y' if exec_ok else 'N'} {api_dt:4.1f}s",
-            flush=True,
-        )
-
-    fh.close()
     elapsed = time.time() - t0
-
     summary = {
         "model": model,
         "n_total": n_total,
@@ -276,53 +199,35 @@ def run(
         "elapsed_s": round(elapsed, 1),
         "seed": seed,
     }
-    (run_dir / "summary.json").write_text(json.dumps(summary, indent=2))
+    (rd.root / "summary.json").write_text(json.dumps(summary, indent=2))
     print(f"\n{json.dumps(summary, indent=2)}")
     return summary
 
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--model", required=True)
     ap.add_argument(
         "--hf-repo",
-        type=str,
         default="BenchCAD/cad_bench_edit",
-        help="HF dataset repo (default: BenchCAD/cad_bench_edit). Set empty to use --bench-dir.",
+        help="HF repo (set empty to use --bench-dir)",
     )
-    ap.add_argument("--split", type=str, default="test")
+    ap.add_argument("--split", default="test")
     ap.add_argument(
-        "--bench-dir",
-        type=str,
-        default="",
-        help="Local bench dir (pairs.jsonl + codes/). Takes precedence over --hf-repo when set.",
+        "--bench-dir", default="", help="Local bench dir (overrides --hf-repo)"
     )
-    ap.add_argument("--model", type=str, default="gpt-4o")
-    ap.add_argument("--n", type=int, default=None, help="Limit to first N records")
+    ap.add_argument("--limit", type=int, default=0, help="0=all; >200 stratified")
     ap.add_argument("--seed", type=int, default=42)
-    ap.add_argument(
-        "--out",
-        type=str,
-        default="",
-        help="Output root dir (default: bench_edit_runs/ for HF, <bench-dir>/runs/ for local)",
-    )
-    ap.add_argument(
-        "--skip-existing",
-        action="store_true",
-        help="Skip records whose gen_code and gen_step already exist",
-    )
     args = ap.parse_args()
     bench_dir = Path(args.bench_dir) if args.bench_dir else None
     hf_repo = args.hf_repo if not bench_dir else None
-    out_dir = Path(args.out) if args.out else None
     run(
         bench_dir,
         args.model,
-        args.n,
+        args.limit,
         args.seed,
-        args.skip_existing,
         hf_repo=hf_repo,
         hf_split=args.split,
-        out_dir=out_dir,
     )
 
 

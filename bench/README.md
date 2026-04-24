@@ -1,13 +1,15 @@
 # Cadance Bench — quickstart
 
-Zero local-data dependency: clone → `uv sync` → `.env` → 一行命令从 HF 拉数据直接 eval。四种 bench task，两个 HF repo：
+Zero local-data dependency: clone → `uv sync` → `.env` → 一行命令从 HF 拉数据直接 eval。六个 runner（四类 task），两个 HF repo：
 
-| Task | HF repo | 输入 → 输出 |
-|------|---------|------------|
-| **Code bench** | [`BenchCAD/cad_bench`](https://huggingface.co/datasets/BenchCAD/cad_bench) | image → CadQuery → exec + IoU/Chamfer/Feature-F1 |
-| **QA bench (image)** | [`BenchCAD/cad_bench`](https://huggingface.co/datasets/BenchCAD/cad_bench) | image + 数值问题 → 数字数组 → ratio acc |
-| **QA bench (code)** | [`BenchCAD/cad_bench`](https://huggingface.co/datasets/BenchCAD/cad_bench) | gt_code + 数值问题 → 数字数组 → ratio acc |
-| **Edit bench** | [`BenchCAD/cad_bench_edit`](https://huggingface.co/datasets/BenchCAD/cad_bench_edit) | orig_code + NL 指令 → 修改后 code → norm_improve |
+| Task | Runner | HF repo | 输入 → 输出 |
+|------|--------|---------|------------|
+| **img2cq** (full) | `bench/eval.py` | `BenchCAD/cad_bench` | image → CadQuery → exec + IoU/Chamfer/Feature-F1 |
+| **img2cq_test** (staged) | `bench/test/run_test.py` | `BenchCAD/cad_bench` | fetch→render→eval, disk-cached input |
+| **qa_img** | `bench/eval_qa_img.py` | `BenchCAD/cad_bench` | image + 数值问题 → 数字数组 → ratio acc |
+| **qa_code** | `bench/eval_qa_code.py` | `BenchCAD/cad_bench` | gt_code + 数值问题 → 数字数组 → ratio acc |
+| **edit_code** | `bench/edit_gen/run_edit_code.py` | `BenchCAD/cad_bench_edit` | orig_code + NL 指令 → 修改后 code |
+| **edit_img** | `bench/edit_gen/run_edit_img.py` | `BenchCAD/cad_bench_edit` | orig_code + 4-view img + NL 指令 → 修改后 code |
 
 ---
 
@@ -24,29 +26,38 @@ uv sync                           # GPT code+QA+edit eval 够用
 cp .env.example .env
 # edit .env: OPENAI_API_KEY=sk-... + (optional) BenchCAD_HF_TOKEN=hf_...
 
-# 3a. Code bench — image → CadQuery → exec → IoU/CD
-uv run python bench/test/run_test.py --limit 12 --model gpt-4o --save-code
+# 3a. img2cq_test (staged smoke: fetch + render verify + eval)
+uv run python bench/test/run_test.py --model gpt-4o --limit 12 --seed 42 --save-code
 
-# 3b. QA bench (image)
-uv run python bench/eval_qa.py --limit 12 --model gpt-4o
+# 3b. qa_img
+uv run python bench/eval_qa_img.py --model gpt-4o --limit 12 --seed 42
 
-# 3c. QA bench (code)
-uv run python bench/eval_qa_code.py --limit 12 --model gpt-4o
+# 3c. qa_code
+uv run python bench/eval_qa_code.py --model gpt-4o --limit 12 --seed 42
 
-# 3d. Edit bench — orig_code + instruction → modified code
-uv run python -m bench.edit_gen.run_edit --model gpt-4o --n 10
+# 3d. edit_code
+uv run python -m bench.edit_gen.run_edit_code --model gpt-4o --limit 10 --seed 42
 uv run python -m bench.edit_gen.score_edit --model gpt-4o
 ```
 
 默认 `--repo BenchCAD/cad_bench`（edit 走 `BenchCAD/cad_bench_edit`）+ `--split test`，都不用传。
 
-Outputs：
-- `bench/test/data/<stem>/composite.png` + `meta.json` — 从 HF 下的 GT
-- `bench/test/results/<stem>/gen_code.py` — 模型生成的 CadQuery
-- `bench/test/results/<stem>/gen_render.png` — 生成代码 exec+render (可选 `--save-render`)
-- `bench/test/results/results.jsonl` — 逐样本 metric
-- `bench_edit_runs/<model>/` — edit bench 输出（`gen_code/`, `gen_step/`, `results.jsonl`, `scored.jsonl`）
-- stdout — overall summary
+### Results layout
+
+```
+results/<task>/<model_slug>/
+  results.jsonl            append-only, one line per sample, dedup key=stem|record_id
+  codes/<key>.py           gen code per sample (img2cq / edit_*)
+  steps/<key>.step         gen STEP (edit_*)
+  renders/<key>/           gen renders (img2cq_test --save-render)
+  runs/<ts>__seed<S>__N<N>.json   per-invocation provenance
+```
+
+- 同一 `(task, model)` 是单一 pool；换 seed/N 重跑只追加新样本，老样本自动跳过。
+- 同一 `(task, seed, N)` → 取到的 sample 集合完全可复现。
+- `N > 200` 自动 stratified：每 family 至少 1 条，剩余按比例 fill。
+- `N ≤ 200` 走 shuffle+head（不强保 family 覆盖）。
+- 不同 model 互不污染：`gpt-4o` 跑过的样本不会被 `gpt-5` 当成 done。
 
 ---
 
@@ -73,23 +84,36 @@ Outputs：
 
 | 文件 | 作用 |
 |------|------|
-| `bench/dataloader/__init__.py` | `load_hf(repo, split)` → list[dict]；token 从 `BenchCAD_HF_TOKEN`/`HF_TOKEN`/`HUGGINGFACE_TOKEN` auto-load |
-| `bench/models/__init__.py` | VLM dispatch。`call_vlm(model, pil_img, api_key)` — `gpt-*`/`o1`/`o3` 走 OpenAI，`local:<path>` 走 Qwen2-VL/2.5-VL |
-| `bench/metrics/__init__.py` | `compute_iou` (voxel 64³), `compute_chamfer` (2048 pts), `extract_features` (regex), `feature_f1`, `qa_score` |
-| `bench/eval.py` | Full code-bench runner (stratified sample, resume) |
-| `bench/eval_qa.py` | QA-bench runner (image) |
-| `bench/eval_qa_code.py` | QA-bench runner (code, text-only) |
-| `bench/test/run_test.py` | E2E code smoke runner (fetch → verify → eval → summary, 逐样本 flush jsonl) |
-| `bench/edit_gen/run_edit.py` | Edit bench runner (HF or local bench_dir) |
-| `bench/edit_gen/score_edit.py` | Edit bench scorer (IoU-based norm_improve) |
+| `bench/dataloader/__init__.py` | `load_hf(repo, split)` → list[dict] |
+| `bench/sampling.py` | `sample_rows(rows, n, seed)` — 共用，N>200 自动 stratified（每 family ≥1） |
+| `bench/results.py` | `ResultsDir(task, model)` — append-only pool, dedup by id key, 写 `runs/<ts>__seed_N>.json` sidecar |
+| `bench/models/registry.py` | ModelAdapter ABC + `register()` + `get_adapter(name)` |
+| `bench/models/providers/openai.py` | OpenAI adapter（`gpt-*`/`o1`/`o3`，max_tokens key 自适配） |
+| `bench/models/providers/local_hf.py` | `local:<path>` 前缀 → Qwen2-VL / Qwen2.5-VL |
+| `bench/models/prompts.py` | 全部 SYSTEM/USER 提示词 + `parse_qa_answers` + `strip_fences` |
+| `bench/models/__init__.py` | back-compat shim：`call_vlm` / `call_vlm_qa` / `call_llm_qa_code` / `call_edit_code` / `call_edit_vlm` |
+| `bench/metrics/__init__.py` | `compute_iou` (voxel 64³), `compute_chamfer`, `extract_features`, `feature_f1`, `qa_score` |
+| `bench/eval.py` | img2cq full runner |
+| `bench/test/run_test.py` | img2cq_test staged runner（disk-cached input） |
+| `bench/eval_qa_img.py` | qa_img runner |
+| `bench/eval_qa_code.py` | qa_code runner |
+| `bench/edit_gen/run_edit_code.py` | edit_code runner |
+| `bench/edit_gen/run_edit_img.py` | edit_img runner |
+| `bench/edit_gen/score_edit.py` | edit bench scorer (IoU-based norm_improve) |
 | `scripts/data_generation/cad_synth/push_bench_hf.py` | synth_parts → HF (code+QA) |
 | `bench/edit_gen/upload_curated_hf.py` | pairs_curated → HF (edit) |
+
+### 加新 model
+1. 在 `bench/models/providers/` 新建 `<name>.py`；继承 `ModelAdapter`，实现 `generate(system, user_text, images, max_tokens)`
+2. 用 `@register("model-name", ...)` 或 `@register_prefix("prefix:")` 标注
+3. 在 `bench/models/providers/__init__.py` 加一行 `from . import <name>` 让 side-effect 注册触发
+4. Runner 不需要任何改动 — `--model <name>` 直接可用
 
 ---
 
 ## 3. HF 数据集 schema
 
-### `BenchCAD/cad_bench` (test, 20176 rows)
+### `BenchCAD/cad_bench` (test, 20143 rows, 2026-04-23 UA-23 revalidated)
 ```
 stem, family, difficulty, base_plane,
 feature_tags (json str), feature_count, ops_used (json str),
@@ -120,28 +144,29 @@ edit_type: `dim` (212) / `multi_param` (118) / `add_hole` (30) / `add_chamfer` (
 - 2×2 composite，每视图 128+3px border = 134，总 268×268
 - normalized 到 bbox center=[0.5,0.5,0.5], longest→[0,1]
 
-`bench/models/__init__.py` 的 `SYSTEM_PROMPT` 按这组视角描述。改一边必须改另一边。
+`bench/models/prompts.py` 的 `SYSTEM_PROMPT` / `QA_IMG_SYSTEM_PROMPT` / `EDIT_IMG_SYSTEM_PROMPT` 按这组视角描述。改 renderer 一边必须改 prompts 另一边。
 
 ---
 
 ## 5. 跑别的 model / 全量
 
 ```bash
-# Full code bench (~20 min on gpt-4o, 20k 样本可用 --per-family 限量)
-uv run python bench/eval.py --model gpt-4o --out results.jsonl
+# img2cq, stratified 300 (每 family ≥1)
+uv run python bench/eval.py --model gpt-4o --limit 300 --seed 42
 
-# Stratified: 1 sample per family
-uv run python bench/eval.py --model gpt-4o --per-family 1 --out results.jsonl
+# 加跑 200 条 — 自动跳过已完成 stem，同 seed 同 N 子集复现
+uv run python bench/eval.py --model gpt-4o --limit 500 --seed 42
 
-# Resume
-uv run python bench/eval.py --model gpt-4o --resume --out results.jsonl
+# 换 model — 完全独立的 results/img2cq/gpt-5/ 目录
+uv run python bench/eval.py --model gpt-5.2 --limit 300 --seed 42
 
 # Local Qwen2-VL checkpoint
-uv run python bench/eval.py --model local:./checkpoints/cadrille-sft
+uv run python bench/eval.py --model local:./checkpoints/cadrille-sft --limit 200
 
-# Full edit bench
-uv run python -m bench.edit_gen.run_edit --model gpt-4o
-uv run python -m bench.edit_gen.score_edit --model gpt-4o
+# Edit bench
+uv run python -m bench.edit_gen.run_edit_code --model gpt-4o --limit 200 --seed 42
+uv run python -m bench.edit_gen.run_edit_img  --model gpt-4o --limit 200 --seed 42
+uv run python -m bench.edit_gen.score_edit    --model gpt-4o
 ```
 
 ---
@@ -156,10 +181,10 @@ uv run python -m bench.edit_gen.score_edit --model gpt-4o
 - `feature_f1` — regex feature 集合 F1（hole/fillet/chamfer）
 - `detail_score` — `0.4·iou + 0.6·feature_f1`
 
-### QA bench (`bench/eval_qa.py` image / `bench/eval_qa_code.py` code)
+### QA bench (`bench/eval_qa_img.py` / `bench/eval_qa_code.py`)
 - 每 sample 2-3 个 numeric Q（integer count / ratio / dim mm），由 `qa_generator.py` 按 family 生成
-- Image runner: composite image + `QA_SYSTEM_PROMPT` + questions
-- Code runner: `gt_code` + `QA_CODE_SYSTEM_PROMPT` + questions（纯文本）
+- `qa_img`: composite image + `QA_IMG_SYSTEM_PROMPT` + questions
+- `qa_code`: `gt_code` + `QA_CODE_SYSTEM_PROMPT` + questions（纯文本）
 - 输出：**严格 JSON array of numbers**（解析失败 `parse_fail`）
 - 评分：`qa_score_single = min(pred, gt) / max(pred, gt)`，对称 [0,1]
 
@@ -191,7 +216,7 @@ uv run python bench/upload_external.py \
 
 ```bash
 uv run python bench/test/run_test.py \
-    --repo Hula0401/cad_external_bench --split test --limit 100 --model gpt-4o
+    --model gpt-4o --repo Hula0401/cad_external_bench --split test --limit 100 --seed 42
 ```
 
 ---

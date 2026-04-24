@@ -5,9 +5,10 @@ Flow per sample:
 
 No image, no CadQuery exec, no STEP. Pure "read code, answer numeric Qs".
 
+Results land in `results/qa_code/<model>/`, dedup by stem across runs.
+
 Usage:
-    uv run python bench/eval_qa_code.py --limit 12 --model gpt-4o
-    # defaults: --repo BenchCAD/cad_bench --split test
+    uv run python bench/eval_qa_code.py --model gpt-4o --limit 50 --seed 42
 """
 
 from __future__ import annotations
@@ -111,16 +112,17 @@ def report(results: list[dict]) -> None:
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Code-QA bench runner")
+    from bench.dataloader import load_hf
+    from bench.results import ResultsDir
+    from bench.sampling import sample_rows
+
+    ap = argparse.ArgumentParser(description="QA-code bench")
+    ap.add_argument("--model", required=True)
     ap.add_argument("--repo", default="BenchCAD/cad_bench")
     ap.add_argument("--split", default="test")
-    ap.add_argument("--limit", type=int, default=0, help="0 = all")
-    ap.add_argument("--model", default="gpt-4o")
-    ap.add_argument("--out", default="bench/test/results/qa_code_results.jsonl")
-    ap.add_argument("--seed", type=int, default=None, help="shuffle rows before limit")
+    ap.add_argument("--limit", type=int, default=0, help="0=all; >200 stratified")
+    ap.add_argument("--seed", type=int, default=0)
     args = ap.parse_args()
-
-    from bench.dataloader import load_hf
 
     token = (
         os.environ.get("BenchCAD_HF_TOKEN")
@@ -132,30 +134,32 @@ def main():
         sys.exit("OPENAI_API_KEY not set")
 
     print(f"Loading {args.repo}[{args.split}] ...")
-    rows = load_hf(args.repo, args.split, token=token, shuffle_seed=args.seed)
-    if args.limit:
-        rows = rows[: args.limit]
-    print(f"N={len(rows)}  model={args.model}")
+    rows = load_hf(args.repo, args.split, token=token)
+    sampled = sample_rows(rows, args.limit, args.seed)
 
-    out_path = Path(args.out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    results: list[dict] = []
-    with open(out_path, "w") as f:
-        for i, row in enumerate(rows):
-            print(f"  [{i + 1}/{len(rows)}] {row['stem']}  ", end="", flush=True)
+    rd = ResultsDir(task="qa_code", model=args.model)
+    done = rd.done_keys("stem")
+    todo = [r for r in sampled if r["stem"] not in done]
+    rd.log_run(vars(args), sampled)
+
+    print(
+        f"Sampled {len(sampled)} (seed={args.seed})  done={len(done)}  todo={len(todo)}"
+    )
+    print(f"Results dir: {rd.root}")
+
+    with rd:
+        for i, row in enumerate(todo):
+            print(f"  [{i + 1}/{len(todo)}] {row['stem']}  ", end="", flush=True)
             res = eval_sample(row, args.model, api_key)
-            slim = {k: v for k, v in res.items() if k != "per_qa"}
-            slim["per_qa"] = res["per_qa"]
-            f.write(json.dumps(slim) + "\n")
-            f.flush()
-            results.append(res)
+            rd.append(res)
             if res["error"]:
                 print(f"ERR {res['error'][:80]}")
             else:
                 print(f"qa={res['qa_score']:.3f}  n={res['n_qa']}")
 
+    with open(rd.results_path) as f:
+        results = [json.loads(line) for line in f if line.strip()]
     report(results)
-    print(f"Results: {out_path}")
 
 
 if __name__ == "__main__":
