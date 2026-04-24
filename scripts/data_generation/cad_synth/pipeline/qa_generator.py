@@ -51,8 +51,8 @@ def _spur_gear(p: dict):
     m, z = p["module"], p["n_teeth"]
     qa = [
         _q("How many teeth does this gear have?", z, "integer"),
-        _q("What is the gear module?", m, "ratio"),
         _q("What is the outer-to-pitch diameter ratio?", _ratio(m * (z + 2), m * z)),
+        _q("What is the tip to root diameter ratio?", _ratio(m * (z + 2), m * (z - 2.5))),
     ]
     iso = {
         "iso_53": True,
@@ -74,8 +74,8 @@ def _helical_gear(p: dict):
     ha = p.get("helix_angle", 15.0)
     qa = [
         _q("How many teeth does this gear have?", z, "integer"),
-        _q("What is the normal module?", m, "ratio"),
         _q("What is the helix angle in degrees?", ha, "ratio"),
+        _q("Is this a right-hand helix? (1=yes, 0=no)", 1.0 if ha > 0 else 0.0, "integer"),
     ]
     iso = {
         "iso_53": True,
@@ -93,8 +93,8 @@ def _bevel_gear(p: dict):
     ca = p.get("pitch_cone_angle", 45.0)
     qa = [
         _q("How many teeth does this bevel gear have?", z, "integer"),
-        _q("What is the module?", m, "ratio"),
         _q("What is the pitch cone angle in degrees?", ca, "ratio"),
+        _q("Does the bevel gear have a 90-degree total cone angle? (1=yes, 0=no)", 1.0 if 43.0 <= ca <= 47.0 else 0.0, "integer"),
     ]
     iso = {
         "iso_23509": True,
@@ -111,7 +111,8 @@ def _worm_screw(p: dict):
     ns = p.get("n_starts", 1)
     qa = [
         _q("How many thread starts does this worm have?", ns, "integer"),
-        _q("What is the axial module?", m, "ratio"),
+        _q("Does the worm have an axial bore? (1=yes, 0=no)", 1.0 if p.get("bore_diameter", 0) > 0 else 0.0, "integer"),
+        _q("Is this a multi-start worm? (1=yes, 0=no)", 1.0 if ns > 1 else 0.0, "integer"),
     ]
     iso = {"iso_1122": True, "iso_54": True, "module": m, "n_starts": ns}
     return qa, iso
@@ -124,7 +125,8 @@ def _sprocket(p: dict):
     hub_d = p.get("hub_diameter", 0)
     qa = [
         _q("How many teeth does this sprocket have?", z, "integer"),
-        _q("What is the chain pitch?", pitch, "ratio"),
+        _q("Does the sprocket have a hub? (1=yes, 0=no)", 1.0 if hub_d > 0 else 0.0, "integer"),
+        _q("What is the pitch diameter to chain pitch ratio?", _ratio(pcd, pitch)),
     ]
     if hub_d:
         qa.append(
@@ -151,10 +153,9 @@ def _bolt(p: dict):
     pitch = p.get("thread_pitch")
     qa = [
         _q("What is the length-to-diameter ratio?", _ratio(l, d)),
-        _q("What is the shank diameter?", d, "ratio"),
+        _q("What is the thread length to shank diameter ratio?", _ratio(p.get("thread_length", l * 0.6), d)),
+        _q("What is the thread length to total length ratio?", _ratio(p.get("thread_length", l * 0.6), l)),
     ]
-    if pitch:
-        qa.append(_q("What is the thread pitch?", pitch, "ratio"))
     iso = {
         "iso_261": True,
         "iso_4014": True,
@@ -173,8 +174,8 @@ def _hex_nut(p: dict):
     m = p.get("height", round(M * 0.8, 1))
     qa = [
         _q("What is the across-flats to nominal diameter ratio?", _ratio(s, M)),
-        _q("What is the nominal thread diameter?", M, "ratio"),
-        _q("What is the nut height?", m, "ratio"),
+        _q("What is the height to across-flats ratio?", _ratio(m, s)),
+        _q("What is the across-flats to bore diameter ratio?", _ratio(s, M)),
     ]
     iso = {
         "iso_4032": True,
@@ -191,8 +192,8 @@ def _washer(p: dict):
     M = p.get("nominal_size", round(d1, 0))
     qa = [
         _q("What is the outer to bore diameter ratio?", _ratio(d2, d1)),
-        _q("What is the nominal size?", M, "ratio"),
-        _q("What is the washer thickness?", h, "ratio"),
+        _q("What is the outer diameter to thickness ratio?", _ratio(d2, h)),
+        _q("What is the bore to thickness ratio?", _ratio(d1, h)),
     ]
     iso = {
         "iso_7089": True,
@@ -210,9 +211,9 @@ def _hex_standoff(p: dict):
     m = p.get("m_size", 0)
     qa = [
         _q("What is the height to across-flats ratio?", _ratio(h, af)),
+        _q("Does this standoff have a tapped thread? (1=yes, 0=no)", 1.0 if m > 0 else 0.0, "integer"),
+        _q("Is the height greater than across-flats? (1=yes, 0=no)", 1.0 if h > af else 0.0, "integer"),
     ]
-    if m:
-        qa.append(_q("What is the thread M-size?", m, "ratio"))
     iso = {"iso_272": True, "across_flats_mm": round(af, 1), "height_mm": round(h, 1)}
     if m:
         iso["m_size"] = float(m)
@@ -230,6 +231,7 @@ def _threaded_adapter(p: dict):
     qa = [
         _q("What is the outer-to-inner diameter ratio?", _ratio(od, id_)),
         _q("What is the length-to-outer-diameter ratio?", _ratio(l, od)),
+        _q("Does the adapter have knurled grip features? (1=yes, 0=no)", 1.0 if p.get("n_knurl_slots", 0) > 0 else 0.0, "integer"),
     ]
     iso = {"iso_261": True}
     return qa, iso
@@ -239,7 +241,8 @@ def _dowel_pin(p: dict):
     d, l = p["diameter"], p["length"]
     qa = [
         _q("What is the length-to-diameter ratio?", _ratio(l, d)),
-        _q("What is the pin diameter?", d, "ratio"),
+        _q("Does the pin have a center-drill feature? (1=yes, 0=no)", 1.0 if p.get("centre_drill_diameter", 0) > 0 else 0.0, "integer"),
+        _q("Does the pin have end chamfers? (1=yes, 0=no)", 1.0 if p.get("double_chamfer") else 0.0, "integer"),
     ]
     iso = {"iso_8734": True, "diameter_mm": round(d, 2), "length_mm": round(l, 2)}
     return qa, iso
@@ -252,8 +255,8 @@ def _circlip(p: dict):
     gap = p["gap_angle"]
     qa = [
         _q("What is the ring outer to inner diameter ratio?", _ratio(rod, rid)),
-        _q("What is the shaft diameter this clip fits?", d_shaft, "ratio"),
         _q("What is the opening gap angle in degrees?", gap, "ratio"),
+        _q("Does the clip have lug holes? (1=yes, 0=no)", 1.0 if p.get("lug_hole_diameter", 0) > 0 else 0.0, "integer"),
     ]
     iso = {"din_471": True, "iso_464": True, "shaft_diameter_mm": round(d_shaft, 2)}
     return qa[:3], iso
@@ -272,6 +275,7 @@ def _pipe_flange(p: dict):
     qa = [
         _q("What is the plate length to width ratio?", _ratio(l, w)),
         _q("What is the plate width to bore diameter ratio?", _ratio(w, bd)),
+        _q("Does the flange have a raised boss? (1=yes, 0=no)", 1.0 if p.get("boss_height", 0) > 0 else 0.0, "integer"),
     ]
     iso = {"iso_2768_1": True, "bore_diameter_mm": round(bd, 2)}
     return qa, iso
@@ -284,6 +288,8 @@ def _round_flange(p: dict):
     nb = p.get("bolt_count", 0)
     qa = [
         _q("What is the outer to inner radius ratio?", _ratio(or_, ir)),
+        _q("Does the flange have a neck? (1=yes, 0=no)", 1.0 if p.get("neck_height", 0) > 0 else 0.0, "integer"),
+        _q("Does the flange have bolt holes? (1=yes, 0=no)", 1.0 if nb else 0.0, "integer"),
     ]
     if nb:
         qa.append(_q("How many bolt holes does the flange have?", nb, "integer"))
@@ -303,7 +309,8 @@ def _t_pipe_fitting(p: dict):
     nb = p.get("n_bolts")
     qa = [
         _q("What is the outer diameter to wall thickness ratio?", _ratio(od, wall)),
-        _q("What is the outer diameter?", od, "ratio"),
+        _q("Does the fitting have a branch flange? (1=yes, 0=no)", 1.0 if p.get("branch_flange_od", 0) > 0 else 0.0, "integer"),
+        _q("Does the fitting have bolt holes? (1=yes, 0=no)", 1.0 if nb else 0.0, "integer"),
     ]
     if nb:
         qa.append(_q("How many flange bolt holes?", nb, "integer"))
@@ -325,6 +332,7 @@ def _pipe_elbow(p: dict):
     qa = [
         _q("What is the bend radius to pipe OD ratio?", _ratio(bend_r, od)),
         _q("What is the pipe OD to wall thickness ratio?", _ratio(od, wall)),
+        _q("Does the elbow have flange bolt holes? (1=yes, 0=no)", 1.0 if nb else 0.0, "integer"),
     ]
     if nb:
         qa.append(_q("How many flange bolt holes?", nb, "integer"))
@@ -340,6 +348,7 @@ def _hollow_tube(p: dict):
     qa = [
         _q("What is the length to outer width ratio?", _ratio(l, ow)),
         _q("What is the outer width to wall thickness ratio?", _ratio(ow, wall)),
+        _q("Does the tube have mounting holes? (1=yes, 0=no)", 1.0 if n_holes else 0.0, "integer"),
     ]
     if n_holes:
         qa.append(_q("How many mounting holes?", n_holes, "integer"))
@@ -354,6 +363,7 @@ def _nozzle(p: dict):
     qa = [
         _q("What is the inlet-to-outlet radius ratio?", _ratio(r_in, r_out)),
         _q("What is the length to inlet diameter ratio?", _ratio(l, r_in * 2)),
+        _q("Is this a converging nozzle (inlet > outlet)? (1=yes, 0=no)", 1.0 if r_in > r_out else 0.0, "integer"),
     ]
     iso = {
         "iso_5167": True,
@@ -374,6 +384,7 @@ def _stepped_shaft(p: dict):
     qa = [
         _q("What is the total length to max diameter ratio?", _ratio(l_tot, d_max)),
         _q("How many diameter steps does the shaft have?", n_steps, "integer"),
+        _q("Does the shaft have an axial bore? (1=yes, 0=no)", 1.0 if p.get("bore_diameter", 0) > 0 else 0.0, "integer"),
     ]
     iso = {
         "iso_286": True,
@@ -388,7 +399,8 @@ def _shaft_collar(p: dict):
     od = p.get("outer_diameter", id_ * 1.8)
     qa = [
         _q("What is the outer to bore diameter ratio?", _ratio(od, id_)),
-        _q("What is the bore diameter?", id_, "ratio"),
+        _q("Does the collar have set-screw holes? (1=yes, 0=no)", 1.0 if p.get("screw_diameter", 0) > 0 else 0.0, "integer"),
+        _q("What is the hub height to bore diameter ratio?", _ratio(p.get("hub_height", od * 0.8), id_)),
     ]
     iso = {
         "iso_286": True,
@@ -427,6 +439,7 @@ def _tapered_boss(p: dict):
     qa = [
         _q("What is the base to top diameter ratio?", _ratio(d_base, d_top)),
         _q("What is the height to base diameter ratio?", _ratio(h, d_base)),
+        _q("Does the boss have a central bore? (1=yes, 0=no)", 1.0 if p.get("bore_diameter", 0) > 0 else 0.0, "integer"),
     ]
     iso = {"iso_286": True, "taper_ratio": round(abs(d_base - d_top) / (2 * h), 4)}
     return qa, iso
@@ -440,7 +453,8 @@ def _spacer_ring(p: dict):
     split = p.get("split", False)
     qa = [
         _q("What is the outer to bore diameter ratio?", _ratio(od, bd)),
-        _q("What is the shim thickness?", s, "ratio"),
+        _q("What is the outer diameter to thickness ratio?", _ratio(od, s)),
+        _q("What is the bore to thickness ratio?", _ratio(bd, s)),
     ]
     if split:
         qa.append(_q("Is this a split ring?", 1, "integer"))
@@ -465,6 +479,7 @@ def _coil_spring(p: dict):
     qa = [
         _q("How many active coils does the spring have?", n_active, "integer"),
         _q("What is the spring index (mean coil D / wire D)?", _ratio(d_mean, d_wire)),
+        _q("How many total coils including closed end coils?", n_active + 2, "integer"),
     ]
     iso = {
         "iso_2162": True,
@@ -487,6 +502,7 @@ def _i_beam(p: dict):
     qa = [
         _q("What is the total height to flange width ratio?", _ratio(h, fw)),
         _q("What is the length to total height ratio?", _ratio(l, h)),
+        _q("What is the length to flange width ratio?", _ratio(l, fw)),
     ]
     if nb:
         qa.append(_q("How many bolt holes per flange?", nb, "integer"))
@@ -505,6 +521,7 @@ def _u_channel(p: dict):
     qa = [
         _q("What is the arm height to flange width ratio?", _ratio(ah, ow)),
         _q("What is the length to outer width ratio?", _ratio(l, ow)),
+        _q("Does the channel have end-mount holes? (1=yes, 0=no)", 1.0 if p.get("hole_count", 0) > 0 else 0.0, "integer"),
     ]
     iso = {"iso_657_2": True, "outer_width_mm": round(ow, 1)}
     return qa, iso
@@ -515,9 +532,8 @@ def _t_slot_rail(p: dict):
     l = p["length"]
     qa = [
         _q("What is the rail length to cross-section size ratio?", _ratio(l, size)),
-        _q(
-            "What is the slot width?", p.get("slot_opening", size * 0.45), "ratio"
-        ),
+        _q("What is the slot-opening to rail size ratio?", _ratio(p.get("slot_opening", size * 0.45), size)),
+        _q("Is this a 4-way symmetric rail? (1=yes, 0=no)", 1.0 if p.get("four_way") else 0.0, "integer"),
     ]
     iso = {"iso_299": True, "slot_size_mm": float(size)}
     return qa, iso
@@ -535,6 +551,7 @@ def _impeller(p: dict):
     qa = [
         _q("How many blades does this impeller have?", nb, "integer"),
         _q("What is the outer to hub diameter ratio?", _ratio(od, hub_d)),
+        _q("Is the blade count even? (1=yes, 0=no)", 1.0 if nb % 2 == 0 else 0.0, "integer"),
     ]
     return qa, {"n_blades": nb}
 
@@ -546,6 +563,7 @@ def _propeller(p: dict):
     qa = [
         _q("How many blades does this propeller have?", nb, "integer"),
         _q("What is the blade length to hub diameter ratio?", _ratio(bl, hub_d)),
+        _q("What is the tip chord to blade length ratio?", _ratio(p.get("tip_chord", bl * 0.2), bl)),
     ]
     return qa, {}
 
@@ -555,6 +573,8 @@ def _fan_shroud(p: dict):
     plate = p.get("plate_side", fan_r * 2.5)
     qa = [
         _q("What is the plate side to fan radius ratio?", _ratio(plate, fan_r * 2)),
+        _q("Does the shroud have mounting holes? (1=yes, 0=no)", 1.0 if p.get("hole_diameter", 0) > 0 else 0.0, "integer"),
+        _q("What is the collar width to fan radius ratio?", _ratio(p.get("collar_width", fan_r * 0.3), fan_r)),
     ]
     return qa, {}
 
@@ -567,6 +587,7 @@ def _pulley(p: dict):
     qa = [
         _q("What is the rim to bore radius ratio?", _ratio(rim_r, bore_r)),
         _q("What is the groove angle in degrees?", ga, "ratio"),
+        _q("Does the pulley have spokes? (1=yes, 0=no)", 1.0 if n_sp else 0.0, "integer"),
     ]
     if n_sp:
         qa.append(_q("How many spokes does the pulley have?", n_sp, "integer"))
@@ -581,6 +602,7 @@ def _handwheel(p: dict):
     qa = [
         _q("How many spokes does the handwheel have?", n_sp, "integer"),
         _q("What is the outer to bore diameter ratio?", _ratio(od, bore)),
+        _q("Is the wheel rim chamfered? (1=yes, 0=no)", 1.0 if p.get("chamfer_rim") else 0.0, "integer"),
     ]
     iso = {"iso_4184": True, "outer_diameter_mm": round(od, 1)}
     return qa, iso
@@ -593,6 +615,7 @@ def _motor_end_cap(p: dict):
     qa = [
         _q("How many bolt holes does this end cap have?", nb, "integer"),
         _q("What is the outer to shaft diameter ratio?", _ratio(od, shaft_d)),
+        _q("Does the end cap have vents? (1=yes, 0=no)", 1.0 if p.get("vent_count", 0) > 0 else 0.0, "integer"),
     ]
     iso = {"iec_60072": True, "n_bolts": nb}
     return qa, iso
@@ -607,6 +630,7 @@ def _cam(p: dict):
         qa = [
             _q("How many lobes does this cam have?", n_lobes, "integer"),
             _q("What is the base radius to bore ratio?", _ratio(base_r, bore_r)),
+            _q("Is this a lobed cam? (1=yes, 0=no)", 1.0, "integer"),
         ]
     else:
         qa = [
@@ -615,6 +639,7 @@ def _cam(p: dict):
                 _ratio(ecc, base_r) if ecc > 0 else 1.0,
             ),
             _q("What is the base radius to bore radius ratio?", _ratio(base_r, bore_r)),
+            _q("Is this a lobed cam? (1=yes, 0=no)", 0.0, "integer"),
         ]
     return qa, {}
 
@@ -632,6 +657,7 @@ def _hinge(p: dict):
     qa = [
         _q("How many knuckles does this hinge have?", nk, "integer"),
         _q("What is the leaf height to width ratio?", _ratio(lh, lw)),
+        _q("How many screw holes per leaf?", int(p.get("n_screws", 0)), "integer"),
     ]
     iso = {"iso_3669": True, "n_knuckles": nk}
     return qa, iso
@@ -641,12 +667,14 @@ def _bearing_retainer_cap(p: dict):
     boss_od = p["boss_diameter"]
     bore_d = p["bore_diameter"]
     nb = p.get("n_bolts", 0)
+    fod = p.get("flange_diameter")
     qa = [
         _q("What is the boss to bore diameter ratio?", _ratio(boss_od, bore_d)),
+        _q("Does the cap have a flange? (1=yes, 0=no)", 1.0 if fod else 0.0, "integer"),
+        _q("Does the cap have bolt holes? (1=yes, 0=no)", 1.0 if nb else 0.0, "integer"),
     ]
     if nb:
         qa.append(_q("How many bolt holes?", nb, "integer"))
-    fod = p.get("flange_diameter")
     if fod:
         qa.append(
             _q("What is the flange to boss diameter ratio?", _ratio(fod, boss_od))
@@ -666,6 +694,7 @@ def _piston(p: dict):
     qa = [
         _q("What is the height to diameter ratio?", _ratio(h, r * 2)),
         _q("What is the pin to piston diameter ratio?", _ratio(pin_d, r * 2)),
+        _q("Does the piston have ring grooves? (1=yes, 0=no)", 1.0 if p.get("groove_depth", 0) > 0 else 0.0, "integer"),
     ]
     iso = {"iso_6621": True}
     return qa, iso
@@ -684,6 +713,7 @@ def _connecting_rod(p: dict):
             "What is the center distance to big-end diameter ratio?",
             _ratio(cd, big_r * 2),
         ),
+        _q("Does the rod have an oil hole? (1=yes, 0=no)", 1.0 if p.get("oil_hole_diameter", 0) > 0 else 0.0, "integer"),
     ]
     return qa, {}
 
@@ -695,6 +725,7 @@ def _clevis(p: dict):
     qa = [
         _q("What is the gap width to arm thickness ratio?", _ratio(gap_w, arm_t)),
         _q("What is the pin to gap width ratio?", _ratio(pin_d, gap_w)),
+        _q("Does the clevis have a base stub? (1=yes, 0=no)", 1.0 if p.get("stub_height", 0) > 0 else 0.0, "integer"),
     ]
     iso = {"iso_8140": True}
     return qa, iso
@@ -707,6 +738,7 @@ def _dovetail_slide(p: dict):
     qa = [
         _q("What is the top to bottom width ratio?", _ratio(wt, wb)),
         _q("What is the dovetail angle in degrees?", angle, "ratio"),
+        _q("Is this a male (protruding) dovetail? (1=yes, 0=no)", 1.0 if p.get("male") else 0.0, "integer"),
     ]
     return qa, {}
 
@@ -719,6 +751,8 @@ def _flat_link(p: dict):
             "What is the center-to-center distance to boss diameter ratio?",
             _ratio(cc, boss_r * 2),
         ),
+        _q("What is the overall length to boss diameter ratio?", _ratio(cc + 2 * boss_r, 2 * boss_r)),
+        _q("Is this a two-pin flat link? (1=yes, 0=no)", 1.0, "integer"),
     ]
     return qa, {}
 
@@ -733,6 +767,7 @@ def _dog_bone(p: dict):
             _ratio(cc, boss_r * 2),
         ),
         _q("What is the boss to waist radius ratio?", _ratio(boss_r, waist_r)),
+        _q("What is the slot width to boss radius ratio?", _ratio(p.get("slot_width", boss_r * 0.3), boss_r)),
     ]
     return qa, {}
 
@@ -746,6 +781,7 @@ def _manifold_block(p: dict):
             "What is the block length to channel diameter ratio?",
             _ratio(p.get("length", 60.0), cd),
         ),
+        _q("Does the manifold have cbore-recessed ports? (1=yes, 0=no)", 1.0 if p.get("cbore_depth", 0) > 0 else 0.0, "integer"),
     ]
     iso = {"iso_4401": True, "n_channels": nc}
     return qa, iso
@@ -756,6 +792,8 @@ def _torus_link(p: dict):
     min_r = p["minor_radius"]
     qa = [
         _q("What is the major to minor radius ratio?", _ratio(maj_r, min_r)),
+        _q("Does the link have fastening lugs? (1=yes, 0=no)", 1.0 if p.get("lug_height", 0) > 0 else 0.0, "integer"),
+        _q("What is the lug width to lug height ratio?", _ratio(p.get("lug_width", 1.0), p.get("lug_height", 1.0)) if p.get("lug_height", 0) > 0 else 1.0),
     ]
     return qa, {}
 
@@ -772,6 +810,7 @@ def _mounting_plate(p: dict):
     qa = [
         _q("What is the length to width ratio?", _ratio(l, w)),
         _q("What is the length to thickness ratio?", _ratio(l, t)),
+        _q("Does the plate have slots? (1=yes, 0=no)", 1.0 if p.get("slot_length", 0) > 0 else 0.0, "integer"),
     ]
     return qa, {"iso_2768": True}
 
@@ -786,6 +825,7 @@ def _waffle_plate(p: dict):
     qa = [
         _q("How many ribs in the X direction?", nx, "integer"),
         _q("How many ribs in the Y direction?", ny, "integer"),
+        _q("What is the total rib count (x + y)?", nx + ny, "integer"),
     ]
     return qa, {"iso_2768": True}
 
@@ -798,6 +838,7 @@ def _rib_plate(p: dict):
     qa = [
         _q("How many ribs does this plate have?", rc, "integer"),
         _q("What is the rib height to base thickness ratio?", _ratio(rh, bh)),
+        _q("Does the plate have lightening holes? (1=yes, 0=no)", 1.0 if p.get("lightening_hole_diameter", 0) > 0 else 0.0, "integer"),
     ]
     return qa, {"iso_2768": True}
 
@@ -810,10 +851,11 @@ def _sheet_metal_tray(p: dict):
     qa = [
         _q("What is the length to width ratio?", _ratio(l, w)),
         _q("What is the tray height to length ratio?", _ratio(h, l)),
+        _q("Does the tray have mounting holes? (1=yes, 0=no)", 1.0 if nb else 0.0, "integer"),
     ]
     if nb:
         qa.append(_q("How many mounting holes?", nb, "integer"))
-    return qa[:3], {"iso_2768": True}
+    return qa[:4], {"iso_2768": True}
 
 
 def _heat_sink(p: dict):
@@ -824,10 +866,11 @@ def _heat_sink(p: dict):
     qa = [
         _q("How many fins does the heat sink have?", nf, "integer"),
         _q("What is the fin height to base height ratio?", _ratio(fh, bh)),
+        _q("Does the heat sink have mounting holes? (1=yes, 0=no)", 1.0 if nm else 0.0, "integer"),
     ]
     if nm:
         qa.append(_q("How many mounting holes?", nm, "integer"))
-    return qa[:3], {}
+    return qa[:4], {}
 
 
 def _l_bracket(p: dict):
@@ -841,6 +884,7 @@ def _l_bracket(p: dict):
             1.0 if has_hole else 0.0,
             "integer",
         ),
+        _q("Does the bracket have a fillet? (1=yes, 0=no)", 1.0 if p.get("fillet_radius", 0) > 0 else 0.0, "integer"),
     ]
     return qa, {}
 
@@ -852,6 +896,7 @@ def _z_bracket(p: dict):
     qa = [
         _q("How many base mounting holes?", nb, "integer"),
         _q("What is the base length to arm height ratio?", _ratio(base_l, arm_h)),
+        _q("What is the arm offset to arm height ratio?", _ratio(p.get("arm2_offset", 10.0), arm_h)),
     ]
     return qa, {}
 
@@ -862,6 +907,7 @@ def _mounting_angle(p: dict):
     qa = [
         _q("How many base holes?", nb_base, "integer"),
         _q("How many web holes?", nb_web, "integer"),
+        _q("What is the total hole count (base + web)?", int(nb_base) + int(nb_web), "integer"),
     ]
     return qa, {}
 
@@ -877,6 +923,7 @@ def _gusseted_bracket(p: dict):
             1.0 if has_pocket else 0.0,
             "integer",
         ),
+        _q("Does the gusset have a pocket? (1=yes, 0=no)", 1.0 if p.get("gusset_pocket_depth", 0) > 0 else 0.0, "integer"),
     ]
     return qa, {}
 
@@ -887,12 +934,14 @@ def _enclosure(p: dict):
     nv = p.get("n_vent_rows", 0)
     qa = [
         _q("What is the length to width ratio?", _ratio(l, w)),
+        _q("What is the height to length ratio?", _ratio(h, l)),
+        _q("Does the enclosure have vent features? (1=yes, 0=no)", 1.0 if nv else 0.0, "integer"),
     ]
     if nm:
         qa.append(_q("How many mounting holes?", nm, "integer"))
     if nv:
         qa.append(_q("How many vent rows?", nv, "integer"))
-    return qa[:3], {}
+    return qa[:4], {}
 
 
 def _rect_frame(p: dict):
@@ -900,6 +949,8 @@ def _rect_frame(p: dict):
     ow = p["outer_width"]
     qa = [
         _q("What is the outer length to width ratio?", _ratio(ol, ow)),
+        _q("Does the frame have corner holes? (1=yes, 0=no)", 1.0 if p.get("hole_diameter", 0) > 0 else 0.0, "integer"),
+        _q("Does the frame have side slots? (1=yes, 0=no)", 1.0 if p.get("side_slot_depth", 0) > 0 else 0.0, "integer"),
     ]
     return qa, {}
 
@@ -915,6 +966,7 @@ def _vented_panel(p: dict):
     qa = [
         _q("How many hole columns?", nx, "integer"),
         _q("How many hole rows?", ny, "integer"),
+        _q("What is the total hole count (cols × rows)?", int(nx) * int(ny), "integer"),
     ]
     iso = {"iso_4783": True}
     return qa, iso
@@ -940,6 +992,7 @@ def _wire_grid(p: dict):
     qa = [
         _q("How many wires in the X direction?", nx, "integer"),
         _q("How many wires in the Y direction?", ny, "integer"),
+        _q("What is the total wire count (x + y)?", int(nx) + int(ny), "integer"),
     ]
     return qa, {}
 
@@ -964,6 +1017,7 @@ def _pcb_standoff_plate(p: dict):
     qa = [
         _q("How many standoff posts?", n_post, "integer"),
         _q("What is the board length to width ratio?", _ratio(l, w)),
+        _q("How many corner mounting holes?", int(nm), "integer"),
     ]
     return qa, {}
 
@@ -975,6 +1029,7 @@ def _connector_faceplate(p: dict):
     qa = [
         _q("How many connector cutouts?", nc, "integer"),
         _q("What is the plate length to width ratio?", _ratio(l, w)),
+        _q("How many vent slots?", int(p.get("vent_slot_count", 0)), "integer"),
     ]
     return qa, {}
 
@@ -991,6 +1046,7 @@ def _ball_knob(p: dict):
     qa = [
         _q("What is the ball to stem radius ratio?", _ratio(ball_r, stem_r)),
         _q("What is the stem height to ball radius ratio?", _ratio(stem_h, ball_r)),
+        _q("What is the stem height to stem radius ratio?", _ratio(stem_h, stem_r)),
     ]
     return qa, {}
 
@@ -1002,6 +1058,7 @@ def _knob(p: dict):
     qa = [
         _q("What is the base to top radius ratio?", _ratio(base_r, top_r)),
         _q("What is the height to base radius ratio?", _ratio(h, base_r)),
+        _q("Does the knob have flutes? (1=yes, 0=no)", 1.0 if p.get("n_flutes", 0) > 0 else 0.0, "integer"),
     ]
     return qa, {}
 
@@ -1012,6 +1069,8 @@ def _dome_cap(p: dict):
     nb = p.get("n_holes", 0)
     qa = [
         _q("What is the cylinder height to dome radius ratio?", _ratio(h, r)),
+        _q("Does the cap have an internal bore? (1=yes, 0=no)", 1.0 if p.get("bore_depth", 0) > 0 else 0.0, "integer"),
+        _q("Does the cap have decorative holes on the dome? (1=yes, 0=no)", 1.0 if nb else 0.0, "integer"),
     ]
     if nb:
         qa.append(_q("How many holes on the dome?", nb, "integer"))
@@ -1025,6 +1084,7 @@ def _bellows(p: dict):
     qa = [
         _q("How many convolutions does this bellows have?", nc, "integer"),
         _q("What is the outer to inner diameter ratio?", _ratio(od, id_)),
+        _q("How many mounting bolts on the flange?", int(p.get("n_bolts", 0)), "integer"),
     ]
     iso = {"iso_10380": True}
     return qa, iso
@@ -1035,6 +1095,8 @@ def _capsule(p: dict):
     cyl_h = p.get("cyl_height", r * 2.0)
     qa = [
         _q("What is the cylinder height to end-cap radius ratio?", _ratio(cyl_h, r)),
+        _q("Does the capsule have ring grooves? (1=yes, 0=no)", 1.0 if p.get("ring_height", 0) > 0 else 0.0, "integer"),
+        _q("Does the capsule have end stubs? (1=yes, 0=no)", 1.0 if p.get("stub_height", 0) > 0 else 0.0, "integer"),
     ]
     return qa, {}
 
@@ -1046,6 +1108,7 @@ def _star_blank(p: dict):
     qa = [
         _q("How many points does this star have?", np_, "integer"),
         _q("What is the outer to inner radius ratio?", _ratio(od, id_)),
+        _q("Does the star have tip holes? (1=yes, 0=no)", 1.0 if p.get("tip_hole_radius", 0) > 0 else 0.0, "integer"),
     ]
     return qa, {}
 
@@ -1055,6 +1118,8 @@ def _cruciform(p: dict):
     arm_w = p.get("arm_width", 12.0)
     qa = [
         _q("What is the arm length to arm width ratio?", _ratio(arm_l, arm_w)),
+        _q("Does the cruciform have a center hole? (1=yes, 0=no)", 1.0 if p.get("center_hole_radius", 0) > 0 else 0.0, "integer"),
+        _q("Does the cruciform have tip holes? (1=yes, 0=no)", 1.0 if p.get("tip_hole_radius", 0) > 0 else 0.0, "integer"),
     ]
     return qa, {}
 
@@ -1080,9 +1145,8 @@ def _snap_clip(p: dict):
     qa = [
         _q("What is the ring OD to shaft diameter ratio?", _ratio(ring_od, shaft_d)),
         _q("What is the gap angle in degrees?", gap, "ratio"),
+        _q("Does this snap ring have lug holes? (1=yes, 0=no)", 1.0 if has_lug else 0.0, "integer"),
     ]
-    if has_lug:
-        qa.append(_q("Does this snap ring have lug holes?", 1, "integer"))
     return qa[:3], {
         "din_6799": True,
         "shaft_diameter_mm": round(shaft_d, 2),
@@ -1097,6 +1161,7 @@ def _locator_block(p: dict):
     qa = [
         _q("How many mounting holes?", nb, "integer"),
         _q("What is the V-slot depth to top width ratio?", _ratio(vd, vwt)),
+        _q("Does the block have locator pins? (1=yes, 0=no)", 1.0 if p.get("pin_diameter", 0) > 0 else 0.0, "integer"),
     ]
     return qa, {}
 
@@ -1108,6 +1173,7 @@ def _bucket(p: dict):
     qa = [
         _q("What is the top to bottom radius ratio?", _ratio(rt, rb)),
         _q("What is the height to bottom diameter ratio?", _ratio(h, rb * 2)),
+        _q("Does the bucket have a top chamfer? (1=yes, 0=no)", 1.0 if p.get("top_chamfer", 0) > 0 else 0.0, "integer"),
     ]
     return qa, {}
 
@@ -1119,6 +1185,7 @@ def _table(p: dict):
     qa = [
         _q("What is the tabletop length to width ratio?", _ratio(tl, tw)),
         _q("What is the leg height to tabletop length ratio?", _ratio(lh, tl)),
+        _q("Does the table have an apron? (1=yes, 0=no)", 1.0 if p.get("apron_height", 0) > 0 else 0.0, "integer"),
     ]
     return qa, {}
 
@@ -1157,6 +1224,7 @@ def _duct_elbow(p: dict):
     qa = [
         _q("What is the bend radius to duct width ratio?", _ratio(br, dw)),
         _q("What is the duct height to width ratio?", _ratio(dh, dw)),
+        _q("What is the bend radius to duct height ratio?", _ratio(br, dh)),
     ]
     return qa, {}
 
@@ -1168,6 +1236,7 @@ def _parallel_key(p: dict):
     qa = [
         _q("What is the key length to width ratio?", _ratio(l, b)),
         _q("What is the key width to height ratio?", _ratio(b, h)),
+        _q("Does the key sit in a groove? (1=yes, 0=no)", 1.0 if p.get("groove_depth", 0) > 0 else 0.0, "integer"),
     ]
     iso = {"din_6885a": True, "key_width_mm": round(b, 1), "key_height_mm": round(h, 1)}
     return qa, iso
@@ -1184,6 +1253,7 @@ def _clevis_pin(p: dict):
             1.0 if has_hole else 0.0,
             "integer",
         ),
+        _q("How many cross holes does this pin have?", (2 if p.get("split_pin_offset_2") is not None else 1) if has_hole else 0, "integer"),
     ]
     iso = {"iso_2340": True, "diameter_mm": round(d, 1)}
     return qa, iso
@@ -1196,6 +1266,7 @@ def _taper_pin(p: dict):
     qa = [
         _q("What is the pin length to nominal diameter ratio?", _ratio(l, d_nom)),
         _q("What is the large to small end diameter ratio?", _ratio(d_lg, d_nom)),
+        _q("Does the pin have an extraction thread? (1=yes, 0=no)", 1.0 if p.get("extraction_thread_m", 0) > 0 else 0.0, "integer"),
     ]
     iso = {"iso_2339": True, "d_nominal_mm": round(d_nom, 1), "taper": "1:50"}
     return qa, iso
@@ -1267,6 +1338,7 @@ def _grease_nipple(p: dict):
     qa = [
         _q("What is the hex across-flats to thread diameter ratio?", _ratio(s, d1)),
         _q("What is the total height to thread diameter ratio?", _ratio(h, d1)),
+        _q("What is the across-flats to total height ratio?", _ratio(s, h)),
     ]
     iso = {"din_71412": True, "thread_d_mm": d1, "hex_af_mm": s}
     return qa, iso
@@ -1414,7 +1486,6 @@ def _spline_hub(p: dict):
     sl = p.get("spline_length", 12.0)
     qa = [
         _q("How many spline teeth does the hub have?", z, "integer"),
-        _q("What is the spline module?", m),
         _q("What is the hub OD to pitch diameter ratio?", _ratio(hub_od, m * z)),
         _q("What is the hub length to spline length ratio?", _ratio(hl, sl)),
     ]
