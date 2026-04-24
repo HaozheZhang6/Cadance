@@ -1,492 +1,141 @@
-"""VLM model wrappers — OpenAI and local Qwen2-VL / Qwen2.5-VL."""
+"""Bench model layer.
+
+New code: use `get_adapter(model)` from `bench.models.registry`, plus the
+prompt strings / parsers from `bench.models.prompts`.
+
+Old call sites continue to work via the back-compat shims below.
+"""
 
 from __future__ import annotations
 
-import base64
-import io
-import os
-import re
-
-SYSTEM_PROMPT = """You are an expert CAD engineer. You will be shown a 2×2 composite image of an industrial mechanical part rendered from 4 fixed diagonal viewpoints (camera at unit cube corners, looking at bbox center [0.5, 0.5, 0.5]):
-- Top-left:     camera at [ 1,  1,  1]
-- Top-right:    camera at [-1, -1, -1]
-- Bottom-left:  camera at [-1,  1, -1]
-- Bottom-right: camera at [ 1, -1,  1]
-
-All renders are normalized: the part's bounding box is centered at [0.5, 0.5, 0.5] and the longest side maps to [0, 1].
-
-Your task: generate executable CadQuery Python code that recreates this part geometry.
-
-Requirements:
-- Use standard CadQuery operations: Workplane, extrude, revolve, sweep, loft, union, cut, fillet, chamfer, hole, shell, etc.
-- Store the final solid in a variable named `result`
-- Do NOT include import statements (cadquery is pre-imported as `import cadquery as cq`)
-- Do NOT include show_object() or any display calls
-- Always make your best attempt — even for complex shapes, approximate geometry is better than refusing
-- Output ONLY executable Python code, no explanation or markdown
-
-Example:
-result = (
-    cq.Workplane("XY")
-    .circle(10)
-    .extrude(5)
-    .faces(">Z").hole(4)
-)"""
-
-CADRILLE_SYSTEM_PROMPT = (
-    "You are a CadQuery expert. Given a 2×2 grid of normalized multi-view renders "
-    "of a mechanical part (four diagonal viewpoints: [1,1,1], [-1,-1,-1], [-1,1,-1], "
-    "[1,-1,1]), write CadQuery Python code that reproduces the geometry. "
-    "Output ONLY Python code."
+# Side-effect: register all built-in providers
+from bench.models import providers as _providers  # noqa: F401
+from bench.models.prompts import (
+    CADRILLE_SYSTEM_PROMPT,
+    EDIT_CODE_SYSTEM_PROMPT,
+    EDIT_IMG_SYSTEM_PROMPT,
+    QA_CODE_SYSTEM_PROMPT,
+    QA_IMG_SYSTEM_PROMPT,
+    SYSTEM_PROMPT,
+    USER_PROMPT,
+    build_edit_user_text,
+    build_qa_user_text,
+    parse_qa_answers,
+    strip_fences,
+)
+from bench.models.registry import (
+    ModelAdapter,
+    get_adapter,
+    list_models,
+    register,
+    register_prefix,
 )
 
-USER_PROMPT = "Generate CadQuery code to recreate this industrial part shown in the 4-view composite render."
-
-QA_SYSTEM_PROMPT = """You are an expert CAD engineer. You will be shown a 2×2 composite image of a mechanical part (4 diagonal viewpoints: camera at [1,1,1], [-1,-1,-1], [-1,1,-1], [1,-1,1], looking at bbox center [0.5, 0.5, 0.5]).
-
-You will be given a list of numeric questions about the part. Answer each with a single number.
-
-Rules:
-- Output ONLY a JSON array of numbers, one per question, in the same order.
-- No text, no keys, no explanation. Just the array.
-- For yes/no questions, use 1 for yes and 0 for no.
-- For count questions, use an integer (e.g. 12, not "twelve").
-- For ratio questions, use a decimal (e.g. 2.5).
-- For dimensional questions, assume mm unless the question specifies otherwise.
-
-Example input: ["How many teeth?", "What is the module in mm?"]
-Example output: [20, 2.5]"""
-
-_local_cache: dict = {}
+# Old name kept for back-compat with eval_qa.py and eval_qa_code.py
+QA_SYSTEM_PROMPT = QA_IMG_SYSTEM_PROMPT
+EDIT_VLM_SYSTEM_PROMPT = EDIT_IMG_SYSTEM_PROMPT
 
 
-def _strip_fences(code: str) -> str:
-    code = re.sub(r"^```(?:python)?\s*", "", code, flags=re.M)
-    code = re.sub(r"```\s*$", "", code, flags=re.M)
-    return code.strip()
+# ── Back-compat shims (used by old runners until refactored) ─────────────────
 
 
-def image_to_b64(pil_img) -> str:
-    buf = io.BytesIO()
-    pil_img.save(buf, format="PNG")
-    return base64.b64encode(buf.getvalue()).decode()
-
-
-# ── OpenAI ────────────────────────────────────────────────────────────────────
-
-
-def call_openai(
-    model: str, b64_img: str, api_key: str
+def call_vlm(
+    model: str, pil_img, api_key: str | None = None
 ) -> tuple[str | None, str | None]:
-    import openai
-
-    client = openai.OpenAI(api_key=api_key)
-    try:
-        # gpt-5.x uses max_completion_tokens; older models use max_tokens
-        tok_param = (
-            "max_completion_tokens" if model.startswith("gpt-5") else "max_tokens"
-        )
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": USER_PROMPT},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/png;base64,{b64_img}",
-                                "detail": "high",
-                            },
-                        },
-                    ],
-                },
-            ],
-            **{tok_param: 2048},
-            temperature=0.0,
-        )
-        return _strip_fences(resp.choices[0].message.content), None
-    except Exception as e:
-        return None, str(e)[:200]
-
-
-# ── Local Qwen2-VL / Qwen2.5-VL ──────────────────────────────────────────────
-
-
-def _load_local(model_path: str) -> dict:
-    if model_path in _local_cache:
-        return _local_cache[model_path]
-
-    import json as _json
-
-    import torch
-    from transformers import AutoProcessor
-
-    print(f"\nLoading {model_path} ...", flush=True)
-    dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    model_type = ""
-    cfg_path = (
-        os.path.join(model_path, "config.json") if os.path.isdir(model_path) else None
+    """Image → CadQuery code (img2cq task)."""
+    adapter = get_adapter(model)
+    text, err = adapter.generate(
+        SYSTEM_PROMPT, USER_PROMPT, images=[pil_img], max_tokens=2048
     )
-    if cfg_path and os.path.exists(cfg_path):
-        try:
-            model_type = _json.load(open(cfg_path)).get("model_type", "")
-        except Exception:
-            pass
-
-    if model_type == "qwen2_5_vl":
-        from transformers import Qwen2_5_VLForConditionalGeneration
-
-        cls = Qwen2_5_VLForConditionalGeneration
-    else:
-        from transformers import Qwen2VLForConditionalGeneration
-
-        cls = Qwen2VLForConditionalGeneration
-
-    model = cls.from_pretrained(model_path, torch_dtype=dtype).to(device)
-    model.eval()
-    processor = AutoProcessor.from_pretrained(model_path)
-    _local_cache[model_path] = {
-        "model": model,
-        "processor": processor,
-        "device": device,
-    }
-    print("Model loaded.", flush=True)
-    return _local_cache[model_path]
-
-
-def call_local(
-    model_path: str, pil_img, max_new_tokens: int = 2048, temperature: float = 0.0
-) -> tuple[str | None, str | None]:
-    try:
-        import torch
-        from qwen_vl_utils import process_vision_info
-    except ImportError as e:
-        return None, f"missing dep: {e}"
-
-    try:
-        state = _load_local(model_path)
-        model = state["model"]
-        processor = state["processor"]
-        device = state["device"]
-
-        messages = [
-            {"role": "system", "content": CADRILLE_SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "image": pil_img},
-                    {"type": "text", "text": "Generate CadQuery code for this part."},
-                ],
-            },
-        ]
-        text = processor.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
-        image_inputs, video_inputs = process_vision_info(messages)
-        inputs = processor(
-            text=[text],
-            images=image_inputs,
-            videos=video_inputs,
-            padding=True,
-            return_tensors="pt",
-        ).to(device)
-
-        gen_kw: dict = {"max_new_tokens": max_new_tokens}
-        if temperature > 0:
-            gen_kw.update({"temperature": temperature, "do_sample": True})
-        else:
-            gen_kw["do_sample"] = False
-
-        with torch.no_grad():
-            out = model.generate(**inputs, **gen_kw)
-        code = processor.decode(
-            out[0][len(inputs["input_ids"][0]) :], skip_special_tokens=True
-        )
-        return _strip_fences(code), None
-    except Exception as e:
-        return None, str(e)[:300]
-
-
-# ── Dispatch ──────────────────────────────────────────────────────────────────
-
-
-def call_vlm(model: str, pil_img, api_key: str | None) -> tuple[str | None, str | None]:
-    if model.startswith("local:"):
-        return call_local(model[len("local:") :], pil_img)
-    b64 = image_to_b64(pil_img)
-    if model.startswith(("gpt", "o1", "o3")):
-        key = (
-            api_key
-            or os.environ.get("OPENAI_API_KEY")
-            or os.environ.get("OPENAI_API_KEY1")
-        )
-        return call_openai(model, b64, key)
-    raise ValueError(
-        f"Unsupported model: {model}. Use 'local:<path>' for local models."
-    )
-
-
-# ── QA (image + questions → numeric answers) ─────────────────────────────────
-
-
-def _parse_qa_answers(raw: str, n_expected: int) -> list[float] | None:
-    """Extract a JSON array of numbers from model output. Returns None on shape/type mismatch."""
-    import json as _json
-
-    s = raw.strip()
-    # strip code fences if present
-    s = re.sub(r"^```(?:json)?\s*", "", s, flags=re.M)
-    s = re.sub(r"```\s*$", "", s, flags=re.M).strip()
-    # grab first [...] block
-    m = re.search(r"\[[^\[\]]*\]", s, flags=re.S)
-    if not m:
-        return None
-    try:
-        arr = _json.loads(m.group(0))
-    except Exception:
-        return None
-    if not isinstance(arr, list) or len(arr) != n_expected:
-        return None
-    out: list[float] = []
-    for x in arr:
-        try:
-            out.append(float(x))
-        except Exception:
-            return None
-    return out
-
-
-def call_openai_qa(
-    model: str, b64_img: str, questions: list[str], api_key: str
-) -> tuple[list[float] | None, str | None]:
-    import openai
-
-    client = openai.OpenAI(api_key=api_key)
-    import json as _json
-
-    user_text = (
-        "Answer these questions about the part shown. "
-        "Output ONLY a JSON array of numbers, same order:\n" + _json.dumps(questions)
-    )
-    try:
-        tok_param = (
-            "max_completion_tokens" if model.startswith("gpt-5") else "max_tokens"
-        )
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": QA_SYSTEM_PROMPT},
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": user_text},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/png;base64,{b64_img}",
-                                "detail": "high",
-                            },
-                        },
-                    ],
-                },
-            ],
-            **{tok_param: 512},
-            temperature=0.0,
-        )
-        raw = resp.choices[0].message.content or ""
-        arr = _parse_qa_answers(raw, len(questions))
-        if arr is None:
-            return None, f"parse_fail: {raw[:120]}"
-        return arr, None
-    except Exception as e:
-        return None, str(e)[:200]
+    if text is None:
+        return None, err
+    return strip_fences(text), None
 
 
 def call_vlm_qa(
-    model: str, pil_img, questions: list[str], api_key: str | None
+    model: str, pil_img, questions: list[str], api_key: str | None = None
 ) -> tuple[list[float] | None, str | None]:
-    """Ask a VLM numeric questions about a part image. Returns (answers, error)."""
+    """Image + numeric questions → JSON array of numbers."""
     if not questions:
         return [], None
-    if model.startswith("local:"):
-        return None, "local QA not yet implemented"
-    b64 = image_to_b64(pil_img)
-    if model.startswith(("gpt", "o1", "o3")):
-        key = (
-            api_key
-            or os.environ.get("OPENAI_API_KEY")
-            or os.environ.get("OPENAI_API_KEY1")
-        )
-        return call_openai_qa(model, b64, questions, key)
-    raise ValueError(
-        f"Unsupported model: {model}. Use 'local:<path>' for local models."
+    adapter = get_adapter(model)
+    user_text = build_qa_user_text(questions)
+    raw, err = adapter.generate(
+        QA_IMG_SYSTEM_PROMPT, user_text, images=[pil_img], max_tokens=512
     )
-
-
-# ── Code-only QA (text LLM reads CadQuery code and answers numeric Qs) ────────
-
-QA_CODE_SYSTEM_PROMPT = """You are an expert CAD engineer. You will be shown CadQuery Python code for a mechanical part. You will be given a list of numeric questions about the part this code produces.
-
-Rules:
-- Output ONLY a JSON array of numbers, one per question, in the same order.
-- No text, no keys, no explanation. Just the array.
-- For yes/no questions, use 1 for yes and 0 for no.
-- For count questions, use an integer (e.g. 12, not "twelve").
-- For ratio questions, use a decimal (e.g. 2.5).
-- For dimensional questions, assume mm unless the question specifies otherwise.
-
-Example input code creates a gear with 20 teeth and module 2.5.
-Example input questions: ["How many teeth?", "What is the module in mm?"]
-Example output: [20, 2.5]"""
-
-
-def call_openai_qa_code(
-    model: str, code: str, questions: list[str], api_key: str
-) -> tuple[list[float] | None, str | None]:
-    import json as _json
-
-    import openai
-
-    client = openai.OpenAI(api_key=api_key)
-    user_text = (
-        "CadQuery code:\n```python\n"
-        + code
-        + "\n```\n\nQuestions (answer each with a single number, JSON array):\n"
-        + _json.dumps(questions)
-    )
-    try:
-        tok_param = (
-            "max_completion_tokens" if model.startswith("gpt-5") else "max_tokens"
-        )
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": QA_CODE_SYSTEM_PROMPT},
-                {"role": "user", "content": user_text},
-            ],
-            **{tok_param: 512},
-            temperature=0.0,
-        )
-        raw = resp.choices[0].message.content or ""
-        arr = _parse_qa_answers(raw, len(questions))
-        if arr is None:
-            return None, f"parse_fail: {raw[:120]}"
-        return arr, None
-    except Exception as e:
-        return None, str(e)[:200]
+    if raw is None:
+        return None, err
+    arr = parse_qa_answers(raw, len(questions))
+    if arr is None:
+        return None, f"parse_fail: {raw[:120]}"
+    return arr, None
 
 
 def call_llm_qa_code(
-    model: str, code: str, questions: list[str], api_key: str | None
+    model: str, code: str, questions: list[str], api_key: str | None = None
 ) -> tuple[list[float] | None, str | None]:
-    """Text-only LLM: read CadQuery code, answer numeric questions."""
+    """Code + numeric questions → JSON array of numbers."""
     if not questions:
         return [], None
-    if model.startswith("local:"):
-        return None, "local code-QA not yet implemented"
-    if model.startswith(("gpt", "o1", "o3")):
-        key = (
-            api_key
-            or os.environ.get("OPENAI_API_KEY")
-            or os.environ.get("OPENAI_API_KEY1")
-        )
-        return call_openai_qa_code(model, code, questions, key)
-    raise ValueError(f"Unsupported model: {model}")
-
-
-# ── Edit with vision (image + code + instruction → modified code) ────────────
-
-EDIT_VLM_SYSTEM_PROMPT = """You are an expert CAD engineer. You will be given:
-1. A 2x2 composite image of the part from 4 diagonal viewpoints.
-2. A CadQuery Python script that builds the part.
-3. A natural-language edit instruction describing a numeric change.
-
-IMPORTANT — parameters are DERIVED, not literal:
-The `# --- parameters ---` comment block lists the logical parameter names
-(e.g. `hole_pitch_L = 120.0`), but the numbers in the actual code are USUALLY
-NOT equal to the parameter value. They are arithmetic expressions over it
-that have been pre-computed to floats. To edit correctly you MUST:
-  (a) identify every literal that depends on the target parameter,
-  (b) work out the formula from the literal + original parameter value,
-  (c) re-evaluate the formula with the new parameter value.
-
-Use the 2x2 image to disambiguate which literals correspond to which physical
-dimension when the code alone is ambiguous.
-
-Worked example
---------------
-Original code (parameter comment says hole_pitch_L = 120.0):
-    .transformed(offset=cq.Vector(-60.0, 0, 16.45))   # -60  == -L/2
-    .transformed(offset=cq.Vector(60.0, 0, 16.45))    #  60  ==  L/2
-    .cylinder(130.2, 5.1)                              # 130.2 == L + 10.2
-
-Instruction: "Set the hole pitch L to 123.6 mm."
-You must update ALL THREE literals, not just the comment:
-    .transformed(offset=cq.Vector(-61.8, 0, 16.45))    # -123.6/2
-    .transformed(offset=cq.Vector(61.8, 0, 16.45))     #  123.6/2
-    .cylinder(133.8, 5.1)                               #  123.6 + 10.2
-and update the comment to `# hole_pitch_L = 123.6`.
-
-Rules
------
-- Output ONLY executable Python code, no explanation, no markdown fences.
-- For "Set X to V unit": set the parameter comment to V. For every literal that
-  depended on the old value, recompute with the new value (preserve the
-  inferred formula). Keep up to 4 decimals.
-- For "Change X by +P%" / "-P%": new_X = old_X * (1 + P/100); then apply the
-  same recomputation to every dependent literal.
-- Do NOT refactor, rename, reorder, or add imports.
-- Keep every literal that does NOT depend on X byte-identical."""
+    adapter = get_adapter(model)
+    user_text = build_qa_user_text(questions, code=code)
+    raw, err = adapter.generate(QA_CODE_SYSTEM_PROMPT, user_text, max_tokens=512)
+    if raw is None:
+        return None, err
+    arr = parse_qa_answers(raw, len(questions))
+    if arr is None:
+        return None, f"parse_fail: {raw[:120]}"
+    return arr, None
 
 
 def call_edit_vlm(
-    model: str,
-    orig_code: str,
-    instruction: str,
-    pil_img,
-    api_key: str,
+    model: str, orig_code: str, instruction: str, pil_img, api_key: str | None = None
 ) -> tuple[str | None, str | None]:
-    import openai
-
-    client = openai.OpenAI(api_key=api_key)
-    b64 = image_to_b64(pil_img)
-    user_text = (
-        "Original CadQuery code:\n```python\n"
-        + orig_code
-        + "\n```\n\nEdit instruction: "
-        + instruction
-        + "\n\nReturn the full modified script."
+    """Edit with vision (img + code + instruction → modified code)."""
+    adapter = get_adapter(model)
+    user_text = build_edit_user_text(orig_code, instruction)
+    raw, err = adapter.generate(
+        EDIT_IMG_SYSTEM_PROMPT, user_text, images=[pil_img], max_tokens=4096
     )
-    try:
-        tok_param = (
-            "max_completion_tokens" if model.startswith("gpt-5") else "max_tokens"
-        )
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": EDIT_VLM_SYSTEM_PROMPT},
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": user_text},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/png;base64,{b64}",
-                                "detail": "high",
-                            },
-                        },
-                    ],
-                },
-            ],
-            **{tok_param: 4096},
-            temperature=0.0,
-        )
-        return _strip_fences(resp.choices[0].message.content or ""), None
-    except Exception as e:
-        return None, str(e)[:200]
+    if raw is None:
+        return None, err
+    return strip_fences(raw), None
+
+
+def call_edit_code(
+    model: str, orig_code: str, instruction: str, api_key: str | None = None
+) -> tuple[str | None, str | None]:
+    """Edit code-only (code + instruction → modified code)."""
+    adapter = get_adapter(model)
+    user_text = build_edit_user_text(orig_code, instruction)
+    raw, err = adapter.generate(EDIT_CODE_SYSTEM_PROMPT, user_text, max_tokens=4096)
+    if raw is None:
+        return None, err
+    return strip_fences(raw), None
+
+
+__all__ = [
+    "ModelAdapter",
+    "get_adapter",
+    "register",
+    "register_prefix",
+    "list_models",
+    "SYSTEM_PROMPT",
+    "USER_PROMPT",
+    "CADRILLE_SYSTEM_PROMPT",
+    "QA_SYSTEM_PROMPT",
+    "QA_IMG_SYSTEM_PROMPT",
+    "QA_CODE_SYSTEM_PROMPT",
+    "EDIT_CODE_SYSTEM_PROMPT",
+    "EDIT_IMG_SYSTEM_PROMPT",
+    "EDIT_VLM_SYSTEM_PROMPT",
+    "call_vlm",
+    "call_vlm_qa",
+    "call_llm_qa_code",
+    "call_edit_vlm",
+    "call_edit_code",
+    "strip_fences",
+    "parse_qa_answers",
+    "build_qa_user_text",
+    "build_edit_user_text",
+]
