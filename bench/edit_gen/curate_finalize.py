@@ -58,7 +58,7 @@ def emit_dim_records(plan: dict, exclude_hard: bool, exclude_iou_broken: bool):
         target_str = render_number(tv)
         sign = "+" if pct > 0 else ""
         for lvl, text in [
-            ("L1", f"Set the {human} to {target_str} mm."),
+            ("L1", f"Set the {human} to {target_str}."),
             ("L2", f"Change the {human} by {sign}{pct}%."),
         ]:
             rid = f"curated_{fam}_{axis}_{lvl}"
@@ -72,7 +72,7 @@ def emit_dim_records(plan: dict, exclude_hard: bool, exclude_iou_broken: bool):
                     "pct_delta": pct,
                     "orig_value": ov,
                     "target_value": tv,
-                    "unit": "mm",
+                    "unit": "",
                     "human_name": human,
                     "instruction": text,
                     "difficulty": e.get("difficulty", "easy"),
@@ -99,7 +99,7 @@ def emit_additive_records(plan: dict):
         # add_* ops default orig=0; remove_* ops should provide it in plan.
         if orig_val is None:
             orig_val = 0.0
-        default_unit = "count" if op_type.startswith("remove_") else "mm"
+        default_unit = "count" if op_type.startswith("remove_") else ""
         records.append(
             {
                 "record_id": rid,
@@ -139,8 +139,8 @@ def emit_multi_records(plan: dict):
         t1 = render_number(ax1["target"])
         t2 = render_number(ax2["target"])
         l1_text = (
-            f"Set the {human_for(ax1['axis'])} to {t1} mm and "
-            f"the {human_for(ax2['axis'])} to {t2} mm."
+            f"Set the {human_for(ax1['axis'])} to {t1} and "
+            f"the {human_for(ax2['axis'])} to {t2}."
         )
         sign1 = "+" if ax1["pct"] > 0 else ""
         sign2 = "+" if ax2["pct"] > 0 else ""

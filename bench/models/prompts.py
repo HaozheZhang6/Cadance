@@ -28,7 +28,7 @@ Requirements:
 - Do NOT include show_object() or any display calls
 - Always make your best attempt — even for complex shapes, approximate geometry is better than refusing
 - Output ONLY executable Python code, no explanation or markdown
-- Scale is arbitrary: scoring normalizes bbox to [0,1]³ before comparison. Use any consistent scale — just get proportions right. Do NOT try to infer real-world mm from the image
+- Scale is arbitrary: scoring normalizes bbox to [0,1]³ before comparison. Use any consistent scale — just get proportions right. Do NOT try to infer real-world physical dimensions from the image
 - Avoid sub-unit dimensions (values <1 break fillet/chamfer radius constraints). Prefer integer-scale units (~10–100) so fillet radii (~1–5) are well-formed
 - Keep parts grounded together — no floating components
 
@@ -69,9 +69,9 @@ Rules:
 - For yes/no questions, use 1 for yes and 0 for no.
 - For count questions, use an integer (e.g. 12, not "twelve").
 - For ratio questions, use a decimal (e.g. 2.5).
-- For dimensional questions, assume mm unless the question specifies otherwise.
+- For dimensional questions, answer in whatever consistent unit the code uses (scale is arbitrary; the grader compares numeric magnitude).
 
-Example input: ["How many teeth?", "What is the module in mm?"]
+Example input: ["How many teeth?", "What is the module?"]
 Example output: [20, 2.5]"""
 
 QA_CODE_SYSTEM_PROMPT = """You are an expert CAD engineer. You will be shown CadQuery Python code for a mechanical part. You will be given a list of numeric questions about the part this code produces.
@@ -82,10 +82,10 @@ Rules:
 - For yes/no questions, use 1 for yes and 0 for no.
 - For count questions, use an integer (e.g. 12, not "twelve").
 - For ratio questions, use a decimal (e.g. 2.5).
-- For dimensional questions, assume mm unless the question specifies otherwise.
+- For dimensional questions, answer using the same scale as the numeric literals in the code.
 
 Example input code creates a gear with 20 teeth and module 2.5.
-Example input questions: ["How many teeth?", "What is the module in mm?"]
+Example input questions: ["How many teeth?", "What is the module?"]
 Example output: [20, 2.5]"""
 
 
@@ -118,7 +118,7 @@ Rules:
 - Output ONLY executable Python code, no explanation, no markdown fences.
 - The top of the script has a `# --- parameters ---` comment block listing the
   numeric parameters by name. Use those names to find the value to change.
-- If the instruction says "Set X to V unit", set the value to V (respect the unit).
+- If the instruction says "Set X to V", set the value to V (same scale as the original literal).
 - If the instruction says "Change X by +P%" or "-P%", multiply the current value
   by (1 + P/100) and keep up to 4 decimal places.
 - Do NOT refactor, rename, reorder, or add imports."""
@@ -147,7 +147,7 @@ Original code (parameter comment says hole_pitch_L = 120.0):
     .transformed(offset=cq.Vector(60.0, 0, 16.45))    #  60  ==  L/2
     .cylinder(130.2, 5.1)                              # 130.2 == L + 10.2
 
-Instruction: "Set the hole pitch L to 123.6 mm."
+Instruction: "Set the hole pitch L to 123.6."
 You must update ALL THREE literals, not just the comment:
     .transformed(offset=cq.Vector(-61.8, 0, 16.45))    # -123.6/2
     .transformed(offset=cq.Vector(61.8, 0, 16.45))     #  123.6/2
