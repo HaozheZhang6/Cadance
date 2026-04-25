@@ -1,12 +1,11 @@
 # Cadance
 
-Engineering design automation + CAD synthesis research repo. Three main subprojects:
+CAD synthesis + benchmark research repo. Two subprojects:
 
 | Subproject | Path | Purpose |
 |---|---|---|
 | **Data generation** | `scripts/data_generation/` | Synth CAD pipeline — 106 parametric families → renders + CadQuery + QA pairs → HF datasets |
-| **Benchmarks** | `bench/` | Evaluate VLMs/LLMs on image→code, image→QA, code→QA (zero local data, all on HF) |
-| **Intent pipeline** | `src/` | Hypergraph G→R→S intent refinement + CAD artifact gen + verification |
+| **Benchmarks** | `bench/` | Evaluate VLMs/LLMs on image→code, image→QA, code→QA, code-edit (zero local data, all on HF) |
 
 ---
 
@@ -14,7 +13,7 @@ Engineering design automation + CAD synthesis research repo. Three main subproje
 
 ```bash
 git clone <repo> Cadance && cd Cadance
-uv sync                              # default — fine for bench + intent pipeline
+uv sync                              # default — fine for bench
 # uv sync --extra vision             # only if re-rendering CAD (vtk); see per-subproject README
 
 cp .env.example .env                 # fill in OPENAI_API_KEY, HF_TOKEN (optional)
@@ -44,14 +43,6 @@ uv run python -m bench.edit_gen.score_edit     --model gpt-5.4
 
 Details: [`bench/README.md`](bench/README.md).
 
-### Run intent pipeline
-
-```bash
-uv run python -m src.cli --intent "Design a mounting bracket for a 5kg load" --auto
-```
-
-Details below under [Intent Pipeline](#intent-pipeline).
-
 ### Synth Monitor UI
 
 Streamlit dashboard for data gen runs (family/difficulty distribution, render previews, QA scores):
@@ -66,11 +57,10 @@ uv run streamlit run scripts/data_generation/ui/app.py --server.port 8501
 
 | Variable | Used by |
 |---|---|
-| `OPENAI_API_KEY` / `OPENAI_API_KEY1` | bench, intent pipeline, data gen |
+| `OPENAI_API_KEY` / `OPENAI_API_KEY1` | bench, data gen |
 | `OPENAI_MODEL` | default model (e.g. `gpt-4o`, `gpt-5.2`) |
 | `ZHIPU_API_KEY` | data gen fallback |
 | `HF_TOKEN` | pull/push HF datasets |
-| `HYPERGRAPH_STORE_PATH` | intent pipeline state |
 
 All keys live in `.env` (git-ignored). Data pipeline auto-loads via `python-dotenv`.
 
@@ -150,31 +140,6 @@ Then visually verify via Synth Monitor. See `CLAUDE.md` for full protocol.
 
 ---
 
-## Intent Pipeline (`src/`)
-
-Hypergraph-based intent → specs → CAD artifact → verification. Not used for bench/data-gen; standalone subproject.
-
-```bash
-uv run python -m src.cli --intent "Design a mounting bracket for a 5kg load" --auto
-```
-
-6-step flow: G→R→S tree → contract extraction → pre-artifact gate (V0/V1/V3/V4) → artifact gen → mech verification → auto-refinement. Full diagram and options in earlier README history; key CLI commands:
-
-```bash
-uv run python -m src.cli --intent "..." --auto --verbose    # SAT details + per-contract
-uv run python -m src.cli show-graph                         # inspect hypergraph state
-uv run python -m src.cli dag-run --intent "..." --auto      # multi-agent orchestrator
-mech-verify verify part.step -o ./output                    # standalone STEP verifier
-```
-
-Docs:
-- [End-to-End Pipeline](docs/end_to_end/README.md)
-- [Memory Layer](docs/MEMORY_LAYER.md) (mem0 + ChromaDB intent cache)
-- [Mech Verifier](docs/MECH_VERIFIER.md) / [EDA Verifier](docs/EDA_VERIFIER.md)
-- [Verifier Core](docs/VERIFIER_CORE.md)
-
----
-
 ## Development
 
 ```bash
@@ -198,17 +163,16 @@ See `CLAUDE.md` for full repo conventions (family pre-flight, task tracking, rep
 ## Layout
 
 ```
-src/                              # Intent pipeline (hypergraph, verification, mech/eda verifiers)
 scripts/data_generation/          # Synth CAD pipeline
   cad_synth/
     families/                     # 106 parametric CAD families
     pipeline/                     # registry, builder, runner, renderer
     configs/                      # batch run configs
   ui/app.py                       # Streamlit Synth Monitor
-bench/                            # Three benchmarks (code / QA-image / QA-code)
-  edit_gen/                       # Edit benchmark data gen
+bench/                            # Benchmarks (img2cq / qa_img / qa_code / edit_code / edit_img)
+  edit_gen/                       # Edit benchmark data gen + runners
+  models/                         # Provider registry + prompts
 data/data_generation/             # CSV/JSONL tables, renders, SFT pairs (git-ignored)
-docs/                             # Architecture docs
 CLAUDE.md                         # Repo conventions (read this first)
 TASK_QUEUE.md                     # User-assigned tasks + history
 PROGRESS.md                       # Session log

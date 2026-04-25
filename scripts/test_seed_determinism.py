@@ -168,9 +168,6 @@ if __name__ == "__main__":
     print(f"Non-deterministic varies:    {'YES' if nondet_varies else 'NO'}")
 
     if det_pass:
-        print("\n✓ --deterministic flag will produce reproducible outputs")
-        print(
-            "  Usage: uv run python -m src.cli resume --from-step artifact --deterministic"
-        )
+        print("\n✓ seed=42 + temperature=0 produces reproducible outputs")
 
     sys.exit(0 if det_pass else 1)
