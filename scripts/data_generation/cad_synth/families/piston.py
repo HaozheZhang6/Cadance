@@ -28,7 +28,11 @@ class PistonFamily(BaseFamily):
             "difficulty": difficulty,
         }
 
-        if difficulty in ("medium", "hard"):
+        groove_prob = {"easy": 0.2, "medium": 0.8, "hard": 0.9}[difficulty]
+        pin_prob = {"easy": 0.0, "medium": 0.3, "hard": 0.85}[difficulty]
+        params["profile_reverse"] = bool(rng.random() < 0.5)
+
+        if rng.random() < groove_prob:
             gw = round(
                 rng.uniform(2, max(2.5, min(r * 0.1, 5))), 1
             )  # ring groove width
@@ -37,14 +41,13 @@ class PistonFamily(BaseFamily):
             )  # ring groove depth
             params["groove_width"] = gw
             params["groove_depth"] = gd
+            # Variable groove count 1/2/3 (was fixed 2)
+            params["n_grooves"] = int(rng.choice([1, 2, 3]))
 
-        if difficulty == "hard":
-            # Wrist pin bore: horizontal cross hole at mid-skirt height
+        if rng.random() < pin_prob:
             pin_d = round(rng.uniform(r * 0.25, r * 0.55), 1)
             params["pin_diameter"] = pin_d
-            params["pin_height"] = round(
-                H * rng.uniform(0.15, 0.4), 1
-            )  # height from bottom
+            params["pin_height"] = round(H * rng.uniform(0.15, 0.4), 1)
 
         return params
 
@@ -62,10 +65,11 @@ class PistonFamily(BaseFamily):
 
         gw = params.get("groove_width", 0)
         gd = params.get("groove_depth", 0)
+        ng = int(params.get("n_grooves", 0))
         if gw and gd:
             if gd >= r * 0.15:
                 return False
-            if 2 * gw + 4 > ch:  # two grooves must fit in crown region
+            if ng * gw + (ng + 1) * 1.0 > ch:
                 return False
 
         pd = params.get("pin_diameter", 0)
@@ -86,6 +90,7 @@ class PistonFamily(BaseFamily):
 
         gw = params.get("groove_width", 0)
         gd = params.get("groove_depth", 0)
+        n_grooves = int(params.get("n_grooves", 0))
 
         ops = []
         tags = {"has_hole": False, "has_fillet": False, "has_chamfer": False}
@@ -93,34 +98,27 @@ class PistonFamily(BaseFamily):
         rv = round(r, 4)
         Hv = round(H, 4)
 
-        if gw and gd:
-            # Two ring grooves in crown region, spaced evenly
-            # Groove positions (y from bottom): at H - ch + gw, H - ch + 3*gw
-            y_groove1 = round(H - ch + gw, 4)
-            y_groove2 = round(H - ch + 3 * gw, 4)
+        # Build profile: bottom (0,0) → outer (r,0) → up with N grooves → (r,H) → (0,H).
+        pts = [(0.0, 0.0), (rv, 0.0)]
+        if gw and gd and n_grooves > 0:
             r_bot = round(r - gd, 4)
+            spacing = ch / (n_grooves + 1)
+            for i in range(n_grooves):
+                y_g = round(H - ch + spacing * (i + 1), 4)
+                pts.append((rv, round(y_g - gw / 2, 4)))
+                pts.append((r_bot, round(y_g - gw / 2, 4)))
+                pts.append((r_bot, round(y_g + gw / 2, 4)))
+                pts.append((rv, round(y_g + gw / 2, 4)))
+        pts.append((rv, Hv))
+        pts.append((0.0, Hv))
 
-            # Build profile with two grooves
-            ops.append(Op("moveTo", {"x": 0.0, "y": 0.0}))
-            ops.append(Op("lineTo", {"x": rv, "y": 0.0}))
-            ops.append(Op("lineTo", {"x": rv, "y": round(y_groove1 - gw / 2, 4)}))
-            ops.append(Op("lineTo", {"x": r_bot, "y": round(y_groove1 - gw / 2, 4)}))
-            ops.append(Op("lineTo", {"x": r_bot, "y": round(y_groove1 + gw / 2, 4)}))
-            ops.append(Op("lineTo", {"x": rv, "y": round(y_groove1 + gw / 2, 4)}))
-            ops.append(Op("lineTo", {"x": rv, "y": round(y_groove2 - gw / 2, 4)}))
-            ops.append(Op("lineTo", {"x": r_bot, "y": round(y_groove2 - gw / 2, 4)}))
-            ops.append(Op("lineTo", {"x": r_bot, "y": round(y_groove2 + gw / 2, 4)}))
-            ops.append(Op("lineTo", {"x": rv, "y": round(y_groove2 + gw / 2, 4)}))
-            ops.append(Op("lineTo", {"x": rv, "y": Hv}))
-            ops.append(Op("lineTo", {"x": 0.0, "y": Hv}))
-            ops.append(Op("close", {}))
-        else:
-            # Easy: plain cylinder profile
-            ops.append(Op("moveTo", {"x": 0.0, "y": 0.0}))
-            ops.append(Op("lineTo", {"x": rv, "y": 0.0}))
-            ops.append(Op("lineTo", {"x": rv, "y": Hv}))
-            ops.append(Op("lineTo", {"x": 0.0, "y": Hv}))
-            ops.append(Op("close", {}))
+        if params.get("profile_reverse", False):
+            pts = list(reversed(pts))
+
+        ops.append(Op("moveTo", {"x": pts[0][0], "y": pts[0][1]}))
+        for x, y in pts[1:]:
+            ops.append(Op("lineTo", {"x": x, "y": y}))
+        ops.append(Op("close", {}))
 
         ops.append(
             Op(
