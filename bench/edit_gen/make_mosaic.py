@@ -48,15 +48,22 @@ def main():
 
     W = max(r.width for r in rows)
     ROW_GAP = 50
-    H = sum(r.height for r in rows) + ROW_GAP * len(rows)
-    canvas = Image.new("RGB", (W, H), "white")
-    y = 0
-    for r in rows:
-        canvas.paste(r, (0, y))
-        y += r.height + ROW_GAP
-    out = FINAL / "preview_all.png"
-    canvas.save(str(out))
-    print(f"mosaic: {len(rows)} rows -> {out} ({W}×{H})")
+    CHUNK = 100
+    for i in range(0, len(rows), CHUNK):
+        chunk = rows[i:i+CHUNK]
+        H = sum(r.height for r in chunk) + ROW_GAP * len(chunk)
+        canvas = Image.new("RGB", (W, H), "white")
+        y = 0
+        for r in chunk:
+            canvas.paste(r, (0, y))
+            y += r.height + ROW_GAP
+        page = i // CHUNK + 1
+        start = i + 1
+        end = i + len(chunk)
+        out = FINAL / f"preview_p{page}_{start}-{end}.png"
+        canvas.save(str(out))
+        print(f"page {page}: #{start}-{end} ({len(chunk)} rows) -> "
+              f"{out.name} ({W}×{H})")
 
 
 if __name__ == "__main__":

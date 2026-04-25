@@ -170,10 +170,9 @@ def run(
                 {
                     "record_id": rid,
                     "family": rec["family"],
-                    "difficulty": rec["difficulty"],
-                    "level": rec["level"],
-                    "axis": rec["axis"],
-                    "pct_delta": rec["pct_delta"],
+                    "difficulty": rec.get("difficulty", ""),
+                    "edit_type": rec.get("edit_type", ""),
+                    "instruction": rec.get("instruction", ""),
                     "model": model,
                     "api_ok": api_ok,
                     "api_err": api_err,

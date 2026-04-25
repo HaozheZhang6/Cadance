@@ -1094,189 +1094,488 @@ def page_synth():
                 st.markdown("---")
 
 
-# ── eval page (bench scoring viewer) ──────────────────────────────────────────
+# ── code edit bench page (interactive review) ────────────────────────────────
 
-BENCH_CACHE = ROOT / "bench" / "ui" / "cache"
-BENCH_IMG = BENCH_CACHE / "images"
+BENCH_EDIT = ROOT / "data" / "data_generation" / "bench_edit"
+EDIT_SOURCES = {
+    "pairs_curated": (BENCH_EDIT / "pairs_curated.jsonl", BENCH_EDIT),
+    "topup_final": (
+        BENCH_EDIT / "topup_final" / "records.jsonl",
+        BENCH_EDIT / "topup_final",
+    ),
+}
+EDIT_CACHE = ROOT / "bench" / "ui" / "edit_cache"
 
 
-@st.cache_data(ttl=60)
-def load_bench_data():
-    p = BENCH_CACHE / "data.json"
-    if not p.exists():
-        return None
+def _eb_load_jsonl(p: Path):
     import json
 
-    return json.loads(p.read_text())
+    if not p.exists():
+        return []
+    return [json.loads(ln) for ln in p.read_text().splitlines() if ln.strip()]
 
 
-def _score_bar(label: str, value, weight=None, disabled: bool = False):
-    if value is None:
-        st.caption(f"{label}: —")
-        return
-    suffix = f"  _(wt={weight})_" if weight is not None else ""
-    color = "🟢" if value >= 0.80 else "🟡" if value >= 0.50 else "🔴"
-    prefix = "~~" if disabled else ""
-    suffix2 = "~~" if disabled else ""
-    st.markdown(f"{prefix}{color} **{label}**: `{value:.3f}`{suffix2}{suffix}")
-    if not disabled:
-        st.progress(value)
+def _eb_write_jsonl(p: Path, rows: list):
+    import json
+    import shutil
+    from datetime import datetime
+
+    if p.exists():
+        bak = p.with_suffix(p.suffix + f".bak_{datetime.now():%Y%m%d_%H%M%S}")
+        shutil.copy2(p, bak)
+    with p.open("w") as f:
+        for r in rows:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
 
-def _show_bench_scores(scores: dict):
-    if not scores:
-        st.warning("执行失败，无评分")
-        return
-    fs = scores.get("feature_score")
-    ts = scores.get("tag_score")
-    ss = scores.get("shape_score")
-    color = "green" if (fs or 0) >= 0.8 else "orange" if (fs or 0) >= 0.5 else "red"
-    st.markdown(
-        f"## :{color}[{fs:.3f}]  feature_score"
-        if fs is not None
-        else "## — feature_score"
+def _eb_iou(rec):
+    return rec.get("iou") if rec.get("iou") is not None else rec.get("iou_orig_gt")
+
+
+def _eb_render_step(
+    step_abs: Path, cache_png: Path, size: int = 320, timeout: int = 120
+) -> tuple[bool, str]:
+    if cache_png.exists():
+        return True, ""
+    if not step_abs.exists():
+        return False, f"STEP not found: {step_abs}"
+    import os
+    import shutil as _sh
+    import subprocess
+    import tempfile
+
+    code = (
+        "import sys\n"
+        "from scripts.data_generation.render_normalized_views import render_step_normalized\n"
+        "r = render_step_normalized(sys.argv[1], sys.argv[2], size=int(sys.argv[3]))\n"
+        "print(r['composite'])\n"
     )
-    st.divider()
-    st.markdown("#### ① tag_score `× 0.25`")
-    _score_bar("tag_score", ts, weight=0.25)
-    tag_keys = ["has_hole", "has_fillet", "has_chamfer", "rotational"]
-    gt_tags = scores.get("gt_tags", {})
-    case_tags = scores.get("case_tags", {})
-    match_map = scores.get("tag_match", {})
-    cols = st.columns(4)
-    for i, k in enumerate(tag_keys):
-        ok = match_map.get(k, False)
-        cols[i].markdown(f"{'✅' if ok else '❌'} **{k}**")
-        cols[i].caption(
-            f"GT {'✓' if gt_tags.get(k) else '✗'} → Case {'✓' if case_tags.get(k) else '✗'}"
+    td = tempfile.mkdtemp(prefix="editbench_")
+    env = {**os.environ, "LD_LIBRARY_PATH": "/workspace/.local/lib"}
+    try:
+        r = subprocess.run(
+            [sys.executable, "-c", code, str(step_abs), td, str(size)],
+            env=env,
+            timeout=timeout,
+            capture_output=True,
+            text=True,
+            cwd=str(ROOT),
         )
-    st.divider()
-    st.markdown("#### ② shape_score `× 0.75`")
-    _score_bar("shape_score", ss, weight=0.75)
-    c1, c2 = st.columns(2)
-    with c1:
-        iou = scores.get("iou")
-        cd_s = scores.get("cd_score")
-        cd_r = scores.get("cd")
-        st.markdown("**主要权重**")
-        _score_bar("IoU (3D voxel)", iou, weight=0.375)
-        if cd_s is not None:
-            _score_bar(f"CD score  (CD={cd_r:.4f})", cd_s, weight=0.375)
-    with c2:
-        mv = scores.get("mv_iou")
-        hd_s = scores.get("hd_score")
-        hd_r = scores.get("hd")
-        fs_v = scores.get("fscore")
-        fp = scores.get("fprecision")
-        fr = scores.get("frecall")
-        st.markdown("**扩展指标（权重 = 0）**")
-        _score_bar("Multi-view IoU", mv, disabled=True)
-        if hd_s is not None:
-            _score_bar(f"HD score  (HD={hd_r:.4f})", hd_s, disabled=True)
-        if fs_v is not None:
-            _score_bar(
-                f"F-score @ τ=0.05  (P={fp:.2f} R={fr:.2f})", fs_v, disabled=True
-            )
+        if r.returncode != 0:
+            return False, (r.stderr or r.stdout)[-500:]
+        out = r.stdout.strip().splitlines()
+        if not out:
+            return False, "no output"
+        cache_png.parent.mkdir(parents=True, exist_ok=True)
+        _sh.copy2(out[-1], cache_png)
+        return True, ""
+    except subprocess.TimeoutExpired:
+        return False, "timeout"
+    finally:
+        import shutil as _sh2
+
+        _sh2.rmtree(td, ignore_errors=True)
 
 
-def _show_bench_img(path_str, caption=""):
-    if path_str:
-        p = BENCH_IMG / path_str
-        if p.exists():
-            st.image(str(p), caption=caption, use_container_width=True)
-            return
-    st.caption(f"_{caption}: 无图像_")
+def _eb_render_code(
+    code_text: str, size: int = 320, timeout: int = 120
+) -> tuple[Path | None, str]:
+    import os
+    import subprocess
+    import tempfile
 
-
-def page_eval():
-    st.title("Eval — Bench Score Viewer")
-    data = load_bench_data()
-    if data is None:
-        st.error("Bench cache not found.")
-        st.code(
-            "LD_LIBRARY_PATH=/workspace/.local/lib uv run python3 bench/ui/prepare_data.py"
+    code_file = Path(tempfile.mktemp(suffix=".py"))
+    code_file.write_text(code_text)
+    out_dir = Path(tempfile.mkdtemp(prefix="editbench_render_"))
+    env = {**os.environ, "LD_LIBRARY_PATH": "/workspace/.local/lib"}
+    try:
+        r = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts/data_generation/render_cq_file.py"),
+                "--code",
+                str(code_file),
+                "--out",
+                str(out_dir),
+                "--size",
+                str(size),
+                "--timeout",
+                str(timeout),
+            ],
+            env=env,
+            timeout=timeout + 20,
+            capture_output=True,
+            text=True,
         )
-        return
+        if r.returncode != 0:
+            return None, (r.stderr or r.stdout)[-2000:]
+        comp = out_dir / "composite.png"
+        return (comp if comp.exists() else None), ""
+    except subprocess.TimeoutExpired:
+        return None, "timeout"
+    finally:
+        code_file.unlink(missing_ok=True)
 
-    gts = data["gts"]
+
+def _eb_orig_code_path(rec, base_dir: Path) -> Path | None:
+    p = rec.get("original_code_path") or rec.get("orig_code_path")
+    return (base_dir / p) if p else None
+
+
+def _eb_sanitize(name: str) -> str:
+    import re
+
+    return re.sub(r"[^A-Za-z0-9_\-]", "_", name)[:60]
+
+
+def _eb_shared_count(recs, field, value) -> int:
+    return sum(1 for r in recs if r.get(field) == value)
+
+
+def _eb_unique_path(p: Path, tag: str) -> Path:
+    return p.with_name(f"{p.stem}__{tag}{p.suffix}")
+
+
+def _eb_save_gt_code(
+    rec, recs, rec_idx, new_code: str, base_dir: Path, jsonl_path: Path
+) -> tuple[bool, str]:
+    """Render edited code → STEP, auto-unshare shared gt_code_path / gt_step_path,
+    then rewrite JSONL. Returns (ok, message)."""
+    import os
+    import shutil as _sh
+    import subprocess
+    import tempfile
+
+    tag = _eb_sanitize(rec["record_id"])
+    code_rel = rec["gt_code_path"]
+    step_rel = rec["gt_step_path"]
+    code_abs = base_dir / code_rel
+    step_abs = base_dir / step_rel
+
+    tmp_code = Path(tempfile.mktemp(suffix=".py"))
+    tmp_code.write_text(new_code)
+    out_dir = Path(tempfile.mkdtemp(prefix="eb_save_"))
+    env = {**os.environ, "LD_LIBRARY_PATH": "/workspace/.local/lib"}
+    try:
+        r = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts/data_generation/render_cq_file.py"),
+                "--code",
+                str(tmp_code),
+                "--out",
+                str(out_dir),
+                "--size",
+                "320",
+                "--timeout",
+                "120",
+                "--keep-step",
+            ],
+            env=env,
+            timeout=140,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.TimeoutExpired:
+        tmp_code.unlink(missing_ok=True)
+        _sh.rmtree(out_dir, ignore_errors=True)
+        return False, "渲染超时"
+    tmp_code.unlink(missing_ok=True)
+
+    if r.returncode != 0:
+        _sh.rmtree(out_dir, ignore_errors=True)
+        return False, (r.stderr or r.stdout)[-1200:]
+    new_step = next(out_dir.glob("*.step"), None)
+    if new_step is None:
+        _sh.rmtree(out_dir, ignore_errors=True)
+        return False, "STEP 未导出"
+
+    code_shared = _eb_shared_count(recs, "gt_code_path", code_rel) > 1
+    step_shared = _eb_shared_count(recs, "gt_step_path", step_rel) > 1
+    final_code = _eb_unique_path(code_abs, tag) if code_shared else code_abs
+    final_step = _eb_unique_path(step_abs, tag) if step_shared else step_abs
+
+    final_code.parent.mkdir(parents=True, exist_ok=True)
+    final_step.parent.mkdir(parents=True, exist_ok=True)
+    final_code.write_text(new_code)
+    _sh.copy2(new_step, final_step)
+    _sh.rmtree(out_dir, ignore_errors=True)
+
+    recs[rec_idx]["gt_code_path"] = str(final_code.relative_to(base_dir))
+    recs[rec_idx]["gt_step_path"] = str(final_step.relative_to(base_dir))
+    _eb_write_jsonl(jsonl_path, recs)
+    msg = []
+    msg.append(f"{'解除共用，' if code_shared else ''}代码 → {final_code.name}")
+    msg.append(f"{'解除共用，' if step_shared else ''}STEP → {final_step.name}")
+    return True, "  ·  ".join(msg)
+
+
+def page_edit_bench():
+    st.title("代码编辑 Bench — 交互式审查")
 
     with st.sidebar:
-        st.markdown("**评分公式**")
-        st.markdown(
-            "```\nfeature_score =\n  0.25 × tag_score\n  0.75 × shape_score\n\nshape_score =\n  0.5 × iou\n  0.5 × cd_score\n```"
-        )
-        st.caption("HD / F-score / MultiView IoU 权重 = 0")
-        st.divider()
-        families = sorted(set(g["family"] for g in gts))
-        sel_family = st.selectbox("Family", ["All"] + families, key="eval_family")
-        filtered = (
-            gts
-            if sel_family == "All"
-            else [g for g in gts if g["family"] == sel_family]
-        )
-        gt_options = {g["uid"]: g for g in filtered}
-        sel_uid = st.selectbox(
-            "GT 样本",
-            list(gt_options.keys()),
-            format_func=lambda uid: f"{gt_options[uid]['family']}  ·  {gt_options[uid]['stem'][-20:]}",
-            key="eval_uid",
-        )
+        src_key = st.selectbox("数据源", list(EDIT_SOURCES.keys()), key="eb_source")
+    jsonl_path, base_dir = EDIT_SOURCES[src_key]
 
-    gt = gt_options[sel_uid]
-    st.markdown(f"# `{gt['family']}`")
-    st.caption(gt["stem"])
-
-    col_gt_img, col_gt_info = st.columns([1, 2])
-    with col_gt_img:
-        _show_bench_img(gt["image"], "GT 渲染")
-    with col_gt_info:
-        st.markdown("### Ground Truth")
-        feats = gt["features"]
-        fc = st.columns(4)
-        for i, (k, v) in enumerate(feats.items()):
-            fc[i].metric(k, "✓" if v else "✗")
-        with st.expander("GT Code", expanded=False):
-            st.code(gt["code"], language="python", line_numbers=True)
-
-    st.divider()
-    case_order = ["A_self", "C_cross", "D_same", "B_pred"]
-    case_icons = {
-        "A_self": "🔵 A — GT 自检",
-        "C_cross": "🔴 C — 跨 Family",
-        "D_same": "🟡 D — 同 Family 不同实例",
-        "B_pred": "🟢 B — 模型预测",
-    }
-    available = [k for k in case_order if k in gt["cases"]]
-    if not available:
-        st.warning("无 case 数据")
+    recs = _eb_load_jsonl(jsonl_path)
+    if not recs:
+        st.error(f"{jsonl_path} 无记录")
         return
 
-    tabs = st.tabs([case_icons[k] for k in available])
-    for tab, key in zip(tabs, available):
-        case = gt["cases"][key]
-        scores = case.get("scores", {})
-        with tab:
-            is_self = key == "A_self"
-            col_img, col_code, col_score = st.columns([1, 1, 2])
-            with col_img:
-                st.markdown("**渲染**")
-                gid = case.get("gid", "")
-                if gid:
-                    st.caption(f"`{gid}`")
-                if is_self:
-                    _show_bench_img(gt["image"], "（同 GT）")
+    n = len(recs)
+
+    # 用 position(int) 作为唯一导航 key —— record_id 不一定唯一（有重复会卡住）
+    pending_key = f"_eb_pending_pos_{src_key}"
+    if pending_key in st.session_state:
+        p = st.session_state.pop(pending_key)
+        if isinstance(p, int) and 0 <= p < n:
+            st.session_state["eb_pos"] = p
+            st.session_state["eb_jump"] = p + 1
+    # 切换数据源后，清掉无效状态
+    if not isinstance(st.session_state.get("eb_pos"), int) or not (
+        0 <= st.session_state.get("eb_pos", -1) < n
+    ):
+        st.session_state.pop("eb_pos", None)
+        st.session_state.pop("eb_jump", None)
+    if "eb_jump" not in st.session_state:
+        st.session_state["eb_jump"] = (st.session_state.get("eb_pos") or 0) + 1
+
+    with st.sidebar:
+        fams = sorted({r.get("family", "") for r in recs})
+        sel_fam = st.selectbox("Family", ["全部"] + fams, key="eb_fam")
+        types = sorted({r.get("edit_type", "") for r in recs})
+        sel_type = st.selectbox("编辑类型", ["全部"] + types, key="eb_type")
+        diffs = sorted({r.get("difficulty", "") for r in recs if r.get("difficulty")})
+        sel_diff = st.selectbox("难度", ["全部"] + diffs, key="eb_diff")
+        iou_range = st.slider("IoU 区间", 0.0, 1.0, (0.0, 1.0), 0.01, key="eb_iou")
+
+    def _match(r):
+        if sel_fam != "全部" and r.get("family") != sel_fam:
+            return False
+        if sel_type != "全部" and r.get("edit_type") != sel_type:
+            return False
+        if sel_diff != "全部" and r.get("difficulty") != sel_diff:
+            return False
+        iv = _eb_iou(r) or 0
+        return iou_range[0] <= iv <= iou_range[1]
+
+    filtered_pos = [i for i, r in enumerate(recs) if _match(r)]
+    st.sidebar.caption(f"{len(filtered_pos)} / {n} 条（筛选后 / 全量）")
+
+    # selectbox 选项 = 筛选位置；若当前 pos 被筛掉，临时塞进来避免报错
+    cur_pos = st.session_state.get("eb_pos")
+    sel_pos_options = list(filtered_pos)
+    if cur_pos is not None and cur_pos not in sel_pos_options:
+        sel_pos_options = [cur_pos] + sel_pos_options
+    if not sel_pos_options:
+        st.info("无符合筛选的记录（上一条/下一条仍可在全量中循环）")
+        sel_pos_options = [cur_pos if cur_pos is not None else 0]
+
+    def _fmt_pos(pos):
+        r = recs[pos]
+        iou = _eb_iou(r) or 0
+        return f"#{pos + 1:>3}  {r['record_id']}  (IoU={iou:.3f})"
+
+    sel_pos = st.sidebar.selectbox(
+        "记录",
+        sel_pos_options,
+        format_func=_fmt_pos,
+        key="eb_pos",
+    )
+    rec = recs[sel_pos]
+    rec_idx = sel_pos
+    sel_rid = rec["record_id"]
+    wid = f"{sel_pos}"  # widget key 后缀（用 position 保证 record_id 重复时也唯一）
+
+    # 上一条 / 跳转 / 下一条（按 records.jsonl 全量顺序循环）
+    nav_l, nav_mid, nav_r = st.columns([1, 2, 1])
+    if nav_l.button("⬅ 上一条", use_container_width=True, key="eb_prev"):
+        st.session_state[pending_key] = (rec_idx - 1) % n
+        st.rerun()
+    with nav_mid:
+        target = st.number_input(
+            f"跳转到第 N 条 / 共 {n} 条（回车确认）",
+            min_value=1,
+            max_value=n,
+            step=1,
+            key="eb_jump",
+            label_visibility="collapsed",
+        )
+        if int(target) - 1 != rec_idx:
+            st.session_state[pending_key] = int(target) - 1
+            st.rerun()
+        st.caption(f"当前：第 **{rec_idx + 1}** / {n} 条")
+    if nav_r.button("下一条 ➡", use_container_width=True, key="eb_next"):
+        st.session_state[pending_key] = (rec_idx + 1) % n
+        st.rerun()
+
+    # 顶部三栏：信息 | ORI | GT
+    col_info, col_ori, col_gt = st.columns([2, 3, 3])
+
+    with col_info:
+        st.markdown(f"### `{rec['record_id']}`")
+        iou_val = _eb_iou(rec)
+        iou_s = f"{iou_val:.3f}" if isinstance(iou_val, (float, int)) else "?"
+        st.markdown(
+            f"**Family**: `{rec.get('family','?')}`  ·  "
+            f"**类型**: `{rec.get('edit_type','?')}`"
+        )
+        st.markdown(
+            f"**难度**: `{rec.get('difficulty','?')}`  ·  " f"**IoU**: `{iou_s}`"
+        )
+        extras = []
+        for k in (
+            "level",
+            "axis",
+            "pct_delta",
+            "orig_value",
+            "target_value",
+            "unit",
+            "human_name",
+            "dl_est",
+        ):
+            if k in rec and rec[k] not in (None, ""):
+                extras.append(f"**{k}**={rec[k]}")
+        if extras:
+            st.caption(" · ".join(extras))
+        st.divider()
+
+        instr_key = f"eb_instr_{wid}"
+        new_instr = st.text_area(
+            "Prompt（指令）",
+            value=rec.get("instruction", ""),
+            height=130,
+            key=instr_key,
+        )
+
+        b1, b2 = st.columns(2)
+        if b1.button(
+            "💾 保存 Prompt", use_container_width=True, key=f"eb_save_instr_{wid}"
+        ):
+            recs[rec_idx]["instruction"] = new_instr
+            _eb_write_jsonl(jsonl_path, recs)
+            st.success("已保存")
+            st.rerun()
+
+        del_flag = f"eb_confirm_del_{wid}"
+        if b2.button(
+            "🗑 删除该条", use_container_width=True, key=f"eb_del_btn_{wid}"
+        ):
+            st.session_state[del_flag] = True
+        if st.session_state.get(del_flag):
+            st.warning(f"确认从 {jsonl_path.name} 中永久删除 `{sel_rid}`？")
+            cc1, cc2 = st.columns(2)
+            if cc1.button(
+                "确认删除",
+                type="primary",
+                use_container_width=True,
+                key=f"eb_del_yes_{wid}",
+            ):
+                recs.pop(rec_idx)
+                _eb_write_jsonl(jsonl_path, recs)
+                st.session_state[del_flag] = False
+                st.success(f"已删除 {sel_rid}")
+                st.rerun()
+            if cc2.button(
+                "取消", use_container_width=True, key=f"eb_del_no_{wid}"
+            ):
+                st.session_state[del_flag] = False
+                st.rerun()
+
+    with col_ori:
+        st.markdown("#### 原图 (ORI)")
+        step_orig = base_dir / rec["orig_step_path"]
+        orig_png = EDIT_CACHE / sel_rid / "orig.png"
+        ok, err = _eb_render_step(step_orig, orig_png)
+        if ok:
+            st.image(str(orig_png), use_container_width=True)
+        else:
+            st.error(f"渲染失败：{err}")
+        st.caption(f"`{rec['orig_step_path']}`")
+
+    with col_gt:
+        st.markdown("#### 目标 (GT)")
+        step_gt = base_dir / rec["gt_step_path"]
+        gt_png = EDIT_CACHE / sel_rid / "gt.png"
+        ok, err = _eb_render_step(step_gt, gt_png)
+        if ok:
+            st.image(str(gt_png), use_container_width=True)
+        else:
+            st.error(f"渲染失败：{err}")
+        st.caption(f"`{rec['gt_step_path']}`")
+
+    st.divider()
+    with st.expander("📝 代码（编辑 & 重渲染）", expanded=False):
+        tab_gt, tab_orig = st.tabs(["GT 代码（可编辑）", "原始代码"])
+        gt_code_path = base_dir / rec["gt_code_path"]
+        orig_code_path = _eb_orig_code_path(rec, base_dir)
+
+        with tab_gt:
+            st.caption(f"`{rec['gt_code_path']}`")
+            code_shared = _eb_shared_count(recs, "gt_code_path", rec["gt_code_path"])
+            step_shared = _eb_shared_count(recs, "gt_step_path", rec["gt_step_path"])
+            if code_shared > 1 or step_shared > 1:
+                st.info(
+                    f"ℹ️ 当前文件被 {max(code_shared, step_shared)} 条记录共用 — "
+                    "保存时会自动解除共用（只为本条写入独立文件）。"
+                )
+            gt_code = gt_code_path.read_text() if gt_code_path.exists() else ""
+            code_key = f"eb_gtcode_{wid}"
+            new_code = st.text_area("GT 代码", value=gt_code, height=400, key=code_key)
+            bc1, bc2, _ = st.columns([1, 1, 2])
+            rerender_clicked = bc1.button(
+                "▶ 重渲染",
+                type="primary",
+                key=f"eb_rerender_{wid}",
+                use_container_width=True,
+            )
+            save_code_clicked = bc2.button(
+                "💾 保存代码 → GT",
+                key=f"eb_savecode_{wid}",
+                use_container_width=True,
+            )
+            if rerender_clicked:
+                with st.spinner("正在渲染编辑后的代码…"):
+                    comp, err = _eb_render_code(new_code)
+                if comp is None:
+                    st.error("渲染失败")
+                    if err:
+                        st.code(err, language="text")
+                    st.session_state.pop(f"eb_last_comp_{wid}", None)
                 else:
-                    _show_bench_img(case.get("image"), "Case 渲染")
-            with col_code:
-                st.markdown("**代码**")
-                code = gt["code"] if is_self else case.get("code")
-                if code:
-                    with st.expander("查看代码", expanded=False):
-                        st.code(code, language="python", line_numbers=True)
+                    stash = EDIT_CACHE / sel_rid / "rerender.png"
+                    stash.parent.mkdir(parents=True, exist_ok=True)
+                    import shutil as _sh
+
+                    _sh.copy2(comp, stash)
+                    st.session_state[f"eb_last_comp_{wid}"] = str(stash)
+            if save_code_clicked:
+                with st.spinner("正在渲染并保存（如共用会自动解除）…"):
+                    ok, msg = _eb_save_gt_code(
+                        rec, recs, rec_idx, new_code, base_dir, jsonl_path
+                    )
+                if not ok:
+                    st.error("保存失败 — 记录未变更")
+                    if msg:
+                        st.code(msg, language="text")
                 else:
-                    st.caption("无代码（exec failed）")
-            with col_score:
-                _show_bench_scores(scores)
+                    gt_png.unlink(missing_ok=True)
+                    (EDIT_CACHE / sel_rid / "rerender.png").unlink(missing_ok=True)
+                    st.success(msg)
+                    st.rerun()
+            last = st.session_state.get(f"eb_last_comp_{wid}")
+            if last and Path(last).exists():
+                st.markdown("**重渲染结果**")
+                st.image(last, use_container_width=True)
+
+        with tab_orig:
+            if orig_code_path and orig_code_path.exists():
+                st.caption(f"`{orig_code_path.relative_to(base_dir)}`")
+                st.code(
+                    orig_code_path.read_text(), language="python", line_numbers=True
+                )
+            else:
+                st.caption("无原始代码路径")
 
 
 # ── CQ Playground ─────────────────────────────────────────────────────────────
@@ -1383,7 +1682,7 @@ def main():
         "Stem List",
         "Stem Viewer",
         "Synth Monitor",
-        "Eval",
+        "编辑 Bench",
         "CQ Playground",
     ]
 
@@ -1405,8 +1704,8 @@ def main():
         page_synth()
     elif page == "Stem List":
         page_stem_list()
-    elif page == "Eval":
-        page_eval()
+    elif page == "编辑 Bench":
+        page_edit_bench()
     elif page == "CQ Playground":
         page_cq_playground()
     else:

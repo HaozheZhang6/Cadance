@@ -143,7 +143,7 @@ def eval_sample(row: dict, model: str, api_key: str | None) -> dict:
     res["gen_code"] = gen_code
 
     gen_step, exec_err = exec_cq(gen_code)
-    gen_feats = extract_features(gen_code)
+    gen_feats = extract_features(gen_code, gen_step)
     res["gen_features"] = gen_feats
     res["feature_f1"] = round(feature_f1(gen_feats, gt_features), 4)
 

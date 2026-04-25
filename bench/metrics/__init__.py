@@ -16,8 +16,47 @@ _FEATURE_PATTERNS = {
 }
 
 
-def extract_features(code: str) -> dict[str, bool]:
-    return {k: bool(pat.search(code)) for k, pat in _FEATURE_PATTERNS.items()}
+def _step_has_hole(step_path: str) -> bool:
+    """Detect cylindrical inner bore in STEP B-rep (appendix §D.7 Method B).
+
+    REVERSED-oriented cylindrical face with radius ≥ 0.5 mm = inner wall.
+    Iterates faces via TopExp to bypass cq.faces() hashCode dependency.
+    """
+    try:
+        import cadquery as cq
+        from OCP.BRepAdaptor import BRepAdaptor_Surface
+        from OCP.GeomAbs import GeomAbs_Cylinder
+        from OCP.TopAbs import TopAbs_FACE, TopAbs_REVERSED
+        from OCP.TopExp import TopExp_Explorer
+        from OCP.TopoDS import TopoDS
+
+        shape = cq.importers.importStep(step_path)
+        root = shape.val().wrapped
+        exp = TopExp_Explorer(root, TopAbs_FACE)
+        while exp.More():
+            face = TopoDS.Face_s(exp.Current())
+            ad = BRepAdaptor_Surface(face)
+            if (
+                ad.GetType() == GeomAbs_Cylinder
+                and face.Orientation() == TopAbs_REVERSED
+                and ad.Cylinder().Radius() >= 0.5
+            ):
+                return True
+            exp.Next()
+    except Exception:
+        pass
+    return False
+
+
+def extract_features(code: str, step_path: str | None = None) -> dict[str, bool]:
+    """AST regex over code; for has_hole, fall back to STEP B-rep when AST=False.
+
+    Appendix §D.7 Method C (AST OR STEP): zero FN on bench_1k_apr14.
+    """
+    feats = {k: bool(pat.search(code)) for k, pat in _FEATURE_PATTERNS.items()}
+    if not feats["has_hole"] and step_path:
+        feats["has_hole"] = _step_has_hole(step_path)
+    return feats
 
 
 def feature_f1(pred: dict, gt: dict) -> float:

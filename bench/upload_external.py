@@ -89,7 +89,7 @@ def build_rows(
                 continue
 
             gt_code = code_abs.read_text()
-            feat = extract_features(gt_code)
+            feat = extract_features(gt_code, str(step_abs))
             rows.append(
                 {
                     "stem": s["stem"],

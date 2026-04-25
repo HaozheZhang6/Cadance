@@ -87,7 +87,9 @@ def score(
     def _orig_iou(pair: dict) -> tuple[float, str | None]:
         if "iou_orig_gt" in pair:
             return float(pair["iou_orig_gt"]), None
-        k = (pair["family"], pair["difficulty"], pair["axis"], pair["pct_delta"])
+        if "iou" in pair:
+            return float(pair["iou"]), None
+        k = (pair["family"], pair["difficulty"], pair.get("axis",""), pair.get("pct_delta",0))
         if k not in orig_iou_cache:
             if hf_repo:
                 orig_path = _write_step_bytes(
@@ -123,7 +125,7 @@ def score(
         pair = pairs.get(rid)
         if not pair:
             continue
-        level = res["level"]
+        level = res.get("level", res.get("edit_type", "n/a"))
         exec_rate_by_level[level].append(1 if res["exec_ok"] else 0)
 
         row: dict = {
