@@ -1,8 +1,0 @@
-\section{Conclusion}
-\label{sec:conclusion}
-
-We presented a skill-based, verification-guided framework for CAD data generation.
-By reformulating complex CAD generation as verifiable program synthesis---executable programs that can be geometrically validated against ground truth---and by organizing the system around reusable skills rather than a rigid workflow, we convert noisy LLM outputs into high-precision, training-ready supervision without human annotation.
-The result is a verified corpus of 1,646 program--geometry pairs covering complex multi-operation industrial parts, all with IoU $\geq 0.99$ against ground truth.
-Our analysis shows that 92.5\% of verified pairs are produced automatically by the provider cascade, while 7.5\% require targeted manual repair---a small but important tail that captures genuinely hard cases the automated pipeline cannot reach.
-More broadly, our results suggest that for complex engineering tasks, the combination of executable representations, strict geometric verification, and modular skill composition provides a practical path to scalable data curation that does not require expensive human labeling.
