@@ -1,4 +1,13 @@
 
+## 2026-04-25 (session 28) — bench 一键 fetch + UI 直读 from_hf
+
+- 新 `bench/fetch_data.py`:一行 `uv run python bench/fetch_data.py` 拉两个 HF repo (`BenchCAD/cad_bench` 20143 + `BenchCAD/cad_bench_edit` 336) 入 `~/.cache/huggingface`,顺手把 edit bench 解包到 `data/data_generation/bench_edit/from_hf/` (records.jsonl + orig_steps/ + gt_steps/ + orig_codes/ + gt_codes/, ~124MB)
+- UI `EDIT_SOURCES` 加 `"from_hf"` (`scripts/data_generation/ui/app.py:1108-1112`):fresh clone 起 streamlit 直接选数据源 from_hf 就能看 — 不用先跑 curation 链
+- HF cad_bench_edit 实际 schema 只有 `record_id/family/edit_type/difficulty/instruction/iou/source/orig_code/gt_code/orig_step/gt_step` (README 写的 `iou_orig_gt`/`level`/`axis`/etc 早过时);UI 通过 `_eb_iou` fallback 自洽,但 dump 字段按真实 schema 取
+- 顶层 README + bench/README 加快速启动 step
+- argparse 风格、ROOT/sys.path/load_dotenv 顶部样板对齐 `bench/eval.py`,走 `bench.dataloader.load_hf` 复用现有 wrapper
+- Smoke:`fetch_data.py` 实跑 OK,records.jsonl 336 行 iou 全填,UI 数据源切 from_hf 路径连通;black/ruff(新文件 0 err)/pytest 81 pass
+
 ## 2026-04-23 (session 27) — UA-23 apr20-20k 全清 + HF 重推 + 本地↔HF align
 
 - hollow_tube YZ/XZ base_plane 下 box+rect 切成两块板（33 apr20 sample），family op 序列只适配 XY → 直接删样本 + 家族 standard 字段 `EN 10305 → EN 10219`（尺寸表本来就是 EN 10219，346 行回填）

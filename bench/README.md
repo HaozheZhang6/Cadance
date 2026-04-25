@@ -26,6 +26,13 @@ uv sync                           # GPT code+QA+edit eval 够用
 cp .env.example .env
 # edit .env: OPENAI_API_KEY=sk-... + (optional) BenchCAD_HF_TOKEN=hf_...
 
+# 2.5 一键预拉 bench 数据 (两个 HF repo: 20143 + 336 rows; ~124MB STEP 解包给 UI)
+#     - 填 ~/.cache/huggingface → runner 走本地缓存,无网延迟
+#     - 解包 cad_bench_edit → data/data_generation/bench_edit/from_hf/
+#       UI 编辑 Bench 页直接选数据源 "from_hf" 就能查
+#     可省略 — runner 首次会自己拉; 但 UI 直读必须跑一次
+uv run python bench/fetch_data.py
+
 # 3a. img2cq_test (staged smoke: fetch + render verify + eval)
 uv run python bench/test/run_test.py --model gpt-4o --limit 12 --seed 42 --save-code
 
@@ -84,6 +91,7 @@ results/<task>/<model_slug>/
 
 | 文件 | 作用 |
 |------|------|
+| `bench/fetch_data.py` | 一键预拉两个 HF repo + 解包 edit bench 给 UI 直读 (`from_hf` 数据源) |
 | `bench/dataloader/__init__.py` | `load_hf(repo, split)` → list[dict] |
 | `bench/sampling.py` | `sample_rows(rows, n, seed)` — 共用，N>200 自动 stratified（每 family ≥1） |
 | `bench/results.py` | `ResultsDir(task, model)` — append-only pool, dedup by id key, 写 `runs/<ts>__seed_N>.json` sidecar |

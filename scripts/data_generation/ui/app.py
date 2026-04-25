@@ -1103,6 +1103,11 @@ EDIT_SOURCES = {
         BENCH_EDIT / "topup_final" / "records.jsonl",
         BENCH_EDIT / "topup_final",
     ),
+    # `from_hf` 由 `bench/fetch_data.py` 解包,fresh clone 跑一次即可直读
+    "from_hf": (
+        BENCH_EDIT / "from_hf" / "records.jsonl",
+        BENCH_EDIT / "from_hf",
+    ),
 }
 EDIT_CACHE = ROOT / "bench" / "ui" / "edit_cache"
 
@@ -1458,9 +1463,7 @@ def page_edit_bench():
             st.rerun()
 
         del_flag = f"eb_confirm_del_{wid}"
-        if b2.button(
-            "🗑 删除该条", use_container_width=True, key=f"eb_del_btn_{wid}"
-        ):
+        if b2.button("🗑 删除该条", use_container_width=True, key=f"eb_del_btn_{wid}"):
             st.session_state[del_flag] = True
         if st.session_state.get(del_flag):
             st.warning(f"确认从 {jsonl_path.name} 中永久删除 `{sel_rid}`？")
@@ -1476,9 +1479,7 @@ def page_edit_bench():
                 st.session_state[del_flag] = False
                 st.success(f"已删除 {sel_rid}")
                 st.rerun()
-            if cc2.button(
-                "取消", use_container_width=True, key=f"eb_del_no_{wid}"
-            ):
+            if cc2.button("取消", use_container_width=True, key=f"eb_del_no_{wid}"):
                 st.session_state[del_flag] = False
                 st.rerun()
 

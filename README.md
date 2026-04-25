@@ -17,6 +17,9 @@ uv sync                              # default — fine for bench
 # uv sync --extra vision             # only if re-rendering CAD (vtk); see per-subproject README
 
 cp .env.example .env                 # fill in OPENAI_API_KEY, HF_TOKEN (optional)
+
+# one-shot prefetch (优先跑这一行: HF cache + 解包 edit bench 给 UI 直读)
+uv run python bench/fetch_data.py    # 20143 + 336 rows, ~124MB; runner / UI 之后秒开
 ```
 
 ### Run benchmarks (zero local data — pulls from HF)
@@ -57,7 +60,7 @@ Six-page Streamlit app — sidebar navigates between them:
 | **Synth Monitor** | per-batch family / difficulty distribution, render previews, QA score histograms |
 | **Stem List** | filter / sort all stems by source / status / iou / family |
 | **Stem Viewer** | single-stem deep dive: 4-view composite, GT vs gen STEP, code, QA, exec logs |
-| **编辑 Bench** | review edit pairs (`pairs_curated.jsonl` + `topup_final/records.jsonl`) — orig vs GT side-by-side, edit GT in place, re-exec |
+| **编辑 Bench** | review edit pairs (`pairs_curated` / `topup_final` / **`from_hf`** ← `bench/fetch_data.py` 解包) — orig vs GT side-by-side, edit GT in place, re-exec |
 | **CQ Playground** | paste CadQuery code, exec in subprocess, render 4-view (no DB write) |
 
 See `CLAUDE.md` "Synth Monitor UI" — do NOT build a separate family-preview UI; extend Synth Monitor instead.
