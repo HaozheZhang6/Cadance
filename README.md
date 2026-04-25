@@ -43,13 +43,24 @@ uv run python -m bench.edit_gen.score_edit     --model gpt-5.4
 
 Details: [`bench/README.md`](bench/README.md).
 
-### Synth Monitor UI
-
-Streamlit dashboard for data gen runs (family/difficulty distribution, render previews, QA scores):
+### UI (`scripts/data_generation/ui/app.py`)
 
 ```bash
 uv run streamlit run scripts/data_generation/ui/app.py --server.port 8501
 ```
+
+Six-page Streamlit app — sidebar navigates between them:
+
+| Page | Use it for |
+|---|---|
+| **Overview** | repo-level counts: verified pairs, families, run history |
+| **Synth Monitor** | per-batch family / difficulty distribution, render previews, QA score histograms |
+| **Stem List** | filter / sort all stems by source / status / iou / family |
+| **Stem Viewer** | single-stem deep dive: 4-view composite, GT vs gen STEP, code, QA, exec logs |
+| **编辑 Bench** | review edit pairs (`pairs_curated.jsonl` + `topup_final/records.jsonl`) — orig vs GT side-by-side, edit GT in place, re-exec |
+| **CQ Playground** | paste CadQuery code, exec in subprocess, render 4-view (no DB write) |
+
+See `CLAUDE.md` "Synth Monitor UI" — do NOT build a separate family-preview UI; extend Synth Monitor instead.
 
 ---
 
@@ -156,6 +167,43 @@ Pre-commit (enforced):
 3. `uv run pytest`
 4. Update `PROGRESS.md`
 
+### Add a new model provider
+
+Drop one file under `bench/models/providers/<name>.py`:
+
+```python
+from bench.models.registry import register, ModelAdapter
+
+@register("my-model", "my-model-mini")  # CLI name(s) — e.g. --model my-model
+class MyAdapter(ModelAdapter):
+    def call_img2cq(self, image, prompt) -> str: ...
+    def call_qa(self, payload, prompt) -> str: ...
+```
+
+Then `bench/models/providers/__init__.py` auto-imports it. No runner changes.
+Existing examples: `openai.py`, `anthropic.py`, `gemini.py`, `deepseek.py`, `mistral.py`, `xai.py`, `zhipu.py`, `local_hf.py`.
+
+### Add a new CAD family
+
+1. Drop `scripts/data_generation/cad_synth/families/<name>.py` exposing `sample_params`, `validate_params`, `make_program`.
+2. Run the pre-flight smoke (see `CLAUDE.md` "CAD Family Pre-Flight Rule") — 3 difficulties × build → bbox sane.
+3. Register in `scripts/data_generation/cad_synth/pipeline/registry.py`.
+4. Visually verify via Synth Monitor.
+
+### Run a synth batch
+
+```bash
+uv run python -m scripts.data_generation.cad_synth.pipeline \
+  --config scripts/data_generation/cad_synth/configs/batch_20k_apr20.yaml
+```
+
+Configs in `cad_synth/configs/*.yaml` pin family list, per-difficulty counts, seed, output paths.
+
+### Tests
+
+- `tests/test_data_generation/` — pipeline / verified-pairs builder
+- `tests/test_tools/test_cadquery/evaluation_suite/` — held-out eval samples (do **NOT** read `eval/`; see CLAUDE.md)
+
 See `CLAUDE.md` for full repo conventions (family pre-flight, task tracking, report formats, data-path map, harness rules).
 
 ---
@@ -168,7 +216,7 @@ scripts/data_generation/          # Synth CAD pipeline
     families/                     # 106 parametric CAD families
     pipeline/                     # registry, builder, runner, renderer
     configs/                      # batch run configs
-  ui/app.py                       # Streamlit Synth Monitor
+  ui/app.py                       # Streamlit 6-page UI (Overview / Synth Monitor / Stem List / Viewer / Edit Bench / CQ Playground)
 bench/                            # Benchmarks (img2cq / qa_img / qa_code / edit_code / edit_img)
   edit_gen/                       # Edit benchmark data gen + runners
   models/                         # Provider registry + prompts
