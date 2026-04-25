@@ -56,6 +56,11 @@ class VenturiTubeFamily(BaseFamily):
         outlet_len = round(D * outlet_len_mult, 1)
         thickness = round(D * rng.uniform(0.06, 0.12), 1)
 
+        # Code-level mutations: polyline op vs explicit moveTo+lineTo's,
+        # and forward vs reversed point order (closed wire equivalent).
+        polyline_form = str(rng.choice(["polyline", "lineto"]))
+        profile_reverse = bool(rng.random() < 0.5)
+
         return {
             "pipe_diameter": D,
             "throat_diameter": d,
@@ -64,6 +69,8 @@ class VenturiTubeFamily(BaseFamily):
             "outlet_len": outlet_len,
             "conv_angle_deg": conv_angle,
             "div_angle_deg": div_angle,
+            "polyline_form": polyline_form,
+            "profile_reverse": profile_reverse,
             "difficulty": difficulty,
             "base_plane": "XY",
         }
@@ -130,15 +137,24 @@ class VenturiTubeFamily(BaseFamily):
             (Ro, y0),
         ]
         section_pts = [(round(x, 4), round(y, 4)) for x, y in inner + outer]
+        if params.get("profile_reverse", False):
+            section_pts = list(reversed(section_pts))
 
-        ops = [
-            Op("polyline", {"points": section_pts}),
-            Op("close", {}),
+        polyline_form = params.get("polyline_form", "polyline")
+        if polyline_form == "polyline":
+            ops = [Op("polyline", {"points": section_pts})]
+        else:
+            # Explicit moveTo + lineTo chain — same closed wire, different op count.
+            ops = [Op("moveTo", {"x": section_pts[0][0], "y": section_pts[0][1]})]
+            for x, y in section_pts[1:]:
+                ops.append(Op("lineTo", {"x": x, "y": y}))
+        ops.append(Op("close", {}))
+        ops.append(
             Op(
                 "revolve",
                 {"angleDeg": 360, "axisStart": [0, 0, 0], "axisEnd": [0, 1, 0]},
-            ),
-        ]
+            )
+        )
 
         tags = {
             "has_hole": True,
