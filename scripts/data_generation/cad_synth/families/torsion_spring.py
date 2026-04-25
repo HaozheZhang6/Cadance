@@ -63,7 +63,11 @@ class TorsionSpringFamily(BaseFamily):
         # pitch must be > wire_d (open coil) — manual recommends ≥ 2·wire_d
         pitch = round(wire_d * rng.uniform(2.0, 3.5), 2)
         height = round(pitch * n_coils, 6)
-        leg_len = round(coil_r * rng.uniform(1.5, 3.0), 1)
+        leg_len_1 = round(coil_r * rng.uniform(1.5, 3.0), 1)
+        # Asymmetric legs (was symmetric): leg2 = leg1 × ratio.
+        leg_ratio = round(float(rng.uniform(0.7, 1.3)), 2)
+        leg_len_2 = round(leg_len_1 * leg_ratio, 1)
+        leg_order_swap = bool(rng.random() < 0.5)
 
         return {
             "wire_diameter": wire_d,
@@ -74,7 +78,10 @@ class TorsionSpringFamily(BaseFamily):
             "n_coils": float(n_coils),
             "pitch": pitch,
             "height": height,
-            "leg_length": leg_len,
+            "leg_length": leg_len_1,  # leg1 (back-compat key for QA gen)
+            "leg_length_2": leg_len_2,
+            "leg_ratio": leg_ratio,
+            "leg_order_swap": leg_order_swap,
             "difficulty": difficulty,
             "base_plane": "XY",
         }
@@ -86,6 +93,7 @@ class TorsionSpringFamily(BaseFamily):
         p = params["pitch"]
         h = params["height"]
         ll = params["leg_length"]
+        ll2 = params.get("leg_length_2", ll)
 
         if wr < 0.25:
             return False
@@ -98,6 +106,8 @@ class TorsionSpringFamily(BaseFamily):
             return False
         if ll < cr or ll > cr * 4:
             return False
+        if ll2 < cr * 0.7 or ll2 > cr * 5:
+            return False
         return True
 
     def make_program(self, params: dict) -> Program:
@@ -106,7 +116,9 @@ class TorsionSpringFamily(BaseFamily):
         wr = params["wire_radius"]
         p = params["pitch"]
         h = params["height"]
-        ll = params["leg_length"]
+        ll1 = params["leg_length"]
+        ll2 = params.get("leg_length_2", ll1)
+        leg_order_swap = bool(params.get("leg_order_swap", False))
 
         # Plane rotation about X so plane normal = start tangent direction.
         # tangent = (0, R, p/(2π))/mag; rot_x = -atan2(R, p/(2π))
@@ -132,36 +144,39 @@ class TorsionSpringFamily(BaseFamily):
                     "isFrenet": True,
                 },
             ),
-            # Leg1 — extrude opposite to start tangent (negative)
-            Op(
-                "union",
-                {
-                    "ops": [
-                        {
-                            "name": "transformed",
-                            "args": {"offset": [cr, 0, 0], "rotate": [rot_x, 0, 0]},
-                        },
-                        {"name": "circle", "args": {"radius": wr}},
-                        {"name": "extrude", "args": {"distance": -ll}},
-                    ]
-                },
-            ),
-            # Leg2 — same rotation (integer turns), at end origin (cr, 0, h),
-            # extrude along tangent (positive)
-            Op(
-                "union",
-                {
-                    "ops": [
-                        {
-                            "name": "transformed",
-                            "args": {"offset": [cr, 0, h], "rotate": [rot_x, 0, 0]},
-                        },
-                        {"name": "circle", "args": {"radius": wr}},
-                        {"name": "extrude", "args": {"distance": ll}},
-                    ]
-                },
-            ),
         ]
+        # Leg1 — extrude opposite to start tangent (negative)
+        leg1 = Op(
+            "union",
+            {
+                "ops": [
+                    {
+                        "name": "transformed",
+                        "args": {"offset": [cr, 0, 0], "rotate": [rot_x, 0, 0]},
+                    },
+                    {"name": "circle", "args": {"radius": wr}},
+                    {"name": "extrude", "args": {"distance": -ll1}},
+                ]
+            },
+        )
+        # Leg2 — same rotation (integer turns), at end origin (cr, 0, h)
+        leg2 = Op(
+            "union",
+            {
+                "ops": [
+                    {
+                        "name": "transformed",
+                        "args": {"offset": [cr, 0, h], "rotate": [rot_x, 0, 0]},
+                    },
+                    {"name": "circle", "args": {"radius": wr}},
+                    {"name": "extrude", "args": {"distance": ll2}},
+                ]
+            },
+        )
+        if leg_order_swap:
+            ops.extend([leg2, leg1])
+        else:
+            ops.extend([leg1, leg2])
 
         return Program(
             family=self.name,
