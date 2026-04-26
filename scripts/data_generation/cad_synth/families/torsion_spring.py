@@ -68,6 +68,11 @@ class TorsionSpringFamily(BaseFamily):
         leg_ratio = round(float(rng.uniform(0.7, 1.3)), 2)
         leg_len_2 = round(leg_len_1 * leg_ratio, 1)
         leg_order_swap = bool(rng.random() < 0.5)
+        # Build order: which solid is primary, then which subsequent
+        # ("coil_legs", "leg1_first", "leg2_first", "reverse")
+        build_order = str(
+            rng.choice(["coil_legs", "leg1_first", "leg2_first", "reverse"])
+        )
 
         return {
             "wire_diameter": wire_d,
@@ -82,6 +87,7 @@ class TorsionSpringFamily(BaseFamily):
             "leg_length_2": leg_len_2,
             "leg_ratio": leg_ratio,
             "leg_order_swap": leg_order_swap,
+            "build_order": build_order,
             "difficulty": difficulty,
             "base_plane": "XY",
         }
@@ -119,6 +125,7 @@ class TorsionSpringFamily(BaseFamily):
         ll1 = params["leg_length"]
         ll2 = params.get("leg_length_2", ll1)
         leg_order_swap = bool(params.get("leg_order_swap", False))
+        build_order = str(params.get("build_order", "coil_legs"))
 
         # Plane rotation about X so plane normal = start tangent direction.
         # tangent = (0, R, p/(2π))/mag; rot_x = -atan2(R, p/(2π))
@@ -132,8 +139,9 @@ class TorsionSpringFamily(BaseFamily):
             "rotational": False,
         }
 
-        # Main coil: tilted start plane → circle → sweep helix.
-        ops = [
+        # Three solids that get unioned into one body — primary determines starting
+        # ops chain, the others become Op("union", {ops:[...]}) sub-Workplanes.
+        coil_primary = [
             Op("transformed", {"offset": [cr, 0, 0], "rotate": [rot_x, 0, 0]}),
             Op("circle", {"radius": wr}),
             Op(
@@ -145,38 +153,65 @@ class TorsionSpringFamily(BaseFamily):
                 },
             ),
         ]
-        # Leg1 — extrude opposite to start tangent (negative)
-        leg1 = Op(
-            "union",
+        coil_sub = [
             {
-                "ops": [
-                    {
-                        "name": "transformed",
-                        "args": {"offset": [cr, 0, 0], "rotate": [rot_x, 0, 0]},
-                    },
-                    {"name": "circle", "args": {"radius": wr}},
-                    {"name": "extrude", "args": {"distance": -ll1}},
-                ]
+                "name": "transformed",
+                "args": {"offset": [cr, 0, 0], "rotate": [rot_x, 0, 0]},
             },
-        )
-        # Leg2 — same rotation (integer turns), at end origin (cr, 0, h)
-        leg2 = Op(
-            "union",
+            {"name": "circle", "args": {"radius": wr}},
             {
-                "ops": [
-                    {
-                        "name": "transformed",
-                        "args": {"offset": [cr, 0, h], "rotate": [rot_x, 0, 0]},
-                    },
-                    {"name": "circle", "args": {"radius": wr}},
-                    {"name": "extrude", "args": {"distance": ll2}},
-                ]
+                "name": "sweep",
+                "args": {
+                    "path_type": "helix",
+                    "path_args": {"pitch": p, "height": h, "radius": cr},
+                    "isFrenet": True,
+                },
             },
-        )
-        if leg_order_swap:
-            ops.extend([leg2, leg1])
-        else:
-            ops.extend([leg1, leg2])
+        ]
+        leg1_primary = [
+            Op("transformed", {"offset": [cr, 0, 0], "rotate": [rot_x, 0, 0]}),
+            Op("circle", {"radius": wr}),
+            Op("extrude", {"distance": -ll1}),
+        ]
+        leg1_sub = [
+            {
+                "name": "transformed",
+                "args": {"offset": [cr, 0, 0], "rotate": [rot_x, 0, 0]},
+            },
+            {"name": "circle", "args": {"radius": wr}},
+            {"name": "extrude", "args": {"distance": -ll1}},
+        ]
+        leg2_primary = [
+            Op("transformed", {"offset": [cr, 0, h], "rotate": [rot_x, 0, 0]}),
+            Op("circle", {"radius": wr}),
+            Op("extrude", {"distance": ll2}),
+        ]
+        leg2_sub = [
+            {
+                "name": "transformed",
+                "args": {"offset": [cr, 0, h], "rotate": [rot_x, 0, 0]},
+            },
+            {"name": "circle", "args": {"radius": wr}},
+            {"name": "extrude", "args": {"distance": ll2}},
+        ]
+
+        # Choose primary + union order. All three solids get unioned regardless of
+        # order — output geometry identical, code structure varies.
+        if build_order == "leg1_first":
+            ops = list(leg1_primary)
+            tail = [leg2_sub, coil_sub] if leg_order_swap else [coil_sub, leg2_sub]
+        elif build_order == "leg2_first":
+            ops = list(leg2_primary)
+            tail = [leg1_sub, coil_sub] if leg_order_swap else [coil_sub, leg1_sub]
+        elif build_order == "reverse":
+            # leg2 primary, then leg1, then coil — full reverse of original.
+            ops = list(leg2_primary)
+            tail = [leg1_sub, coil_sub]
+        else:  # "coil_legs" — original
+            ops = list(coil_primary)
+            tail = [leg2_sub, leg1_sub] if leg_order_swap else [leg1_sub, leg2_sub]
+        for sub_ops in tail:
+            ops.append(Op("union", {"ops": sub_ops}))
 
         return Program(
             family=self.name,
