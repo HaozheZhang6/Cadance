@@ -1,4 +1,18 @@
 
+## 2026-04-26 (session 33) — A 方案: 41 family 全 replace + push HF cad_bench
+
+- 用户决策 A 方案 — 替换 bench 41 family 旧重复样本 → 跑 `batch_replace41_apr25` 6000 sample (5780 accepted, 96.3%)
+- 改 `push_bench_hf.py`: --run 重复 + --include-families/--exclude-families 同位置 filter, dedup-by-stem
+- 推 `BenchCAD/cad_bench` test 17,871 rows (388 MB):
+  | 来源 | 行数 |
+  |---|---|
+  | batch_20k_apr20 排除 41 family | 12,091 |
+  | batch_replace41_apr25 (41 全) | 5,780 |
+- 5780 新 sample 跨 41 family: **864 templates** (改前 ~85, **10× 涨幅**), N/T 167→6.7 (25× 收敛)
+- top 涨幅 family: shaft_collar 9→98, flat_link 9→55, cam 9→54, washer 11→53, locator_block 9→52
+- pytest 81 pass, push log 全 ok
+- batch 跑 ~1.5 h (4 worker, 16 GB Mac, RAM 紧但稳)
+
 ## 2026-04-25 (session 32) — data-arg: Tier C C1 top10 + 推 loft/fillet/cut 频率
 
 - 用户指示: 改 C1 时多用 loft/fillet/cut (整体数据集偏少)
