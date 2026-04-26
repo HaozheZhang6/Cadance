@@ -26,13 +26,15 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+CONFIGS=()
 if [[ -n "${FAMILIES:-}" ]]; then
-  CONFIGS=()
   for f in $FAMILIES; do
     CONFIGS+=("$CONFIG_DIR/${f}.yaml")
   done
 else
-  mapfile -t CONFIGS < <(ls "$CONFIG_DIR"/*.yaml | grep -v '/_' | sort)
+  while IFS= read -r line; do
+    CONFIGS+=("$line")
+  done < <(ls "$CONFIG_DIR"/*.yaml | grep -v '/_' | sort)
 fi
 
 TOTAL=${#CONFIGS[@]}
