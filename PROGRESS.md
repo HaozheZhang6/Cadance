@@ -1,4 +1,34 @@
 
+## 2026-04-25 (session 30) — data-arg: Tier A 全 16 family 多样化完成
+
+- branch `data-arg`, 16 commits 一一对应 family + 第 0 个 grease_nipple
+- 跨 family 通用招术: ① 把 module-level / 表锚定的常量改成 `sample_params` 自由 (±10-50%); ② cross-difficulty feature probability (chamfer/fillet/holes 不再严格按 diff); ③ profile_reverse 顶点序反转 (close 闭合等价); ④ commutative union 顺序二选一 (shank↔neck / leg1↔leg2 / ±X ear / ±X boss); ⑤ 可数特征 N 扩 (n_lugs 4→{2,3,4,6,8}, n_grooves fixed 2→{1,2,3}, n_holes 4/6/8→{3,4,5,6,8,10,12})
+- twisted_drill: r_phi/Ra/phi 微几何 + 左/右旋 (twist sign)
+- venturi_tube: polyline ↔ moveTo+lineTo 二种 op-form (template-hash 可见结构差)
+- nozzle: 螺栓 polar pattern (bolt circle 中心) — 之前只有 docstring
+- 60 sample / family pre-flight 总 942/960 ok (98.1%); full-code unique 接近 100% (除 cotter_pin 55/60); template hash 累计 61 (改前 ~30)
+- 改造前后单 family 模板数:
+  | family | 前 | 后 |
+  |---|---|---|
+  | grease_nipple | 1 | 3 |
+  | eyebolt | 1 | 2 |
+  | twisted_drill | 1 | 1 (numbers) ← full-uniq 60/60 |
+  | venturi_tube | 1 | 2 |
+  | wing_nut | 1 | 2 |
+  | cotter_pin | 3 | 1 ← full-uniq 55/60 (params 自由) |
+  | torsion_spring | 9 | 1 ← 同上 |
+  | duct_elbow | 2 | 2 |
+  | twisted_bracket | 2 | 2 |
+  | lobed_knob | 3 | 6 |
+  | nozzle | 3 | 11 |
+  | bucket | 3 | 4 |
+  | piston | 3 | 8 |
+  | torus_link | 3 | 11 |
+  | dome_cap | 3 | 4 |
+  | grommet | 3 | 1 (numbers) ← full-uniq 60/60 |
+- 视觉对照网格 4×4: `tmp/tier_a_grid/grid_4x4_hard.png` (16 family × hard sample)
+- pytest 81 pass, black + ruff 全过
+
 ## 2026-04-25 (session 29) — data-arg branch: grease_nipple 多样化 (Tier A 起手)
 
 - 全 35,683 accepted 样本/2,383 唯一代码模板 → 平均 15 条/模板，5 family 单模板（eyebolt/grease_nipple/twisted_drill/venturi_tube/wing_nut）。诊断列在 PROGRESS / 对话
