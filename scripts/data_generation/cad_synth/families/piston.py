@@ -49,6 +49,12 @@ class PistonFamily(BaseFamily):
             params["pin_diameter"] = pin_d
             params["pin_height"] = round(H * rng.uniform(0.15, 0.4), 1)
 
+        # Crown rim edge (top circle): chamfer or fillet, optional.
+        crown_prob = {"easy": 0.3, "medium": 0.55, "hard": 0.7}[difficulty]
+        if rng.random() < crown_prob:
+            params["crown_op"] = str(rng.choice(["chamfer", "fillet"]))
+            params["crown_size"] = round(float(rng.uniform(0.5, min(2.5, r * 0.05))), 2)
+
         return params
 
     def validate_params(self, params: dict) -> bool:
@@ -145,6 +151,20 @@ class PistonFamily(BaseFamily):
             )
             ops.append(Op("circle", {"radius": round(pd / 2, 4)}))
             ops.append(Op("cutThruAll", {}))
+
+        # Crown rim chamfer/fillet on top circular edge (faces ">Y" since revolve
+        # axis [0,1,0] in XY base = world Y; piston "top" is +Y face).
+        crown_op = params.get("crown_op")
+        crown_size = float(params.get("crown_size", 0.0))
+        if crown_op and crown_size > 0:
+            tags["has_chamfer"] = crown_op == "chamfer"
+            tags["has_fillet"] = crown_op == "fillet"
+            ops.append(Op("faces", {"selector": ">Y"}))
+            ops.append(Op("edges", {}))
+            if crown_op == "chamfer":
+                ops.append(Op("chamfer", {"length": crown_size}))
+            else:
+                ops.append(Op("fillet", {"radius": crown_size}))
 
         return Program(
             family=self.name,

@@ -92,6 +92,8 @@ class GreaseNippleFamily(BaseFamily):
                 flange_edge_size = round(float(rng.uniform(0.2, 0.55)), 2)
 
         profile_reverse = bool(rng.random() < 0.5)
+        # A union B → B union A: hex flange as primary on XY (vs revolve body on XZ).
+        hex_first = bool(rng.random() < 0.5)
 
         params = {
             "thread_code": code,
@@ -110,8 +112,9 @@ class GreaseNippleFamily(BaseFamily):
             "flange_edge_op": flange_edge_op,
             "flange_edge_size": flange_edge_size,
             "profile_reverse": profile_reverse,
+            "hex_first": hex_first,
             "difficulty": difficulty,
-            "base_plane": "XZ",
+            "base_plane": "XY" if hex_first else "XZ",
         }
         return params
 
@@ -167,6 +170,7 @@ class GreaseNippleFamily(BaseFamily):
         flange_edge_op = params.get("flange_edge_op", "none")
         flange_edge_size = float(params.get("flange_edge_size", 0.0))
         profile_reverse = bool(params.get("profile_reverse", False))
+        hex_first = bool(params.get("hex_first", False))
 
         head_base_z = thread_len + b
         head_max_z = h_straight_top + delta_taper
@@ -209,62 +213,62 @@ class GreaseNippleFamily(BaseFamily):
         ]
         pts = list(reversed(forward_pts)) if profile_reverse else forward_pts
 
+        # Build revolve sub-ops + hex flange sub-ops (composable).
+        revolve_sub_ops = [{"name": "moveTo", "args": {"x": pts[0][0], "y": pts[0][1]}}]
+        for x, y in pts[1:]:
+            revolve_sub_ops.append({"name": "lineTo", "args": {"x": x, "y": y}})
+        revolve_sub_ops.append({"name": "close", "args": {}})
+        revolve_sub_ops.append(
+            {
+                "name": "revolve",
+                "args": {
+                    "angleDeg": 360,
+                    "axisStart": [0, 0, 0],
+                    "axisEnd": [0, 1, 0],
+                },
+            }
+        )
+        hex_sub_ops = [
+            {"name": "workplane_offset", "args": {"offset": lr}},
+            {"name": "polygon", "args": {"n": 6, "diameter": hex_across_corners}},
+            {"name": "extrude", "args": {"distance": br}},
+        ]
+        bore_sub_ops = [
+            {"name": "transformed", "args": {"offset": [0, 0, -1]}},
+            {"name": "circle", "args": {"radius": bore_r}},
+            {"name": "extrude", "args": {"distance": round(h + 2, 3)}},
+        ]
+
         ops: list = []
 
-        # 1. Revolve profile around world Z (axisEnd=(0,1,0) local on XZ).
-        ops.append(Op("moveTo", {"x": pts[0][0], "y": pts[0][1]}))
-        for x, y in pts[1:]:
-            ops.append(Op("lineTo", {"x": x, "y": y}))
-        ops.append(Op("close", {}))
-        ops.append(
-            Op(
-                "revolve",
-                {"angleDeg": 360, "axisStart": [0, 0, 0], "axisEnd": [0, 1, 0]},
-            )
-        )
-
-        # 2. Hex flange on XY (z = l..l+b).
-        ops.append(
-            Op(
-                "union",
-                {
-                    "plane": "XY",
-                    "ops": [
-                        {"name": "workplane_offset", "args": {"offset": lr}},
-                        {
-                            "name": "polygon",
-                            "args": {"n": 6, "diameter": hex_across_corners},
-                        },
-                        {"name": "extrude", "args": {"distance": br}},
-                    ],
-                },
-            )
-        )
-
-        # 2b. Optional chamfer/fillet on 6 vertical hex edges (medium/hard).
-        # base_plane=XZ → "|Y" (family-code) remaps to "|Z" world, which selects
-        # only the hex prism's vertical edges (revolve body has no straight verticals).
-        if flange_edge_op != "none" and flange_edge_size > 0:
-            ops.append(Op("edges", {"selector": "|Y"}))
-            if flange_edge_op == "chamfer":
-                ops.append(Op("chamfer", {"length": flange_edge_size}))
-            else:
-                ops.append(Op("fillet", {"radius": flange_edge_size}))
-
-        # 3. Axial grease passage (through-bore) on XY plane.
-        ops.append(
-            Op(
-                "cut",
-                {
-                    "plane": "XY",
-                    "ops": [
-                        {"name": "transformed", "args": {"offset": [0, 0, -1]}},
-                        {"name": "circle", "args": {"radius": bore_r}},
-                        {"name": "extrude", "args": {"distance": round(h + 2, 3)}},
-                    ],
-                },
-            )
-        )
+        if hex_first:
+            # base_plane=XY: hex flange primary, revolve body unioned via XZ sub.
+            for sub in hex_sub_ops:
+                ops.append(Op(sub["name"], sub["args"]))
+            # Hex vertical edges align with world Z = base XY's |Z.
+            if flange_edge_op != "none" and flange_edge_size > 0:
+                ops.append(Op("edges", {"selector": "|Z"}))
+                if flange_edge_op == "chamfer":
+                    ops.append(Op("chamfer", {"length": flange_edge_size}))
+                else:
+                    ops.append(Op("fillet", {"radius": flange_edge_size}))
+            ops.append(Op("union", {"plane": "XZ", "ops": revolve_sub_ops}))
+            ops.append(Op("cut", {"plane": "XY", "ops": bore_sub_ops}))
+            base_plane = "XY"
+        else:
+            # base_plane=XZ: revolve body primary, hex flange unioned via XY sub.
+            for sub in revolve_sub_ops:
+                ops.append(Op(sub["name"], sub["args"]))
+            ops.append(Op("union", {"plane": "XY", "ops": hex_sub_ops}))
+            # base_plane=XZ → "|Y" remaps to world |Z (hex vertical edges).
+            if flange_edge_op != "none" and flange_edge_size > 0:
+                ops.append(Op("edges", {"selector": "|Y"}))
+                if flange_edge_op == "chamfer":
+                    ops.append(Op("chamfer", {"length": flange_edge_size}))
+                else:
+                    ops.append(Op("fillet", {"radius": flange_edge_size}))
+            ops.append(Op("cut", {"plane": "XY", "ops": bore_sub_ops}))
+            base_plane = "XZ"
 
         return Program(
             family=self.name,
@@ -272,5 +276,5 @@ class GreaseNippleFamily(BaseFamily):
             params=params,
             ops=ops,
             feature_tags=tags,
-            base_plane="XZ",
+            base_plane=base_plane,
         )

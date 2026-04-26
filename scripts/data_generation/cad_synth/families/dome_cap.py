@@ -43,6 +43,14 @@ class DomeCapFamily(BaseFamily):
             )
             params["hole_pcd"] = round(r * rng.uniform(0.65, 0.82), 1)
 
+        # Bottom rim chamfer/fillet (the circular edge at z=0).
+        rim_prob = {"easy": 0.25, "medium": 0.55, "hard": 0.7}[difficulty]
+        if rng.random() < rim_prob:
+            params["rim_op"] = str(rng.choice(["chamfer", "fillet"]))
+            params["rim_size"] = round(
+                float(rng.uniform(0.5, max(0.6, min(wall * 0.5, 2.5)))), 2
+            )
+
         return params
 
     def validate_params(self, params: dict) -> bool:
@@ -138,6 +146,19 @@ class DomeCapFamily(BaseFamily):
                 )
             )
             ops.append(Op("hole", {"diameter": round(hd, 4)}))
+
+        # Optional bottom rim chamfer/fillet (circular edge at base).
+        rim_op = params.get("rim_op")
+        rim_size = float(params.get("rim_size", 0.0))
+        if rim_op and rim_size > 0:
+            tags["has_chamfer"] = rim_op == "chamfer"
+            tags["has_fillet"] = rim_op == "fillet"
+            ops.append(Op("faces", {"selector": "<Y"}))
+            ops.append(Op("edges", {}))
+            if rim_op == "chamfer":
+                ops.append(Op("chamfer", {"length": rim_size}))
+            else:
+                ops.append(Op("fillet", {"radius": rim_size}))
 
         return Program(
             family=self.name,

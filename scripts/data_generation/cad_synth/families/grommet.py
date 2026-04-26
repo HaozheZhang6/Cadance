@@ -58,10 +58,13 @@ class GrommetFamily(BaseFamily):
             "profile_reverse": profile_reverse,
             "difficulty": difficulty,
         }
-        if difficulty in ("medium", "hard"):
-            params["bore_fillet"] = round(min(d1 * 0.15, 0.8), 2)
-        if difficulty == "hard":
-            params["flange_chamfer"] = round((H - w) * 0.08, 2)
+        # Outer flange edge mod (top/bottom rim circles): chamfer or fillet
+        # 50% medium / 70% hard (was unused in build path)
+        rim_prob = {"easy": 0.2, "medium": 0.5, "hard": 0.75}[difficulty]
+        if rng.random() < rim_prob:
+            params["rim_op"] = str(rng.choice(["chamfer", "fillet"]))
+            params["rim_size"] = round(float(rng.uniform(0.2, min(0.8, w * 0.4))), 2)
+            params["rim_which"] = str(rng.choice(["top", "bottom", "both"]))
         return params
 
     def validate_params(self, params: dict) -> bool:
@@ -137,6 +140,27 @@ class GrommetFamily(BaseFamily):
                 },
             )
         )
+
+        # Optional outer flange rim chamfer/fillet on top/bottom outer-circle edge.
+        # base_plane=XZ → faces(">Y") remaps to faces(">Z") world (top); "<Y" → "<Z".
+        rim_op = params.get("rim_op")
+        rim_size = float(params.get("rim_size", 0.0))
+        rim_which = params.get("rim_which", "top")
+        if rim_op and rim_size > 0:
+            tags["has_chamfer"] = rim_op == "chamfer"
+            tags["has_fillet"] = rim_op == "fillet"
+            face_sels = []
+            if rim_which in ("top", "both"):
+                face_sels.append(">Y")
+            if rim_which in ("bottom", "both"):
+                face_sels.append("<Y")
+            for sel in face_sels:
+                ops.append(Op("faces", {"selector": sel}))
+                ops.append(Op("edges", {}))
+                if rim_op == "chamfer":
+                    ops.append(Op("chamfer", {"length": rim_size}))
+                else:
+                    ops.append(Op("fillet", {"radius": rim_size}))
 
         return Program(
             family=self.name,
