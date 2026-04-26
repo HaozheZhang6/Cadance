@@ -31,6 +31,13 @@ except ImportError:
     pass
 
 
+def parse_family_filter(s: str | None) -> set[str] | None:
+    """Parse a comma-separated family list. Empty/None → no filter."""
+    if not s:
+        return None
+    return {x.strip() for x in s.split(",") if x.strip()}
+
+
 def build_rows(
     run_name: str,
     revalidate_code: bool = True,
@@ -167,10 +174,7 @@ def main():
             "(or be a single value broadcast to all)."
         )
 
-    def _parse_fam(s):
-        if not s:
-            return None
-        return {x.strip() for x in s.split(",") if x.strip()}
+    _parse_fam = parse_family_filter
 
     token = (
         os.environ.get("BenchCAD_HF_TOKEN")
