@@ -82,9 +82,20 @@ class SpacerRingFamily(BaseFamily):
             "difficulty": difficulty,
         }
 
-        if difficulty == "hard":
-            # Split ring: ring is cut in half for installation without shaft disassembly
+        # Split ring spread cross-difficulty (was hard only)
+        split_prob = {"easy": 0.0, "medium": 0.2, "hard": 0.7}[difficulty]
+        if rng.random() < split_prob:
             params["split"] = True
+
+        # Code-syntax: body cylinder/extrude + bore form + edge fillet/chamfer
+        params["body_form"] = str(rng.choice(["cylinder", "extrude"]))
+        params["bore_form"] = str(rng.choice(["hole", "cut"]))
+        # Edge fillet/chamfer (推 fillet 频率, 但 thickness 小心)
+        if s >= 0.5:
+            edge_prob = {"easy": 0.3, "medium": 0.5, "hard": 0.65}[difficulty]
+            if rng.random() < edge_prob:
+                params["edge_op"] = str(rng.choice(["fillet", "chamfer"]))
+                params["edge_size"] = round(min(s * 0.3, (D - d) / 5, 0.4), 2)
 
         return params
 
@@ -114,10 +125,35 @@ class SpacerRingFamily(BaseFamily):
         r_outer = round(D / 2, 4)
         r_inner = round(d / 2, 4)
 
-        # Plain flat ring: cylinder with through bore
-        ops.append(Op("cylinder", {"height": s, "radius": r_outer}))
+        body_form = params.get("body_form", "cylinder")
+        bore_form = params.get("bore_form", "hole")
+        # Body — cylinder or circle.extrude
+        if body_form == "cylinder":
+            ops.append(Op("cylinder", {"height": s, "radius": r_outer}))
+        else:
+            ops.append(Op("circle", {"radius": r_outer}))
+            ops.append(Op("extrude", {"distance": s}))
+        # Bore — hole or cut(circle.extrude)
         ops.append(Op("workplane", {"selector": ">Z"}))
-        ops.append(Op("hole", {"diameter": round(d, 4)}))
+        if bore_form == "hole":
+            ops.append(Op("hole", {"diameter": round(d, 4)}))
+        else:
+            ops.append(Op("circle", {"radius": r_inner}))
+            ops.append(Op("cutThruAll", {}))
+
+        # Edge fillet/chamfer (推 fillet 频率)
+        edge_op = params.get("edge_op")
+        edge_size = float(params.get("edge_size", 0.0))
+        if edge_op and edge_size > 0:
+            if edge_op == "fillet":
+                tags["has_fillet"] = True
+            else:
+                tags["has_chamfer"] = True
+            ops.append(Op("edges", {"selector": ">Z or <Z"}))
+            if edge_op == "fillet":
+                ops.append(Op("fillet", {"radius": edge_size}))
+            else:
+                ops.append(Op("chamfer", {"length": edge_size}))
 
         if split:
             # Narrow radial slit through ring wall — snap-on installation
