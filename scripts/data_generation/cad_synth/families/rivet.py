@@ -59,6 +59,9 @@ class RivetFamily(BaseFamily):
         }
         if difficulty in ("medium", "hard"):
             params["tip_chamfer"] = round(d * 0.1, 2)
+            params["tip_op"] = str(rng.choice(["chamfer", "fillet"]))
+        # Code-syntax mutations
+        params["profile_reverse"] = bool(rng.random() < 0.5)
         return params
 
     def validate_params(self, params: dict) -> bool:
@@ -94,28 +97,54 @@ class RivetFamily(BaseFamily):
         # ThreePointArc passes through a midpoint on the sphere between rim and apex.
         mid_x = round(r_head * 0.866, 4)  # cos 30°
         mid_z = round(L + k * 0.5, 4)
-        ops = [
-            Op("moveTo", {"x": 0.0, "y": 0.0}),
-            Op("lineTo", {"x": r_sh, "y": 0.0}),
-            Op("lineTo", {"x": r_sh, "y": round(L, 3)}),
-            Op("lineTo", {"x": r_head, "y": round(L, 3)}),
-            Op(
-                "threePointArc",
-                {"point1": [mid_x, mid_z], "point2": [0.0, dome_top]},
-            ),
-            Op("close"),
-            Op(
-                "revolve",
-                {"angleDeg": 360, "axisStart": [0, 0, 0], "axisEnd": [0, 1, 0]},
-            ),
-        ]
+        # Profile reverse: forward starts at (0,0); reverse starts at (0, L+k)
+        # via the arc going the other way. ThreePointArc requires re-ordering point1/2.
+        if params.get("profile_reverse", False):
+            ops = [
+                Op("moveTo", {"x": 0.0, "y": dome_top}),
+                Op(
+                    "threePointArc",
+                    {"point1": [mid_x, mid_z], "point2": [r_head, round(L, 3)]},
+                ),
+                Op("lineTo", {"x": r_sh, "y": round(L, 3)}),
+                Op("lineTo", {"x": r_sh, "y": 0.0}),
+                Op("lineTo", {"x": 0.0, "y": 0.0}),
+                Op("close"),
+                Op(
+                    "revolve",
+                    {"angleDeg": 360, "axisStart": [0, 0, 0], "axisEnd": [0, 1, 0]},
+                ),
+            ]
+        else:
+            ops = [
+                Op("moveTo", {"x": 0.0, "y": 0.0}),
+                Op("lineTo", {"x": r_sh, "y": 0.0}),
+                Op("lineTo", {"x": r_sh, "y": round(L, 3)}),
+                Op("lineTo", {"x": r_head, "y": round(L, 3)}),
+                Op(
+                    "threePointArc",
+                    {"point1": [mid_x, mid_z], "point2": [0.0, dome_top]},
+                ),
+                Op("close"),
+                Op(
+                    "revolve",
+                    {"angleDeg": 360, "axisStart": [0, 0, 0], "axisEnd": [0, 1, 0]},
+                ),
+            ]
 
-        # Tip chamfer (medium+) on shank bottom circular edge
+        # Tip chamfer/fillet (medium+) on shank bottom circular edge
         ch = params.get("tip_chamfer")
+        tip_op = params.get("tip_op", "chamfer")
         if ch:
-            tags["has_chamfer"] = True
+            if tip_op == "fillet":
+                tags["has_fillet"] = True
+            else:
+                tags["has_chamfer"] = True
             ops.append(Op("edges", {"selector": "<Z"}))
-            ops.append(Op("chamfer", {"length": ch}))
+            if tip_op == "fillet":
+                ops.append(Op("fillet", {"radius": ch}))
+            else:
+                ops.append(Op("chamfer", {"length": ch}))
 
         # Keep sphere_r for QA generator
         params["sphere_radius"] = sphere_r
