@@ -1,4 +1,24 @@
 
+## 2026-04-25 (session 32) — data-arg: Tier C C1 top10 + 推 loft/fillet/cut 频率
+
+- 用户指示: 改 C1 时多用 loft/fillet/cut (整体数据集偏少)
+- 10 family 按"每模板平均样本数"排重复度: coil_spring, flat_link, chair, spacer_ring, cam, shaft_collar, round_flange, clevis, locator_block, rect_frame — 改前全 8-9 模板
+- 通用招术: ① edge_op fillet ↔ chamfer 二选 (推 fillet 频率); ② edge_loc top/bottom/both 三选; ③ feature (hole/slot/boss/cb) 跨 difficulty 概率出现; ④ bore_form hole() ↔ cut(circle.extrude); ⑤ body_form cylinder() ↔ circle().extrude(); ⑥ N 扩 (n_bolts 3-12, screw_count 1/2/3, n_end 1/2)
+- 单 family 模板涨幅:
+  | family | 前 → 后 |
+  |---|---|
+  | shaft_collar | 9 → **32** |
+  | rect_frame | 9 → **23** |
+  | cam | 9 → 19 |
+  | flat_link | 9 → 18 |
+  | locator_block | 9 → 18 |
+  | spacer_ring | 9 → 17 |
+  | round_flange | 9 → 13 |
+  | clevis / coil_spring / chair | 9 → 9/7/5 (full-uniq 100%) |
+- C1 总模板量: 90 → 161 (1.79×)
+- 实测 batch_data_arg_smoke (1166 sample / 31 改过家族): full-code uniq 1106/1166 (95%), 总模板 297, **每模板样本数 N/T 平均 4-21** (改前 100-300, 47× 收敛)
+- pytest 81 pass, 全 black + ruff 过
+
 ## 2026-04-25 (session 31) — data-arg: Tier B 全 15 + Tier A round 2 (chamfer + A↔B)
 
 - Tier A round 2 (4 family): grommet rim chamfer/fillet (1→7), dome_cap bottom rim (4→12), piston crown rim (8→21), grease_nipple hex_first A↔B 翻转 (3→6). 4 commits
