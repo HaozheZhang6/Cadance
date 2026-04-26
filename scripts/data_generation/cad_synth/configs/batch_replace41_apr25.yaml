@@ -1,5 +1,5 @@
 run_name: batch_replace41_apr25
-num_samples: 12000
+num_samples: 6000
 seed: 4252
 n_workers: 4
 family_mix:
