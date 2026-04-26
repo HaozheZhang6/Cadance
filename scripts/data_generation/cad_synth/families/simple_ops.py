@@ -1558,3 +1558,1007 @@ class SimpleLoftCutFamily(BaseFamily):
         ops.append(Op("cut", {"ops": sub, "plane": "XY"}))
         return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
                        feature_tags={"cut_kind": p["cut_kind"]})
+
+
+# === Phase 2: more combo + chain + base families ===========================
+
+
+def _edge_op_block(rng, scale: float, name: str) -> dict:
+    return {
+        f"{name}_size": round(float(rng.uniform(1.5, max(2.0, scale * 0.18))), 1),
+        f"{name}_selector": str(rng.choice([">Z", "<Z", "|Z", "all"])),
+    }
+
+
+# --- simple_box_fillet ------------------------------------------------------
+
+
+class SimpleBoxFilletFamily(BaseFamily):
+    name = "simple_box_fillet"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        s = round(float(rng.uniform(20, 35)), 1)
+        return {
+            "scale": s,
+            "fillet_radius": round(float(rng.uniform(1.5, 5.0)), 1),
+            "edge_selector": str(rng.choice([">Z", "<Z", "|Z", "all"])),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["fillet_radius"] < p["scale"] * 0.22
+
+    def make_program(self, p):
+        s = p["scale"]
+        ops = [Op("box", {"length": round(s * 1.4, 2), "width": round(s, 2),
+                          "height": round(s * 0.8, 2)})]
+        if p["edge_selector"] != "all":
+            ops.append(Op("edges", {"selector": p["edge_selector"]}))
+        ops.append(Op("fillet", {"radius": p["fillet_radius"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"edge_selector": p["edge_selector"]})
+
+
+class SimpleCylFilletFamily(BaseFamily):
+    name = "simple_cyl_fillet"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "radius": round(float(rng.uniform(15, 28)), 1),
+            "height": round(float(rng.uniform(15, 35)), 1),
+            "fillet_radius": round(float(rng.uniform(1.5, 4.5)), 1),
+            "edge_selector": str(rng.choice([">Z", "<Z", "all"])),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["fillet_radius"] < p["radius"] * 0.4
+
+    def make_program(self, p):
+        ops = [Op("cylinder", {"height": p["height"], "radius": p["radius"]})]
+        if p["edge_selector"] != "all":
+            ops.append(Op("edges", {"selector": p["edge_selector"]}))
+        ops.append(Op("fillet", {"radius": p["fillet_radius"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"edge_selector": p["edge_selector"]})
+
+
+class SimpleCylCutFamily(BaseFamily):
+    name = "simple_cyl_cut"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        r = round(float(rng.uniform(15, 28)), 1)
+        return {
+            "radius": r,
+            "height": round(float(rng.uniform(15, 35)), 1),
+            "cut_kind": str(rng.choice(["sphere", "cylinder", "box", "polygon_prism"])),
+            "cut_size": round(float(rng.uniform(0.25, 0.5)) * r, 1),
+            "polygon_n": int(rng.choice([3, 4, 6, 8])),
+            "offset": [
+                round(float(rng.uniform(-r * 0.4, r * 0.4)), 1),
+                round(float(rng.uniform(-r * 0.4, r * 0.4)), 1),
+                round(float(rng.uniform(-r * 0.3, r * 0.3)), 1),
+            ],
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["cut_size"] < p["radius"] * 0.7 and p["cut_size"] > 3
+
+    def make_program(self, p):
+        r = p["radius"]
+        sub = _primitive_sub_ops(p["cut_kind"], p["cut_size"], p["polygon_n"], tuple(p["offset"]))
+        last = sub[-1]
+        if last["name"] in ("cylinder", "box"):
+            last["args"]["height"] = round(r * 3, 2)
+        elif last["name"] == "extrude":
+            last["args"]["distance"] = round(r * 1.5, 2)
+            last["args"]["both"] = True
+        ops = [
+            Op("cylinder", {"height": p["height"], "radius": r}),
+            Op("cut", {"ops": sub, "plane": "XY"}),
+        ]
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"cut_kind": p["cut_kind"]})
+
+
+class SimpleExtrudeFilletFamily(BaseFamily):
+    name = "simple_extrude_fillet"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "profile_kind": str(rng.choice(["rect", "polygon", "ellipse"])),
+            "polygon_n": int(rng.choice([3, 4, 5, 6, 8])),
+            "scale": round(float(rng.uniform(20, 35)), 1),
+            "height": round(float(rng.uniform(15, 30)), 1),
+            "fillet_radius": round(float(rng.uniform(1.5, 4.0)), 1),
+            "edge_selector": str(rng.choice([">Z", "<Z", "all"])),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["fillet_radius"] < p["scale"] * 0.18
+
+    def make_program(self, p):
+        ops = list(_profile_ops(p["profile_kind"], p["scale"], p["polygon_n"]))
+        ops.append(Op("extrude", {"distance": p["height"]}))
+        if p["edge_selector"] != "all":
+            ops.append(Op("edges", {"selector": p["edge_selector"]}))
+        ops.append(Op("fillet", {"radius": p["fillet_radius"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"profile": p["profile_kind"]})
+
+
+class SimplePolygonChamferFamily(BaseFamily):
+    name = "simple_polygon_chamfer"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "n_sides": int(rng.choice([3, 4, 5, 6, 7, 8, 10, 12])),
+            "diameter": round(float(rng.uniform(25, 45)), 1),
+            "height": round(float(rng.uniform(10, 25)), 1),
+            "chamfer_length": round(float(rng.uniform(1.5, 4.0)), 1),
+            "edge_selector": str(rng.choice([">Z", "<Z", "all"])),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["chamfer_length"] < p["diameter"] * 0.12
+
+    def make_program(self, p):
+        ops = [
+            Op("polygon", {"n": p["n_sides"], "diameter": p["diameter"]}),
+            Op("extrude", {"distance": p["height"]}),
+        ]
+        if p["edge_selector"] != "all":
+            ops.append(Op("edges", {"selector": p["edge_selector"]}))
+        ops.append(Op("chamfer", {"length": p["chamfer_length"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"n_sides": p["n_sides"]})
+
+
+class SimplePolygonFilletFamily(BaseFamily):
+    name = "simple_polygon_fillet"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "n_sides": int(rng.choice([3, 4, 5, 6, 7, 8, 10, 12])),
+            "diameter": round(float(rng.uniform(25, 45)), 1),
+            "height": round(float(rng.uniform(10, 25)), 1),
+            "fillet_radius": round(float(rng.uniform(1.5, 4.0)), 1),
+            "edge_selector": str(rng.choice([">Z", "<Z", "all"])),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["fillet_radius"] < p["diameter"] * 0.12
+
+    def make_program(self, p):
+        ops = [
+            Op("polygon", {"n": p["n_sides"], "diameter": p["diameter"]}),
+            Op("extrude", {"distance": p["height"]}),
+        ]
+        if p["edge_selector"] != "all":
+            ops.append(Op("edges", {"selector": p["edge_selector"]}))
+        ops.append(Op("fillet", {"radius": p["fillet_radius"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"n_sides": p["n_sides"]})
+
+
+class SimplePolygonCutFamily(BaseFamily):
+    name = "simple_polygon_cut"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        d = round(float(rng.uniform(28, 45)), 1)
+        return {
+            "n_sides": int(rng.choice([3, 4, 5, 6, 8])),
+            "diameter": d,
+            "height": round(float(rng.uniform(12, 25)), 1),
+            "cut_kind": str(rng.choice(["sphere", "cylinder", "box"])),
+            "cut_size": round(float(rng.uniform(0.25, 0.5)) * d, 1),
+            "offset": [
+                round(float(rng.uniform(-d * 0.25, d * 0.25)), 1),
+                round(float(rng.uniform(-d * 0.2, d * 0.2)), 1),
+                round(float(rng.uniform(-d * 0.1, d * 0.1)), 1),
+            ],
+            "polygon_n": 4,
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["cut_size"] < p["diameter"] * 0.6
+
+    def make_program(self, p):
+        d = p["diameter"]
+        sub = _primitive_sub_ops(p["cut_kind"], p["cut_size"], 4, tuple(p["offset"]))
+        last = sub[-1]
+        if last["name"] in ("cylinder", "box"):
+            last["args"]["height"] = round(p["height"] * 3, 2)
+        ops = [
+            Op("polygon", {"n": p["n_sides"], "diameter": d}),
+            Op("extrude", {"distance": p["height"]}),
+            Op("cut", {"ops": sub, "plane": "XY"}),
+        ]
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"n_sides": p["n_sides"], "cut_kind": p["cut_kind"]})
+
+
+def _revolve_solid_ops(s: float, angle: float) -> list:
+    pts = [
+        (s * 0.45, 0.0), (s * 1.3, 0.0), (s * 1.3, s * 0.4),
+        (s * 0.7, s * 0.4), (s * 0.7, s * 1.0), (s * 0.45, s * 1.0),
+    ]
+    pts = [(round(x, 3), round(y, 3)) for x, y in pts]
+    ops = [Op("moveTo", {"x": pts[0][0], "y": pts[0][1]})]
+    for x, y in pts[1:]:
+        ops.append(Op("lineTo", {"x": x, "y": y}))
+    ops.append(Op("close", {}))
+    ops.append(Op("revolve", {"angleDeg": angle, "axisStart": (0, 0, 0), "axisEnd": (0, 1, 0)}))
+    return ops
+
+
+class SimpleRevolveChamferFamily(BaseFamily):
+    name = "simple_revolve_chamfer"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "scale": round(float(rng.uniform(15, 25)), 1),
+            "angle_deg": float(rng.choice([180, 270, 360])),
+            "chamfer_length": round(float(rng.uniform(1.0, 3.0)), 1),
+            "edge_selector": str(rng.choice([">Z", "<Z", "all"])),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["chamfer_length"] < p["scale"] * 0.13
+
+    def make_program(self, p):
+        ops = _revolve_solid_ops(p["scale"], p["angle_deg"])
+        if p["edge_selector"] != "all":
+            ops.append(Op("edges", {"selector": p["edge_selector"]}))
+        ops.append(Op("chamfer", {"length": p["chamfer_length"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"angle": p["angle_deg"]})
+
+
+class SimpleRevolveFilletFamily(BaseFamily):
+    name = "simple_revolve_fillet"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "scale": round(float(rng.uniform(15, 25)), 1),
+            "angle_deg": float(rng.choice([180, 270, 360])),
+            "fillet_radius": round(float(rng.uniform(1.0, 3.0)), 1),
+            "edge_selector": str(rng.choice([">Z", "<Z", "all"])),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["fillet_radius"] < p["scale"] * 0.13
+
+    def make_program(self, p):
+        ops = _revolve_solid_ops(p["scale"], p["angle_deg"])
+        if p["edge_selector"] != "all":
+            ops.append(Op("edges", {"selector": p["edge_selector"]}))
+        ops.append(Op("fillet", {"radius": p["fillet_radius"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"angle": p["angle_deg"]})
+
+
+class SimpleRevolveHoleFamily(BaseFamily):
+    name = "simple_revolve_hole"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        s = round(float(rng.uniform(15, 25)), 1)
+        return {
+            "scale": s,
+            "hole_diameter": round(float(rng.uniform(2.5, 5.0)), 1),
+            "n_holes": int(rng.choice([1, 2, 4])),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["hole_diameter"] < p["scale"] * 0.2
+
+    def make_program(self, p):
+        s = p["scale"]
+        ops = _revolve_solid_ops(s, 360.0)
+        ofs = s * 0.5
+        if p["n_holes"] == 1:
+            pts = [(0.0, 0.0)]
+        elif p["n_holes"] == 2:
+            pts = [(-ofs, 0.0), (ofs, 0.0)]
+        else:
+            pts = [(-ofs, -ofs), (ofs, -ofs), (-ofs, ofs), (ofs, ofs)]
+        pts = [(round(x, 2), round(y, 2)) for x, y in pts]
+        ops.append(Op("workplane", {"selector": ">Y"}))
+        ops.append(Op("pushPoints", {"points": pts}))
+        ops.append(Op("hole", {"diameter": p["hole_diameter"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"n_holes": p["n_holes"]})
+
+
+def _loft_solid_ops(s: float) -> list:
+    return [
+        Op("circle", {"radius": round(s * 0.55, 3)}),
+        Op("transformed", {"offset": [0, 0, round(s * 1.2, 3)], "rotate": [0, 0, 0]}),
+        Op("rect", {"length": round(s * 0.9, 3), "width": round(s * 0.7, 3)}),
+        Op("loft", {"combine": True}),
+    ]
+
+
+class SimpleLoftChamferFamily(BaseFamily):
+    name = "simple_loft_chamfer"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "scale": round(float(rng.uniform(15, 25)), 1),
+            "chamfer_length": round(float(rng.uniform(1.0, 3.0)), 1),
+            "edge_selector": str(rng.choice([">Z", "<Z", "all"])),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["chamfer_length"] < p["scale"] * 0.15
+
+    def make_program(self, p):
+        ops = _loft_solid_ops(p["scale"])
+        if p["edge_selector"] != "all":
+            ops.append(Op("edges", {"selector": p["edge_selector"]}))
+        ops.append(Op("chamfer", {"length": p["chamfer_length"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={})
+
+
+class SimpleLoftFilletFamily(BaseFamily):
+    name = "simple_loft_fillet"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "scale": round(float(rng.uniform(15, 25)), 1),
+            "fillet_radius": round(float(rng.uniform(1.0, 3.0)), 1),
+            "edge_selector": str(rng.choice([">Z", "<Z", "all"])),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["fillet_radius"] < p["scale"] * 0.15
+
+    def make_program(self, p):
+        ops = _loft_solid_ops(p["scale"])
+        if p["edge_selector"] != "all":
+            ops.append(Op("edges", {"selector": p["edge_selector"]}))
+        ops.append(Op("fillet", {"radius": p["fillet_radius"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={})
+
+
+class SimpleLoftHoleFamily(BaseFamily):
+    name = "simple_loft_hole"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "scale": round(float(rng.uniform(18, 28)), 1),
+            "hole_diameter": round(float(rng.uniform(2.5, 5.0)), 1),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["hole_diameter"] < p["scale"] * 0.2
+
+    def make_program(self, p):
+        ops = _loft_solid_ops(p["scale"])
+        ops.append(Op("workplane", {"selector": ">Z"}))
+        ops.append(Op("hole", {"diameter": p["hole_diameter"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={})
+
+
+def _sweep_helix_solid_ops(s: float) -> list:
+    r = round(s * 0.7, 3)
+    return [
+        Op("center", {"x": r, "y": 0}),
+        Op("circle", {"radius": round(s * 0.18, 3)}),
+        Op("sweep", {
+            "path_type": "helix",
+            "path_args": {"pitch": round(s * 0.5, 3),
+                          "height": round(s * 1.6, 3), "radius": r},
+            "isFrenet": True,
+        }),
+    ]
+
+
+class SimpleSweepHelixCutFamily(BaseFamily):
+    name = "simple_sweep_helix_cut"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        s = round(float(rng.uniform(18, 28)), 1)
+        return {
+            "scale": s,
+            "cut_kind": str(rng.choice(["sphere", "box"])),
+            "cut_size": round(float(rng.uniform(0.2, 0.4)) * s, 1),
+            "offset": [
+                round(float(rng.uniform(-s * 0.3, s * 0.3)), 1),
+                round(float(rng.uniform(-s * 0.3, s * 0.3)), 1),
+                round(float(rng.uniform(s * 0.3, s * 1.2)), 1),
+            ],
+            "polygon_n": 4,
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["cut_size"] > 3
+
+    def make_program(self, p):
+        s = p["scale"]
+        sub = _primitive_sub_ops(p["cut_kind"], p["cut_size"], 4, tuple(p["offset"]))
+        last = sub[-1]
+        if last["name"] in ("cylinder", "box"):
+            last["args"]["height"] = round(s * 2, 2)
+        ops = _sweep_helix_solid_ops(s)
+        ops.append(Op("cut", {"ops": sub, "plane": "XY"}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"cut_kind": p["cut_kind"]})
+
+
+class SimpleSweepHelixFilletFamily(BaseFamily):
+    name = "simple_sweep_helix_fillet"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "scale": round(float(rng.uniform(18, 28)), 1),
+            "fillet_radius": round(float(rng.uniform(0.4, 1.2)), 1),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["fillet_radius"] > 0.2 and p["fillet_radius"] < p["scale"] * 0.08
+
+    def make_program(self, p):
+        ops = _sweep_helix_solid_ops(p["scale"])
+        ops.append(Op("fillet", {"radius": p["fillet_radius"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={})
+
+
+class SimpleTwistExtrudeCutFamily(BaseFamily):
+    name = "simple_twist_extrude_cut"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        s = round(float(rng.uniform(10, 18)), 1)
+        return {
+            "polygon_n": int(rng.choice([4, 5, 6])),
+            "profile_size": s,
+            "height": round(float(rng.uniform(20, 50)), 1),
+            "twist_deg": float(rng.choice([90, 180, 270, 360])),
+            "cut_kind": str(rng.choice(["sphere", "cylinder"])),
+            "cut_size": round(float(rng.uniform(0.25, 0.45)) * s, 1),
+            "offset": [
+                round(float(rng.uniform(-s * 0.3, s * 0.3)), 1),
+                round(float(rng.uniform(-s * 0.3, s * 0.3)), 1),
+                round(float(rng.uniform(s * 0.3, s * 1.2)), 1),
+            ],
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["cut_size"] > 2
+
+    def make_program(self, p):
+        s = p["profile_size"]
+        sub = _primitive_sub_ops(p["cut_kind"], p["cut_size"], p["polygon_n"], tuple(p["offset"]))
+        last = sub[-1]
+        if last["name"] in ("cylinder", "box"):
+            last["args"]["height"] = round(p["height"] * 1.5, 2)
+        ops = [
+            Op("polygon", {"n": p["polygon_n"], "diameter": s * 2}),
+            Op("twistExtrude", {"distance": p["height"], "angle": p["twist_deg"]}),
+            Op("cut", {"ops": sub, "plane": "XY"}),
+        ]
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"twist_deg": p["twist_deg"]})
+
+
+class SimpleTwistExtrudeFilletFamily(BaseFamily):
+    name = "simple_twist_extrude_fillet"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "polygon_n": int(rng.choice([3, 4, 5, 6])),
+            "profile_size": round(float(rng.uniform(10, 18)), 1),
+            "height": round(float(rng.uniform(20, 50)), 1),
+            "twist_deg": float(rng.choice([90, 180, 270])),
+            "fillet_radius": round(float(rng.uniform(0.5, 1.8)), 1),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["fillet_radius"] < p["profile_size"] * 0.18
+
+    def make_program(self, p):
+        ops = [
+            Op("polygon", {"n": p["polygon_n"], "diameter": p["profile_size"] * 2}),
+            Op("twistExtrude", {"distance": p["height"], "angle": p["twist_deg"]}),
+            Op("fillet", {"radius": p["fillet_radius"]}),
+        ]
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"twist_deg": p["twist_deg"]})
+
+
+class SimpleTaperExtrudeHoleFamily(BaseFamily):
+    name = "simple_taper_extrude_hole"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "profile_kind": str(rng.choice(["rect", "polygon", "ellipse"])),
+            "polygon_n": int(rng.choice([4, 5, 6, 8])),
+            "profile_size": round(float(rng.uniform(15, 25)), 1),
+            "height": round(float(rng.uniform(15, 30)), 1),
+            "taper_deg": float(rng.choice([-10, -5, 5, 10, 15])),
+            "hole_diameter": round(float(rng.uniform(3, 6)), 1),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["hole_diameter"] < p["profile_size"] * 0.2
+
+    def make_program(self, p):
+        ops = list(_profile_ops(p["profile_kind"], p["profile_size"], p["polygon_n"]))
+        ops.append(Op("extrude", {"distance": p["height"], "taper": p["taper_deg"]}))
+        ops.append(Op("workplane", {"selector": ">Z"}))
+        ops.append(Op("hole", {"diameter": p["hole_diameter"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"taper_deg": p["taper_deg"]})
+
+
+class SimpleTaperExtrudeChamferFamily(BaseFamily):
+    name = "simple_taper_extrude_chamfer"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "profile_kind": str(rng.choice(["rect", "polygon", "ellipse"])),
+            "polygon_n": int(rng.choice([4, 5, 6, 8])),
+            "profile_size": round(float(rng.uniform(15, 25)), 1),
+            "height": round(float(rng.uniform(15, 30)), 1),
+            "taper_deg": float(rng.choice([-10, -5, 5, 10])),
+            "chamfer_length": round(float(rng.uniform(1.0, 2.5)), 1),
+            "edge_selector": str(rng.choice([">Z", "<Z"])),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["chamfer_length"] < p["profile_size"] * 0.13
+
+    def make_program(self, p):
+        ops = list(_profile_ops(p["profile_kind"], p["profile_size"], p["polygon_n"]))
+        ops.append(Op("extrude", {"distance": p["height"], "taper": p["taper_deg"]}))
+        ops.append(Op("edges", {"selector": p["edge_selector"]}))
+        ops.append(Op("chamfer", {"length": p["chamfer_length"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"taper_deg": p["taper_deg"]})
+
+
+# --- 3-op chains ------------------------------------------------------------
+
+
+class SimpleExtrudeHoleChamferFamily(BaseFamily):
+    name = "simple_extrude_hole_chamfer"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        s = round(float(rng.uniform(28, 45)), 1)
+        return {
+            "profile_kind": str(rng.choice(["rect", "polygon", "ellipse"])),
+            "polygon_n": int(rng.choice([4, 5, 6, 8])),
+            "scale": s,
+            "height": round(float(rng.uniform(8, 15)), 1),
+            "hole_diameter": round(float(rng.uniform(3, 6)), 1),
+            "layout": str(rng.choice(["center", "two_x", "row3", "grid2x2"])),
+            "chamfer_length": round(float(rng.uniform(1.0, 2.5)), 1),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return (p["hole_diameter"] < p["scale"] * 0.18
+                and p["chamfer_length"] < p["scale"] * 0.15)
+
+    def make_program(self, p):
+        s = p["scale"]
+        ops = list(_profile_ops(p["profile_kind"], s, p["polygon_n"]))
+        ops.append(Op("extrude", {"distance": p["height"]}))
+        ofs = s * 0.3
+        pts = [(round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)]
+        ops.append(Op("workplane", {"selector": ">Z"}))
+        ops.append(Op("pushPoints", {"points": pts}))
+        ops.append(Op("hole", {"diameter": p["hole_diameter"]}))
+        ops.append(Op("edges", {"selector": ">Z"}))
+        ops.append(Op("chamfer", {"length": p["chamfer_length"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"profile": p["profile_kind"], "layout": p["layout"]})
+
+
+class SimpleExtrudeHoleFilletFamily(BaseFamily):
+    name = "simple_extrude_hole_fillet"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        s = round(float(rng.uniform(28, 45)), 1)
+        return {
+            "profile_kind": str(rng.choice(["rect", "polygon", "ellipse"])),
+            "polygon_n": int(rng.choice([4, 5, 6, 8])),
+            "scale": s,
+            "height": round(float(rng.uniform(10, 18)), 1),
+            "hole_diameter": round(float(rng.uniform(3, 6)), 1),
+            "layout": str(rng.choice(["center", "two_x", "four_corners"])),
+            "fillet_radius": round(float(rng.uniform(1.0, 2.5)), 1),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return (p["hole_diameter"] < p["scale"] * 0.18
+                and p["fillet_radius"] < p["scale"] * 0.15)
+
+    def make_program(self, p):
+        s = p["scale"]
+        ops = list(_profile_ops(p["profile_kind"], s, p["polygon_n"]))
+        ops.append(Op("extrude", {"distance": p["height"]}))
+        ofs = s * 0.3
+        pts = [(round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)]
+        ops.append(Op("workplane", {"selector": ">Z"}))
+        ops.append(Op("pushPoints", {"points": pts}))
+        ops.append(Op("hole", {"diameter": p["hole_diameter"]}))
+        ops.append(Op("edges", {"selector": ">Z"}))
+        ops.append(Op("fillet", {"radius": p["fillet_radius"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"profile": p["profile_kind"], "layout": p["layout"]})
+
+
+class SimpleBoxHoleChamferFamily(BaseFamily):
+    name = "simple_box_hole_chamfer"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "length": round(float(rng.uniform(28, 50)), 1),
+            "width": round(float(rng.uniform(20, 38)), 1),
+            "thickness": round(float(rng.uniform(8, 16)), 1),
+            "hole_diameter": round(float(rng.uniform(3, 7)), 1),
+            "layout": str(rng.choice(["center", "two_x", "four_corners"])),
+            "chamfer_length": round(float(rng.uniform(1.0, 2.5)), 1),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return (p["hole_diameter"] < min(p["length"], p["width"]) * 0.2
+                and p["chamfer_length"] < min(p["length"], p["width"]) * 0.15)
+
+    def make_program(self, p):
+        ofs = min(p["length"], p["width"]) * 0.32
+        pts = [(round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)]
+        ops = [
+            Op("box", {"length": p["length"], "width": p["width"], "height": p["thickness"]}),
+            Op("workplane", {"selector": ">Z"}),
+            Op("pushPoints", {"points": pts}),
+            Op("hole", {"diameter": p["hole_diameter"]}),
+            Op("edges", {"selector": ">Z"}),
+            Op("chamfer", {"length": p["chamfer_length"]}),
+        ]
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"layout": p["layout"]})
+
+
+class SimpleBoxHoleFilletFamily(BaseFamily):
+    name = "simple_box_hole_fillet"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "length": round(float(rng.uniform(28, 50)), 1),
+            "width": round(float(rng.uniform(20, 38)), 1),
+            "thickness": round(float(rng.uniform(8, 16)), 1),
+            "hole_diameter": round(float(rng.uniform(3, 7)), 1),
+            "layout": str(rng.choice(["center", "two_x", "four_corners"])),
+            "fillet_radius": round(float(rng.uniform(1.0, 2.5)), 1),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return (p["hole_diameter"] < min(p["length"], p["width"]) * 0.2
+                and p["fillet_radius"] < min(p["length"], p["width"]) * 0.15)
+
+    def make_program(self, p):
+        ofs = min(p["length"], p["width"]) * 0.32
+        pts = [(round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)]
+        ops = [
+            Op("box", {"length": p["length"], "width": p["width"], "height": p["thickness"]}),
+            Op("workplane", {"selector": ">Z"}),
+            Op("pushPoints", {"points": pts}),
+            Op("hole", {"diameter": p["hole_diameter"]}),
+            Op("edges", {"selector": ">Z"}),
+            Op("fillet", {"radius": p["fillet_radius"]}),
+        ]
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"layout": p["layout"]})
+
+
+class SimpleRevolveCutChamferFamily(BaseFamily):
+    name = "simple_revolve_cut_chamfer"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        s = round(float(rng.uniform(15, 25)), 1)
+        return {
+            "scale": s,
+            "cut_size": round(float(rng.uniform(0.25, 0.4)) * s, 1),
+            "cut_offset": [
+                round(float(rng.uniform(-s * 0.3, s * 0.3)), 1),
+                0.0,
+                round(float(rng.uniform(s * 0.2, s * 0.7)), 1),
+            ],
+            "chamfer_length": round(float(rng.uniform(0.8, 2.0)), 1),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["cut_size"] > 3 and p["chamfer_length"] < p["scale"] * 0.13
+
+    def make_program(self, p):
+        s = p["scale"]
+        ops = _revolve_solid_ops(s, 360.0)
+        sub = _primitive_sub_ops("sphere", p["cut_size"], 4, tuple(p["cut_offset"]))
+        ops.append(Op("cut", {"ops": sub, "plane": "XY"}))
+        ops.append(Op("edges", {"selector": ">Z"}))
+        ops.append(Op("chamfer", {"length": p["chamfer_length"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={})
+
+
+# --- new base shapes --------------------------------------------------------
+
+
+class SimpleTorusFamily(BaseFamily):
+    name = "simple_torus"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "major_radius": round(float(rng.uniform(15, 28)), 1),
+            "minor_radius": round(float(rng.uniform(2, 7)), 1),
+            "axis": str(rng.choice(["Z", "X", "Y"])),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["minor_radius"] < p["major_radius"] * 0.5
+
+    def make_program(self, p):
+        dir_map = {"Z": (0, 0, 1), "X": (1, 0, 0), "Y": (0, 1, 0)}
+        ops = [Op("torus", {
+            "majorRadius": p["major_radius"],
+            "minorRadius": p["minor_radius"],
+            "pnt": (0, 0, 0),
+            "dir": dir_map[p["axis"]],
+        })]
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"axis": p["axis"]})
+
+
+class SimpleConeFamily(BaseFamily):
+    name = "simple_cone"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "base_radius": round(float(rng.uniform(15, 30)), 1),
+            "top_radius": round(float(rng.uniform(0, 15)), 1),
+            "height": round(float(rng.uniform(15, 35)), 1),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return (p["base_radius"] > 5 and p["height"] > 5
+                and p["top_radius"] < p["base_radius"])
+
+    def make_program(self, p):
+        br, tr, h = p["base_radius"], p["top_radius"], p["height"]
+        if tr < 0.1:
+            pts = [(0.0, 0.0), (br, 0.0), (0.0, h)]
+        else:
+            pts = [(0.0, 0.0), (br, 0.0), (tr, h), (0.0, h)]
+        pts = [(round(x, 3), round(y, 3)) for x, y in pts]
+        ops = [Op("moveTo", {"x": pts[0][0], "y": pts[0][1]})]
+        for x, y in pts[1:]:
+            ops.append(Op("lineTo", {"x": x, "y": y}))
+        ops.append(Op("close", {}))
+        ops.append(Op("revolve", {"angleDeg": 360.0, "axisStart": (0, 0, 0), "axisEnd": (0, 1, 0)}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={})
+
+
+class SimpleWedgeFamily(BaseFamily):
+    name = "simple_wedge"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "length": round(float(rng.uniform(20, 40)), 1),
+            "height": round(float(rng.uniform(15, 30)), 1),
+            "thickness": round(float(rng.uniform(6, 16)), 1),
+            "skew_frac": round(float(rng.uniform(0.0, 0.6)), 2),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["length"] > 8 and p["height"] > 5
+
+    def make_program(self, p):
+        L, h = p["length"], p["height"]
+        skew = p["skew_frac"] * L
+        pts = [(0.0, 0.0), (L, 0.0), (L - skew, h), (skew, h)]
+        pts = [(round(x, 2), round(y, 2)) for x, y in pts]
+        ops = [
+            Op("polyline", {"points": pts}),
+            Op("close", {}),
+            Op("extrude", {"distance": p["thickness"]}),
+        ]
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={})
+
+
+class SimpleRArrayFamily(BaseFamily):
+    name = "simple_rarray"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "x_spacing": round(float(rng.uniform(8, 18)), 1),
+            "y_spacing": round(float(rng.uniform(8, 18)), 1),
+            "x_count": int(rng.choice([2, 3, 4, 5])),
+            "y_count": int(rng.choice([2, 3, 4, 5])),
+            "feature_kind": str(rng.choice(["cylinder", "rect", "polygon"])),
+            "feature_size": round(float(rng.uniform(2, 5)), 1),
+            "feature_height": round(float(rng.uniform(8, 18)), 1),
+            "polygon_n": int(rng.choice([4, 6, 8])),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["feature_size"] < min(p["x_spacing"], p["y_spacing"]) * 0.45
+
+    def make_program(self, p):
+        ops = [Op("rarray", {
+            "xSpacing": p["x_spacing"], "ySpacing": p["y_spacing"],
+            "xCount": p["x_count"], "yCount": p["y_count"],
+        })]
+        s = p["feature_size"]
+        if p["feature_kind"] == "cylinder":
+            ops.append(Op("circle", {"radius": s}))
+        elif p["feature_kind"] == "rect":
+            ops.append(Op("rect", {"length": s * 1.6, "width": s}))
+        else:
+            ops.append(Op("polygon", {"n": p["polygon_n"], "diameter": s * 2}))
+        ops.append(Op("extrude", {"distance": p["feature_height"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"x_count": p["x_count"], "y_count": p["y_count"]})
+
+
+class SimpleRArrayCutFamily(BaseFamily):
+    name = "simple_rarray_cut"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "plate_l": round(float(rng.uniform(40, 70)), 1),
+            "plate_w": round(float(rng.uniform(30, 55)), 1),
+            "plate_t": round(float(rng.uniform(6, 14)), 1),
+            "x_spacing": round(float(rng.uniform(10, 18)), 1),
+            "y_spacing": round(float(rng.uniform(10, 18)), 1),
+            "x_count": int(rng.choice([2, 3, 4])),
+            "y_count": int(rng.choice([2, 3, 4])),
+            "hole_diameter": round(float(rng.uniform(3, 6)), 1),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return (p["hole_diameter"] < min(p["x_spacing"], p["y_spacing"]) * 0.45
+                and p["x_count"] * p["x_spacing"] < p["plate_l"]
+                and p["y_count"] * p["y_spacing"] < p["plate_w"])
+
+    def make_program(self, p):
+        ops = [
+            Op("box", {"length": p["plate_l"], "width": p["plate_w"], "height": p["plate_t"]}),
+            Op("workplane", {"selector": ">Z"}),
+            Op("rarray", {
+                "xSpacing": p["x_spacing"], "ySpacing": p["y_spacing"],
+                "xCount": p["x_count"], "yCount": p["y_count"],
+            }),
+            Op("hole", {"diameter": p["hole_diameter"]}),
+        ]
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"x_count": p["x_count"], "y_count": p["y_count"]})
+
+
+class SimpleExtrudeMultiplaneFamily(BaseFamily):
+    name = "simple_extrude_multiplane"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "profile_kind": str(rng.choice(["rect", "polygon", "ellipse", "circle"])),
+            "polygon_n": int(rng.choice([3, 4, 5, 6, 8])),
+            "scale": round(float(rng.uniform(15, 30)), 1),
+            "height": round(float(rng.uniform(10, 25)), 1),
+            "base_plane": str(rng.choice(["XY", "YZ", "XZ"])),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["scale"] > 5 and p["height"] > 3
+
+    def make_program(self, p):
+        ops = list(_profile_ops(p["profile_kind"], p["scale"], p["polygon_n"]))
+        ops.append(Op("extrude", {"distance": p["height"]}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"base_plane": p["base_plane"]},
+                       base_plane=p["base_plane"])
+
+
+class SimpleRevolveMultiaxisFamily(BaseFamily):
+    name = "simple_revolve_multiaxis"
+    standard = "N/A"
+
+    def sample_params(self, difficulty, rng):
+        return {
+            "scale": round(float(rng.uniform(12, 22)), 1),
+            "angle_deg": float(rng.choice([180, 270, 360])),
+            "axis_kind": str(rng.choice(["X", "Y", "Y_offset_pos", "Y_offset_neg"])),
+            "difficulty": difficulty,
+        }
+
+    def validate_params(self, p):
+        return p["scale"] > 5
+
+    def make_program(self, p):
+        s = p["scale"]
+        pts = [
+            (s * 0.5, 0.0), (s * 1.4, 0.0), (s * 1.4, s * 0.4),
+            (s * 0.7, s * 0.4), (s * 0.7, s * 1.0), (s * 0.5, s * 1.0),
+        ]
+        pts = [(round(x, 3), round(y, 3)) for x, y in pts]
+        if p["axis_kind"] == "X":
+            axis_start, axis_end = (0, 0, 0), (1, 0, 0)
+        elif p["axis_kind"] == "Y":
+            axis_start, axis_end = (0, 0, 0), (0, 1, 0)
+        elif p["axis_kind"] == "Y_offset_pos":
+            offset = s * 0.4
+            axis_start, axis_end = (-offset, 0, 0), (-offset, 1, 0)
+        else:
+            offset = s * 0.4
+            axis_start, axis_end = (offset, 0, 0), (offset, 1, 0)
+        ops = [Op("moveTo", {"x": pts[0][0], "y": pts[0][1]})]
+        for x, y in pts[1:]:
+            ops.append(Op("lineTo", {"x": x, "y": y}))
+        ops.append(Op("close", {}))
+        ops.append(Op("revolve", {"angleDeg": p["angle_deg"],
+                                  "axisStart": axis_start, "axisEnd": axis_end}))
+        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
+                       feature_tags={"axis_kind": p["axis_kind"]})
