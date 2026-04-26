@@ -45,12 +45,17 @@ class GrommetFamily(BaseFamily):
             pool = _GROMMET_SIZES[4:]
 
         d1, d2, d3, w, H = pool[int(rng.integers(0, len(pool)))]
+        # Asymmetric flange split (was 50/50). flange_top_ratio ∈ [0.3, 0.7].
+        flange_top_ratio = round(float(rng.uniform(0.3, 0.7)), 3)
+        profile_reverse = bool(rng.random() < 0.5)
         params = {
             "bore_d1": float(d1),
             "groove_d2": float(d2),
             "flange_d3": float(d3),
             "groove_width_w": float(w),
             "total_height_H": float(H),
+            "flange_top_ratio": flange_top_ratio,
+            "profile_reverse": profile_reverse,
             "difficulty": difficulty,
         }
         if difficulty in ("medium", "hard"):
@@ -84,11 +89,14 @@ class GrommetFamily(BaseFamily):
         r1 = round(d1 / 2, 4)
         r2 = round(d2 / 2, 4)
         r3 = round(d3 / 2, 4)
-        flange_h = round((H - w) / 2, 4)  # each flange half
+        # Asymmetric split: top flange = (H-w) · top_ratio, bottom = (H-w) · (1-ratio)
+        ftr = float(params.get("flange_top_ratio", 0.5))
+        flange_bot_h = round((H - w) * (1 - ftr), 4)
+        flange_top_h = round((H - w) * ftr, 4)
         z0 = 0.0
-        z_gb = flange_h  # groove bottom z
-        z_gt = flange_h + w  # groove top z
-        z1 = H
+        z_gb = flange_bot_h
+        z_gt = flange_bot_h + w
+        z1 = round(flange_bot_h + w + flange_top_h, 4)
 
         tags = {
             "has_hole": True,
@@ -100,16 +108,26 @@ class GrommetFamily(BaseFamily):
 
         # H-profile in XZ plane (u=radius, v=z), closed polyline revolved 360°
         # around world Z axis (axisEnd=(0,1,0) local = world Z per codebase).
-        ops = [
-            Op("moveTo", {"x": r1, "y": z0}),
-            Op("lineTo", {"x": r3, "y": z0}),
-            Op("lineTo", {"x": r3, "y": z_gb}),
-            Op("lineTo", {"x": r2, "y": z_gb}),
-            Op("lineTo", {"x": r2, "y": z_gt}),
-            Op("lineTo", {"x": r3, "y": z_gt}),
-            Op("lineTo", {"x": r3, "y": z1}),
-            Op("lineTo", {"x": r1, "y": z1}),
-            Op("close", {}),
+        forward_pts = [
+            (r1, z0),
+            (r3, z0),
+            (r3, z_gb),
+            (r2, z_gb),
+            (r2, z_gt),
+            (r3, z_gt),
+            (r3, z1),
+            (r1, z1),
+        ]
+        pts = (
+            list(reversed(forward_pts))
+            if params.get("profile_reverse", False)
+            else forward_pts
+        )
+        ops = [Op("moveTo", {"x": pts[0][0], "y": pts[0][1]})]
+        for x, y in pts[1:]:
+            ops.append(Op("lineTo", {"x": x, "y": y}))
+        ops.append(Op("close", {}))
+        ops.append(
             Op(
                 "revolve",
                 {
@@ -117,8 +135,8 @@ class GrommetFamily(BaseFamily):
                     "axisStart": [0, 0, 0],
                     "axisEnd": [0, 1, 0],
                 },
-            ),
-        ]
+            )
+        )
 
         return Program(
             family=self.name,
