@@ -1,4 +1,31 @@
 
+## 2026-04-25 (session 31) — data-arg: Tier B 全 15 + Tier A round 2 (chamfer + A↔B)
+
+- Tier A round 2 (4 family): grommet rim chamfer/fillet (1→7), dome_cap bottom rim (4→12), piston crown rim (8→21), grease_nipple hex_first A↔B 翻转 (3→6). 4 commits
+- torsion_spring round 3: 4 种 build_order (coil_legs / leg1_first / leg2_first / reverse) — 用户提议的"线之间连接顺序倒序" (1→3 模板). 1 commit
+- Tier B 15 family — 全按用户指示重 code 语法多样化轻几何加. 通用招术: ① body cylinder()↔circle().extrude(); ② polygon op ↔ N×lineTo; ③ chamfer↔fillet 二选; ④ profile_reverse 顶点序; ⑤ union 顺序二选; ⑥ A↔B primary 翻转; ⑦ feature 跨 difficulty 概率出现; ⑧ 可数特征 N 扩
+- Tier B 单 family tmpl 前→后:
+  | family | 前 | 后 |
+  |---|---|---|
+  | hex_nut | 8 | 16 |
+  | worm_screw | 5 | 10 |
+  | wall_anchor | 9 | **32** |
+  | pipe_elbow | 4 | 7 |
+  | phone_stand | 9 | 8 |
+  | gridfinity_bin | 9 | 6 |
+  | pan_head_screw | 9 | 10 |
+  | tee_nut | 9 | **22** |
+  | u_bolt | 15 | 4 (numbers stripped, full-uniq 28/60) |
+  | washer | 11 | **19** |
+  | capsule | 8 | 6 (full-uniq 60/60) |
+  | t_pipe_fitting | 6 | 2 (full-uniq 33/33) |
+  | ball_knob | 6 | **19** |
+  | rivet | 7 | 6 |
+  | tapered_boss | 11 | 7 |
+- Tier B pre-flight 总 906/900 ok (验证拒受原代码 validate_params 限制)
+- 最大 4×4 panel 视觉对照网格 `tmp/tier_a_grid9/grid_4x4_panels_3x3.png` (1382×1454, 16 family × 9 sample)
+- pytest 81 pass, black + ruff 全过
+
 ## 2026-04-25 (session 30) — data-arg: Tier A 全 16 family 多样化完成
 
 - branch `data-arg`, 16 commits 一一对应 family + 第 0 个 grease_nipple
