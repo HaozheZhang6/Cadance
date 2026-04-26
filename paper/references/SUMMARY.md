@@ -1,16 +1,21 @@
-# Reference Digest — 7 Papers for BenchCAD NeurIPS 2026 D&B
+# Reference Digest — 9 Papers for BenchCAD NeurIPS 2026 D&B
 
-**Read date:** 2026-04-24 · **Per-paper notes:** `notes/<slug>.md`
+**Read date:** 2026-04-24/25 · **Per-paper notes:** `notes/<slug>.md`
 
 | 类别 | Paper | Venue | 核心贡献 (一句话) |
 |---|---|---|---|
 | CAD 直接竞品 | **Text2CAD** | NeurIPS'24 D&B | 660k 4-级 NL 标注 DeepCAD + BERT/AR Transformer 出 sketch-extrude token |
 | CAD 直接竞品 | **CAD-Coder** | NeurIPS'25 main | 110K text→CadQuery + Qwen2.5-7B SFT+GRPO + CD reward |
-| CAD 直接竞品 | **CAD-Recode** | ICCV'25 | 1M procedural 训练点云→CadQuery,Qwen2-1.5B,DeepCAD/Fusion360/CC3D SOTA |
+| **MSU/SnT lineage I** | **CAD-Recode** | ICCV'25 | 1M procedural 训练点云→CadQuery,Qwen2-1.5B,DeepCAD/Fusion360/CC3D SOTA |
+| **MSU/SnT lineage II** ⭐ | **cadrille** | **ICLR'26** | CAD-Recode v1.5 → Qwen2-VL-2B + pc/img/text 三模态统一 + Dr.CPPO online RL,DeepCAD img IoU 92.2 |
+| **MSU/SnT lineage III** ⭐ | **CADEvolve** | arxiv'26.02 | cadrille pipeline + GPT-5-mini 进化数据扩到 2.7M scripts,DeepCAD img IoU 92.6 |
 | CAD 直接竞品 | **CADCodeVerify (CADPrompt)** | ICLR'25 | 200 NL→CadQuery 专家 benchmark + VLM 自问自答 refine |
 | D&B 结构标杆 | **Infinity-Chat (Hivemind)** | NeurIPS'25 best D&B | 26K real query + 31K human anno + 70+ LM,命名 "Artificial Hivemind" |
 | D&B 结构标杆 | **MMSI-Bench** | ICLR'26 | 1000 全人工 multi-image MCQ + 11-task taxonomy + 37 MLLM,human gap 67% |
 | D&B 结构标杆 | **AutoCodeBench** | ICLR'26 | 3920 multilingual code 题全自动合成 + Lite/Complete 双变体 + 30+ 模型 |
+| Hanjie 协作风格 | SportR + SPORTU | ICLR'26 + ICLR'25 | benchmark + Qwen2.5-VL-7B SFT→GRPO,IoU 4.61→9.94,见 `notes/sportr_style.md` |
+
+> ⚡ **MSU/SnT 三连发**(Russian/Luxembourg/Armenia 同 lab):CAD-Recode (Rukhovich 一作, ICCV'25)→ cadrille (Kolodiazhnyi 一作 + Rukhovich corresp, ICLR'26)→ CADEvolve (Elistratov, arxiv'26.02)— 实质一条 SFT+RL+evolutionary 数据管道的 3 个里程碑;**全部 release HF 模型权重 + 推理脚本**,可直接拉到 BenchCAD 上跑 transfer。
 
 ---
 
