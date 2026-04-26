@@ -15,6 +15,7 @@ set -euo pipefail
 CONFIG_DIR="scripts/data_generation/cad_synth/configs/data_arg_180k"
 LOG_DIR="data/data_generation/synth_reports"
 PROGRESS="$LOG_DIR/180k_progress.log"
+WORKERS="${WORKERS:-8}"
 
 mkdir -p "$LOG_DIR"
 
@@ -60,7 +61,7 @@ for cfg in "${CONFIGS[@]}"; do
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$i/$TOTAL] $fam → start" | tee -a "$PROGRESS"
 
   if uv run python3 -m scripts.data_generation.cad_synth.pipeline.runner \
-       --config "$cfg" --workers 4 --resume --ignore-stuck \
+       --config "$cfg" --workers "$WORKERS" --resume --ignore-stuck \
        > "$LOG_DIR/180k_${fam}.log" 2>&1; then
     T2=$(date +%s)
     REPORT="data/data_generation/synth_reports/data_arg_180k_${fam}.json"
@@ -78,3 +79,13 @@ for cfg in "${CONFIGS[@]}"; do
 done
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] DONE 180k batch" | tee -a "$PROGRESS"
+
+# Auto-push to HF unless NO_AUTO_PUSH=1
+if [[ "${NO_AUTO_PUSH:-0}" != "1" ]]; then
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] AUTO-PUSH start → BenchCAD/cad_bench_X" | tee -a "$PROGRESS"
+  if bash scripts/data_generation/cad_synth/push_180k.sh > "$LOG_DIR/180k_push.log" 2>&1; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] AUTO-PUSH success" | tee -a "$PROGRESS"
+  else
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] AUTO-PUSH FAILED → see $LOG_DIR/180k_push.log" | tee -a "$PROGRESS"
+  fi
+fi
