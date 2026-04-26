@@ -71,6 +71,10 @@ class UBoltFamily(BaseFamily):
             params["hex_nut_af"] = round(rod_d * 1.5, 2)
             params["hex_nut_h"] = round(rod_d * 0.8, 2)
 
+        # Code-syntax: leg ±X 顺序; nut ±X 顺序; hex_nut polygon vs polyline form
+        params["leg_order_swap"] = bool(rng.random() < 0.5)
+        params["nut_order_swap"] = bool(rng.random() < 0.5)
+        params["nut_form"] = str(rng.choice(["polyline", "polygon"]))
         return params
 
     def validate_params(self, params: dict) -> bool:
@@ -109,19 +113,20 @@ class UBoltFamily(BaseFamily):
         leg_z_bot = -pT_val if pT_val else 0.0
         leg_full = leg_L + overlap - leg_z_bot
 
-        # 1. Base leg (left cylinder) — establishes solid
+        # 1+2. Two legs ±X — primary one + unioned other.
+        leg_order_swap = bool(params.get("leg_order_swap", False))
+        primary_x = r_bend if leg_order_swap else -r_bend
+        union_x = -r_bend if leg_order_swap else r_bend
         ops = [
             Op(
                 "transformed",
                 {
-                    "offset": [-r_bend, 0.0, (leg_z_bot + leg_L + overlap) / 2],
+                    "offset": [primary_x, 0.0, (leg_z_bot + leg_L + overlap) / 2],
                     "rotate": [0, 0, 0],
                 },
             ),
             Op("cylinder", {"height": round(leg_full, 3), "radius": round(rod_r, 3)}),
         ]
-
-        # 2. Right leg
         ops.append(
             Op(
                 "union",
@@ -131,7 +136,7 @@ class UBoltFamily(BaseFamily):
                             "name": "transformed",
                             "args": {
                                 "offset": [
-                                    r_bend,
+                                    union_x,
                                     0.0,
                                     (leg_z_bot + leg_L + overlap) / 2,
                                 ],
@@ -218,44 +223,54 @@ class UBoltFamily(BaseFamily):
         if af and nh:
             nut_cz = leg_z_bot - nh / 2 + 0.5  # slight overlap with leg tip
             r_hex = af / 2  # inscribed radius (flat-to-flat radius)
-            # Hex prism via 6-point polygon revolved... use polyline + extrude.
+            nut_form = params.get("nut_form", "polyline")
+            # Hex prism via 6-point polyline OR polygon op.
             hex_pts = []
             for k in range(6):
                 ang = math.radians(30 + k * 60)
                 hex_pts.append(
                     [round(r_hex * math.cos(ang), 4), round(r_hex * math.sin(ang), 4)]
                 )
-            for sign in (-1, 1):
-                ops.append(
-                    Op(
-                        "union",
+            # across-corners diameter for polygon op = 2·circumscribed-circle-r
+            hex_ac = round(2 * r_hex / math.cos(math.radians(30)), 4)
+            nut_signs = (1, -1) if params.get("nut_order_swap", False) else (-1, 1)
+            for sign in nut_signs:
+                if nut_form == "polygon":
+                    inner_ops = [
                         {
-                            "plane": "XY",
-                            "ops": [
-                                {
-                                    "name": "transformed",
-                                    "args": {
-                                        "offset": [sign * r_bend, 0.0, nut_cz],
-                                        "rotate": [0, 0, 0],
-                                    },
-                                },
-                                {
-                                    "name": "moveTo",
-                                    "args": {"x": hex_pts[0][0], "y": hex_pts[0][1]},
-                                },
-                                {"name": "polyline", "args": {"points": hex_pts[1:]}},
-                                {"name": "close"},
-                                {
-                                    "name": "extrude",
-                                    "args": {
-                                        "distance": round(nh / 2, 4),
-                                        "both": True,
-                                    },
-                                },
-                            ],
+                            "name": "transformed",
+                            "args": {
+                                "offset": [sign * r_bend, 0.0, nut_cz],
+                                "rotate": [0, 0, 0],
+                            },
                         },
-                    )
-                )
+                        {"name": "polygon", "args": {"n": 6, "diameter": hex_ac}},
+                        {
+                            "name": "extrude",
+                            "args": {"distance": round(nh / 2, 4), "both": True},
+                        },
+                    ]
+                else:
+                    inner_ops = [
+                        {
+                            "name": "transformed",
+                            "args": {
+                                "offset": [sign * r_bend, 0.0, nut_cz],
+                                "rotate": [0, 0, 0],
+                            },
+                        },
+                        {
+                            "name": "moveTo",
+                            "args": {"x": hex_pts[0][0], "y": hex_pts[0][1]},
+                        },
+                        {"name": "polyline", "args": {"points": hex_pts[1:]}},
+                        {"name": "close"},
+                        {
+                            "name": "extrude",
+                            "args": {"distance": round(nh / 2, 4), "both": True},
+                        },
+                    ]
+                ops.append(Op("union", {"plane": "XY", "ops": inner_ops}))
 
         return Program(
             family=self.name,
