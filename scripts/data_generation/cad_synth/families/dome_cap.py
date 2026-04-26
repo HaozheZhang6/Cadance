@@ -29,12 +29,15 @@ class DomeCapFamily(BaseFamily):
             "difficulty": difficulty,
         }
 
-        if difficulty in ("medium", "hard"):
+        bore_prob = {"easy": 0.25, "medium": 0.8, "hard": 0.9}[difficulty]
+        holes_prob = {"easy": 0.0, "medium": 0.4, "hard": 0.85}[difficulty]
+
+        if rng.random() < bore_prob:
             max_bd = h_cyl * 0.75
             params["bore_depth"] = round(rng.uniform(h_cyl * 0.3, max_bd), 1)
 
-        if difficulty == "hard":
-            params["n_holes"] = int(rng.choice([4, 6, 8]))
+        if rng.random() < holes_prob:
+            params["n_holes"] = int(rng.choice([3, 4, 5, 6, 8, 10, 12]))
             params["hole_diameter"] = round(
                 rng.uniform(3, max(3.5, min(r * 0.12, 8))), 1
             )
