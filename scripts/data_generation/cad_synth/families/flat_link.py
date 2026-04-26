@@ -31,11 +31,21 @@ class FlatLinkFamily(BaseFamily):
         # Bores in both bosses define link identity — present at all difficulties.
         bore_r = round(rng.uniform(boss_r * 0.30, boss_r * 0.55), 1)
         params["bore_radius"] = bore_r
+        params["bore_form"] = str(rng.choice(["hole", "cut"]))
 
-        if difficulty == "hard":
-            slot_w = round(rng.uniform(boss_r * 0.3, boss_r * 0.7), 1)
-            params["slot_width"] = slot_w
+        # Lightening slot now spread cross-difficulty (was hard only)
+        slot_prob = {"easy": 0.15, "medium": 0.45, "hard": 0.8}[difficulty]
+        if rng.random() < slot_prob:
+            params["slot_width"] = round(rng.uniform(boss_r * 0.3, boss_r * 0.7), 1)
 
+        # Edge fillet/chamfer on top + bottom perimeter (推 fillet/chamfer 频率)
+        edge_prob = {"easy": 0.3, "medium": 0.6, "hard": 0.75}[difficulty]
+        if rng.random() < edge_prob:
+            params["edge_op"] = str(rng.choice(["fillet", "chamfer"]))
+            params["edge_size"] = round(
+                float(rng.uniform(0.4, min(2.0, thick * 0.25))), 2
+            )
+            params["edge_loc"] = str(rng.choice(["top", "bottom", "both"]))
         return params
 
     def validate_params(self, params: dict) -> bool:
@@ -75,16 +85,21 @@ class FlatLinkFamily(BaseFamily):
         )
         ops.append(Op("extrude", {"distance": round(thick, 4)}))
 
-        # Through bores in each boss (medium+)
+        # Through bores in each boss
         br = params.get("bore_radius")
+        bore_form = params.get("bore_form", "hole")
         if br:
             tags["has_hole"] = True
             half_cc = round(cc / 2, 4)
             ops.append(Op("workplane", {"selector": ">Z"}))
             ops.append(Op("pushPoints", {"points": [(-half_cc, 0.0), (half_cc, 0.0)]}))
-            ops.append(Op("hole", {"diameter": round(2 * br, 4)}))
+            if bore_form == "hole":
+                ops.append(Op("hole", {"diameter": round(2 * br, 4)}))
+            else:
+                ops.append(Op("circle", {"radius": round(br, 4)}))
+                ops.append(Op("cutThruAll", {}))
 
-        # Lightening slot between bosses (hard)
+        # Lightening slot between bosses (cross-difficulty probability)
         sw = params.get("slot_width")
         if sw:
             slot_len = round(cc * 0.6, 4)
@@ -93,6 +108,24 @@ class FlatLinkFamily(BaseFamily):
                 Op("slot2D", {"length": round(slot_len, 4), "width": round(sw, 4)})
             )
             ops.append(Op("cutThruAll", {}))
+
+        # Edge fillet/chamfer on perimeter (推 fillet/chamfer)
+        edge_op = params.get("edge_op")
+        edge_size = float(params.get("edge_size", 0.0))
+        edge_loc = params.get("edge_loc", "top")
+        if edge_op and edge_size > 0:
+            if edge_op == "fillet":
+                tags["has_fillet"] = True
+            else:
+                tags["has_chamfer"] = True
+            sels = {"top": [">Z"], "bottom": ["<Z"], "both": [">Z", "<Z"]}[edge_loc]
+            for sel in sels:
+                ops.append(Op("faces", {"selector": sel}))
+                ops.append(Op("edges", {}))
+                if edge_op == "fillet":
+                    ops.append(Op("fillet", {"radius": edge_size}))
+                else:
+                    ops.append(Op("chamfer", {"length": edge_size}))
 
         return Program(
             family=self.name,
