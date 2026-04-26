@@ -1,21 +1,29 @@
 # Appendix D: has_hole Feature Detection
 
-**Status**: In progress — experiments running
-**Target**: Self-contained appendix section with full experimental support
-**Data source**: bench_1k_apr14 (994 samples, 73 families)
+**Status**: Production decision committed (2026-04-25) — Method B (STEP B-rep)
+**Production code**: `bench/metrics/__init__.py` (`_step_has_hole`, `extract_features`)
+**Eval script**: `bench/research/hole_detection_eval.py`
+**Output (1000-sample run)**: `bench/research/outputs/hole_method_c_n1000_s42.csv`
 
 ---
 
 ## D.1 Problem Statement
 
 A core metric of our benchmark is `feature_f1` — the F1 score over detected feature
-tags (`has_hole`, `has_fillet`, `has_chamfer`) between a model's generated code and the
-ground-truth part.  Reliable GT feature extraction is therefore a prerequisite: if the
-GT labels are wrong, the metric is wrong.
+tags (`has_hole`, `has_fillet`, `has_chamfer`) between a model's generated CadQuery
+code and the ground-truth part. Reliable feature extraction is therefore a
+prerequisite: if the labels are wrong, the metric is wrong.
 
-For `has_hole` specifically, two extraction approaches exist, each with distinct failure
-modes.  This section documents both, provides a comparative reliability study, and
-justifies our final choice.
+For `has_hole` specifically, two extraction signals exist with very different failure
+modes. This section defines them, runs a reliability study on 1000 synthesized
+parts spanning 106 families, justifies our final choice, and documents the residual
+errors with concrete examples.
+
+GT labels in our pipeline come from family `make_program()` declarations
+(`scripts/data_generation/cad_synth/families/*.py`). For external (Fusion360,
+DeepCAD) parts uploaded via `bench/upload_external.py`, GT labels are computed
+from the same `extract_features()` function used at eval time, so the choice of
+detector also determines published HF GT labels.
 
 ---
 
@@ -23,437 +31,383 @@ justifies our final choice.
 
 ### Method A — AST Regex
 
-Scan the CadQuery source code for explicit API calls:
+Scan the CadQuery source code for explicit hole-creating API calls:
 
 ```python
 pattern = r"\b(hole|cutThruAll|cboreHole|cskHole)\s*\("
 ```
 
-**Assumptions**: The code writer used the canonical CadQuery hole API.
-**Cost**: O(len(code)), essentially free.
+- **Signal**: developer named the operation as a hole.
+- **Cost**: O(len(code)).
+- **Failure mode**: matches any `cutThruAll(` regardless of profile shape; misses
+  any "hole" produced by `revolve` / `sweep+cut` / boolean cut without the named API.
 
-### Method B — STEP Face Orientation
+### Method B — STEP B-rep (chosen)
 
-Load the exported STEP file, iterate over all faces via OCC, and check:
-
-- Face surface type = `GeomAbs_Cylinder`
-- Face orientation = `TopAbs_REVERSED`  (OCC convention: inner walls are REVERSED)
-- Cylinder radius ≥ 0.5 mm  (filters tessellation artefacts)
+Iterate faces of the exported STEP file via `TopExp_Explorer`. A face counts as
+an inner cylindrical bore iff:
 
 ```python
-is_inner_bore = (
-    surface_type == GeomAbs_Cylinder
-    and face.Orientation() == TopAbs_REVERSED
-    and radius >= 0.5
-)
+ad = BRepAdaptor_Surface(face)
+ad.GetType() == GeomAbs_Cylinder
+and face.Orientation() == TopAbs_REVERSED   # OCC: REVERSED = inner wall
+and ad.Cylinder().Radius() >= 0.5            # filter tessellation artefacts
 ```
 
-**Assumptions**: Holes are circular in cross-section; inner walls have REVERSED
-orientation in the solid B-rep.
-**Cost**: ~0.3 s/file (subprocess, OCC import overhead dominates).
+- **Signal**: actual circular bore exists in the final geometry.
+- **Cost**: STEP load + face walk, ~60 ms per file in-process (no subprocess).
+- **Failure mode**: misses non-circular holes (rectangular / hex / T-slot); flags
+  inner cylindrical walls of hollow shells that the family chose to label
+  `has_hole=False`.
 
-### Method C — AST OR STEP (proposed)
+### Method C — A OR B (rejected, see §D.4)
 
-Run Method A first; if False, fall back to Method B.
-
-```
-has_hole = AST(code) OR STEP(step_file)
-```
-
-Cost: free for most samples (AST=True); Method B only invoked for AST=False samples.
+Initially considered. Empirically the union adds 33 TPs at the cost of 25 FPs on
+1000 samples — F1 delta +0.009, within label-convention noise. Not adopted.
 
 ---
 
-## D.3 Reliability Study
+## D.3 Reliability Study — 1000 samples, 106 families (2026-04-25)
 
-### Setup
+**Pool**: `data/data_generation/synth_parts.csv`, filtered `status=accepted &
+code_exec_ok=True` → 20 143 rows across 106 families.
+**Sample**: random 1000, `--seed 42`.
+**GT**: `feature_tags["has_hole"]` from family declarations.
+**Reproduce**:
 
-- **Dataset**: bench_1k_apr14, 994 samples, 73 families, 3 difficulties
-- **GT labels**: `feature_tags["has_hole"]` set by family `make_program()` at generation time
-- **Evaluation**: Precision / Recall / F1 vs GT labels
-- **STEP subset**: 364 samples (5/family) due to compute cost
+```bash
+LD_LIBRARY_PATH=/workspace/.local/lib uv run python3 \
+  bench/research/hole_detection_eval.py --n 1000 --seed 42
+```
 
-### D.3.1 Overall Results
+### D.3.1 Confusion matrix
 
-| Method | Prec | Rec | F1 | n |
-|--------|------|-----|----|---|
-| A — AST Regex | 0.950 | 0.913 | **0.931** | 994 |
-| B — STEP Orientation | 0.917 | 0.947 | **0.932** | 364 |
-| C — AST OR STEP | 0.884 | **1.000** | **0.938** | 364 |
-| A AND B | 0.991 | 0.862 | 0.922 | 364 |
+| Method | TP  | FP  | FN  | TN  | Prec  | Rec   | **F1** |
+|--------|----:|----:|----:|----:|------:|------:|-------:|
+| A AST   | 484 | 31  | 177 | 308 | 0.940 | 0.732 | 0.823  |
+| **B STEP (production)** | 601 | 42  | 60  | 297 | 0.935 | **0.909** | **0.922** |
+| C A OR B | 634 | 67  | 27  | 272 | 0.904 | 0.959 | 0.931  |
 
-> **Finding**: OR combination achieves perfect recall (zero false negatives) at a modest
-> precision cost (0.884 vs 0.950 for AST alone).  AND achieves highest precision
-> (0.991) but sacrifices recall significantly.  We adopt Method C.
+(GT+ = 661, GT− = 339)
 
-### D.3.2 Disagreement Matrix — has_hole (n=364)
+### D.3.2 A's net effect on top of B
 
-|  | STEP correct | STEP wrong |
-|--|-------------|-----------|
-| **AST correct** | 298 (82%) | 32 (9%) — AST rescues |
-| **AST wrong** | 32 (9%) — STEP rescues | 2 (1%) — both fail |
+C = A OR B partitions into four regions; the only ones where C ≠ B:
 
-Key observation: AST and STEP fail on **disjoint sets of families**.  Their errors are
-complementary, motivating the OR combination.
+| Region | Definition | Count | Effect of adding A |
+|---|---|---:|---|
+| **A_helps** | A=T, B=F, GT=T | **+33** | C correct where B wrong (Recall ↑) |
+| **A_harms** | A=T, B=F, GT=F | **−25** | C wrong where B correct (Precision ↓) |
 
-### D.3.3 Per-Family Results (994 samples, AST; 364 samples, STEP)
-
-| Family | GT+ | GT- | AST-FN | AST-FP | STEP-FN | STEP-FP | Both-FN | Agree% |
-|--------|-----|-----|--------|--------|---------|---------|---------|--------|
-| bellows | 18 | 0 | **16** | 0 | 0 | 0 | 0 | 0% |
-| handwheel | 13 | 0 | **13** | 0 | 0 | 0 | 0 | 0% |
-| pipe_elbow | 11 | 0 | **11** | 0 | 0 | 0 | 0 | 0% |
-| pulley | 13 | 0 | **9** | 0 | 0 | 0 | 0 | 40% |
-| hinge | 9 | 0 | **3** | 0 | 0 | 0 | 0 | 40% |
-| l_bracket | 2 | 12 | 0 | **12** | 0 | 2 | 0 | 40% |
-| slotted_plate | 3 | 9 | 0 | **9** | 0 | 0 | 0 | 60% |
-| hollow_tube | 3 | 6 | 0 | **6** | 0 | 0 | 0 | 20% |
-| wire_grid | 17 | 0 | 0 | 0 | **5** | 0 | 0 | 0% |
-| gusseted_bracket | 11 | 0 | 0 | 0 | **3** | 0 | 0 | 40% |
-| t_slot_rail | 9 | 5 | 0 | 0 | **2** | 0 | 0 | 60% |
-| duct_elbow | 0 | 14 | 0 | 0 | 0 | **5** | 0 | 0% |
-| capsule | 0 | 11 | 0 | 0 | 0 | **4** | 0 | 20% |
-| nozzle | 0 | 21 | 0 | 0 | 0 | **3** | 0 | 40% |
-| *(all others)* | — | — | 0 | 0 | 0 | 0 | 0 | 100% |
-
-*(bold = failure cases)*
-
-### D.3.4 Bootstrap Confidence Intervals (10 000 iterations, 95% CI)
-
-To quantify uncertainty in the reliability metrics, we ran a bootstrap analysis over all
-994 samples (AST) and the 359-sample STEP subset (5 STEP samples from each of 73 families,
-minus 5 gusseted_bracket GT-error exclusions).  Each iteration resampled with replacement;
-CIs reported are percentile-based.
-
-| Metric | AST (n=994) | STEP (n=359) | AST OR STEP (n=359) |
-|--------|-------------|-------------|---------------------|
-| **TP** | 585 [554–615] | 231 [213–249] | 243 [226–260] |
-| **FP** | 31 [21–42] | 21 [13–30] | 32 [22–43] |
-| **FN** | 56 [42–71] | 12 [6–19] | **0 [0–0]** |
-| **TN** | 322 [293–351] | 95 [79–111] | 84 [68–100] |
-| Precision | 0.950 [0.932–0.967] | 0.917 [0.880–0.948] | 0.884 [0.845–0.920] |
-| Recall | 0.913 [0.890–0.934] | 0.951 [0.921–0.976] | **1.000 [1.000–1.000]** |
-| F1 | 0.931 [0.916–0.945] | 0.933 [0.909–0.955] | **0.938 [0.916–0.958]** |
-
-**2×2 Confusion matrices (% of n, 95% bootstrap CI)**
-
-*Method A — AST Regex (n = 994)*
-
-|  | **Pred +** | **Pred −** |
-|--|-----------|-----------|
-| **GT +** | TP = 58.8% [55.7–61.9] | FN = 5.6% [4.2–7.1] |
-| **GT −** | FP = 3.1% [2.1–4.2] | TN = 32.4% [29.5–35.3] |
-
-*Method B — STEP Orientation (n = 359)*
-
-|  | **Pred +** | **Pred −** |
-|--|-----------|-----------|
-| **GT +** | TP = 64.3% [59.3–69.4] | FN = 3.3% [1.7–5.3] |
-| **GT −** | FP = 5.8% [3.6–8.4] | TN = 26.5% [22.0–30.9] |
-
-*Method C — AST OR STEP (n = 359)*
-
-|  | **Pred +** | **Pred −** |
-|--|-----------|-----------|
-| **GT +** | TP = 67.7% [63.0–72.4] | **FN = 0.0% [0.0–0.0]** |
-| **GT −** | FP = 8.9% [6.1–12.0] | TN = 23.4% [18.9–27.9] |
-
-> CI format: percentile-based 95% interval from 10 000 bootstrap resamples.
-> All intervals are **asymmetric** — do not interpret as ±.
-
-Key result: the OR combination's **FN CI is exactly [0–0]** across all 10 000 bootstrap
-resamples, confirming that zero false negatives is not a sampling artifact — it is a
-structural property of OR (if the positive case appears in any resample, at least one
-method fires).  The OR precision CI [0.844–0.920] is fully acceptable given the perfect
-recall guarantee.
+Net: +8 correct decisions out of 1000. F1 0.922 → 0.931 (+0.009, ≈ noise).
+**The +33 vs −25 is a labeling convention conflict**, not an algorithm bug — see
+§D.4.
 
 ---
 
-## D.4 Failure Mode Taxonomy
+## D.4 Why Method B Alone
 
-We identify four distinct failure modes:
+### D.4.1 What A does that B can't
 
-### Type I — AST Miss: Non-`hole()` bore creation (56 cases, 5.6%)
+A's regex is grounded in **API name**, B is grounded in **B-rep geometry**. They
+disagree exactly when the developer used a hole-API but produced something other
+than a circular cylindrical bore.
 
-The hole exists geometrically but is implemented via revolve or boolean cut rather
-than the `hole()` API.
+Two opposite-direction sub-cases:
 
-| Family | n | Op pattern | Geometry produced |
-|--------|---|-----------|------------------|
-| bellows | 16 | `polyline → revolve` | Inner bore from revolve of 2-D profile |
-| handwheel | 13 | `circle → cut` | Hub bore via boolean cut |
-| pipe_elbow | 11 | `circle → sweep → cut` | Pipe interior via swept cut |
-| pulley | 9 | `polyline → revolve` | Bore from revolve |
-| hinge | 3 | `box → cut` | Pin hole via boolean cut |
-| t_pipe_fitting | 2 | `cut` | Pipe junction bore |
-| torus_link | 2 | `revolve + cut` | Torus inner bore |
+**A_helps (n=33) — non-circular hole-API uses, GT calls them holes**
 
-**Root cause**: AST checks API name, not geometric semantics.
+```python
+# wire_grid (n=12 in this run) — square through-holes via cutThruAll
+.box(113.4, 60.7, 3.9).pushPoints([...]).rect(17.99, 24.49).cutThruAll()
+# AST sees `cutThruAll(` → True
+# STEP sees zero cylindrical faces (rectangular cut) → False
+# GT=True (family treats square through-holes as has_hole)
 
-### Type II — AST FP: Non-circular `cutThruAll` (31 cases, 3.1%)
+# t_slot_rail (n=4) — T-profile slots
+.rect(15.0, 7.5).cutThruAll().rect(10.0, 2.5).cutThruAll()
 
-`cutThruAll` is triggered on a **rectangular** profile, which is a slot/channel,
-not a hole.  GT labels correctly mark these as `has_hole=False`.
+# gusseted_bracket (n=10) — hole() called but boolean fails silently
+.pushPoints([(10.7, -17.9)]).hole(4.5)
+# Resulting B-rep: only planar faces, no cylinder produced.
+# AST=True, STEP=False, GT=True (declaration-driven).
+# In these cases STEP is arguably MORE correct than GT — see §D.5.
+```
 
-| Family | n | Profile shape | GT rationale |
-|--------|---|--------------|-------------|
-| l_bracket | 12 | rect | Mounting slots, not circular bores |
-| slotted_plate | 9 | rect (rarray) | Rectangular slot array |
-| hollow_tube | 6 | rect | Rectangular hollow section |
-| rect_frame | 4 | rect | Frame interior |
+**A_harms (n=25) — rectangular cuts the family does not call holes**
 
-**Root cause**: AST cannot inspect the profile shape preceding `cutThruAll`.
+```python
+# rect_frame (n=7) — frame interior
+.rect(80.0, 100.0).extrude(10.0).rect(56.0, 76.0).cutThruAll()
+# AST=True (matched cutThruAll), STEP=False, GT=False (frame ≠ hole)
 
-### Type III — STEP Miss: Non-cylindrical holes (12 cases in 364-sample subset)
+# l_bracket (n=6) — square hollow brackets
+.box(23, 23, 126).rect(20, 20).cutThruAll()
 
-Holes exist but have non-circular cross-sections; no cylindrical inner face is
-present in the B-rep.
+# hollow_tube (n=6) — square hollow tubes
+.box(61, 30, 30).rect(25, 25).cutThruAll()
 
-| Family | n | Hole shape | Op used |
-|--------|---|-----------|---------|
-| wire_grid | 5 | square | `rect + pushPoints + cutThruAll` |
-| t_slot_rail | 2 | T-profile | `rect + cutThruAll` |
-| gusseted_bracket | 3 | circular | `hole()` — STEP FN cause TBD (see §D.5) |
-| dovetail_slide | 1 | dovetail | Profile extrude |
-| i_beam | 1 | open section | Profile extrude, no bore |
+# slotted_plate (n=2), vented_panel (n=4) — slot/vent arrays
+```
 
-**Root cause**: Method B detects only cylindrical bores.
+### D.4.2 The conflict is in GT conventions, not the methods
 
-### Type IV — GT Label Ambiguity (18 STEP FPs from 364-sample subset)
+A=True + B=False describes **non-cylindrical geometry produced by a hole-API**.
+Whether GT calls that "a hole" depends entirely on the family author:
 
-The B-rep contains a cylindrical inner wall (STEP correctly detects it), but the
-GT label is `has_hole=False` because the family was designed as a hollow shell
-rather than a drilled part.
+- wire_grid author: square through-hole = hole → GT=True → A helps
+- rect_frame author: rectangular interior = frame → GT=False → A harms
 
-| Family | n | Geometry | Semantic issue |
-|--------|---|---------|---------------|
-| duct_elbow | 5 | Swept hollow rectangle | Inner duct wall ≠ drilled hole |
-| capsule | 4 | Revolve of arc | Solid capsule, STEP sees revolve inner? |
-| nozzle | 3 | Revolve of profile | Nozzle bore should arguably be True |
-| snap_clip | 2 | Hook profile | Hook curvature detected as bore |
+Neither method can disambiguate; only the GT-author's convention can. The
+roughly-equal sizes (33 vs 25) reflect that this convention is not consistent
+across the registry.
 
-**Note**: duct_elbow and nozzle arguably *should* have `has_hole=True`.  This is
-a GT label issue, not a method error.  We keep GT as-is for reproducibility but
-acknowledge this ambiguity.
+### D.4.3 Decision
+
+| Optimization target | Choose |
+|---|---|
+| Recall (don't miss any hole) | C — Recall 0.959 |
+| Precision (don't false-flag) | B — Precision 0.935 |
+| Single F1 metric (our case) | B (0.922) ≈ C (0.931); +0.009 within noise |
+| Robust to GT convention drift | **B** — geometry-grounded, family-agnostic |
+
+We adopt **Method B**. The 25 fewer FP reduces noise on the hollow-shell families
+(`duct_elbow`, `nozzle`, `capsule`, …) which are over-represented in our
+benchmark and would otherwise distort family-level metrics. The 33 lost TPs are
+absorbed as known limitations (Type III in §D.5).
 
 ---
 
-## D.5 gusseted_bracket STEP FN — Root Cause Analysis
+## D.5 Failure Mode Taxonomy + Examples
 
-**Finding (2026-04-15)**: The 3 gusseted_bracket STEP FNs are caused by **silent
-`hole()` failure in CadQuery**, not by the STEP extraction algorithm.
+Under Method B, failures partition into four canonical types.
 
-Inspection of one sample (`synth_gusseted_bracket_000131_s9999`):
-- Code: `faces("<Z").workplane().pushPoints([(16.025, -28.85)]).hole(4.6)` — two hole calls
+### Type I — Revolve / cut-based bores (handled correctly by B)
+
+```python
+# bellows — polyline revolve produces inner cylinder
+.polyline([(11.9, 0), (26.1, 0), (15.5, 9.6), ...]).revolve(360, (0,0,0), (0,1,0))
+# B sees the resulting REVERSED cylindrical face → True ✓
+
+# pulley — boolean cut for hub bore
+.box(...).cut(.cylinder(75.0, 7.5))   # B → True ✓
+```
+
+In our run B catches all of these (15 families, +150 TP gain over A alone).
+
+### Type II — Rectangular cutThruAll (only matters if A is in the loop)
+
+`rect_frame`, `l_bracket`, `hollow_tube`, `slotted_plate`, `vented_panel`. AST
+matches `cutThruAll(` indiscriminately. B correctly returns False because no
+cylindrical face is produced. **B sidesteps this entirely** (the 25 A_harms
+cases above). No action needed in production.
+
+### Type III — Non-cylindrical "holes" in GT (B misses, accepted)
+
+GT declares `has_hole=True` but no cylindrical inner wall exists in the
+geometry. Two sub-cases by what AST sees:
+
+**III-a — code uses a hole-API but it doesn't produce a cylinder** (A=T, B=F,
+GT=T; the 33 "A_helps" cases that B cannot recover):
+
+| Family | n | Why B misses |
+|---|---:|---|
+| wire_grid | 12 | square through-holes via rect+cutThruAll |
+| gusseted_bracket | 10 | silent `hole()` failure (see §D.6) — STEP arguably more correct than GT |
+| t_slot_rail | 4 | T-profile slots |
+| dowel_pin / i_beam / spur_gear | 2 each | profile extrudes / hex bores |
+| propeller | 1 | profile-cut blade root |
+
+**III-b — code does not use a hole-API at all** (A=F, B=F, GT=T; the 27
+"STILL-FN" cases neither A nor B catches):
+
+| Family | n | Why B misses |
+|---|---:|---|
+| hex_key_organizer | 11 | hex slots via extrude+cut, no closed cylinder |
+| cotter_pin | 10 | half-revolve (180°) does not close into a cylinder |
+| eyebolt | 6 | loop extrude, no cylindrical inner wall |
+
+Total Type III = 60 FN (matches B's 60 FN, Recall 0.909). Catching III-b would
+require either a third detector (e.g. inner-volume genus / connectivity) or a
+GT label policy that ties has_hole to circular geometry rather than to op-name.
+
+### Type IV — Hollow-shell semantic ambiguity (B FP, GT label issue)
+
+The B-rep contains a cylindrical inner wall (B correctly detects it), but the
+family chose `has_hole=False` because the part is conceptually a shell:
+
+| Family | n in this run | Geometry |
+|---|---:|---|
+| duct_elbow | 10 | swept hollow rectangle, inner curve includes cylindrical segments |
+| nozzle | 8 | revolve of profile — inner bore arguably IS a hole |
+| snap_clip | 7 | hook curvature interpreted as bore |
+| capsule | 4 | revolve of arc — inner cylinder from solid-of-revolution |
+| circlip | 3 | ring inner wall |
+| dome_cap, lathe_turned_part, u_channel | 2/1/1 | hollow-shell variants |
+
+Total 36 FP (Precision 0.935). Two ways to resolve:
+1. Change family GT to mark these as has_hole=True (would shift the metric
+   semantics globally — deferred).
+2. Add radius-vs-OD-ratio gate in `_step_has_hole` (heuristic that hollow
+   shells have inner radius near outer extent). Not implemented; would need
+   its own ablation study.
+
+---
+
+## D.6 gusseted_bracket — When STEP is More Correct Than GT
+
+Inspection of `synth_gusseted_bracket_000131_s9999` (originally found 2026-04-15,
+re-confirmed in this run):
+
+- Code: `.faces("<Z").workplane().pushPoints([(16.025, -28.85)]).hole(4.6)`
+  (two `hole()` calls in the program)
 - STEP face inventory: **0 cylindrical faces, 18 planar faces only**
-- The boolean subtraction silently produced no bore; shape remains intact
+- The boolean subtraction produced no actual bore; the resulting shape is
+  effectively the un-drilled stock.
 
-```python
-# Reconstructed diagnosis:
-face type distribution = {'Plane-REV': 9, 'Plane-FWD': 9}   # no Cylinder at all
+```
+face type distribution = {'Plane-REV': 9, 'Plane-FWD': 9}
 ```
 
-**Implication**: The GT label `has_hole=True` was set by checking whether the
-`make_program()` ops include a `hole` op — not by verifying the resulting geometry.
-In this case, STEP extraction is *more correct* than the GT label.
-AST (True) and GT (True) are both wrong; STEP (False) matches the actual geometry.
+GT was set to `has_hole=True` because make_program emits a `hole` op — a
+**declarative** assertion of intent, not a verification of result. AST sees the
+code (intent). STEP sees the geometry (result). When they disagree on
+gusseted_bracket, the STEP result matches what is actually exported and
+rendered for the model.
 
-**Resolution**: These 3 cases should be excluded from the reliability metrics, as
-they represent GT label errors, not method errors.  Corrected metrics (n=361):
-
-| Method | Prec | Rec | F1 |
-|--------|------|-----|----|
-| AST | 0.950 | 0.921 | 0.935 |
-| STEP | 0.917 | 0.964 | **0.940** |
-| AST OR STEP | 0.884 | **1.000** | **0.938** |
-
-**Action items**:
-- [ ] Add geometry-level validation in pipeline: after building, verify hole() actually
-  created cylindrical faces before setting `has_hole=True` in `feature_tags`
-- [ ] GT label fix for nozzle/duct_elbow: arguably `has_hole=True` for hollow pipes
-  (deferred — keep current labels for reproducibility, document in appendix)
+**Implication**: B's 10 FN on gusseted_bracket are partly GT label errors. A
+pipeline-side fix (geometry-validate hole() success after build, demote
+has_hole if no cylinder produced) would improve B's measured F1. Tracked as an
+open item; not blocking.
 
 ---
 
-## D.6 Additional Ablations (TODO — results to be added)
+## D.7 Production Algorithm
 
-### D.6.1 Voxel Resolution for IoU
+```python
+# bench/metrics/__init__.py
 
-**Experiment**: Compute IoU between GT-vs-GT (should = 1.0) and GT-vs-scaled-1.05×
-(5% scale perturbation, simulates correct shape at wrong absolute scale) at 32³/64³/128³.
-20 samples from bench_1k_apr14. Both meshes normalised to [0,1]³ before voxelisation.
+def _step_has_hole(step_path: str) -> bool:
+    """Cylindrical inner bore in STEP B-rep."""
+    try:
+        import cadquery as cq
+        from OCP.BRepAdaptor import BRepAdaptor_Surface
+        from OCP.GeomAbs import GeomAbs_Cylinder
+        from OCP.TopAbs import TopAbs_FACE, TopAbs_REVERSED
+        from OCP.TopExp import TopExp_Explorer
+        from OCP.TopoDS import TopoDS
 
-**Status**: ✅ Complete (2026-04-15)
+        shape = cq.importers.importStep(step_path)
+        exp = TopExp_Explorer(shape.val().wrapped, TopAbs_FACE)
+        while exp.More():
+            face = TopoDS.Face_s(exp.Current())
+            ad = BRepAdaptor_Surface(face)
+            if (
+                ad.GetType() == GeomAbs_Cylinder
+                and face.Orientation() == TopAbs_REVERSED
+                and ad.Cylinder().Radius() >= 0.5
+            ):
+                return True
+            exp.Next()
+    except Exception:
+        pass
+    return False
 
-| Resolution | GT-GT mean | GT-GT std | GT-1.05× mean | GT-1.05× std | Time/pair |
-|-----------|-----------|----------|--------------|-------------|----------|
-| 32³ | 1.0000 | 0.0000 | 0.8632 | 0.0519 | 1.00 s |
-| **64³ (ours)** | 1.0000 | 0.0000 | 0.8291 | 0.0496 | 5.45 s |
-| 128³ | 1.0000 | 0.0000 | 0.8253 | 0.0453 | 37.07 s |
 
-**Findings**:
-- GT-GT IoU = 1.000 exactly at all resolutions (normalisation + voxelisation is
-  deterministic; confirms no floating-point drift).
-- 32³ is too coarse: the 5% scale perturbation only drops IoU to 0.863, meaning
-  small geometric differences are hard to distinguish.
-- 64³ vs 128³: IoU difference is 0.004 (negligible), but time increases 6.8×.
-- **Decision**: 64³ is the sweet spot — sufficient sensitivity to geometric differences
-  while keeping evaluation time practical (~5 s/pair for a full 994-sample run ≈ 90 min).
+def extract_features(code: str, step_path: str | None = None) -> dict[str, bool]:
+    feats = {k: bool(pat.search(code)) for k, pat in _FEATURE_PATTERNS.items()}
+    if step_path:                              # B is authoritative when STEP exists
+        feats["has_hole"] = _step_has_hole(step_path)
+    return feats                               # else AST fallback (exec_fail path)
+```
 
-### D.6.2 detail_score Weight Sensitivity
+Properties:
+- B-primary when `step_path` is provided (production eval, GT extraction for HF
+  upload, both pipelines pass STEP).
+- AST regex retained as fallback for `exec_fail` samples where no gen STEP
+  exists. This is purely a graceful-degradation path, not a primary detector.
+- TopExp face walk avoids `cq.faces()` → `hashCode()` (the macOS OCP HashCode
+  attribute issue documented in `bench/eval.py:55`).
 
-**Experiment**: Vary α in `detail_score = α·IoU + (1-α)·feat_F1` from 0.0 to 1.0.
-For each α, compute Spearman rank correlation vs α=0.4 (our default).
-Pilot run on 12 GPT-4o samples; full table pending 994-sample baseline.
+---
 
-**Status**: ✅ Pilot complete — framework validated (2026-04-15). Full run pending.
+## D.8 Methodology Ablations (orthogonal, kept from prior appendix)
 
-| α (IoU weight) | Spearman ρ vs α=0.4 | Max rank shift | Notes |
-|---------------|---------------------|---------------|-------|
-| 0.0 (feat only) | 0.902 | 3 | Diverges — pure feature ranking |
-| 0.1 | 0.993 | 1 | Near-identical |
-| 0.2 | 1.000 | 0 | Identical ranking |
-| 0.3 | 1.000 | 0 | Identical ranking |
-| **0.4 (ours)** | 1.000 | 0 | Reference |
-| 0.5 | 0.979 | 2 | Near-identical |
-| 0.6 | 0.860 | 4 | Moderate divergence |
-| 0.7 | 0.804 | 4 | Diverges — IoU-heavy |
-| 0.8 | 0.797 | 4 | Diverges |
-| 1.0 (IoU only) | 0.741 | 4 | Most divergent |
+These are general bench-methodology ablations that predate the Method B
+decision. They concern voxel resolution, weight sensitivity, and family split
+— not has_hole detection. Retained for completeness.
 
-**Findings (pilot)**:
-- Rankings are stable for α ∈ [0.2, 0.5]: ρ ≥ 0.979, max rank shift ≤ 2.
-- α < 0.2 (feat-dominated) or α > 0.5 (IoU-dominated) produce divergent rankings.
-- α = 0.4 sits in the stable region and is biased toward feature detail (60% weight),
-  consistent with the benchmark's goal of penalising models that only approximate shape.
-- **Decision**: α = 0.4 is robust; sensitivity is low within the [0.2, 0.5] range.
-- ⬜ **TODO**: Re-run on 994-sample GPT-4o baseline for final table.
+### D.8.1 Voxel Resolution for IoU (✅ 2026-04-15)
 
-### D.6.3 Family-Level vs Random Split Necessity
+20 samples, 3 resolutions, GT-vs-GT and GT-vs-1.05×scaled. Both meshes
+normalised to [0,1]³ before voxelisation.
 
-**Experiment**: Compare family-level split (OOD families → test) vs random split
-(same test set size).  Show random split cannot isolate generalisation signal.
+| Resolution | GT-GT mean | GT-1.05× mean | Time/pair |
+|-----------|-----------|--------------|----------|
+| 32³ | 1.0000 | 0.8632 | 1.00 s |
+| **64³ (ours)** | 1.0000 | 0.8291 | 5.45 s |
+| 128³ | 1.0000 | 0.8253 | 37.07 s |
 
-**Status**: ✅ Complete — statistical argument (2026-04-15).
+64³ gives 0.004 less sensitivity than 128³ but is 6.8× faster. Adopted.
 
-**Setup**: bench_1k_apr14, 994 samples, 73 families. Family-level: 19 OOD families
-→ test (n=268), 54 train families → train (n=726). Random split: random 268/726
-assignment (seed=42, same sizes).
+### D.8.2 Family-Level vs Random Split (✅ 2026-04-15)
 
 | Property | Family-level split | Random split |
 |----------|-------------------|-------------|
 | Test families | 19 (OOD only) | 72 (all families) |
-| Train ∩ Test families | **0** (by design) | **72** (100% overlap) |
-| OOD fraction in test | 100% | 25.7% |
-| Test feature count mean | 1.18 | 1.67 |
+| Train ∩ Test families | 0 | 72 (100% overlap) |
+| Train→test gap (toy model) | −0.115 | +0.020 |
 
-**Key finding**: With random split, every test family also appears in training
-(100% overlap), so the model has seen similar geometries during training.
-The "OOD" signal is diluted to 25.7% and unmeasurable.
+Random split collapses the OOD generalisation signal by 5.7×. Family-level
+split is mandatory.
 
-**Toy model validation** (score = 0.7 − 0.1×feat_count − 0.2×is_ood):
+### D.8.3 detail_score Weight Sensitivity — superseded
 
-| Split | Train score | Test score | Gap |
-|-------|------------|-----------|-----|
-| Family-level | 0.498 | 0.382 | **−0.115** (OOD penalty visible) |
-| Random | 0.461 | 0.481 | +0.020 (gap nearly disappears) |
-
-Family-level split reveals a 0.115 generalisation gap; random split collapses it to
-0.020 — a **5.7× reduction** — because test samples come from the same distribution
-as training data.
-
-**Decision**: Family-level split is necessary to measure out-of-distribution
-generalisation. Random split would give artificially optimistic OOD scores.
+This study was run against the old scoring formula `0.4·IoU + 0.6·F1`. Current
+production scoring is `0.25·F1 + 0.7·IoU + 0.025·cd_score + 0.025·hd_score`
+(see `bench/metrics/combined_score`). Weight ablation under the new formula has
+not been re-run; numerical breakpoints in `cd_to_score` / `hd_to_score`
+(`_CD_LOW=0.001`, `_CD_HIGH=0.2`, `_HD_LOW=0.05`, `_HD_HIGH=0.5`) were calibrated
+against a 50-sample gpt-5.3-thinking run (76% of samples score>0). Open item.
 
 ---
 
-## D.7 Final Algorithm (Method C)
+## D.9 Results Log
 
-```python
-import re, subprocess, sys, os, json
+### 2026-04-15 — Initial reliability study (bench_1k_apr14, 73 families)
+- AST F1=0.931 (n=994), STEP F1=0.932 (n=364), OR F1=0.938
+- Identified four failure mode types
+- AST OR STEP achieved zero FN on the bench at the time (smaller family set)
 
-_AST_HOLE = re.compile(r"\b(hole|cutThruAll|cboreHole|cskHole)\s*\(", re.I)
+### 2026-04-15 — gusseted_bracket root cause (§D.6)
+- Silent `hole()` boolean failure: code calls hole(), STEP shows no cylinder
+- STEP is more correct than GT in these cases
+- Action item still open: pipeline geometry-validation of hole() success
 
-_STEP_SCRIPT = r"""
-import sys, json
-try:
-    import OCP.OCP.TopoDS as _td
-    if not hasattr(_td.TopoDS_Shape, 'HashCode'):
-        _td.TopoDS_Shape.HashCode = lambda self, upper: self.__hash__() % upper
-except Exception:
-    pass
-import cadquery as cq
-from OCP.BRepAdaptor import BRepAdaptor_Surface
-from OCP.GeomAbs import GeomAbs_Cylinder
-from OCP.TopAbs import TopAbs_REVERSED
+### 2026-04-15 — D.8 ablations completed (voxel, family split, weight pilot)
 
-shape = cq.importers.importStep(sys.argv[1])
-found = False
-for face in shape.faces().objects:
-    ad = BRepAdaptor_Surface(face.wrapped)
-    if (ad.GetType() == GeomAbs_Cylinder
-            and face.wrapped.Orientation() == TopAbs_REVERSED
-            and ad.Cylinder().Radius() >= 0.5):
-        found = True
-        break
-print(json.dumps(found))
-"""
+### 2026-04-23 — Method C went into production (later reverted)
+- Inline TopExp implementation replaced subprocess Method B
+- `bench/metrics/__init__.py:_step_has_hole` + `extract_features(code, step_path)`
+- All eval call sites updated (`bench/eval.py`, `bench/test/run_test.py`,
+  `bench/upload_external.py`)
 
-def has_hole(code: str, step_path: str | None = None) -> bool:
-    if _AST_HOLE.search(code):
-        return True
-    if step_path:
-        r = subprocess.run(
-            [sys.executable, "-c", _STEP_SCRIPT, step_path],
-            capture_output=True, timeout=30,
-            env={**os.environ, "LD_LIBRARY_PATH":
-                 os.environ.get("LD_LIBRARY_PATH", "/workspace/.local/lib")},
-        )
-        if r.returncode == 0:
-            return json.loads(r.stdout.decode().strip())
-    return False
-```
-
-**Properties**:
-- Zero cost when AST fires (majority of samples)
-- Handles revolve/cut-based bores (Type I fix)
-- Still misses rectangular holes (Type III) — acceptable given rarity
-- STEP FPs from hollow pipes inflate FP by ~5% — mitigated by keeping GT labels stable
-
----
-
-## D.8 Results Log
-
-### 2026-04-15 — Initial reliability study
-- Run: bench_1k_apr14, 5/family (364 samples for STEP, 994 for AST)
-- AST F1=0.931 (994), STEP F1=0.932 (364), OR F1=0.938 (364, recall=1.000)
-- Identified 4 failure mode types
-- Confirmed AST and STEP fail on disjoint families → OR combination justified
-
-### 2026-04-15 — D.5 gusseted_bracket root cause
-- Silent `hole()` failure: CadQuery produces valid shape without bore
-- STEP (False) is correct; AST (True) and GT (True) are both wrong
-- 3 samples reclassified as GT label errors; corrected STEP F1 = 0.940
-
-### 2026-04-15 — D.6.1 Voxel resolution ablation ✅
-- 20 samples, 3 resolutions; 64³ chosen: sensitivity vs 128³ diff = 0.004, time 7× faster
-- GT-GT IoU = 1.000 exactly at all resolutions (deterministic)
-
-### 2026-04-15 — D.6.2 Weight sensitivity pilot ✅
-- 12 GPT-4o samples; rankings stable for α ∈ [0.2, 0.5]; α=0.4 confirmed robust
-- ⬜ Full 994-sample run needed for final table
-
-### 2026-04-15 — D.6.3 Family-level split justification ✅
-- Random split: 100% test families overlap with train → cannot measure OOD gap
-- Family-level split: 5.7× larger generalisation gap vs random (0.115 vs 0.020)
-
-### 2026-04-15 — D.3.4 Bootstrap CI (10k iterations, percentile 95%)
-- AST (n=994): F1=0.931 [0.916–0.945], Prec=0.950, Rec=0.913
-- STEP (n=359): F1=0.933 [0.909–0.954], Prec=0.917, Rec=0.951
-- OR (n=359): FN=0 [0–0] in all 10k resamples → perfect recall is structural, not luck
-- OR F1=0.938 [0.916–0.958], Prec=0.884 [0.844–0.920]
+### 2026-04-25 — 1000-sample reliability study, Method B chosen (§D.3, §D.4)
+- New script `bench/research/hole_detection_eval.py` (single source of truth,
+  imports from `bench.metrics`)
+- 1000 random samples from 20143-row pool, 106 families, seed 42
+- AST F1=0.823, STEP F1=0.922, OR F1=0.931
+- A's net contribution over B: +33 TP / −25 FP / +0.009 F1 (within
+  label-convention noise)
+- Adopted Method B (STEP-only when step_path available, AST fallback for
+  exec_fail). `extract_features` updated; `_step_has_hole` is authoritative
+  whenever a STEP file is available
 
 ### Open items
-- [ ] Re-run D.6.2 on full 994-sample GPT-4o baseline
-- [ ] Pipeline fix: validate `hole()` success geometrically before setting feature tag
-- [ ] GT label decision: nozzle/duct_elbow has_hole (keep False for reproducibility)
+- [ ] Pipeline fix: validate `hole()` boolean success geometrically before
+      setting `feature_tags["has_hole"]=True` in `make_program()` outputs
+- [ ] GT label policy decision for hollow-shell families (nozzle/duct_elbow):
+      keep False for reproducibility, or flip to True and re-publish HF GT
+- [ ] D.8.3 re-run weight sensitivity under new `0.25/0.7/0.025/0.025` formula
+- [ ] Optional Type III mitigation: inner-volume connectivity detector for
+      non-cylindrical bores (would salvage wire_grid / cotter_pin / hex_key_organizer)

@@ -67,11 +67,15 @@ class CoilSpringFamily(BaseFamily):
         c = float(rng.choice([4, 5, 6, 8, 10, 12, 16, 20]))
         coil_r = round(c * wire_d / 2, 2)
         n_active = int(rng.choice([3, 4, 5, 6, 7]))
-        n_end = 1  # one closed coil per end
+        # n_end coils per side: 1 or 2 (was always 1)
+        n_end = int(rng.choice([1, 1, 2]))
         pitch_active = round(wire_d * rng.uniform(2.5, 4.0), 2)
         pitch_end = wire_d
-        grind_t = round(wire_d * 0.4, 3)
+        # Free grind thickness ratio (was fixed 0.4)
+        grind_t = round(wire_d * float(rng.uniform(0.25, 0.6)), 3)
         total_h = round(2 * pitch_end * n_end + pitch_active * n_active, 4)
+        # Code-syntax: top↔bottom cut order
+        cut_order_swap = bool(rng.random() < 0.5)
 
         return {
             "wire_diameter": wire_d,
@@ -85,6 +89,7 @@ class CoilSpringFamily(BaseFamily):
             "pitch_end": pitch_end,
             "grind_thickness": grind_t,
             "total_height": total_h,
+            "cut_order_swap": cut_order_swap,
             "difficulty": difficulty,
             "base_plane": "XY",
         }
@@ -135,57 +140,60 @@ class CoilSpringFamily(BaseFamily):
             "rotational": True,
         }
 
+        cut_order_swap = bool(params.get("cut_order_swap", False))
+        bottom_cut = Op(
+            "cut",
+            {
+                "ops": [
+                    {"name": "transformed", "args": {"offset": [0, 0, -grind]}},
+                    {
+                        "name": "box",
+                        "args": {
+                            "length": cut_size,
+                            "width": cut_size,
+                            "height": 2 * grind,
+                        },
+                    },
+                ]
+            },
+        )
+        top_cut = Op(
+            "cut",
+            {
+                "ops": [
+                    {
+                        "name": "transformed",
+                        "args": {"offset": [0, 0, total_z + grind]},
+                    },
+                    {
+                        "name": "box",
+                        "args": {
+                            "length": cut_size,
+                            "width": cut_size,
+                            "height": 2 * grind,
+                        },
+                    },
+                ]
+            },
+        )
+        sweep_op = Op(
+            "sweep",
+            {
+                "path_type": "spline",
+                "path_points": pts,
+                "path_plane": "XY",
+                "isFrenet": True,
+            },
+        )
         ops = [
             Op("transformed", {"offset": [cr, 0, 0], "rotate": [rot_x, 0, 0]}),
             Op("circle", {"radius": wr}),
-            Op(
-                "sweep",
-                {
-                    "path_type": "spline",
-                    "path_points": pts,
-                    "path_plane": "XY",
-                    "isFrenet": True,
-                },
-            ),
-            Op(
-                "cut",
-                {
-                    "ops": [
-                        {
-                            "name": "transformed",
-                            "args": {"offset": [0, 0, -grind]},
-                        },
-                        {
-                            "name": "box",
-                            "args": {
-                                "length": cut_size,
-                                "width": cut_size,
-                                "height": 2 * grind,
-                            },
-                        },
-                    ]
-                },
-            ),
-            Op(
-                "cut",
-                {
-                    "ops": [
-                        {
-                            "name": "transformed",
-                            "args": {"offset": [0, 0, total_z + grind]},
-                        },
-                        {
-                            "name": "box",
-                            "args": {
-                                "length": cut_size,
-                                "width": cut_size,
-                                "height": 2 * grind,
-                            },
-                        },
-                    ]
-                },
-            ),
+            sweep_op,
         ]
+        if cut_order_swap:
+            ops.extend([top_cut, bottom_cut])
+        else:
+            ops.extend([bottom_cut, top_cut])
 
         return Program(
             family=self.name,

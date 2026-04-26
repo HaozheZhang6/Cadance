@@ -58,10 +58,14 @@ class ClevisFamily(BaseFamily):
 
         if difficulty in ("medium", "hard"):
             params["chamfer"] = round(min(arm_t * 0.12, 2.0), 1)
+            params["edge_op"] = str(rng.choice(["fillet", "chamfer"]))
 
         if difficulty == "hard":
             params["stub_diameter"] = round((gap + arm_t) * 0.75, 1)
             params["stub_height"] = round(base_h * 0.7, 1)
+
+        # Code-syntax: bore form + pin order swap
+        params["bore_form"] = str(rng.choice(["hole", "cut"]))
 
         return params
 
@@ -125,13 +129,20 @@ class ClevisFamily(BaseFamily):
         ops.append(Op("rect", {"length": round(gap, 4), "width": round(depth + 1, 4)}))
         ops.append(Op("cutBlind", {"depth": round(arm_h, 4)}))
 
-        # Chamfer top edges of arms (medium+)
+        # Edge fillet/chamfer on arm tops (推 fillet 频率)
         ch = params.get("chamfer")
+        edge_op = params.get("edge_op", "chamfer")
         if ch:
-            tags["has_chamfer"] = True
+            if edge_op == "fillet":
+                tags["has_fillet"] = True
+            else:
+                tags["has_chamfer"] = True
             ops.append(Op("faces", {"selector": ">Z"}))
             ops.append(Op("edges", {"selector": ">Z"}))
-            ops.append(Op("chamfer", {"length": ch}))
+            if edge_op == "fillet":
+                ops.append(Op("fillet", {"radius": ch}))
+            else:
+                ops.append(Op("chamfer", {"length": ch}))
 
         # Pin holes through each arm (Z direction from ">Z" face)
         # Arms are at x = ±(gap/2 + arm_t/2)
@@ -142,6 +153,7 @@ class ClevisFamily(BaseFamily):
         # HOWEVER: after the slot cut, the ">Z" face consists of the two arm tops.
         # Drilling at (±arm_cx, 0) should land on each arm.
         # We use separate pushPoints + hole to ensure clarity.
+        bore_form = params.get("bore_form", "hole")
         ops.append(Op("workplane", {"selector": ">Z"}))
         ops.append(
             Op(
@@ -154,7 +166,11 @@ class ClevisFamily(BaseFamily):
                 },
             )
         )
-        ops.append(Op("hole", {"diameter": round(pin_d, 4)}))
+        if bore_form == "hole":
+            ops.append(Op("hole", {"diameter": round(pin_d, 4)}))
+        else:
+            ops.append(Op("circle", {"radius": round(pin_d / 2, 4)}))
+            ops.append(Op("cutThruAll", {}))
 
         # Threaded base stub (hard): cylinder protruding below base
         sd = params.get("stub_diameter")

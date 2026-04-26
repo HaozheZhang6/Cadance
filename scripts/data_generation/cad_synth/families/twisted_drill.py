@@ -108,11 +108,22 @@ class TwistedDrillFamily(BaseFamily):
         l_max = 15.0 * rod_radius
         rod_length = round(float(rng.uniform(l_min, l_max)), 1)
 
+        # Free flute micro-geometry (was r_phi=0.18·R0, Ra=0.6·R0, phi=30°)
+        r_phi_ratio = round(float(rng.uniform(0.15, 0.22)), 3)
+        ra_ratio = round(float(rng.uniform(0.55, 0.70)), 3)
+        phi_deg = round(float(rng.uniform(25.0, 35.0)), 1)
+        # Right-hand (negative angle = CCW twist looking down) vs left-hand
+        twist_dir = int(rng.choice([1, -1]))
+
         return {
             "rod_radius": rod_radius,
             "rod_length": rod_length,
             "pitch": pitch,
             "tip_angle": tip_angle,
+            "r_phi_ratio": r_phi_ratio,
+            "ra_ratio": ra_ratio,
+            "phi_deg": phi_deg,
+            "twist_dir": twist_dir,
             "difficulty": difficulty,
             "base_plane": "XY",
         }
@@ -146,14 +157,15 @@ class TwistedDrillFamily(BaseFamily):
         P = params["pitch"]
         theta = params["tip_angle"]
 
-        r_phi = round(0.18 * R0, 4)
-        Ra = round(0.6 * R0, 4)
-        phi_deg = 30.0
+        r_phi = round(params.get("r_phi_ratio", 0.18) * R0, 4)
+        Ra = round(params.get("ra_ratio", 0.6) * R0, 4)
+        phi_deg = float(params.get("phi_deg", 30.0))
+        twist_dir = int(params.get("twist_dir", 1))
 
         # Manual uses a 5 mm overshoot then intersects with the envelope.
         # That boolean is flaky in this OCCT build, so we twist-extrude to the
         # exact length and cut the tip region with a ring + (cyl − cone) tool.
-        total_twist = round(360.0 * (L / P), 3)
+        total_twist = round(360.0 * (L / P) * twist_dir, 3)
         tip_height = round(R0 / math.tan(math.radians(theta / 2.0)), 3)
         straight_length = round(L - tip_height, 3)
         hh = round(tip_height + 0.1, 3)

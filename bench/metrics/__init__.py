@@ -49,12 +49,19 @@ def _step_has_hole(step_path: str) -> bool:
 
 
 def extract_features(code: str, step_path: str | None = None) -> dict[str, bool]:
-    """AST regex over code; for has_hole, fall back to STEP B-rep when AST=False.
+    """AST regex over code; has_hole prefers STEP B-rep when step_path is given.
 
-    Appendix §D.7 Method C (AST OR STEP): zero FN on bench_1k_apr14.
+    Appendix §D.6 production decision: Method B (STEP-only) for has_hole when
+    geometry is available; AST regex used only as fallback for exec_fail samples
+    where no gen STEP exists. Reasons:
+      - B is geometrically grounded; A is name-matching (Type II/III mismatches).
+      - On 1000-sample reliability study (n=1000, 106 families): B F1=0.922,
+        C=A OR B F1=0.931 (+0.009, within label-convention noise).
+      - C inflates FP by ~2.5pp on hollow-shell families with no benefit on
+        F1-style metrics.
     """
     feats = {k: bool(pat.search(code)) for k, pat in _FEATURE_PATTERNS.items()}
-    if not feats["has_hole"] and step_path:
+    if step_path:
         feats["has_hole"] = _step_has_hole(step_path)
     return feats
 
@@ -283,3 +290,59 @@ def compute_chamfer(
         return float(np.mean(d1**2) + np.mean(d2**2)), None
     except Exception as e:
         return float("inf"), str(e)[:100]
+
+
+def compute_hausdorff(
+    gt_step: str, gen_step: str, n_points: int = 2048
+) -> tuple[float, str | None]:
+    """Symmetric Hausdorff (max-of-mins both ways) on normalized meshes."""
+    try:
+        import trimesh
+        from scipy.spatial import cKDTree
+
+        gt_mesh = _load_normalized_mesh(gt_step)
+        gen_mesh = _load_normalized_mesh(gen_step)
+        gt_pts = trimesh.sample.sample_surface(gt_mesh, n_points)[0]
+        gen_pts = trimesh.sample.sample_surface(gen_mesh, n_points)[0]
+        d1 = cKDTree(gen_pts).query(gt_pts)[0]
+        d2 = cKDTree(gt_pts).query(gen_pts)[0]
+        return float(max(d1.max(), d2.max())), None
+    except Exception as e:
+        return float("inf"), str(e)[:100]
+
+
+# ── CD / HD → bounded score (3-piece linear, see appendix scoring section) ────
+
+_CD_LOW, _CD_HIGH = 0.001, 0.2  # cap=1 below LOW; 0 above HIGH; linear in between
+_HD_LOW, _HD_HIGH = 0.05, 0.5  # self-self HD ≈ 0.05 due to sampling noise
+
+
+def cd_to_score(cd: float) -> float:
+    if cd is None or cd != cd or cd == float("inf"):
+        return 0.0
+    if cd <= _CD_LOW:
+        return 1.0
+    if cd >= _CD_HIGH:
+        return 0.0
+    return (_CD_HIGH - cd) / (_CD_HIGH - _CD_LOW)
+
+
+def hd_to_score(hd: float) -> float:
+    if hd is None or hd != hd or hd == float("inf"):
+        return 0.0
+    if hd <= _HD_LOW:
+        return 1.0
+    if hd >= _HD_HIGH:
+        return 0.0
+    return (_HD_HIGH - hd) / (_HD_HIGH - _HD_LOW)
+
+
+def combined_score(feature_f1: float, iou: float, cd: float, hd: float) -> float:
+    """Bench score = 0.25·feature_f1 + 0.7·IoU + 0.025·cd_score + 0.025·hd_score."""
+    return round(
+        0.25 * feature_f1
+        + 0.7 * iou
+        + 0.025 * cd_to_score(cd)
+        + 0.025 * hd_to_score(hd),
+        4,
+    )

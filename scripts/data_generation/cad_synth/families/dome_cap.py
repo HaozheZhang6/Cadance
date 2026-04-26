@@ -29,16 +29,27 @@ class DomeCapFamily(BaseFamily):
             "difficulty": difficulty,
         }
 
-        if difficulty in ("medium", "hard"):
+        bore_prob = {"easy": 0.25, "medium": 0.8, "hard": 0.9}[difficulty]
+        holes_prob = {"easy": 0.0, "medium": 0.4, "hard": 0.85}[difficulty]
+
+        if rng.random() < bore_prob:
             max_bd = h_cyl * 0.75
             params["bore_depth"] = round(rng.uniform(h_cyl * 0.3, max_bd), 1)
 
-        if difficulty == "hard":
-            params["n_holes"] = int(rng.choice([4, 6, 8]))
+        if rng.random() < holes_prob:
+            params["n_holes"] = int(rng.choice([3, 4, 5, 6, 8, 10, 12]))
             params["hole_diameter"] = round(
                 rng.uniform(3, max(3.5, min(r * 0.12, 8))), 1
             )
             params["hole_pcd"] = round(r * rng.uniform(0.65, 0.82), 1)
+
+        # Bottom rim chamfer/fillet (the circular edge at z=0).
+        rim_prob = {"easy": 0.25, "medium": 0.55, "hard": 0.7}[difficulty]
+        if rng.random() < rim_prob:
+            params["rim_op"] = str(rng.choice(["chamfer", "fillet"]))
+            params["rim_size"] = round(
+                float(rng.uniform(0.5, max(0.6, min(wall * 0.5, 2.5)))), 2
+            )
 
         return params
 
@@ -135,6 +146,19 @@ class DomeCapFamily(BaseFamily):
                 )
             )
             ops.append(Op("hole", {"diameter": round(hd, 4)}))
+
+        # Optional bottom rim chamfer/fillet (circular edge at base).
+        rim_op = params.get("rim_op")
+        rim_size = float(params.get("rim_size", 0.0))
+        if rim_op and rim_size > 0:
+            tags["has_chamfer"] = rim_op == "chamfer"
+            tags["has_fillet"] = rim_op == "fillet"
+            ops.append(Op("faces", {"selector": "<Y"}))
+            ops.append(Op("edges", {}))
+            if rim_op == "chamfer":
+                ops.append(Op("chamfer", {"length": rim_size}))
+            else:
+                ops.append(Op("fillet", {"radius": rim_size}))
 
         return Program(
             family=self.name,

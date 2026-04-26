@@ -74,6 +74,13 @@ class WormScrewFamily(BaseFamily):
 
         if difficulty in ("medium", "hard"):
             params["chamfer"] = round(rng.uniform(0.5, max(0.6, m * 0.6)), 1)
+            # Code-syntax: chamfer ↔ fillet
+            params["edge_op"] = str(rng.choice(["chamfer", "fillet"]))
+
+        # Thread profile vertex order can reverse (closed wire equivalent)
+        params["profile_reverse"] = bool(rng.random() < 0.5)
+        # Shaft form: circle().extrude() vs cylinder() (same body)
+        params["shaft_form"] = str(rng.choice(["extrude", "cylinder"]))
 
         if difficulty == "hard":
             # hard = medium + axial through-bore. Keyway dropped: small-bore
@@ -139,6 +146,8 @@ class WormScrewFamily(BaseFamily):
             [th, round(tw2, 3)],
             [0.0, round(bw2, 3)],
         ]
+        if params.get("profile_reverse", False):
+            profile_pts = list(reversed(profile_pts))
 
         # z_off centers thread on shaft (matches manual's post-translate)
         z_off = round((sl - tl) / 2, 3)
@@ -156,14 +165,31 @@ class WormScrewFamily(BaseFamily):
         # Manual: Workplane('XY').circle(df/2).extrude(sl)  [z=0..sl]
         # Here we pre-shift the workplane so shaft ends up centered around
         # the thread (which naturally spans z≈[-bw/2, tl+bw/2]).
-        ops.append(
-            Op(
-                "transformed",
-                {"offset": [0.0, 0.0, -z_off], "rotate": [0.0, 0.0, 0.0]},
+        # Shaft: circle().extrude() vs cylinder() — both produce same prism.
+        # cylinder centers at workplane origin so requires offset of sl/2 instead.
+        shaft_form = params.get("shaft_form", "extrude")
+        if shaft_form == "cylinder":
+            ops.append(
+                Op(
+                    "transformed",
+                    {
+                        "offset": [0.0, 0.0, round(sl / 2 - z_off, 3)],
+                        "rotate": [0.0, 0.0, 0.0],
+                    },
+                )
             )
-        )
-        ops.append(Op("circle", {"radius": round(df / 2, 3)}))
-        ops.append(Op("extrude", {"distance": round(sl, 3)}))
+            ops.append(
+                Op("cylinder", {"height": round(sl, 3), "radius": round(df / 2, 3)})
+            )
+        else:
+            ops.append(
+                Op(
+                    "transformed",
+                    {"offset": [0.0, 0.0, -z_off], "rotate": [0.0, 0.0, 0.0]},
+                )
+            )
+            ops.append(Op("circle", {"radius": round(df / 2, 3)}))
+            ops.append(Op("extrude", {"distance": round(sl, 3)}))
 
         # ── 2. Bore + chamfers on clean shaft (medium+) ──
         # All solid-modification ops run BEFORE union-with-thread: sweep(helix,
@@ -178,14 +204,19 @@ class WormScrewFamily(BaseFamily):
             ops.append(Op("hole", {"diameter": round(bd, 3)}))
 
         cl = params.get("chamfer")
+        edge_op = params.get("edge_op", "chamfer")
         if cl:
-            tags["has_chamfer"] = True
-            ops.append(Op("faces", {"selector": "<Z"}))
-            ops.append(Op("edges", {}))
-            ops.append(Op("chamfer", {"length": round(cl, 3)}))
-            ops.append(Op("faces", {"selector": ">Z"}))
-            ops.append(Op("edges", {}))
-            ops.append(Op("chamfer", {"length": round(cl, 3)}))
+            if edge_op == "fillet":
+                tags["has_fillet"] = True
+            else:
+                tags["has_chamfer"] = True
+            for face_sel in ("<Z", ">Z"):
+                ops.append(Op("faces", {"selector": face_sel}))
+                ops.append(Op("edges", {}))
+                if edge_op == "fillet":
+                    ops.append(Op("fillet", {"radius": round(cl, 3)}))
+                else:
+                    ops.append(Op("chamfer", {"length": round(cl, 3)}))
 
         # ── 3. Thread: XZ-plane profile swept along helix ──
         # Manual: Workplane('XZ').center(df/2, 0).polyline([...]).close()

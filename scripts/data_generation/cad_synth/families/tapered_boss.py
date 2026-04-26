@@ -52,6 +52,9 @@ class TaperedBossFamily(BaseFamily):
                 params["key_width"] = round(kw, 1)
                 params["key_depth"] = round(kd, 1)
 
+        # Code-syntax mutations
+        params["chamfer_op"] = str(rng.choice(["chamfer", "fillet"]))
+        params["bore_form"] = str(rng.choice(["hole", "cut"]))
         return params
 
     def validate_params(self, params: dict) -> bool:
@@ -133,19 +136,32 @@ class TaperedBossFamily(BaseFamily):
             ops.append(Op("circle", {"radius": flange_d / 2}))
             ops.append(Op("extrude", {"distance": flange_h}))
 
-        # Center bore (medium+)
+        # Center bore (medium+) — hole() vs cut(circle.extrude)
         bore = params.get("bore_diameter")
+        bore_form = params.get("bore_form", "hole")
         if bore:
             tags["has_hole"] = True
-            ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("hole", {"diameter": bore}))
+            if bore_form == "hole":
+                ops.append(Op("workplane", {"selector": ">Z"}))
+                ops.append(Op("hole", {"diameter": bore}))
+            else:
+                ops.append(Op("workplane", {"selector": ">Z"}))
+                ops.append(Op("circle", {"radius": round(bore / 2, 4)}))
+                ops.append(Op("cutThruAll", {}))
 
-        # Chamfer top rim (medium+) — BEFORE keyway, use edges not faces (loft edge)
+        # Top rim chamfer/fillet (medium+) — use edges not faces (loft edge)
         cl = params.get("chamfer_length")
+        chamfer_op = params.get("chamfer_op", "chamfer")
         if cl:
-            tags["has_chamfer"] = True
+            if chamfer_op == "fillet":
+                tags["has_fillet"] = True
+            else:
+                tags["has_chamfer"] = True
             ops.append(Op("edges", {"selector": ">Z"}))
-            ops.append(Op("chamfer", {"length": cl}))
+            if chamfer_op == "fillet":
+                ops.append(Op("fillet", {"radius": cl}))
+            else:
+                ops.append(Op("chamfer", {"length": cl}))
 
         # Key slot on top face (hard)
         kw = params.get("key_width")

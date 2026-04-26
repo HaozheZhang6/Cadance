@@ -1,33 +1,33 @@
 """Grease nipple — DIN 71412 Type A (straight) lubrication fitting.
 
 Single body of revolution (polyline + revolve on XZ plane, axis = world Z)
-plus an external hex flange and an axial grease passage. The revolved
-profile traces (per user-verified manual_grease_nipple_adj.py):
+plus an external hex flange and an axial grease passage. Profile traces:
 
   bottom (thread entry with 45° chamfer z=0.7)
     → thread cylinder  (d1/2, 0..l)
-    → neck transition  (drop in radius to d_neck = d2 - 1.0)
+    → neck transition  (drop in radius to d_neck/2)
     → straight neck    (up through head_base_z = l + b)
-    → short neck rise  (up to head_max_z - taper_height)
-    → 45° taper up     (outward to d2/2 at head_max_z = h - 3.2)
-    → shoulder to apex (inward to d_top/2 = 0.275·d2 at z = h)
+    → short neck rise  (up to h_straight_top, free)
+    → taper            (outward to d_head_max/2 at head_max_z)
+    → shoulder to apex (inward to d_top/2 at z = h)
     → axis closure     (back to center at z = h)
 
-Catalog per DIN 71412 Type A — head geometry fixed for all thread sizes;
-only thread diameter (d1) and hex AF (s) vary.
+Free profile params (annotated by user, 2026-04-25):
+  d_neck       ∈ (5.0, 6.0)   — was fixed 5.5
+  d_head_max   ∈ (6.0, 8.0)   — was fixed 6.5 (apex stays at 0.55·6.5=3.575)
+  h_straight_top ∈ (head_base_z+0.2, h - delta_taper - 0.1)
+  delta_taper  ∈ (1.8, 3.0)   — head_max_z = h_straight_top + delta_taper
 
-Keys: thread_code (str). Columns (all fixed except d1, s):
-  d1     = thread nominal diameter
-  s      = hex AF (across flats)
-  h      = total height (fixed 16)
-  l      = thread length below flange (fixed 5.5)
-  d2     = head max outer diameter (fixed 6.5)
-  b      = hex flange thickness (fixed 3.0)
-  z      = bottom thread chamfer length (fixed 0.7)
+Catalog per DIN 71412 Type A — h, l, b, z (chamfer), bore_d fixed.
+Thread diameter (d1) and hex AF (s) vary by thread_code.
 
-Easy:   M6x1 small-hex / M6x1 std
-Medium: M8x1 std / M8x1 large-hex
-Hard:   M10x1 std / M10x1 large-hex
+Code-level mutations (geometry-preserving):
+  profile_reverse  — traverse polyline CW vs CCW
+  flange_edge_op   — medium/hard: chamfer or fillet on 6 vertical hex edges
+
+Easy:   M6x1 small-hex / M6x1 std (no flange edge mod)
+Medium: M8x1 std / M8x1 large-hex / M6x1 std (+ optional chamfer/fillet)
+Hard:   M10x1 std / M10x1 large-hex / M8x1 large-hex (+ optional chamfer/fillet)
 
 Reference: DIN 71412:1987-05 Type A.
 """
@@ -46,10 +46,10 @@ _DIN71412_A = {
     "M10x1_s14": {"d1": 10.0, "s": 14.0},
 }
 
-# Fixed head geometry per DIN 71412 Type A
+# Fixed head geometry per DIN 71412 Type A (apex shoulder narrows to 0.55·D2_NOM)
 _H = 16.0
 _L = 5.5
-_D2 = 6.5
+_D2_NOM = 6.5  # apex shoulder dia — line "(half_d_top, h)" stays fixed
 _B = 3.0
 _Z_CHAMFER = 0.7
 _BORE_D = 2.5
@@ -71,18 +71,50 @@ class GreaseNippleFamily(BaseFamily):
 
         code = str(rng.choice(pool))
         row = _DIN71412_A[code]
+
+        d_neck = round(float(rng.uniform(5.0, 6.0)), 3)
+        d_head_max = round(float(rng.uniform(6.0, 8.0)), 3)
+        delta_taper = round(float(rng.uniform(1.8, 3.0)), 3)
+        head_base_z = _L + _B  # 8.5
+        min_hst = head_base_z + 0.2
+        max_hst = _H - delta_taper - 0.1
+        h_straight_top = round(float(rng.uniform(min_hst, max_hst)), 3)
+
+        flange_edge_op = "none"
+        flange_edge_size = 0.0
+        if difficulty in ("medium", "hard"):
+            r = float(rng.random())
+            if r < 0.4:
+                flange_edge_op = "chamfer"
+            elif r < 0.8:
+                flange_edge_op = "fillet"
+            if flange_edge_op != "none":
+                flange_edge_size = round(float(rng.uniform(0.2, 0.55)), 2)
+
+        profile_reverse = bool(rng.random() < 0.5)
+        # A union B → B union A: hex flange as primary on XY (vs revolve body on XZ).
+        hex_first = bool(rng.random() < 0.5)
+
         params = {
             "thread_code": code,
             "d_thread": float(row["d1"]),
             "s": float(row["s"]),
             "h": _H,
             "l": _L,
-            "d2": _D2,
+            "d2": _D2_NOM,
+            "d_neck": d_neck,
+            "d_head_max": d_head_max,
+            "h_straight_top": h_straight_top,
+            "delta_taper": delta_taper,
             "b": _B,
             "z": _Z_CHAMFER,
             "bore_d": _BORE_D,
+            "flange_edge_op": flange_edge_op,
+            "flange_edge_size": flange_edge_size,
+            "profile_reverse": profile_reverse,
+            "hex_first": hex_first,
             "difficulty": difficulty,
-            "base_plane": "XZ",
+            "base_plane": "XY" if hex_first else "XZ",
         }
         return params
 
@@ -90,13 +122,35 @@ class GreaseNippleFamily(BaseFamily):
         d1, s = params["d_thread"], params["s"]
         if d1 <= 0:
             return False
-        # hex across-corners must clear the thread diameter
         if s * 2 / math.sqrt(3) <= d1:
             return False
         if s < d1 + 0.5:
             return False
         if params["z"] >= params["l"] * 0.5:
             return False
+        d_neck = params["d_neck"]
+        d_head_max = params["d_head_max"]
+        # neck is the waist below the head; must be narrower than thread by ≥0.3
+        if d_neck >= d1 - 0.3:
+            return False
+        if d_neck >= d_head_max - 0.3:
+            return False
+        if d_head_max <= params["d2"] - 0.5:
+            return False
+        head_base_z = params["l"] + params["b"]
+        h_straight_top = params["h_straight_top"]
+        delta_taper = params["delta_taper"]
+        if h_straight_top <= head_base_z + 0.1:
+            return False
+        head_max_z = h_straight_top + delta_taper
+        if head_max_z >= params["h"] - 0.05:
+            return False
+        fes = params.get("flange_edge_size", 0.0)
+        if fes:
+            if fes >= params["b"] * 0.5:
+                return False
+            if fes >= s * 0.25:
+                return False
         return True
 
     def make_program(self, params: dict) -> Program:
@@ -105,96 +159,116 @@ class GreaseNippleFamily(BaseFamily):
         s = params["s"]
         h = params["h"]
         thread_len = params["l"]
-        d2 = params["d2"]
+        d2_apex = params["d2"]
+        d_neck = params["d_neck"]
+        d_head_max = params["d_head_max"]
+        h_straight_top = params["h_straight_top"]
+        delta_taper = params["delta_taper"]
         b = params["b"]
         z = params["z"]
         bore_d = params["bore_d"]
+        flange_edge_op = params.get("flange_edge_op", "none")
+        flange_edge_size = float(params.get("flange_edge_size", 0.0))
+        profile_reverse = bool(params.get("profile_reverse", False))
+        hex_first = bool(params.get("hex_first", False))
 
-        d_neck = d2 - 1.0
-        d_top = 0.55 * d2
         head_base_z = thread_len + b
-        head_max_z = h - 3.2
-        taper_height = (d2 - d_neck) / 2
-        neck_straight = head_max_z - taper_height - head_base_z
-        if neck_straight < 0.2:
-            neck_straight = 0.2
-            head_max_z = head_base_z + neck_straight + taper_height
+        head_max_z = h_straight_top + delta_taper
+        d_top = 0.55 * d2_apex  # apex shoulder, fixed per user annotation
 
         half_d1 = round(d1 / 2, 3)
         half_d_neck = round(d_neck / 2, 3)
-        half_d2 = round(d2 / 2, 3)
+        half_d_head_max = round(d_head_max / 2, 3)
         half_d_top = round(d_top / 2, 3)
         hex_across_corners = round(s * 2 / math.sqrt(3), 3)
         lr = round(thread_len, 3)
         zr = round(z, 3)
         hbr = round(head_base_z, 3)
-        h_straight_top = round(head_base_z + neck_straight, 3)
+        hstr = round(h_straight_top, 3)
         hmr = round(head_max_z, 3)
         hr = round(h, 3)
         bore_r = round(bore_d / 2, 3)
+        br = round(b, 3)
 
         tags = {
             "has_hole": True,
             "has_slot": False,
-            "has_fillet": False,
-            "has_chamfer": True,
-            "rotational": False,  # hex flange breaks rotational symmetry
+            "has_fillet": flange_edge_op == "fillet",
+            "has_chamfer": True,  # bottom thread chamfer always present
+            "rotational": False,
         }
+
+        # Forward (CCW) profile vertices in (x, y) on XZ plane (local = world XZ).
+        forward_pts = [
+            (0.0, 0.0),
+            (round(half_d1 - zr, 3), 0.0),
+            (half_d1, zr),
+            (half_d1, lr),
+            (half_d_neck, lr),
+            (half_d_neck, hbr),
+            (half_d_neck, hstr),
+            (half_d_head_max, hmr),
+            (half_d_top, hr),
+            (0.0, hr),
+        ]
+        pts = list(reversed(forward_pts)) if profile_reverse else forward_pts
+
+        # Build revolve sub-ops + hex flange sub-ops (composable).
+        revolve_sub_ops = [{"name": "moveTo", "args": {"x": pts[0][0], "y": pts[0][1]}}]
+        for x, y in pts[1:]:
+            revolve_sub_ops.append({"name": "lineTo", "args": {"x": x, "y": y}})
+        revolve_sub_ops.append({"name": "close", "args": {}})
+        revolve_sub_ops.append(
+            {
+                "name": "revolve",
+                "args": {
+                    "angleDeg": 360,
+                    "axisStart": [0, 0, 0],
+                    "axisEnd": [0, 1, 0],
+                },
+            }
+        )
+        hex_sub_ops = [
+            {"name": "workplane_offset", "args": {"offset": lr}},
+            {"name": "polygon", "args": {"n": 6, "diameter": hex_across_corners}},
+            {"name": "extrude", "args": {"distance": br}},
+        ]
+        bore_sub_ops = [
+            {"name": "transformed", "args": {"offset": [0, 0, -1]}},
+            {"name": "circle", "args": {"radius": bore_r}},
+            {"name": "extrude", "args": {"distance": round(h + 2, 3)}},
+        ]
 
         ops: list = []
 
-        # 1. Revolve profile on XZ plane around world Z axis.
-        # Local (u, v) = (X, Z) world; revolve axis (0,0,0)→(0,1,0) local = world Z.
-        ops.append(Op("moveTo", {"x": 0.0, "y": 0.0}))
-        ops.append(Op("lineTo", {"x": round(half_d1 - zr, 3), "y": 0.0}))
-        ops.append(Op("lineTo", {"x": half_d1, "y": zr}))
-        ops.append(Op("lineTo", {"x": half_d1, "y": lr}))
-        ops.append(Op("lineTo", {"x": half_d_neck, "y": lr}))
-        ops.append(Op("lineTo", {"x": half_d_neck, "y": hbr}))
-        ops.append(Op("lineTo", {"x": half_d_neck, "y": h_straight_top}))
-        ops.append(Op("lineTo", {"x": half_d2, "y": hmr}))
-        ops.append(Op("lineTo", {"x": half_d_top, "y": hr}))
-        ops.append(Op("lineTo", {"x": 0.0, "y": hr}))
-        ops.append(Op("close", {}))
-        ops.append(
-            Op(
-                "revolve",
-                {"angleDeg": 360, "axisStart": [0, 0, 0], "axisEnd": [0, 1, 0]},
-            )
-        )
-
-        # 2. Hex flange on XY plane (z = l..l+b).
-        ops.append(
-            Op(
-                "union",
-                {
-                    "plane": "XY",
-                    "ops": [
-                        {"name": "workplane_offset", "args": {"offset": lr}},
-                        {
-                            "name": "polygon",
-                            "args": {"n": 6, "diameter": hex_across_corners},
-                        },
-                        {"name": "extrude", "args": {"distance": round(b, 3)}},
-                    ],
-                },
-            )
-        )
-
-        # 3. Axial grease passage (through-bore) on XY plane.
-        ops.append(
-            Op(
-                "cut",
-                {
-                    "plane": "XY",
-                    "ops": [
-                        {"name": "transformed", "args": {"offset": [0, 0, -1]}},
-                        {"name": "circle", "args": {"radius": bore_r}},
-                        {"name": "extrude", "args": {"distance": round(h + 2, 3)}},
-                    ],
-                },
-            )
-        )
+        if hex_first:
+            # base_plane=XY: hex flange primary, revolve body unioned via XZ sub.
+            for sub in hex_sub_ops:
+                ops.append(Op(sub["name"], sub["args"]))
+            # Hex vertical edges align with world Z = base XY's |Z.
+            if flange_edge_op != "none" and flange_edge_size > 0:
+                ops.append(Op("edges", {"selector": "|Z"}))
+                if flange_edge_op == "chamfer":
+                    ops.append(Op("chamfer", {"length": flange_edge_size}))
+                else:
+                    ops.append(Op("fillet", {"radius": flange_edge_size}))
+            ops.append(Op("union", {"plane": "XZ", "ops": revolve_sub_ops}))
+            ops.append(Op("cut", {"plane": "XY", "ops": bore_sub_ops}))
+            base_plane = "XY"
+        else:
+            # base_plane=XZ: revolve body primary, hex flange unioned via XY sub.
+            for sub in revolve_sub_ops:
+                ops.append(Op(sub["name"], sub["args"]))
+            ops.append(Op("union", {"plane": "XY", "ops": hex_sub_ops}))
+            # base_plane=XZ → "|Y" remaps to world |Z (hex vertical edges).
+            if flange_edge_op != "none" and flange_edge_size > 0:
+                ops.append(Op("edges", {"selector": "|Y"}))
+                if flange_edge_op == "chamfer":
+                    ops.append(Op("chamfer", {"length": flange_edge_size}))
+                else:
+                    ops.append(Op("fillet", {"radius": flange_edge_size}))
+            ops.append(Op("cut", {"plane": "XY", "ops": bore_sub_ops}))
+            base_plane = "XZ"
 
         return Program(
             family=self.name,
@@ -202,5 +276,5 @@ class GreaseNippleFamily(BaseFamily):
             params=params,
             ops=ops,
             feature_tags=tags,
-            base_plane="XZ",
+            base_plane=base_plane,
         )

@@ -98,6 +98,23 @@ class CamFamily(BaseFamily):
                 rng.uniform(1.5, max(1.6, min(5.0, bore_d * 0.4))), 1
             )
 
+        # Code-syntax mutations (推 fillet/chamfer + cut)
+        params["profile_reverse"] = bool(rng.random() < 0.5)
+        params["bore_form"] = str(rng.choice(["hole", "cut"]))
+        if difficulty in ("medium", "hard"):
+            edge_prob = 0.55
+            if rng.random() < edge_prob:
+                params["edge_op"] = str(rng.choice(["fillet", "chamfer"]))
+                params["edge_size"] = round(
+                    float(rng.uniform(0.4, min(2.0, thickness * 0.18))), 2
+                )
+                params["edge_loc"] = str(rng.choice([">Z", "<Z", "both"]))
+        # Oil hole spread cross-difficulty
+        oil_prob = {"easy": 0.0, "medium": 0.25, "hard": 0.7}[difficulty]
+        if rng.random() < oil_prob and "oil_hole_diameter" not in params:
+            params["oil_hole_diameter"] = round(
+                rng.uniform(1.5, max(1.6, min(5.0, bore_d * 0.4))), 1
+            )
         return params
 
     def validate_params(self, params: dict) -> bool:
@@ -175,6 +192,8 @@ class CamFamily(BaseFamily):
             # Eccentric disc
             pts = _eccentric_pts(rb, e, n=48)
 
+        if params.get("profile_reverse", False):
+            pts = list(reversed(pts))
         ops.append(Op("polyline", {"points": pts}))
         ops.append(Op("close", {}))
         ops.append(Op("extrude", {"distance": thick}))
@@ -208,8 +227,31 @@ class CamFamily(BaseFamily):
             )
 
         # Shaft bore through disc + hub
+        bore_form = params.get("bore_form", "hole")
         ops.append(Op("workplane", {"selector": ">Z"}))
-        ops.append(Op("hole", {"diameter": bd}))
+        if bore_form == "hole":
+            ops.append(Op("hole", {"diameter": bd}))
+        else:
+            ops.append(Op("circle", {"radius": round(bd / 2, 3)}))
+            ops.append(Op("cutThruAll", {}))
+
+        # Edge fillet/chamfer (推 fillet 频率)
+        edge_op = params.get("edge_op")
+        edge_size = float(params.get("edge_size", 0.0))
+        edge_loc = params.get("edge_loc", ">Z")
+        if edge_op and edge_size > 0:
+            if edge_op == "fillet":
+                tags["has_fillet"] = True
+            else:
+                tags["has_chamfer"] = True
+            sels = {">Z": [">Z"], "<Z": ["<Z"], "both": [">Z", "<Z"]}[edge_loc]
+            for sel in sels:
+                ops.append(Op("faces", {"selector": sel}))
+                ops.append(Op("edges", {}))
+                if edge_op == "fillet":
+                    ops.append(Op("fillet", {"radius": edge_size}))
+                else:
+                    ops.append(Op("chamfer", {"length": edge_size}))
 
         # Keyway (medium+)
         kw = params.get("keyway_width")
