@@ -7,6 +7,7 @@ Parallel execution with per-sample subprocess isolation:
 """
 
 import argparse
+import hashlib
 import json
 import logging
 import multiprocessing as mp
@@ -17,11 +18,19 @@ from pathlib import Path
 import numpy as np
 import yaml
 
+from ..families.base import scale_params
 from .exporter import export_sample, log_rejection
 from .registry import get_family
 from .reporter import build_report, write_report
 from .sampler import sample_difficulty, sample_family
 from .validator import validate_geometry, validate_realism, validate_roundtrip
+
+
+def _param_hash(params: dict) -> str:
+    return hashlib.md5(
+        json.dumps(params, sort_keys=True, default=str).encode()
+    ).hexdigest()
+
 
 ROOT = Path(__file__).resolve().parents[4]
 DATA = ROOT / "data" / "data_generation"
@@ -202,17 +211,26 @@ def run_batch(
     run_name = config.get("run_name", f"synth_s{seed}")
     family_mix = config["family_mix"]
     difficulty_mix = config["difficulty_mix"]
+    scale_cfg = config.get("param_scale", {}) or {}
+    scale_enabled = bool(scale_cfg.get("enabled", False))
+    scale_lo = float(scale_cfg.get("lo", 0.8))
+    scale_hi = float(scale_cfg.get("hi", 1.2))
+    dedup_enabled = bool(config.get("dedup_params", False))
 
     rng = np.random.default_rng(seed)
 
     logger.info(
-        "Batch: %d samples, seed=%d, run=%s, workers=%d, resume=%s",
+        "Batch: %d samples, seed=%d, run=%s, workers=%d, resume=%s, scale=%s, dedup=%s",
         num_samples,
         seed,
         run_name,
         n_workers,
         resume,
+        f"[{scale_lo},{scale_hi}]" if scale_enabled else "off",
+        dedup_enabled,
     )
+
+    seen_param_hashes: set[str] = set()
 
     # ── Stage A+B: pre-sample all params (deterministic, single-threaded) ──
     sample_specs = []
@@ -226,9 +244,17 @@ def run_batch(
         for _ in range(MAX_PARAM_RETRIES):
             family = get_family(fam_name)
             candidate = family.sample_params(diff, rng)
-            if family.validate_params(candidate):
-                params = candidate
-                break
+            if scale_enabled:
+                candidate = scale_params(candidate, rng, scale_lo, scale_hi)
+            if not family.validate_params(candidate):
+                continue
+            if dedup_enabled:
+                h = _param_hash(candidate)
+                if h in seen_param_hashes:
+                    continue
+                seen_param_hashes.add(h)
+            params = candidate
+            break
 
         if params is not None and "base_plane" not in params:
             allowed = _ALLOWED_PLANES.get(fam_name, ("XY", "YZ", "XZ"))

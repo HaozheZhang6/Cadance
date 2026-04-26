@@ -1,4 +1,15 @@
 
+## 2026-04-26 (session 34) — UA-24 180k 数据扩展 scaffolding (data-arg-180k branch)
+
+- 新 branch `data-arg-180k` from origin/main (PR#1 合 data-arg → main 后)
+- 加 `families/base.py::scale_params` — 白名单 ×0.8-1.2 维度扩展 (length/width/height/depth/thickness/radius/diameter + suffix; 排除 int/bool/enum/discrete ISO)
+- runner.py Stage A 加 `param_scale` 配置 + `dedup_params` (md5 hash sorted JSON, 同 run 内去重)
+- 生成 106 single-family configs `configs/data_arg_180k/<family>.yaml` (1900 sample × 106, seed=5000+md5%10000, run_name=data_arg_180k_<fam>)
+- pre-flight 5 family × 50 sample: grease_nipple 100% / pulley 100% / capsule 100% / hex_nut 84% (BRep 几何 invalid) / chair 84% (roundtrip drift) — 平均 93.6%
+- 1900 × 106 × 0.94 ≈ 189k accepted，超 180k target
+- driver `run_180k_batch.sh` (resume safe, FAMILIES env / --start fam 续跑) + `push_180k.sh` (拼 106 --run 推 BenchCAD/cad_bench_X)
+- pytest 400 pass, ruff/black clean
+
 ## 2026-04-26 (session 33) — A 方案: 41 family 全 replace + push HF cad_bench
 
 - 用户决策 A 方案 — 替换 bench 41 family 旧重复样本 → 跑 `batch_replace41_apr25` 6000 sample (5780 accepted, 96.3%)

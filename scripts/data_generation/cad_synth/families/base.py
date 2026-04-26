@@ -5,6 +5,49 @@ from abc import ABC, abstractmethod
 
 from ..pipeline.builder import Program, build_from_program, render_program_to_code
 
+# Float-valued dimension keys that may be scaled by a uniform factor.
+# Excludes ints (counts), enums, bools, and discrete ISO sizes.
+_SCALABLE_EXACT = {
+    "length",
+    "width",
+    "height",
+    "depth",
+    "thickness",
+    "radius",
+    "diameter",
+    "chamfer",
+    "fillet",
+    "edge_size",
+    "pitch",
+}
+_SCALABLE_SUFFIXES = (
+    "_length",
+    "_width",
+    "_height",
+    "_depth",
+    "_thickness",
+    "_radius",
+    "_diameter",
+)
+
+
+def _is_scalable(key: str, value) -> bool:
+    if isinstance(value, bool) or not isinstance(value, float):
+        return False
+    if key in _SCALABLE_EXACT:
+        return True
+    return any(key.endswith(s) for s in _SCALABLE_SUFFIXES)
+
+
+def scale_params(params: dict, rng, lo: float = 0.8, hi: float = 1.2) -> dict:
+    """Multiply whitelisted float dim keys by uniform[lo, hi]. Caller must re-validate."""
+    out = dict(params)
+    for k, v in params.items():
+        if _is_scalable(k, v):
+            out[k] = round(v * float(rng.uniform(lo, hi)), 2)
+    return out
+
+
 # DIN 6885A Form A — (bore_d_min, bore_d_max, key_width_b, key_height_h) mm
 _DIN6885A_KEYWAY = [
     (6, 8, 2, 2),
