@@ -1674,6 +1674,490 @@ def page_cq_playground():
             shutil.rmtree(str(out_dir), ignore_errors=True)
 
 
+def page_bench_curator():
+    """Scrolling per-row curator: ~100 cases/page, case_id sorted by family."""
+    import io
+    import json as _json
+
+    from datasets import load_dataset
+
+    st.title("Bench Curator")
+    st.caption("Each row = 1 case. case_id sorted by family asc. ~100/page. "
+               "Persisted to bench_curator_state.json.")
+
+    DATA = ROOT / "data" / "data_generation"
+    SUBSET_JSON = DATA / "bench_subset_1200.json"
+    STATE_JSON = DATA / "bench_curator_state.json"
+
+    SOURCE_PRIMARY = "qixiaoqi/cad_diverse_800"
+    SOURCE_SECONDARY = "BenchCAD/cad_bench (subset_1200)"
+
+    # ── source selector (top of page) ──
+    source = st.radio(
+        "Data source",
+        [SOURCE_PRIMARY, SOURCE_SECONDARY],
+        horizontal=True,
+        key="cur_source",
+        help="Primary = qixiaoqi/cad_diverse_800 (800 rows). "
+             "Secondary = our BenchCAD subset_1200 (~1k). "
+             "code & image are looked up from BenchCAD/cad_bench when available."
+    )
+    st.divider()
+
+    @st.cache_resource(show_spinner="Loading BenchCAD/cad_bench (image/code lookup) ...")
+    def _load_bench():
+        ds = load_dataset("BenchCAD/cad_bench", split="test")
+        idx = {r["stem"]: i for i, r in enumerate(ds)}
+        return ds, idx
+
+    @st.cache_resource(show_spinner="Loading qixiaoqi/cad_diverse_800 ...")
+    def _load_diverse():
+        ds = load_dataset("qixiaoqi/cad_diverse_800", split="train")
+        idx = {r["stem"]: i for i, r in enumerate(ds)}
+        return ds, idx
+
+    bench_ds, bench_idx = _load_bench()
+    if source == SOURCE_PRIMARY:
+        diverse_ds, diverse_idx = _load_diverse()
+        # Stems list = unique stems from cad_diverse_800
+        selected_stems = sorted({diverse_ds[i]["stem"] for i in range(len(diverse_ds))})
+        # `ds` for row metadata: prefer diverse_ds; fall back to bench_ds for fields
+        # we need (gt_code / composite_png). We pass (primary, fallback) below.
+        primary_ds, primary_idx = diverse_ds, diverse_idx
+    else:
+        if not SUBSET_JSON.exists():
+            st.error(f"Subset file missing: {SUBSET_JSON}")
+            return
+        sub = _json.loads(SUBSET_JSON.read_text())
+        selected_stems = list(sub["stems"])
+        primary_ds, primary_idx = bench_ds, bench_idx
+
+    # Unified row accessor: returns dict of fields for a given stem,
+    # merging primary (metadata) + bench (gt_code / composite_png).
+    def _get_row(stem: str) -> dict:
+        out = {}
+        if stem in primary_idx:
+            r = primary_ds[primary_idx[stem]]
+            out.update({k: r[k] for k in r.keys() if k in primary_ds.column_names})
+        if stem in bench_idx:
+            br = bench_ds[bench_idx[stem]]
+            for k in ("gt_code", "composite_png"):
+                if k in bench_ds.column_names:
+                    out.setdefault(k, br[k])
+            # If primary is missing fields, fill from bench.
+            for k in ("family", "difficulty", "base_plane",
+                      "feature_tags", "ops_used"):
+                out.setdefault(k, br.get(k))
+        return out
+
+    # Family-diff-plane substitution: cad_diverse stems missing per-case
+    # image/code in HF → swap with a same-(family,diff,plane) stem from
+    # BenchCAD/cad_bench so we still have full data to curate.
+    from collections import defaultdict as _dd
+
+    @st.cache_resource(show_spinner="Building substitution map ...")
+    def _build_substitution(_primary_ds_id):
+        if source != SOURCE_PRIMARY:
+            return {}, []
+        bench_fdp = _dd(list)
+        for i in range(len(bench_ds)):
+            r = bench_ds[i]
+            key = (r["family"], r["difficulty"], r.get("base_plane", "XY"))
+            bench_fdp[key].append(r["stem"])
+        for k in bench_fdp:
+            bench_fdp[k].sort()
+        substitutions = {}
+        final_stems = []
+        used_subs = set()
+        for s in sorted(primary_idx.keys()):
+            if s in bench_idx:
+                final_stems.append(s)
+                continue
+            r = primary_ds[primary_idx[s]]
+            key = (r["family"], r["difficulty"], r.get("base_plane", "XY"))
+            cands = [c for c in bench_fdp.get(key, []) if c not in used_subs]
+            if cands:
+                sub = cands[0]
+                substitutions[s] = sub
+                used_subs.add(sub)
+                final_stems.append(sub)
+            # else: drop (no candidate)
+        return substitutions, final_stems
+
+    if source == SOURCE_PRIMARY:
+        substitutions, final_stems = _build_substitution(id(primary_ds))
+        st.caption(
+            f"Source: **{source}** · {len(primary_idx)} primary stems · "
+            f"**{len(substitutions)} substituted** from BenchCAD via "
+            f"(family, diff, plane) match · final pool = {len(final_stems)}"
+        )
+    else:
+        substitutions = {}
+        final_stems = sorted(primary_idx.keys())
+
+    # Adapter to match the older `ds[stem_idx[stem]]` API used below.
+    # `_stems[i]` is the effective stem (substitute applied for missing-img cases).
+    class _DSAdapter:
+        column_names = list(set(primary_ds.column_names) |
+                            {"gt_code", "composite_png"})
+        def __getitem__(self, i):
+            return _get_row(self._stems[i])
+    ds_adapter = _DSAdapter()
+    ds_adapter._stems = final_stems
+    stem_to_pos = {s: i for i, s in enumerate(ds_adapter._stems)}
+    ds = ds_adapter
+    stem_idx = stem_to_pos
+    if source == SOURCE_PRIMARY:
+        selected_stems = list(final_stems)
+    subset = {"stems": selected_stems}
+
+    if STATE_JSON.exists():
+        state = _json.loads(STATE_JSON.read_text())
+    else:
+        state = {"removed": [], "notes": {}}
+    removed_set = set(state.get("removed", []))
+    notes = dict(state.get("notes", {}))
+
+    # ── controls ──
+    c1, c2, c3, c4, c5 = st.columns([1.4, 1, 1, 1.4, 1])
+    with c1:
+        view = st.radio("View", ["Selected", "Removed", "Full pool"],
+                        horizontal=True, key="cur_view")
+    with c2:
+        diff_filter = st.selectbox("Difficulty", ["all", "easy", "medium", "hard"], key="cur_diff")
+    with c3:
+        plane_filter = st.selectbox("Plane", ["all", "XY", "YZ", "XZ"], key="cur_plane")
+    with c4:
+        fam_filter = st.text_input("Family contains", "", key="cur_fam")
+    with c5:
+        page_size = int(st.selectbox("Per page", [50, 100, 200], index=1, key="cur_psize"))
+
+    # ── pool ──
+    if view == "Selected":
+        pool_stems = [s for s in selected_stems if s not in removed_set]
+    elif view == "Removed":
+        pool_stems = sorted(removed_set)
+    else:
+        pool_stems = list(stem_idx.keys())
+
+    # case_id assigned by sorting (family ASC, then stem). Stable across runs.
+    pool_with_meta = []
+    for stem in pool_stems:
+        if stem not in stem_idx:
+            continue
+        r = ds[stem_idx[stem]]
+        pool_with_meta.append((r["family"], stem))
+    pool_with_meta.sort(key=lambda x: (x[0], x[1]))
+    cid_of = {stem: cid for cid, (_, stem) in enumerate(pool_with_meta)}
+
+    # Filter
+    rows = []
+    for cid, (fam, stem) in enumerate(pool_with_meta):
+        r = ds[stem_idx[stem]]
+        if diff_filter != "all" and r["difficulty"] != diff_filter:
+            continue
+        if plane_filter != "all" and r.get("base_plane", "XY") != plane_filter:
+            continue
+        if fam_filter and fam_filter.lower() not in fam.lower():
+            continue
+        rows.append((cid, stem, r))
+
+    n_total = len(rows)
+    n_pages = max(1, (n_total + page_size - 1) // page_size)
+
+    # Pagination state — keep page in session_state so prev/next buttons can mutate.
+    if "cur_page_n" not in st.session_state:
+        st.session_state["cur_page_n"] = 1
+    if st.session_state["cur_page_n"] > n_pages:
+        st.session_state["cur_page_n"] = 1
+
+    nav_prev, nav_lbl, nav_next, nav_num, nav_stat = st.columns([0.6, 0.6, 0.6, 1, 3])
+    with nav_prev:
+        if st.button("⬅ Prev", use_container_width=True,
+                     disabled=st.session_state["cur_page_n"] <= 1):
+            st.session_state["cur_page_n"] -= 1
+            st.rerun()
+    with nav_lbl:
+        st.markdown(f"<div style='text-align:center; padding-top:6px'>"
+                    f"**{st.session_state['cur_page_n']} / {n_pages}**</div>",
+                    unsafe_allow_html=True)
+    with nav_next:
+        if st.button("Next ➡", use_container_width=True,
+                     disabled=st.session_state["cur_page_n"] >= n_pages):
+            st.session_state["cur_page_n"] += 1
+            st.rerun()
+    with nav_num:
+        page = st.number_input("Jump", min_value=1, max_value=n_pages,
+                               value=st.session_state["cur_page_n"], step=1,
+                               key="cur_page_jump",
+                               label_visibility="collapsed")
+        if page != st.session_state["cur_page_n"]:
+            st.session_state["cur_page_n"] = page
+            st.rerun()
+    with nav_stat:
+        st.markdown(f"**{n_total}** matching · "
+                    f"selected={len(selected_stems) - len(removed_set & set(selected_stems))} / "
+                    f"{len(selected_stems)} · removed={len(removed_set)} · "
+                    f"noted={len(notes)}")
+
+    if not rows:
+        st.info("No rows.")
+        return
+
+    page = st.session_state["cur_page_n"]
+    start = (page - 1) * page_size
+    end = min(start + page_size, n_total)
+    page_rows = rows[start:end]
+    st.caption(f"Showing {start + 1}–{end} of {n_total}")
+
+    # Bulk export buttons
+    bk1, bk2, bk3 = st.columns([1.2, 1.6, 3])
+    with bk1:
+        if st.button("🔄 Export curated", help="Write bench_subset_1200_curated.json"):
+            curated_stems = [s for s in selected_stems if s not in removed_set]
+            out = SUBSET_JSON.with_name("bench_subset_1200_curated.json")
+            out.write_text(_json.dumps({
+                **subset,
+                "actual": len(curated_stems),
+                "stems": curated_stems,
+                "removed_count": len(removed_set & set(selected_stems)),
+                "notes_count": len(notes),
+            }, indent=2, default=str))
+            st.success(f"Wrote {out.name} ({len(curated_stems)})")
+    with bk2:
+        if st.button("✨ Export final merged",
+                     help="primary kept ∪ promoted secondary → bench_final_merged.json"):
+            # Primary kept = cad_diverse_800 stems minus those marked removed.
+            try:
+                _diverse_ds, _ = _load_diverse()
+                primary_pool = sorted({_diverse_ds[i]["stem"] for i in range(len(_diverse_ds))})
+            except Exception:
+                primary_pool = []
+            primary_kept = [s for s in primary_pool if s not in removed_set]
+            promoted = state.get("promoted", [])
+            merged = sorted(set(primary_kept) | set(promoted))
+            out = DATA / "bench_final_merged.json"
+            out.write_text(_json.dumps({
+                "primary_source": "qixiaoqi/cad_diverse_800",
+                "secondary_source": "BenchCAD/cad_bench (subset_1200)",
+                "primary_kept": len(primary_kept),
+                "promoted_secondary": len(promoted),
+                "merged_total": len(merged),
+                "stems": merged,
+            }, indent=2, default=str))
+            st.success(
+                f"Wrote {out.name}: primary_kept={len(primary_kept)} + "
+                f"promoted={len(promoted)} = total {len(merged)}"
+            )
+    with bk3:
+        st.caption(f"State file: `{STATE_JSON.name}` · "
+                   f"promoted={len(state.get('promoted', []))} · "
+                   f"removed={len(removed_set)}")
+
+    st.divider()
+
+    # ── render rows ──
+    from PIL import Image as _PIL
+
+    def _resolve_png(png):
+        if png is None:
+            return None
+        if isinstance(png, dict) and "bytes" in png:
+            png = png["bytes"]
+        if isinstance(png, bytes):
+            return _PIL.open(io.BytesIO(png))
+        return png
+
+    for cid, stem, r in page_rows:
+        is_removed = stem in removed_set
+        in_subset = stem in selected_stems
+        col_id, col_img, col_meta, col_note, col_act = st.columns([0.5, 1, 2.4, 3, 1.2])
+
+        with col_id:
+            # case_id leftmost, 1-indexed.
+            st.markdown(f"<div style='font-size:22px; font-weight:700; "
+                        f"color:#1f77b4; padding-top:18px; text-align:center;'>"
+                        f"{cid + 1}</div>", unsafe_allow_html=True)
+
+        with col_img:
+            # Prefer rendered-edit composite if user ran "Render edit"; else GT png.
+            rendered_state = st.session_state.get(f"rendered_{stem}")
+            shown_path = None
+            if rendered_state and rendered_state[0] and not rendered_state[1]:
+                shown_path = rendered_state[0]
+                img = shown_path
+                cap_extra = " · :green[edited]"
+            else:
+                img = _resolve_png(r.get("composite_png"))
+                cap_extra = ""
+            if img is not None:
+                st.image(img, width=130)
+                try:
+                    with st.popover("🔍 Large", use_container_width=True):
+                        st.image(img, width=520,
+                                 caption=f"{stem} · {r['family']}{cap_extra}")
+                except Exception:
+                    with st.expander("🔍 Large"):
+                        st.image(img, width=520)
+
+        ops_list = _json.loads(r.get("ops_used", "[]") or "[]")
+        with col_meta:
+            badges = []
+            if is_removed:
+                badges.append(":red[REMOVED]")
+            if not in_subset and view == "Full pool":
+                badges.append(":gray[not in subset]")
+            if stem in notes:
+                badges.append(":orange[📝]")
+            if badges:
+                st.markdown(" ".join(badges))
+            st.markdown(f"`{stem}`", help="case stem")
+            st.caption(f"{r['family']} · {r['difficulty']} · "
+                       f"{r.get('base_plane', 'XY')} · n_ops={len(ops_list)}")
+            # Inline ops chip-like list (truncated if very long).
+            ops_str = ", ".join(ops_list[:20])
+            if len(ops_list) > 20:
+                ops_str += f", … (+{len(ops_list) - 20})"
+            st.markdown(f":gray[ops:] {ops_str}" if ops_list else ":gray[ops: (none)]")
+
+        with col_note:
+            cur = notes.get(stem, "")
+            new = st.text_input("note", value=cur, key=f"note_{stem}",
+                                label_visibility="collapsed",
+                                placeholder="leave a note (auto-save on change)")
+            if new != cur:
+                if new.strip():
+                    notes[stem] = new.strip()
+                else:
+                    notes.pop(stem, None)
+                state["notes"] = notes
+                STATE_JSON.write_text(_json.dumps(state, indent=2))
+
+        with col_act:
+            label = "↩ Restore" if is_removed else "🗑 Remove"
+            if st.button(label, key=f"rm_{stem}", use_container_width=True):
+                if is_removed:
+                    removed_set.discard(stem)
+                else:
+                    removed_set.add(stem)
+                state["removed"] = sorted(removed_set)
+                STATE_JSON.write_text(_json.dumps(state, indent=2))
+                st.rerun()
+            # Promote to primary (only when viewing secondary source).
+            if source == SOURCE_SECONDARY:
+                promoted = set(state.get("promoted", []))
+                is_promoted = stem in promoted
+                pl = "★ Unpromote" if is_promoted else "➕ Promote"
+                if st.button(pl, key=f"pr_{stem}", use_container_width=True,
+                             help="Add this case to final merged dataset "
+                                  "(primary kept ∪ promoted secondary)"):
+                    if is_promoted:
+                        promoted.discard(stem)
+                    else:
+                        promoted.add(stem)
+                    state["promoted"] = sorted(promoted)
+                    STATE_JSON.write_text(_json.dumps(state, indent=2))
+                    st.rerun()
+                if is_promoted:
+                    st.markdown(":green[**★ promoted**]")
+            # NB: legacy `removed` block retained below but unreachable
+            # (the button above already triggered rerun).
+            if False:
+                pass
+                state["removed"] = sorted(removed_set)
+                STATE_JSON.write_text(_json.dumps(state, indent=2))
+                st.rerun()
+
+        with st.expander(f"▶ #{cid + 1} code & full ops"):
+            tab_code, tab_ops, tab_tags = st.tabs(
+                ["code (editable)", "ops (full)", "feature_tags"])
+            with tab_code:
+                code_edits = state.get("code_edits", {})
+                cur_code = code_edits.get(stem, r.get("gt_code", ""))
+                edited = st.text_area("CadQuery code", value=cur_code,
+                                      height=320, key=f"code_{stem}",
+                                      label_visibility="collapsed")
+                bc1, bc2, bc3, bc4 = st.columns(4)
+                with bc1:
+                    if st.button("💾 Save edit", key=f"sve_{stem}",
+                                 use_container_width=True):
+                        code_edits = state.get("code_edits", {})
+                        if edited.strip() and edited != r.get("gt_code", ""):
+                            code_edits[stem] = edited
+                        else:
+                            code_edits.pop(stem, None)
+                        state["code_edits"] = code_edits
+                        STATE_JSON.write_text(_json.dumps(state, indent=2))
+                        st.success("Saved")
+                with bc2:
+                    if st.button("🔧 Render edit", key=f"rnd_{stem}",
+                                 use_container_width=True):
+                        import tempfile
+                        from pathlib import Path as _P
+                        from render import render_cq
+                        # OCP 7.9.3 shim — same prefix as run_iso_106_codegen
+                        # uses, so faces()/edges() selectors work in subprocess.
+                        shim = (
+                            "from OCP.TopoDS import (TopoDS_Compound, "
+                            "TopoDS_CompSolid, TopoDS_Edge, TopoDS_Face, "
+                            "TopoDS_Shape, TopoDS_Shell, TopoDS_Solid, "
+                            "TopoDS_Vertex, TopoDS_Wire)\n"
+                            "for _cls in (TopoDS_Shape, TopoDS_Face, "
+                            "TopoDS_Edge, TopoDS_Vertex, TopoDS_Wire, "
+                            "TopoDS_Shell, TopoDS_Solid, TopoDS_Compound, "
+                            "TopoDS_CompSolid):\n"
+                            "    if not hasattr(_cls, 'HashCode'):\n"
+                            "        _cls.HashCode = lambda self, ub=2147483647: id(self) % ub\n"
+                        )
+                        body = edited if "TopoDS_Shape" in edited else shim + edited
+                        with tempfile.NamedTemporaryFile(
+                                "w", suffix=".py", delete=False) as f:
+                            f.write(body)
+                            f.flush()
+                            cq_path = f.name
+                        out_dir = _P(tempfile.mkdtemp(prefix="cur_render_"))
+                        comp, err = render_cq(cq_path, str(out_dir))
+                        st.session_state[f"rendered_{stem}"] = (comp, err,
+                                                                 str(out_dir))
+                        st.rerun()
+                with bc3:
+                    if st.button("↩ Reset to GT", key=f"rst_{stem}",
+                                 use_container_width=True):
+                        code_edits = state.get("code_edits", {})
+                        code_edits.pop(stem, None)
+                        state["code_edits"] = code_edits
+                        STATE_JSON.write_text(_json.dumps(state, indent=2))
+                        st.rerun()
+                with bc4:
+                    is_edited = stem in state.get("code_edits", {})
+                    st.markdown(":green[**EDITED**]" if is_edited
+                                else ":gray[unmodified]")
+
+                rkey = f"rendered_{stem}"
+                if rkey in st.session_state:
+                    comp, err, _odir = st.session_state[rkey]
+                    if err:
+                        st.error(f"Render failed:\n{err[:500]}")
+                    elif comp:
+                        st.success("Render OK")
+                        st.image(comp, width=400, caption="rendered preview")
+
+            with tab_ops:
+                st.code(_json.dumps(ops_list, indent=2), language="json")
+            with tab_tags:
+                st.code(_json.dumps(_json.loads(r.get("feature_tags", "{}") or "{}"),
+                                    indent=2), language="json")
+
+        st.divider()
+
+    return  # end render
+
+    # ── (legacy single-stem detail kept below for reference, never reached) ──
+    if False:
+        pick_stem = ""
+        return  # noqa: B012 — never reached
+
+
 # ── navigation ────────────────────────────────────────────────────────────────
 
 
@@ -1683,6 +2167,7 @@ def main():
         "Stem List",
         "Stem Viewer",
         "Synth Monitor",
+        "Bench Curator",
         "编辑 Bench",
         "CQ Playground",
     ]
@@ -1705,6 +2190,8 @@ def main():
         page_synth()
     elif page == "Stem List":
         page_stem_list()
+    elif page == "Bench Curator":
+        page_bench_curator()
     elif page == "编辑 Bench":
         page_edit_bench()
     elif page == "CQ Playground":
