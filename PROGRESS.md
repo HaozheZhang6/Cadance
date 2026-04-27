@@ -111,6 +111,17 @@
 - argparse 风格、ROOT/sys.path/load_dotenv 顶部样板对齐 `bench/eval.py`,走 `bench.dataloader.load_hf` 复用现有 wrapper
 - Smoke:`fetch_data.py` 实跑 OK,records.jsonl 336 行 iou 全填,UI 数据源切 from_hf 路径连通;black/ruff(新文件 0 err)/pytest 81 pass
 
+## 2026-04-24 (session 28b) — NeurIPS 2026 D&B 投稿启动 + 7 篇 reference digest
+
+- 下 NeurIPS 2026 LaTeX 模板到 `paper/neurips_2026/`(`neurips_2026.{tex,sty}` + `checklist.tex`);E&D track 用 `\usepackage[eandd]{neurips_2026}`(默认双盲,可加 `nonanonymous` 切单盲);9 页正文上限,refs/appendix/checklist 不计;abstract 5/4 截、全文 5/6 截 AoE
+- 写 intro 第一稿到 `paper/draft_intro.md`(750 字,5 段 + 5 contribution),把 CVPR 旧稿的 *curation pipeline* framing 改成 *dataset + benchmark* 框架
+- 下 7 篇 reference PDF 到 `paper/references/`:
+  - CAD 直接竞品 4 篇:Text2CAD (NeurIPS'24 D&B)、CAD-Coder (NeurIPS'25 main)、CAD-Recode (ICCV'25)、CADCodeVerify/CADPrompt (ICLR'25)
+  - D&B 结构标杆 3 篇:Infinity-Chat (NeurIPS'25 best D&B)、MMSI-Bench (ICLR'26)、AutoCodeBench (ICLR'26)
+- 4 个并行 agent 分工读 + 写 7 个 `paper/references/notes/<slug>.md` 结构化分析(storyline / claim 链条 / 关键数字 / 对 Cadance 启发 / 一句话定位)
+- 综合写 `paper/references/SUMMARY.md`:跨篇 storyline DNA、表/图 layout 标杆、metric 对比、4 个 CAD 竞品逐一定位、6 条审稿人会问 + 答案模板、intro 更新 checklist
+- 关键发现:(a) 三件套 contribution(real data + taxonomy + dense GT)是 D&B 通用骨架;(b) sticky term 命名(Hivemind / scaling cliff)是 sell finding 的标配;(c) AutoCodeBench 的 Lite/Complete 子集设计强烈建议借鉴;(d) CADCodeVerify 200 例 + 无 family + bbox IoU 是其结构性弱点,我们 20K + 106 family + rotation-inv IoU 直接打;(e) human/expert upper bound + scaling cliff 实验是 reviewer hard requirement,Cadance 还缺,需补
+
 ## 2026-04-23 (session 27) — UA-23 apr20-20k 全清 + HF 重推 + 本地↔HF align
 
 - hollow_tube YZ/XZ base_plane 下 box+rect 切成两块板（33 apr20 sample），family op 序列只适配 XY → 直接删样本 + 家族 standard 字段 `EN 10305 → EN 10219`（尺寸表本来就是 EN 10219，346 行回填）

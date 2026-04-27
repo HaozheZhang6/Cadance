@@ -1,0 +1,49 @@
+# Cadance — Draft Intro v2 (NeurIPS 2026 E&D Track)
+
+> v1 backup at draft_intro.md.bak (TODO: backup before commit). v2 changes vs v1:
+> - 主推 sticky term **Vision Bottleneck** (capability decoupling 主轴)
+> - hook 改成 "scoring 一个数告诉你 *是否成功*,告诉不了 *哪一步失败*"
+> - 加 ISO/DIN standard sweet spot 段
+> - 加 op coverage 段
+> - contribution list 加 capability decomposition + CadGen pipeline 命名
+> - 堵 escape route 段(scaling / multi-view / finetune 都不够)
+> - 引入 4 篇 CAD 竞品的 inline cite
+
+> Working title (pick one):
+> 1. **Cadance: An Execution-Verified, Capability-Decomposed Benchmark for Programmatic CAD**
+> 2. **Cadance: Diagnosing Vision, Parametric, and Code-Synthesis Capabilities of LMs on Manufacturing-Grade CAD**
+> 3. **Cadance: A Standard-Anchored Parametric CAD Benchmark with Capability-Decoupled Evaluation**
+
+---
+
+## 1. Introduction
+
+**Hook — visible-but-wrong.** A vision-language model that reads a four-view drawing of a flanged bushing and outputs CadQuery code can produce, with surprising regularity, a 3D solid that *looks* correct in renders yet fails every parametric query: the bore-to-outer-diameter ratio is off, the flange thickness is hallucinated, the chamfer radius is on the wrong edge. The geometry passes the eye but fails the calliper. This pattern is invisible to any benchmark that scores a single end-to-end metric — Chamfer distance, point-cloud distance, bounding-box IoU — because such metrics conflate three distinct capabilities that an image-to-code pipeline must chain: visual perception, geometric-to-parametric abstraction, and code synthesis. When the score drops, prior CAD code-generation work [Khan et al., 2024; Guan et al., 2025; Rukhovich et al., 2025; Alrashedy et al., 2025] cannot say *which* capability failed.
+
+**Gap.** Existing CAD code-generation datasets and benchmarks share three structural limitations. First, **operation coverage is narrow** — DeepCAD, Text2CAD, CAD-Coder, and CAD-Recode operate exclusively on sketch+extrude command sequences (CAD-Recode adds Boolean union); none of them generate parts requiring revolution, lofting, sweeping, twist-extrusion, helical sweeps, or shells, which are the operations that distinguish a real industrial part from a stack of boxes. Second, **ground truth is unverified at scale** — DeepCAD-derived corpora trust parsed Onshape code without re-execution; CADPrompt's 200 expert-authored samples are too small to support difficulty stratification; CAD-Coder's 110K LLM-synthesised CadQuery files are filtered only by a Chamfer threshold without rotation invariance. Third and most importantly, **no existing CAD benchmark decouples sub-capabilities** — every prior protocol reports one metric per model, leaving the source of model failure unknown.
+
+**Cadance.** We introduce **Cadance**, a CAD code-generation benchmark designed around execution verification, industrial-standard anchoring, and capability decomposition. The dataset comprises **20{,}143 procedurally-generated parts spanning 106 parametric families**, each constructed by a hand-engineered Python module bound where applicable to ISO, DIN, EN, ASME, or IEC specification tables. **55\% of families are standard-anchored** (DIN 338 twist drills, ISO 23509 bevel gears, DIN 2095 compression springs, DIN 8187 roller chains, etc.) — at parameter values drawn from real specification ranges, not arbitrary geometry. The CadQuery operations exercised span 45+ distinct API calls including twist-extrusion, lofting, sweeping, helical sketches, polar/rectangular patterns, and boolean composition (Table~\ref{tab:op_coverage}), versus 2--5 in prior corpora. Every record is execution-validated end-to-end: the CadQuery source is re-run inside a sandbox, the resulting STEP is voxelised, and **rotation-invariant 3D IoU** against a reference solid must reach 0.99 for the record to enter the verified split. We additionally release a **162{,}000-pair training corpus** derived from GenCAD, a **433-example instruction-guided edit benchmark** spanning all 106 families, and a **530-sample stratified Lite split** for fast leaderboards.
+
+**Capability-decoupled evaluation.** Cadance defines five tasks designed so that score *differences* across tasks isolate which sub-capability of an image-to-code pipeline is the bottleneck (§\ref{sec:capability}, Table~\ref{tab:capability}). Image-to-code (\texttt{img2cq}) exercises all three capabilities; visual numeric QA (\texttt{qa\_img}) and code numeric QA (\texttt{qa\_code}) probe parametric reasoning under image-only and code-only inputs respectively; image-conditioned editing (\texttt{edit\_img}) and text-only editing (\texttt{edit\_code}) measure code synthesis under partial parametric guidance. The contrast \texttt{qa\_img} $-$ \texttt{qa\_code} cleanly isolates the cost of replacing direct code access with visual perception. Across our pilot evaluation of 30+ frontier models we observe a **systematic 15--20 point gap** between code-conditioned and image-conditioned numeric QA scores — present even in reasoning models with explicit chain-of-thought. We name this the **Vision Bottleneck**: the dominant remaining capability gap in programmatic CAD is not model size or training-data scale but visual-to-parametric reconstruction.
+
+**Why it matters.** All three obvious mitigations fall short. Scaling open-source backbones from 1B to 78B closes only a fraction of the gap (Table~\ref{tab:family_cliff}); supplying more views (8 instead of 4) yields marginal improvement; finetuning code-only LMs on the 162K GenCAD pairs improves \texttt{img2cq} but not the underlying \texttt{qa\_img}--\texttt{qa\_code} differential. The bottleneck is structural, and the path forward is not larger models or more data of the same kind but training procedures and architectures explicitly aware of the parametric-symbolic structure of CAD geometry. Cadance provides the diagnostic lens to measure progress along that path.
+
+**Contributions.**
+
+\begin{enumerate}[leftmargin=1.4em,topsep=2pt,itemsep=2pt]
+  \item \textbf{CadGen}, a procedural CAD-data construction pipeline integrating standard-table-anchored parameter sampling, op-list emission, sandboxed execution verification at IoU $\geq 0.99$ under the cube symmetry group, and Croissant 1.0 metadata generation.
+  \item \textbf{The Cadance dataset}: 20{,}143 verified procedural parts across 106 families (55\% standard-anchored, covering 45+ CadQuery operations), 433 instruction-guided edit pairs, a 530-sample stratified Lite subset, and a 162K-pair GenCAD-derived training corpus. All splits are publicly hosted with Croissant metadata and CC-BY-4.0 licensing.
+  \item \textbf{The first capability-decomposed CAD code-generation benchmark}: a five-task evaluation suite (img2cq, qa\_img, qa\_code, edit\_img, edit\_code) whose score differentials directly isolate visual reconstruction, parametric abstraction, and code synthesis bottlenecks along the image-to-code causal chain.
+  \item \textbf{The Vision Bottleneck diagnostic}: a 15--20 point systematic gap between code-conditioned and image-conditioned numeric QA across all 30+ models tested, identifying visual-to-parametric reconstruction as the dominant remaining capability gap in programmatic CAD — and not closable by parameter scaling, view count, or naive code-finetuning alone.
+  \item \textbf{A reproducible evaluation harness} with rotation-invariant IoU, scale-invariant prompts (no millimetre leakage), append-only deduplicated result pools, and a plug-in model-adapter interface covering nine providers; adding a tenth requires ten lines of code and zero changes to scoring.
+\end{enumerate}
+
+---
+
+## TODO (next pass)
+- 选 title (1/2/3)?
+- Vision Bottleneck 数字 15--20 是预测,等真跑分回填
+- 是否在 hook 段加 "we evaluate 30+ models including 9 reasoning models"?
+- contribution 5 条会不会过多?可压成 4 条(把 1+2 合并)
+- Bibkey 列表统一: \cite{Wu2021,Khan2024,Guan2025,Rukhovich2025,Alrashedy2025,MMSIBench2026,Chou2026,Hivemind2025} 待 bibtex
+- arXiv 预印 vs 双盲选择 — 影响投稿前后 release 时间线

@@ -1,9 +1,0 @@
-\begin{abstract}
-Computer-aided design (CAD) generation is a challenging long-horizon engineering task: outputs must not only resemble a target geometry but remain executable, editable, and structurally valid.
-Existing approaches treat CAD generation as direct shape prediction or command-sequence generation, making them brittle under long construction chains and difficult to curate at scale.
-We propose a \textbf{skill-based, verification-guided framework for CAD data generation} that converts complex CAD generation into \textbf{verifiable program synthesis}: a large language model generates CadQuery programs, the programs are executed into geometry, and the resulting artifacts are filtered through geometric, visual, and metadata-based verification.
-Rather than relying on a monolithic workflow, we decompose the process into reusable skills for generation, execution, verification, repair, and dataset assembly.
-The result is a corpus of \textbf{1,646 high-precision, training-ready verified program--geometry pairs} (IoU mean 0.9999, min 0.990) covering complex industrial parts across nine complexity classes.
-We evaluate the system as a data engine rather than a generative model, focusing on data quality, verifier precision, hard-case recovery, and complexity coverage---without downstream retraining.
-Our results demonstrate that executable representations combined with strong geometric verification provide a practical path to scalable, annotation-free data curation for complex engineering domains.
-\end{abstract}
