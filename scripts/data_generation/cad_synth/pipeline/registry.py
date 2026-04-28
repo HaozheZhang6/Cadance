@@ -28,6 +28,7 @@ from ..families.dowel_pin import DowelPinFamily
 from ..families.duct_elbow import DuctElbowFamily
 from ..families.enclosure import EnclosureFamily
 from ..families.eyebolt import EyeboltFamily
+from ..families.f_bracket import FBracketFamily
 from ..families.fan_shroud import FanShroudFamily
 from ..families.flat_link import FlatLinkFamily
 from ..families.grease_nipple import GreaseNippleFamily
@@ -76,18 +77,22 @@ from ..families.rivet import RivetFamily
 from ..families.round_flange import RoundFlangeFamily
 from ..families.shaft_collar import ShaftCollarFamily
 from ..families.sheet_metal_tray import SheetMetalTrayFamily
+from ..families.simple_alphabet_pack import ALL_FAMILIES as _PACK_ALPHABET
+from ..families.simple_arc_profiles_pack import ALL_FAMILIES as _PACK_ARC
 from ..families.simple_bellows import SimpleBellowsFamily
 from ..families.simple_bevel_gear import SimpleBevelGearFamily
 
 # 5 thematic packs (UA-24 round-2): 85 additional simple_xxx families
 from ..families.simple_blocks_pack import ALL_FAMILIES as _PACK_BLOCKS
 from ..families.simple_coil_spring import SimpleCoilSpringFamily
-from ..families.simple_curved_lobe_plate import SimpleCurvedLobePlateFamily
 from ..families.simple_cylindrical_pack import ALL_FAMILIES as _PACK_CYL
 from ..families.simple_double_sprocket import SimpleDoubleSprocketFamily
+from ..families.simple_face_pack import ALL_FAMILIES as _PACK_FACE
+from ..families.simple_filleted_pack import ALL_FAMILIES as _PACK_FILLETED
 from ..families.simple_helical_gear import SimpleHelicalGearFamily
 from ..families.simple_impeller import SimpleImpellerFamily
 from ..families.simple_l_solid import SimpleLSolidFamily
+from ..families.simple_lobed_pack import ALL_FAMILIES as _PACK_LOBED
 from ..families.simple_multi_extrude_step import SimpleMultiExtrudeStepFamily
 from ..families.simple_multi_stage_pack import ALL_FAMILIES as _PACK_MULTI
 from ..families.simple_open_box_thin import SimpleOpenBoxThinFamily
@@ -99,7 +104,8 @@ from ..families.simple_sheet_sections_pack import ALL_FAMILIES as _PACK_SHEETS
 from ..families.simple_spline_hub import SimpleSplineHubFamily
 from ..families.simple_sprocket import SimpleSprocketFamily
 from ..families.simple_spur_gear import SimpleSpurGearFamily
-from ..families.simple_step_solid import SimpleStepSolidFamily
+from ..families.simple_strip_pack import ALL_FAMILIES as _PACK_STRIP
+from ..families.simple_symbol_pack import ALL_FAMILIES as _PACK_SYMBOL
 from ..families.simple_t_solid import SimpleTSolidFamily
 from ..families.simple_torsion_spring import SimpleTorsionSpringFamily
 from ..families.simple_twisted_drill import SimpleTwistedDrillFamily
@@ -134,7 +140,6 @@ from ..families.wall_anchor import WallAnchorFamily
 from ..families.wing_nut import WingNutFamily
 from ..families.wire_grid import WireGridFamily
 from ..families.worm_screw import WormScrewFamily
-from ..families.z_bracket import ZBracketFamily
 
 _FAMILIES: dict[str, BaseFamily] = {}
 
@@ -183,7 +188,7 @@ def _register_builtins():
             SheetMetalTrayFamily,
             WormScrewFamily,
             ThreadedAdapterFamily,
-            ZBracketFamily,
+            FBracketFamily,
             TPipeFittingFamily,
             BellowsFamily,
             ManifoldBlockFamily,
@@ -264,10 +269,8 @@ def _register_builtins():
             SimpleSplineHubFamily,
             SimpleWormScrewFamily,
             SimplePlateHolesGridFamily,
-            SimpleStepSolidFamily,
             SimpleLSolidFamily,
             SimpleTSolidFamily,
-            SimpleCurvedLobePlateFamily,
             SimpleOpenBoxThinFamily,
             SimpleMultiExtrudeStepFamily,
         ]
@@ -276,6 +279,13 @@ def _register_builtins():
         + _PACK_BLOCKS
         + _PACK_MULTI
         + _PACK_SHEETS
+        + _PACK_ARC
+        + _PACK_SYMBOL
+        + _PACK_FILLETED
+        + _PACK_ALPHABET
+        + _PACK_FACE
+        + _PACK_LOBED
+        + _PACK_STRIP
     ):
         _FAMILIES[cls.name] = cls()
 

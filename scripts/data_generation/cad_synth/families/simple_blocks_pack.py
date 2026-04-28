@@ -16,16 +16,43 @@ class SimpleBlockChamferedFamily(BaseFamily):
     REF = "imagined: machined mounting block"
 
     def sample_params(self, difficulty, rng):
+        # Vary aspect ratio: thin slab vs cube vs tall pillar; large visible chamfer
+        shape = rng.choice(["slab", "cube", "pillar", "long"])
+        if shape == "slab":
+            L, W, H = (
+                round(float(rng.uniform(40, 90)), 1),
+                round(float(rng.uniform(40, 90)), 1),
+                round(float(rng.uniform(8, 18)), 1),
+            )
+        elif shape == "cube":
+            s = round(float(rng.uniform(25, 55)), 1)
+            L, W, H = s, round(s * float(rng.uniform(0.85, 1.0)), 1), s
+        elif shape == "pillar":
+            L, W, H = (
+                round(float(rng.uniform(20, 40)), 1),
+                round(float(rng.uniform(20, 40)), 1),
+                round(float(rng.uniform(50, 90)), 1),
+            )
+        else:  # long
+            L, W, H = (
+                round(float(rng.uniform(60, 110)), 1),
+                round(float(rng.uniform(20, 35)), 1),
+                round(float(rng.uniform(15, 35)), 1),
+            )
+        # Big chamfer relative to smallest dim → visible chamfer faces
+        smin = min(L, W, H)
+        chamfer = round(float(rng.uniform(smin * 0.12, smin * 0.32)), 2)
         return {
-            "length": round(float(rng.uniform(30, 80)), 1),
-            "width": round(float(rng.uniform(20, 60)), 1),
-            "height": round(float(rng.uniform(15, 40)), 1),
-            "chamfer": round(float(rng.uniform(0.5, 2.5)), 2),
+            "length": L,
+            "width": W,
+            "height": H,
+            "chamfer": chamfer,
+            "shape": shape,
             "difficulty": difficulty,
         }
 
     def validate_params(self, p):
-        return all(p[k] > p["chamfer"] * 4 for k in ("length", "width", "height"))
+        return all(p[k] > p["chamfer"] * 2.2 for k in ("length", "width", "height"))
 
     def make_program(self, p):
         ops = [
@@ -271,16 +298,34 @@ class SimpleBlockWithRoundHoleFamily(BaseFamily):
     REF = "imagined: simple bushing block"
 
     def sample_params(self, difficulty, rng):
+        L = round(float(rng.uniform(30, 90)), 1)
+        W = round(float(rng.uniform(30, 80)), 1)
+        # Prominent hole (relative to plate min dim) + variable position
+        smin = min(L, W)
+        hole_d = round(float(rng.uniform(smin * 0.18, smin * 0.55)), 1)
+        # Position: center / corner / off-center
+        position = rng.choice(["center", "corner", "edge"])
+        if position == "center":
+            ox, oy = 0.0, 0.0
+        elif position == "corner":
+            ox = round((L / 2 - hole_d / 2 - 4) * float(rng.choice([-1, 1])), 1)
+            oy = round((W / 2 - hole_d / 2 - 4) * float(rng.choice([-1, 1])), 1)
+        else:  # edge
+            ox = round((L / 2 - hole_d / 2 - 4) * float(rng.choice([-1, 1])), 1)
+            oy = 0.0
         return {
-            "length": round(float(rng.uniform(30, 70)), 1),
-            "width": round(float(rng.uniform(30, 70)), 1),
-            "height": round(float(rng.uniform(15, 40)), 1),
-            "hole_d": round(float(rng.uniform(5, 15)), 1),
+            "length": L,
+            "width": W,
+            "height": round(float(rng.uniform(10, 35)), 1),
+            "hole_d": hole_d,
+            "ox": ox,
+            "oy": oy,
+            "position": position,
             "difficulty": difficulty,
         }
 
     def validate_params(self, p):
-        return p["hole_d"] < min(p["length"], p["width"]) - 6
+        return p["hole_d"] + 4 < min(p["length"], p["width"]) and p["hole_d"] >= 4
 
     def make_program(self, p):
         ops = [
@@ -295,6 +340,7 @@ class SimpleBlockWithRoundHoleFamily(BaseFamily):
             ),
             Op("faces", {"selector": ">Z"}),
             Op("workplane", {"selector": ">Z"}),
+            Op("center", {"x": p["ox"], "y": p["oy"]}),
             Op("hole", {"diameter": p["hole_d"]}),
         ]
         return Program(
@@ -302,7 +348,11 @@ class SimpleBlockWithRoundHoleFamily(BaseFamily):
             difficulty=p["difficulty"],
             params=p,
             ops=ops,
-            feature_tags={"has_hole": True, "ref": self.REF},
+            feature_tags={
+                "has_hole": True,
+                "hole_position": p["position"],
+                "ref": self.REF,
+            },
         )
 
 
@@ -734,18 +784,13 @@ class SimpleBlockWithRoundPocketFamily(BaseFamily):
 
 ALL_FAMILIES = [
     SimpleBlockChamferedFamily,
-    SimpleBlockFilletedFamily,
-    SimplePyramidBlockFamily,
     SimpleObeliskFamily,
     SimpleBlockWithPocketFamily,
     SimpleBlockWithThroughSlotFamily,
     SimpleBlockWithRoundHoleFamily,
-    SimpleBlockWithOvalHoleFamily,
     SimpleBlockWithKeywayFamily,
     SimpleBlockWithCrossCutFamily,
     SimpleBlockWithArrayHolesFamily,
-    SimpleBlockWithChamferedCornersFamily,
     SimpleDovetailBlockFamily,
     SimpleVBlockFamily,
-    SimpleBlockWithRoundPocketFamily,
 ]

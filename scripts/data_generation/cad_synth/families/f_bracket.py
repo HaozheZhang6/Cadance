@@ -1,10 +1,11 @@
-"""Z-bracket / multi-arm bracket — chained face-workplane perpendicular arms.
+"""F-bracket / multi-arm bracket — base plate + same-side perpendicular arms.
 
-Structural type: box base + faces(>Y).workplane.box perpendicular arms.
-Covers: z-brackets, wall-mount brackets, hook brackets, L/Z/T arms.
+Structural type: box base + 1-2 box arms going up from same side (F/U shape).
+Despite the legacy name "z_bracket", the geometry produced is F/U-shaped, not Z.
+Renamed 2026-04-28 after visual audit (multi-angle render confirmed no Z-fold).
 
 Easy:   base plate + one perpendicular arm (L-bracket variant)
-Medium: + second arm at opposite end (Z-shape) + mounting holes
+Medium: + second arm offset along base + mounting holes (F-shape)
 Hard:   + gusset rib + extra offset arm + chamfer
 """
 
@@ -12,8 +13,8 @@ from ..pipeline.builder import Op, Program
 from .base import BaseFamily
 
 
-class ZBracketFamily(BaseFamily):
-    name = "z_bracket"
+class FBracketFamily(BaseFamily):
+    name = "f_bracket"
     standard = "N/A"
 
     def sample_params(self, difficulty: str, rng) -> dict:

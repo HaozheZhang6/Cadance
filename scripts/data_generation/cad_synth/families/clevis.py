@@ -1,11 +1,20 @@
 """Clevis — U-shaped fork bracket with pin holes (DIN 71751 Gabelköpfe).
 
 DIN 71751: clevis fork for connecting rods and links.
-Key proportions: arm_thickness b ≈ pin_diameter d; gap s = d + 1 mm.
+Two construction forms:
+  Form A — fork end + threaded cylindrical SOCKET on opposite end (rod screws into bore).
+  Form B — fork end + plain base (no thread).
+Key proportions:
+  arm_thickness b ≈ pin_diameter d; gap s = d + 1 mm.
+  Form A socket: socket_diameter D ≈ 1.6·d + 2; socket_length L ≈ 3·d;
+                 thread_bore (tap drill for M(d)) ≈ 0.85·d.
 
-Easy:   base block + two arms + pin holes (small d 5–12 mm).
-Medium: + chamfer on arm tips (d 8–20 mm).
-Hard:   + threaded base stub (full range d 5–40 mm).
+Easy:   base block + two arms + pin holes (small d 5–12 mm). Form B.
+Medium: + chamfer on arm tips (d 8–20 mm). Form B.
+Hard:   Form A — adds CYLINDRICAL THREADED SOCKET below base with central
+        bore (the "螺丝固定 hole"); rod screws into bore. Full range d 5–40 mm.
+        `through_bore` flag (50% chance): blind (DIN canonical, ends in stub) vs.
+        through (穿到 fork base 那一头, opens into U-slot floor — DIN doesn't forbid).
 
 Reference: DIN 71751:1985 — Fork heads (Gabelköpfe); Table (pin_d, arm_t, gap for pin_d 5–40mm)
 """
@@ -60,8 +69,15 @@ class ClevisFamily(BaseFamily):
             params["chamfer"] = round(min(arm_t * 0.12, 2.0), 1)
 
         if difficulty == "hard":
-            params["stub_diameter"] = round((gap + arm_t) * 0.75, 1)
-            params["stub_height"] = round(base_h * 0.7, 1)
+            # DIN 71751 Form A: cylindrical threaded socket on opposite end of fork
+            # Proportions (per DIN A): D = 1.6·d + 2, L = 3·d, bore = 0.85·d (tap drill)
+            params["stub_diameter"] = round(pin_d * 1.6 + 2.0, 1)
+            params["stub_height"] = round(pin_d * 3.0, 1)
+            params["thread_bore_diameter"] = round(pin_d * 0.85, 1)
+            # Bore can be blind (default DIN A — stops in stub) or through (穿到 fork base
+            # 那一头). DIN 71751 doesn't forbid through-bore — the user request explicitly
+            # added this option. ~50% chance of through-bore for variant coverage.
+            params["through_bore"] = bool(rng.random() < 0.5)
 
         return params
 
@@ -92,12 +108,18 @@ class ClevisFamily(BaseFamily):
 
         sd = params.get("stub_diameter", 0)
         sh = params.get("stub_height", 0)
+        tbd = params.get("thread_bore_diameter", 0)
         if sd:
             total_w = 2 * arm_t + gap
-            if sd >= total_w * 0.95:
+            if sd >= total_w * 1.4:  # socket may be wider than base width
                 return False
-        if sh and sh >= base_h:
+            if sd < pin_d * 1.2:  # socket must be wider than the pin itself
+                return False
+        if sh and sh < pin_d * 1.5:
             return False
+        if tbd:
+            if tbd >= sd - 2.0:  # bore must leave wall thickness
+                return False
 
         return True
 
@@ -133,32 +155,20 @@ class ClevisFamily(BaseFamily):
             ops.append(Op("edges", {"selector": ">Z"}))
             ops.append(Op("chamfer", {"length": ch}))
 
-        # Pin holes through each arm (Z direction from ">Z" face)
-        # Arms are at x = ±(gap/2 + arm_t/2)
-        arm_cx = round(gap / 2 + arm_t / 2, 4)
-
-        # From ">Z" workplane (local_x=X_world, local_y=Y_world):
-        # pushPoints at (x_world, y_world=0) but ">Z" face is the TOP of the L —
-        # HOWEVER: after the slot cut, the ">Z" face consists of the two arm tops.
-        # Drilling at (±arm_cx, 0) should land on each arm.
-        # We use separate pushPoints + hole to ensure clarity.
-        ops.append(Op("workplane", {"selector": ">Z"}))
-        ops.append(
-            Op(
-                "pushPoints",
-                {
-                    "points": [
-                        (round(-arm_cx, 4), 0.0),
-                        (round(+arm_cx, 4), 0.0),
-                    ]
-                },
-            )
-        )
+        # Pin hole through the SIDE of the clevis (perpendicular to U arms).
+        # Curated fixes (cq_gui/curated_722/clevis/) show pin drilled from `>X` face,
+        # going through the body (X-direction). Position at (0, -arm_h*0.35):
+        # local_x=0 (centered along Y/depth), local_y=offset below midline (in base region).
+        pin_y_local = round(-arm_h * 0.35, 4)
+        ops.append(Op("workplane", {"selector": ">X"}))
+        ops.append(Op("pushPoints", {"points": [(0.0, pin_y_local)]}))
         ops.append(Op("hole", {"diameter": round(pin_d, 4)}))
 
-        # Threaded base stub (hard): cylinder protruding below base
+        # DIN 71751 Form A (hard): cylindrical threaded SOCKET below the base.
+        # The rod screws into a central through-bore (the "螺丝固定" hole).
         sd = params.get("stub_diameter")
         sh = params.get("stub_height")
+        tbd = params.get("thread_bore_diameter")
         if sd and sh:
             stub_center_z = round(-(total_h / 2 + sh / 2), 4)
             ops.append(
@@ -184,6 +194,44 @@ class ClevisFamily(BaseFamily):
                     },
                 )
             )
+            # Drill the threaded bore (axis = Z).
+            # - blind (default): bore only through the stub cylinder (DIN A canonical).
+            # - through: bore extends up through the base block too (opens into U-slot floor).
+            if tbd:
+                tags["has_hole"] = True
+                through = params.get("through_bore", False)
+                if through:
+                    # span: stub bottom (-total_h/2 - sh) → top of base (total_h/2 - arm_h)
+                    cut_h = sh + base_h + 2.0
+                    cut_center_z = round(
+                        ((-total_h / 2 - sh) + (total_h / 2 - arm_h)) / 2, 4
+                    )
+                else:
+                    cut_h = sh + 2.0
+                    cut_center_z = stub_center_z
+                ops.append(
+                    Op(
+                        "cut",
+                        {
+                            "ops": [
+                                {
+                                    "name": "transformed",
+                                    "args": {
+                                        "offset": [0, 0, cut_center_z],
+                                        "rotate": [0, 0, 0],
+                                    },
+                                },
+                                {
+                                    "name": "cylinder",
+                                    "args": {
+                                        "height": round(cut_h, 4),
+                                        "radius": round(tbd / 2, 4),
+                                    },
+                                },
+                            ]
+                        },
+                    )
+                )
 
         return Program(
             family=self.name,

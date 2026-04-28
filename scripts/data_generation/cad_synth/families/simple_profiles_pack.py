@@ -598,10 +598,17 @@ class SimpleHexagonBlockFamily(_PolyFamily):
     REF = "f360:128043_0017e0c6 hex prism"
 
     def _sample_size(self, difficulty, rng):
-        return {
-            "radius": round(float(rng.uniform(15, 40)), 1),
-            "thickness": round(float(rng.uniform(8, 30)), 1),
-        }
+        # Hexagon defaults to "nut" form-factor: medium-thickness, mid radius
+        radius = round(float(rng.uniform(18, 35)), 1)
+        # form: nut (thick relative to radius) is signature for hex
+        form = rng.choice(["nut", "thin_plate", "tall_prism"])
+        if form == "nut":
+            thickness = round(radius * float(rng.uniform(0.5, 1.0)), 1)
+        elif form == "thin_plate":
+            thickness = round(radius * float(rng.uniform(0.1, 0.25)), 1)
+        else:  # tall_prism
+            thickness = round(radius * float(rng.uniform(1.5, 2.8)), 1)
+        return {"radius": radius, "thickness": thickness, "form": form}
 
     def _make_pts(self, p, rng):
         return _polygon_pts(6, p["radius"])
@@ -613,10 +620,16 @@ class SimpleHeptagonBlockFamily(_PolyFamily):
     REF = "imagined: 7-sided polygon prism"
 
     def _sample_size(self, difficulty, rng):
-        return {
-            "radius": round(float(rng.uniform(15, 35)), 1),
-            "thickness": round(float(rng.uniform(8, 25)), 1),
-        }
+        # Heptagon biased toward "thin medallion" form to differentiate from hex/oct
+        radius = round(float(rng.uniform(20, 45)), 1)
+        form = rng.choice(["coin", "medium", "tall"])
+        if form == "coin":
+            thickness = round(radius * float(rng.uniform(0.06, 0.15)), 1)
+        elif form == "medium":
+            thickness = round(radius * float(rng.uniform(0.3, 0.6)), 1)
+        else:  # tall
+            thickness = round(radius * float(rng.uniform(1.0, 1.8)), 1)
+        return {"radius": radius, "thickness": max(thickness, 2.0), "form": form}
 
     def _make_pts(self, p, rng):
         return _polygon_pts(7, p["radius"])
@@ -628,10 +641,16 @@ class SimpleOctagonBlockFamily(_PolyFamily):
     REF = "imagined: 8-sided nut/bolt cross-section"
 
     def _sample_size(self, difficulty, rng):
-        return {
-            "radius": round(float(rng.uniform(15, 40)), 1),
-            "thickness": round(float(rng.uniform(8, 30)), 1),
-        }
+        # Octagon biased toward "tall column" / "stop-sign plate" forms
+        radius = round(float(rng.uniform(20, 40)), 1)
+        form = rng.choice(["sign_plate", "puck", "column"])
+        if form == "sign_plate":
+            thickness = round(radius * float(rng.uniform(0.05, 0.15)), 1)
+        elif form == "puck":
+            thickness = round(radius * float(rng.uniform(0.7, 1.2)), 1)
+        else:  # column
+            thickness = round(radius * float(rng.uniform(2.0, 3.5)), 1)
+        return {"radius": radius, "thickness": max(thickness, 2.0), "form": form}
 
     def _make_pts(self, p, rng):
         return _polygon_pts(8, p["radius"])
@@ -1047,7 +1066,6 @@ ALL_FAMILIES = [
     SimpleChevronPlateFamily,
     SimpleCrossPlateFamily,
     SimpleArrowPlateFamily,
-    SimpleHousePlateFamily,
     SimplePentagonBlockFamily,
     SimpleHexagonBlockFamily,
     SimpleHeptagonBlockFamily,
@@ -1057,17 +1075,12 @@ ALL_FAMILIES = [
     SimpleStadiumPlateFamily,
     SimpleHalfDiscPlateFamily,
     SimplePieSlicePlateFamily,
-    SimpleQuarterDiscPlateFamily,
     SimpleCrescentPlateFamily,
     SimpleDogbonePlateFamily,
-    SimpleHSectionPlateFamily,
-    SimpleZSectionPlateFamily,
-    SimpleYShapePlateFamily,
     SimpleCorrugatedSheetFamily,
     SimpleSerratedPlateFamily,
     SimpleDShapePlateFamily,
     SimpleAnnulusPlateFamily,
     SimpleRoundedRectPlateFamily,
-    SimpleCapsulePlateFamily,
     SimpleSlotThroughPlateFamily,
 ]

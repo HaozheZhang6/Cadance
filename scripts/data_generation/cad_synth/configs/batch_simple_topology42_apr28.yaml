@@ -1,0 +1,56 @@
+run_name: batch_simple_topology42_apr28
+num_samples: 1260
+seed: 4131
+n_workers: 4
+family_mix:
+  # face_pack (10)
+  simple_face_emoji_plate: 1
+  simple_dial_plate: 1
+  simple_perforated_disc_with_pattern: 1
+  simple_target_plate: 1
+  simple_die_face_plate: 1
+  simple_cell_phone_back_plate: 1
+  simple_keypad_button_plate: 1
+  simple_cd_disc: 1
+  simple_eyeglasses_plate: 1
+  simple_lock_plate: 1
+  # alphabet_pack (12)
+  simple_letter_l_plate: 1
+  simple_letter_t_plate: 1
+  simple_letter_h_plate: 1
+  simple_letter_e_plate: 1
+  simple_letter_f_plate: 1
+  simple_letter_p_plate: 1
+  simple_letter_d_plate: 1
+  simple_letter_u_plate: 1
+  simple_letter_j_plate: 1
+  simple_letter_y_plate: 1
+  simple_letter_x_plate: 1
+  simple_number_8_plate: 1
+  # lobed_pack (10)
+  simple_clover_3leaf_plate: 1
+  simple_clover_4leaf_plate: 1
+  simple_flower_5petal_plate: 1
+  simple_flower_8petal_plate: 1
+  simple_butterfly_plate: 1
+  simple_diamond_lobed_plate: 1
+  simple_gear_outline_plate: 1
+  simple_fan_blade_plate: 1
+  simple_paw_print_plate: 1
+  simple_anchor_plate: 1
+  # strip_pack (10)
+  simple_horseshoe_plate: 1
+  simple_arch_plate: 1
+  simple_paperclip_plate: 1
+  simple_wave_strip_plate: 1
+  simple_serpentine_plate: 1
+  simple_curved_handle_plate: 1
+  simple_bow_tie_plate: 1
+  simple_crescent_thick_plate: 1
+  simple_lightning_bolt_plate: 1
+  simple_arc_chain_plate: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true

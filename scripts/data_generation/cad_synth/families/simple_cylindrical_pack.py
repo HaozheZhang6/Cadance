@@ -339,32 +339,50 @@ class SimpleChamferShaftFamily(BaseFamily):
     REF = "imagined: machined shaft with chamfered ends"
 
     def sample_params(self, difficulty, rng):
-        r = round(float(rng.uniform(8, 25)), 1)
+        # Aspect: short stub vs medium pin vs long shaft → very different silhouettes
+        aspect = rng.choice(["short_stub", "medium_pin", "long_shaft"])
+        r = round(float(rng.uniform(8, 28)), 1)
+        if aspect == "short_stub":
+            length = round(r * float(rng.uniform(1.0, 2.0)), 1)
+        elif aspect == "medium_pin":
+            length = round(r * float(rng.uniform(3.0, 5.5)), 1)
+        else:  # long_shaft
+            length = round(r * float(rng.uniform(7.0, 12.0)), 1)
+        # OBVIOUS chamfers: 25-50% of radius, possibly different at each end
+        ch_top = round(r * float(rng.uniform(0.25, 0.5)), 2)
+        ch_bot = round(r * float(rng.uniform(0.25, 0.5)), 2)
         return {
             "radius": r,
-            "length": round(float(rng.uniform(30, 100)), 1),
-            "chamfer": round(r * float(rng.uniform(0.1, 0.3)), 2),
+            "length": length,
+            "chamfer_top": ch_top,
+            "chamfer_bot": ch_bot,
+            "aspect": aspect,
             "difficulty": difficulty,
         }
 
     def validate_params(self, p):
-        return p["chamfer"] > 0.2 and p["length"] >= 10
+        return (
+            p["chamfer_top"] > 0.5
+            and p["chamfer_bot"] > 0.5
+            and p["length"] > p["chamfer_top"] + p["chamfer_bot"] + 4
+            and p["radius"] > max(p["chamfer_top"], p["chamfer_bot"]) + 0.5
+        )
 
     def make_program(self, p):
         ops = [
             Op("circle", {"radius": p["radius"]}),
             Op("extrude", {"distance": p["length"]}),
             Op("edges", {"selector": ">Z"}),
-            Op("chamfer", {"length": p["chamfer"]}),
+            Op("chamfer", {"length": p["chamfer_top"]}),
             Op("edges", {"selector": "<Z"}),
-            Op("chamfer", {"length": p["chamfer"]}),
+            Op("chamfer", {"length": p["chamfer_bot"]}),
         ]
         return Program(
             family=self.name,
             difficulty=p["difficulty"],
             params=p,
             ops=ops,
-            feature_tags={"has_chamfer": True, "ref": self.REF},
+            feature_tags={"has_chamfer": True, "aspect": p["aspect"], "ref": self.REF},
         )
 
 
@@ -449,23 +467,56 @@ class SimpleThinDiscFamily(BaseFamily):
     REF = "f360:24086_a8e5514c thin disc"
 
     def sample_params(self, difficulty, rng):
+        # High aspect ratio: radius >> thickness (≥10x)
+        radius = round(float(rng.uniform(25, 60)), 1)
+        # Thickness 1-3mm so it really looks like a disc/wafer not a puck
+        thickness = round(float(rng.uniform(1.0, 3.0)), 2)
+        variant = rng.choice(["plain", "center_hole", "polar_holes", "chamfered"])
         return {
-            "radius": round(float(rng.uniform(20, 50)), 1),
-            "thickness": round(float(rng.uniform(2, 8)), 1),
-            "with_chamfer": (difficulty == "hard" and rng.uniform(0, 1) < 0.5),
-            "chamfer": round(float(rng.uniform(0.4, 1.0)), 2),
+            "radius": radius,
+            "thickness": thickness,
+            "variant": variant,
+            "center_d": round(radius * float(rng.uniform(0.15, 0.4)), 1),
+            "n_holes": int(rng.choice([3, 4, 6, 8])),
+            "hole_d": round(radius * float(rng.uniform(0.05, 0.12)), 1),
+            "hole_pcd": round(radius * float(rng.uniform(0.55, 0.8)), 1),
+            "chamfer": round(min(thickness * 0.4, 0.8), 2),
             "difficulty": difficulty,
         }
 
     def validate_params(self, p):
-        return p["radius"] >= 8 and p["thickness"] >= 1.0
+        return (
+            p["radius"] >= 12
+            and p["thickness"] >= 1.0
+            and p["radius"] / p["thickness"] >= 10
+        )
 
     def make_program(self, p):
         ops = [
             Op("circle", {"radius": p["radius"]}),
             Op("extrude", {"distance": p["thickness"]}),
         ]
-        if p.get("with_chamfer"):
+        v = p.get("variant", "plain")
+        if v == "center_hole":
+            ops += [
+                Op("workplane", {"selector": ">Z"}),
+                Op("hole", {"diameter": p["center_d"]}),
+            ]
+        elif v == "polar_holes":
+            ops += [
+                Op("workplane", {"selector": ">Z"}),
+                Op(
+                    "polarArray",
+                    {
+                        "radius": p["hole_pcd"],
+                        "startAngle": 0,
+                        "angle": 360,
+                        "count": p["n_holes"],
+                    },
+                ),
+                Op("hole", {"diameter": p["hole_d"]}),
+            ]
+        elif v == "chamfered" and p["chamfer"] >= 0.3:
             ops += [
                 Op("edges", {"selector": ">Z"}),
                 Op("chamfer", {"length": p["chamfer"]}),
@@ -475,7 +526,7 @@ class SimpleThinDiscFamily(BaseFamily):
             difficulty=p["difficulty"],
             params=p,
             ops=ops,
-            feature_tags={"thin_plate": True, "ref": self.REF},
+            feature_tags={"thin_plate": True, "variant": v, "ref": self.REF},
         )
 
 
@@ -686,7 +737,6 @@ class SimpleGroovedDiscFamily(BaseFamily):
 ALL_FAMILIES = [
     SimpleFrustumConeFamily,
     SimpleDShaftFamily,
-    SimpleDoubleDShaftFamily,
     SimpleGroovedShaftFamily,
     SimpleRadialHolesTubeFamily,
     SimpleAxialSlotCylinderFamily,
@@ -694,9 +744,6 @@ ALL_FAMILIES = [
     SimpleSteppedShaftBasicFamily,
     SimpleHollowPipeFamily,
     SimpleThinDiscFamily,
-    SimpleThickRingFamily,
     SimpleHemisphereFamily,
     SimpleTaperedPinFamily,
-    SimpleCapsule3dFamily,
-    SimpleGroovedDiscFamily,
 ]

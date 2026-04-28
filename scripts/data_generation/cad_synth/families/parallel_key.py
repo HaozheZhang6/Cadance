@@ -156,13 +156,15 @@ class ParallelKeyFamily(BaseFamily):
             ops.append(Op("edges", {"selector": "|X"}))
             ops.append(Op("chamfer", {"length": ch}))
 
-        # Oil groove (hard): slot along top face center
+        # Oil groove (hard): slot along top face center.
+        # Curated fixes (cq_gui/curated_722/parallel_key/) show slot2D for rounded-end
+        # groove (matches DIN 6885 oil-groove convention).
         gw = params.get("groove_width")
         gd = params.get("groove_depth")
         if gw and gd:
             tags["has_slot"] = True
             ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("rect", {"length": round(l * 0.8, 2), "width": gw}))
+            ops.append(Op("slot2D", {"length": round(l * 0.8, 2), "width": gw}))
             ops.append(Op("cutBlind", {"depth": gd}))
 
         return Program(

@@ -440,23 +440,41 @@ class SimpleSplitTubeFamily(BaseFamily):
     REF = "imagined: clamping sleeve / split tube"
 
     def sample_params(self, difficulty, rng):
-        ro = round(float(rng.uniform(15, 30)), 1)
+        ro = round(float(rng.uniform(15, 35)), 1)
+        # Slit width is significant fraction of radius for VISIBLE gap
+        # (≥15% of outer radius), and offset slit center sometimes (C-clamp look)
+        slit_w = round(ro * float(rng.uniform(0.18, 0.45)), 1)
+        # Variant: full longitudinal slit, half-length slit, or two opposite slits
+        variant = rng.choice(["full_slit", "half_slit", "double_slit"])
         return {
             "r_outer": ro,
-            "r_inner": round(ro * float(rng.uniform(0.6, 0.85)), 1),
-            "slit_w": round(float(rng.uniform(2, 5)), 1),
-            "length": round(float(rng.uniform(30, 80)), 1),
+            "r_inner": round(ro * float(rng.uniform(0.5, 0.78)), 1),
+            "slit_w": slit_w,
+            "length": round(float(rng.uniform(30, 90)), 1),
+            "variant": variant,
             "difficulty": difficulty,
         }
 
     def validate_params(self, p):
-        return p["r_outer"] > p["r_inner"] + 1.5
+        return (
+            p["r_outer"] > p["r_inner"] + 2.0
+            and p["slit_w"] > 2.5
+            and p["slit_w"] < (p["r_outer"] - p["r_inner"]) * 4
+        )
 
     def make_program(self, p):
         ops = [
             Op("circle", {"radius": p["r_outer"]}),
             Op("circle", {"radius": p["r_inner"]}),
             Op("extrude", {"distance": p["length"]}),
+        ]
+        v = p.get("variant", "full_slit")
+        cut_len = (
+            p["length"]
+            if v == "full_slit"
+            else (p["length"] * 0.6 if v == "half_slit" else p["length"])
+        )
+        ops.append(
             Op(
                 "cut",
                 {
@@ -469,17 +487,42 @@ class SimpleSplitTubeFamily(BaseFamily):
                                 "width": p["slit_w"],
                             },
                         },
-                        {"name": "extrude", "args": {"distance": p["length"]}},
+                        {"name": "extrude", "args": {"distance": cut_len}},
                     ],
                 },
-            ),
-        ]
+            )
+        )
+        if v == "double_slit":
+            # second perpendicular slit → cross-cut clamp
+            ops.append(
+                Op(
+                    "cut",
+                    {
+                        "plane": "XY",
+                        "ops": [
+                            {
+                                "name": "rect",
+                                "args": {
+                                    "length": p["slit_w"],
+                                    "width": p["r_outer"] * 2.2,
+                                },
+                            },
+                            {"name": "extrude", "args": {"distance": p["length"]}},
+                        ],
+                    },
+                )
+            )
         return Program(
             family=self.name,
             difficulty=p["difficulty"],
             params=p,
             ops=ops,
-            feature_tags={"hollow": True, "split": True, "ref": self.REF},
+            feature_tags={
+                "hollow": True,
+                "split": True,
+                "variant": v,
+                "ref": self.REF,
+            },
         )
 
 
@@ -528,16 +571,12 @@ class SimpleBentStripFamily(BaseFamily):
 
 ALL_FAMILIES = [
     SimpleCChannelFamily,
-    SimpleUChannelSimpleFamily,
     SimpleHatSectionFamily,
     SimpleZSectionStructFamily,
     SimpleIBeamSimpleFamily,
     SimpleAngleBracket90Family,
     SimpleAngleBracket135Family,
     SimpleBoxSectionFamily,
-    SimpleUnistrutFamily,
-    SimpleTopHatSectionFamily,
-    SimpleLSectionThinFamily,
     SimpleSplitTubeFamily,
     SimpleBentStripFamily,
 ]

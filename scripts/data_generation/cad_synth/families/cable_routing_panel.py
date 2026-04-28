@@ -72,11 +72,22 @@ class CableRoutingPanelFamily(BaseFamily):
         total_span = sl + (n - 1) * ss if n > 1 else sl
         if total_span > l - 2 * ins + 0.5:
             return False
+        # Reject when adjacent slots would overlap (gap < 4mm visually merges them)
+        if n > 1 and ss < sl + 4:
+            return False
         # Slots fit in width
         if ry + sw / 2 > w / 2 - ins + 0.5:
             return False
         if params.get("has_second_row") and ry + sw / 2 > w / 2 - ins + 0.5:
             return False
+        # Center hole cluster spacing — must produce VISIBLY DISTINCT holes
+        chd = params.get("center_hole_diameter")
+        chn = params.get("center_hole_count")
+        if chd and chn and chn > 1:
+            min_spacing = chd * 2.0 + 2.0
+            cluster_span = (chn - 1) * min_spacing
+            if cluster_span > l - 2 * ins:
+                return False
 
         chd = params.get("center_hole_diameter")
         chn = params.get("center_hole_count")
@@ -141,11 +152,12 @@ class CableRoutingPanelFamily(BaseFamily):
         if params.get("has_second_row"):
             _add_slot_row(-ry)
 
-        # Center hole cluster (hard)
+        # Center hole cluster (hard) — spacing must be >= 2x diameter so holes
+        # render as DISTINCT circles (was chd+4 → adjacent holes merged into a slot)
         chn = params.get("center_hole_count")
         chd = params.get("center_hole_diameter")
         if chn and chd:
-            spacing = chd + 4
+            spacing = chd * 2.0 + 2.0
             ops.append(Op("workplane", {"selector": ">Z"}))
             ops.append(
                 Op(

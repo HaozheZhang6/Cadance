@@ -59,19 +59,28 @@ class SimpleDiscWithPegsFamily(BaseFamily):
     REF = "imagined: index plate / lego baseplate"
 
     def sample_params(self, difficulty, rng):
-        rd = round(float(rng.uniform(25, 45)), 1)
+        rd = round(float(rng.uniform(25, 55)), 1)
+        # 3-12 pegs, prominent height (peg_h >= disc_h, often much taller)
+        n_pegs = int(rng.choice([3, 4, 5, 6, 7, 8, 10, 12]))
+        disc_h = round(float(rng.uniform(3, 8)), 1)
+        peg_r = round(float(rng.uniform(2.5, 5.5)), 1)
+        # Peg height: 1.5x to 5x disc thickness so pegs are obviously prominent
+        peg_h = round(disc_h * float(rng.uniform(1.5, 5.0)), 1)
         return {
             "disc_r": rd,
-            "disc_h": round(float(rng.uniform(3, 8)), 1),
-            "n_pegs": int(rng.choice([4, 5, 6, 8])),
-            "peg_r": round(float(rng.uniform(2, 4)), 1),
-            "peg_h": round(float(rng.uniform(4, 10)), 1),
-            "peg_pcd": round(rd * float(rng.uniform(0.55, 0.8)), 1),
+            "disc_h": disc_h,
+            "n_pegs": n_pegs,
+            "peg_r": peg_r,
+            "peg_h": peg_h,
+            "peg_pcd": round(rd * float(rng.uniform(0.55, 0.85)), 1),
             "difficulty": difficulty,
         }
 
     def validate_params(self, p):
-        return p["peg_pcd"] + p["peg_r"] < p["disc_r"] - 2
+        return (
+            p["peg_pcd"] + p["peg_r"] < p["disc_r"] - 1.5
+            and p["peg_h"] >= p["disc_h"] * 1.2
+        )
 
     def make_program(self, p):
         ops = [
@@ -194,58 +203,96 @@ class SimpleButtonFamily(BaseFamily):
     REF = "imagined: button / arcade switch cap"
 
     def sample_params(self, difficulty, rng):
-        r = round(float(rng.uniform(15, 30)), 1)
+        # 3-tier cylinder stack (base flange, body, cap) with shrinking radii.
+        r1 = round(float(rng.uniform(18, 35)), 1)
+        # Sharp step ratios — visually distinct tiers
+        r2 = round(r1 * float(rng.uniform(0.55, 0.85)), 1)
+        r3 = round(r2 * float(rng.uniform(0.5, 0.85)), 1)
+        h1 = round(float(rng.uniform(2.5, 6)), 1)
+        h2 = round(float(rng.uniform(4, 10)), 1)
+        h3 = round(float(rng.uniform(2, 6)), 1)
+        # Optional dome cap on top
+        with_dome = rng.uniform(0, 1) < 0.6
         return {
-            "radius": r,
-            "base_h": round(float(rng.uniform(3, 8)), 1),
-            "dome_r": round(r * float(rng.uniform(1.0, 1.4)), 1),
+            "r1": r1,
+            "r2": r2,
+            "r3": r3,
+            "h1": h1,
+            "h2": h2,
+            "h3": h3,
+            "with_dome": with_dome,
+            "dome_r": round(r3 * float(rng.uniform(1.0, 1.3)), 1),
             "difficulty": difficulty,
         }
 
     def validate_params(self, p):
-        return p["dome_r"] >= p["radius"] and p["base_h"] >= 2
+        return (
+            p["r1"] > p["r2"] + 1.5
+            and p["r2"] > p["r3"] + 1.0
+            and p["h1"] >= 1.5
+            and p["h2"] >= 2.0
+            and p["h3"] >= 1.5
+            and p["dome_r"] >= p["r3"]
+        )
 
     def make_program(self, p):
         ops = [
-            Op("circle", {"radius": p["radius"]}),
-            Op("extrude", {"distance": p["base_h"]}),
-            Op(
-                "union",
-                {
-                    "ops": [
-                        {
-                            "name": "workplane_offset",
-                            "args": {
-                                "offset": p["base_h"] - (p["dome_r"] - p["radius"])
-                            },
-                        },
-                        {"name": "sphere", "args": {"radius": p["dome_r"]}},
-                    ]
-                },
-            ),
-            Op(
-                "intersect",
-                {
-                    "ops": [
-                        {
-                            "name": "box",
-                            "args": {
-                                "length": p["radius"] * 4,
-                                "width": p["radius"] * 4,
-                                "height": p["base_h"] + p["dome_r"],
-                                "centered": [True, True, False],
-                            },
-                        },
-                    ]
-                },
-            ),
+            Op("circle", {"radius": p["r1"]}),
+            Op("extrude", {"distance": p["h1"]}),
+            Op("workplane", {"selector": ">Z"}),
+            Op("circle", {"radius": p["r2"]}),
+            Op("extrude", {"distance": p["h2"]}),
+            Op("workplane", {"selector": ">Z"}),
+            Op("circle", {"radius": p["r3"]}),
+            Op("extrude", {"distance": p["h3"]}),
         ]
+        if p.get("with_dome"):
+            top_z = p["h1"] + p["h2"] + p["h3"]
+            ops.append(
+                Op(
+                    "union",
+                    {
+                        "ops": [
+                            {
+                                "name": "workplane_offset",
+                                "args": {
+                                    "offset": top_z - (p["dome_r"] - p["r3"])
+                                },
+                            },
+                            {"name": "sphere", "args": {"radius": p["dome_r"]}},
+                        ]
+                    },
+                )
+            )
+            ops.append(
+                Op(
+                    "intersect",
+                    {
+                        "ops": [
+                            {
+                                "name": "box",
+                                "args": {
+                                    "length": p["r1"] * 4,
+                                    "width": p["r1"] * 4,
+                                    "height": top_z + p["dome_r"],
+                                    "centered": [True, True, False],
+                                },
+                            },
+                        ]
+                    },
+                )
+            )
         return Program(
             family=self.name,
             difficulty=p["difficulty"],
             params=p,
             ops=ops,
-            feature_tags={"multi_stage": True, "ref": self.REF},
+            feature_tags={
+                "multi_stage": True,
+                "tiers": 3,
+                "with_dome": p.get("with_dome", False),
+                "ref": self.REF,
+            },
         )
 
 
@@ -256,16 +303,38 @@ class SimpleFunnelFamily(BaseFamily):
     REF = "imagined: funnel / cone with neck"
 
     def sample_params(self, difficulty, rng):
+        # Strong bell: wide_r/neck_r ratio 3-7x; choose taper character
+        neck_r = round(float(rng.uniform(3, 10)), 1)
+        # taper kind: gentle (long bell), sharp (short cone), tall (slim funnel)
+        taper = rng.choice(["sharp_bell", "gentle_bell", "tall_funnel"])
+        if taper == "sharp_bell":
+            wide_r = round(neck_r * float(rng.uniform(4.5, 7.0)), 1)
+            cone_h = round(neck_r * float(rng.uniform(1.0, 2.0)), 1)
+            neck_h = round(neck_r * float(rng.uniform(1.0, 2.5)), 1)
+        elif taper == "gentle_bell":
+            wide_r = round(neck_r * float(rng.uniform(3.0, 5.0)), 1)
+            cone_h = round(neck_r * float(rng.uniform(3.0, 5.5)), 1)
+            neck_h = round(neck_r * float(rng.uniform(0.8, 2.0)), 1)
+        else:  # tall_funnel
+            wide_r = round(neck_r * float(rng.uniform(3.0, 5.0)), 1)
+            cone_h = round(neck_r * float(rng.uniform(2.0, 4.0)), 1)
+            neck_h = round(neck_r * float(rng.uniform(4.0, 8.0)), 1)
         return {
-            "neck_r": round(float(rng.uniform(5, 12)), 1),
-            "neck_h": round(float(rng.uniform(15, 30)), 1),
-            "wide_r": round(float(rng.uniform(20, 35)), 1),
-            "cone_h": round(float(rng.uniform(15, 30)), 1),
+            "neck_r": neck_r,
+            "neck_h": max(neck_h, 4.0),
+            "wide_r": wide_r,
+            "cone_h": max(cone_h, 5.0),
+            "taper": taper,
             "difficulty": difficulty,
         }
 
     def validate_params(self, p):
-        return p["wide_r"] > p["neck_r"] + 5
+        return (
+            p["wide_r"] >= p["neck_r"] * 2.5
+            and p["neck_r"] >= 2.0
+            and p["neck_h"] >= 3.0
+            and p["cone_h"] >= 3.0
+        )
 
     def make_program(self, p):
         ops = [
@@ -582,14 +651,10 @@ class SimpleAxleYokeFamily(BaseFamily):
 ALL_FAMILIES = [
     SimpleDiscWithBossFamily,
     SimpleDiscWithPegsFamily,
-    SimplePlateWithPegsFamily,
     SimpleDiscWithSkirtFamily,
     SimpleButtonFamily,
     SimpleFunnelFamily,
     SimpleHandleBlockFamily,
-    SimpleTwoStepCylinderFamily,
-    SimpleDiscWithHolesPolarFamily,
-    SimpleBlockWithStudsFamily,
     SimpleLidFlangeFamily,
     SimpleAxleYokeFamily,
 ]
