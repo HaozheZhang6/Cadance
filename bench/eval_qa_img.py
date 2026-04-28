@@ -42,7 +42,7 @@ def _load_qa_pairs(row: dict) -> list[dict]:
         return []
 
 
-def eval_sample(row: dict, model: str, api_key: str) -> dict:
+def eval_sample(row: dict, model: str, api_key: str, blank_image: bool = False) -> dict:
     from bench.metrics import qa_score, qa_score_single
     from bench.models import call_vlm_qa
 
@@ -61,9 +61,15 @@ def eval_sample(row: dict, model: str, api_key: str) -> dict:
         res["error"] = "no_qa_pairs"
         return res
 
+    img = row["composite_png"]
+    if blank_image:
+        from PIL import Image
+
+        img = Image.new("RGB", img.size, (0, 0, 0))
+
     questions = [q["question"] for q in qa_pairs]
     t0 = time.time()
-    answers, err = call_vlm_qa(model, row["composite_png"], questions, api_key)
+    answers, err = call_vlm_qa(model, img, questions, api_key)
     res["vlm_latency_s"] = round(time.time() - t0, 2)
 
     if answers is None:
@@ -122,6 +128,11 @@ def main() -> None:
     ap.add_argument("--split", default="test")
     ap.add_argument("--limit", type=int, default=0, help="0=all; >200 stratified")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument(
+        "--blank-image",
+        action="store_true",
+        help="replace input image with black; baseline for prior knowledge",
+    )
     args = ap.parse_args()
 
     token = (
@@ -137,7 +148,8 @@ def main() -> None:
     rows = load_hf(args.repo, args.split, token=token)
     sampled = sample_rows(rows, args.limit, args.seed)
 
-    rd = ResultsDir(task="qa_img", model=args.model)
+    task_name = "qa_img_blank" if args.blank_image else "qa_img"
+    rd = ResultsDir(task=task_name, model=args.model)
     done = rd.done_keys("stem")
     todo = [r for r in sampled if r["stem"] not in done]
     rd.log_run(vars(args), sampled)
@@ -150,7 +162,7 @@ def main() -> None:
     with rd:
         for i, row in enumerate(todo):
             print(f"  [{i + 1}/{len(todo)}] {row['stem']}  ", end="", flush=True)
-            res = eval_sample(row, args.model, api_key)
+            res = eval_sample(row, args.model, api_key, blank_image=args.blank_image)
             rd.append(res)
             if res["error"]:
                 print(f"ERR {res['error'][:80]}")
