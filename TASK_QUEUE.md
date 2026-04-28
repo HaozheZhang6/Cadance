@@ -4,6 +4,30 @@
 
 ## ⚠️ USER-ASSIGNED — 进行中
 
+### UA-25 — cad_curated_722 gt_code 手改 + OCC 验证 + 推 v2 ✅ DONE (2026-04-27)
+
+**结果:**
+- 新 `cq_gui/` sandbox (gitignore) — 隔离 py3.11 + cadquery 2.7 + cq-editor 0.7 venv,不污染 repo cq 2.3
+- 722 行 → 单 .py per case dump (META sentinel + gt_code body 可改) + `sync_back.py` 回写 parquet
+- 5 高亮 family (cable_routing_panel/clevis/parallel_key/tapered_boss/z_bracket) 手改 20 行 + drop 2 坏 clevis (#10 #11)
+- OCC 全量校验:**719/720 pass (99.86%)**,1 fail = `synth_double_simplex_sprocket_000579_s4420` (timeout)
+- 20 改过 case 重 render 4-view (用新 gt_code → STEP → `render_normalized_views`)
+- HF push **`Hula0401/cad_curated_722_v2`** (720 rows + `exec_ok`/`exec_reason`/`exec_dt_s` 三列)
+- Discord 发分布长图 6 chunk + v2 chunk 1 (含 EDIT/OK badge)
+- 详见 `PROGRESS.md` session 30
+
+### UA-24 — 复杂 family 简化 + DeepCAD/Fusion360 补缺 family ✅ DONE (2026-04-27)
+
+**结果:**
+- registry 最终 **106 个 simple_*** = 21 part-style + 85 across 5 packs (profiles 30 / cylindrical 15 / blocks 15 / multi_stage 12 / sheet_sections 13)
+- 每 family 带 `REF` 属性 (F360 stem 或 imagined rationale);预览 gallery `tmp/simple106_previews/GALLERY_simple106.png` (2400×44472) ref-on-left
+- batch_simple21_apr27 (4200 → 3473 verified, 82.7%) + batch_simple85_apr27 (4250 → 4182, 98.4%)
+- HF push 单 split 7655 rows → https://huggingface.co/datasets/BenchCAD/cad_bench_simple106
+- F360 r1.0.1 (8626 jsons) + DeepCAD data.tar 落盘 `data/data_generation/open_source/`
+- F360 138 + DeepCAD 53 = 191 张人工分 16 类驱动 pack 设计
+- Discord webhook 实时进度 (5min loop)
+- 详见 `PROGRESS.md` session 29
+
 ### UA-23 — apr20-20k 数据集全清 + HF 重推 + 本地↔HF align ✅ DONE (2026-04-23)
 
 **结果：**

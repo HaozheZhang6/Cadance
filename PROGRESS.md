@@ -1,4 +1,51 @@
 
+## 2026-04-27 (session 30) — UA-25 cad_curated_722 → v2 (720 rows, OCC 验证, HF 推 `Hula0401/cad_curated_722_v2`) ✅
+
+- 起因:`qixiaoqi/cad_curated_722` 是 bench 最终评测集,5 个 substitution-target family 需 gt_code 手改 (`cable_routing_panel` / `clevis` / `parallel_key` / `tapered_boss` / `z_bracket`)
+- **新建 `cq_gui/`** sandbox (gitignore):py3.11 + cadquery 2.7 + cq-editor 0.7 隔离 venv,本 repo cq 2.3 不动
+  - `cq_gui/launch.sh` → CQ-editor 启动;`cq_gui/scratch.py` 起手 demo
+  - `cq_gui/curated_722/<family>/<idx>__<stem>.py` × 722 dump (META sentinel 隔离 + gt_code body 可改),`_INDEX.md` 索引,`_original.parquet` 冻结源
+  - `cq_gui/sync_back.py` → 扫 .py → diff vs `_original.parquet` → 写新 parquet
+- **手改 20 行 + 删 2 行**: 5 高亮 family 内 gt_code 修(loft circle 顺序、hole 偏移、slot 尺寸等);clevis #10 #11 (`synth_clevis_000074/000177`) 因 geometry 不合理 drop
+- **OCC 全量校验** (`cq_gui/exec_check.py`):cadquery 2.7 exec gt_code → bbox + volume → **719/720 pass (99.86%)**, 1 fail = `synth_double_simplex_sprocket_000579_s4420` (hard, 20s timeout);median 0.088s · p95 0.467s
+- **重 render 20 个改过的 case** (`cq_gui/rerender_edited.py`):exec → STEP export → `render_normalized_views.render_step_normalized` 4-view composite,与 v1 同 cadrille style
+- **HF push** `Hula0401/cad_curated_722_v2`(720 rows · 14.4MB · `+exec_ok` `+exec_reason` `+exec_dt_s` 三列 · README diff 写明)
+- **Discord** 发分布长图 6 段 chunk (3426×33596 单图 15MB 超 webhook → 切 6 段) + v2 chunk 1 重画(`EDIT` blue + `OK`/`FAIL` badge,只 chunk 1 含改动,2-6 沿用 v1)
+- **artifacts**:`cq_gui/curated_722/{curated_722_v2.parquet, exec_report.json, _v2_chunk1.png, _rerendered/*.png}`、`tmp/cad_curated_722/{cad_curated_722_gallery.png, chunk_01-06.png}`
+- 一个坑:cq-editor pip 装 default Python 3.14 没 PyQt5 wheel → 隔离 venv 钉 3.11
+
+## 2026-04-27 (session 29) — UA-24 106 simple_* family + 7655 rows → HF `cad_bench_simple106` ✅
+
+- **registry 最终 106 个 simple_*** = 21 part-style + 85 across 5 packs (profiles/cylindrical/blocks/multi_stage/sheet_sections)。Pack 文件:`scripts/data_generation/cad_synth/families/simple_{profiles,cylindrical,blocks,multi_stage,sheet_sections}_pack.py`
+- **第 1 阶段 21 个 simple_<part>** (替复杂 parent 简化 + DeepCAD/F360 启发独特):
+  spur_gear / helical_gear / bevel_gear / sprocket / double_sprocket / impeller / propeller /
+  bellows / coil_spring / torsion_spring / twisted_drill / pulley / spline_hub / worm_screw +
+  plate_holes_grid / step_solid / l_solid / t_solid / curved_lobe_plate / open_box_thin / multi_extrude_step
+- **第 2 阶段 85 个 pack family** (来自 F360/DeepCAD 视检 138+53 样本归类的 16 类 shape):
+  - **profiles_pack 30**: trapezoid/parallelogram/wedge/diamond/chevron/cross/arrow/house/pentagon/hexagon/heptagon/octagon/n_star/keyhole/stadium/half_disc/pie_slice/quarter_disc/crescent/dogbone/h_section/z_section/y_shape/corrugated/serrated/d_shape/annulus/rounded_rect/capsule/slot_through (`_PolyFamily` 基类,sketch-first 单 polyline → close → extrude,`ALLOW_FEATURES = False` 防 BRep)
+  - **cylindrical_pack 15**: frustum_cone/d_shaft/double_d_shaft/grooved_shaft/radial_holes_tube/axial_slot_cylinder/chamfer_shaft/stepped_shaft_basic/hollow_pipe/thin_disc/thick_ring/hemisphere/tapered_pin/capsule_3d/grooved_disc
+  - **blocks_pack 15**: chamfered/filleted/pyramid/obelisk/pocket/through_slot/round_hole/oval_hole/keyway/cross_cut/array_holes/chamfered_corners/dovetail/v_block/round_pocket
+  - **multi_stage_pack 12**: disc_with_boss/pegs/skirt/holes_polar/plate_with_pegs/button/funnel/handle_block/two_step_cylinder/block_with_studs/lid_flange/axle_yoke
+  - **sheet_sections_pack 13**: c_channel/u_channel_simple/hat_section/z_section_struct/i_beam_simple/angle_bracket_90/angle_bracket_135/box_section/unistrut/top_hat_section/l_section_thin/split_tube/bent_strip
+- **REF 来源**: 每 family 带 `REF` 属性 — F360 stem (`f360:<stem>`) 或 imagined rationale。预览 gallery 把 ref 放最左 (F360 红框,imagined 文字卡)
+- **数据生成**:
+  - batch_simple21_apr27 (seed=4127, 4200 → **3473 verified, 82.7%**)
+  - batch_simple85_apr27 (seed=4128, 4250 → **4182 verified, 98.4%**) — 最高 100% (hat_section/oval_hole/top_hat/obelisk/serrated), 最低 28% (split_tube)
+- **HF push**: `BenchCAD/cad_bench_simple106` 单 test split, **7655 rows** (3473+4182), 160MB parquet, `source_run` 字段标 batch 来源 → https://huggingface.co/datasets/BenchCAD/cad_bench_simple106 (与现有 `cad_bench` 完全独立,不覆盖 20143 行)
+- **预览 gallery**: `tmp/simple106_previews/GALLERY_simple106.png` (2400×44472, 12MB) + 102 单 family strip,layout = [REF | s1 | s2 | s3 | s4 | s5]
+- **F360/DeepCAD 数据落盘**: F360 r1.0.1 reconstruction (8626 jsons, 2.1GB) + DeepCAD data.tar (208MB) → `data/data_generation/open_source/`
+- **视觉分类**: F360 138 + DeepCAD 53 = 191 张人工分 16 类 (trapezoid 18%, parallelogram 11%, frustum 9%, polygon block / wedge / ring / crescent / cross / half-disc / diamond / concave polygon / multi-piece / corrugated / pie slice / keyhole / sheet section)
+- **Discord webhook integration**: `scripts/data_generation/discord_progress.py` 读 `DISCORD_WEBHOOK_URL` (`.zshrc` 全局变量),`discord_status_loop.sh` 5 min 间隔 post (batch + render + family-pack 计数器),所有里程碑实时通知
+- **修复记录**:
+  - simple_propeller polyline coincident pts → BRep failure → consecutive-point dedupe + twistExtrude angle=0 ZeroDivisionError → 过滤 [15,20,25,35,45]
+  - simple_impeller petal_outline 复用 dedupe
+  - simple_l_solid l_filleted fillet 半径过大 → `min(t * 0.3, 1.5)`
+  - simple_sprocket hub_d ≥ radius INVALID → clamped `min(bore * uniform, r * 0.85)`
+  - simple_worm_screw flat_helix_cut Null TopoDS → 替换为 `shaft_two_steps`
+  - blocks_pack cross_cut/dovetail/v_block/round_pocket validate 过紧 → 改 L/W/H 比例 clamp
+  - DeepCAD render 米单位 → `SCALE = 1000.0` 修
+- **CLAUDE.md** 更新 family registry source-of-truth note (count 106, 不引用过时 docstring)
+
 ## 2026-04-25 (session 28) — bench 一键 fetch + UI 直读 from_hf
 
 - 新 `bench/fetch_data.py`:一行 `uv run python bench/fetch_data.py` 拉两个 HF repo (`BenchCAD/cad_bench` 20143 + `BenchCAD/cad_bench_edit` 336) 入 `~/.cache/huggingface`,顺手把 edit bench 解包到 `data/data_generation/bench_edit/from_hf/` (records.jsonl + orig_steps/ + gt_steps/ + orig_codes/ + gt_codes/, ~124MB)

@@ -278,3 +278,6 @@ website/
 bench_smoke_runs/
 bench_edit_runs/
 bench_edit_vlm_runs/
+
+# scratch CQ-editor sandbox
+cq_gui/
