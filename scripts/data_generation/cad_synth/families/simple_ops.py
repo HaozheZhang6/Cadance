@@ -17,7 +17,17 @@ from .base import BaseFamily
 # Profile shapes shared by sweep / twist families. All centered at workplane
 # origin so callers can `Op("center", ...)` to relocate the profile to the
 # sweep path start point.
-PROFILE_KINDS = ("circle", "rect", "ellipse", "polygon", "slot", "star", "T", "L", "cross")
+PROFILE_KINDS = (
+    "circle",
+    "rect",
+    "ellipse",
+    "polygon",
+    "slot",
+    "star",
+    "T",
+    "L",
+    "cross",
+)
 
 
 def _profile_ops(kind: str, s: float, polygon_n: int = 4) -> list:
@@ -27,7 +37,9 @@ def _profile_ops(kind: str, s: float, polygon_n: int = 4) -> list:
     if kind == "rect":
         return [Op("rect", {"length": round(s * 2, 3), "width": round(s * 1.2, 3)})]
     if kind == "ellipse":
-        return [Op("ellipse", {"xRadius": round(s * 1.5, 3), "yRadius": round(s * 0.9, 3)})]
+        return [
+            Op("ellipse", {"xRadius": round(s * 1.5, 3), "yRadius": round(s * 0.9, 3)})
+        ]
     if kind == "polygon":
         return [Op("polygon", {"n": polygon_n, "diameter": round(s * 2, 3)})]
     if kind == "slot":
@@ -46,27 +58,44 @@ def _profile_ops(kind: str, s: float, polygon_n: int = 4) -> list:
         bw = s * 0.5
         sw = s * 0.6
         pts = [
-            (-w / 2, h / 2 - bw), (-w / 2, h / 2), (w / 2, h / 2), (w / 2, h / 2 - bw),
-            (sw / 2, h / 2 - bw), (sw / 2, -h / 2),
-            (-sw / 2, -h / 2), (-sw / 2, h / 2 - bw),
+            (-w / 2, h / 2 - bw),
+            (-w / 2, h / 2),
+            (w / 2, h / 2),
+            (w / 2, h / 2 - bw),
+            (sw / 2, h / 2 - bw),
+            (sw / 2, -h / 2),
+            (-sw / 2, -h / 2),
+            (-sw / 2, h / 2 - bw),
         ]
         pts = [(round(x, 3), round(y, 3)) for x, y in pts]
         return [Op("polyline", {"points": pts}), Op("close", {})]
     if kind == "L":
         w, h, t = s * 1.8, s * 1.8, s * 0.5
         pts = [
-            (-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, -h / 2 + t),
-            (-w / 2 + t, -h / 2 + t), (-w / 2 + t, h / 2), (-w / 2, h / 2),
+            (-w / 2, -h / 2),
+            (w / 2, -h / 2),
+            (w / 2, -h / 2 + t),
+            (-w / 2 + t, -h / 2 + t),
+            (-w / 2 + t, h / 2),
+            (-w / 2, h / 2),
         ]
         pts = [(round(x, 3), round(y, 3)) for x, y in pts]
         return [Op("polyline", {"points": pts}), Op("close", {})]
     if kind == "cross":
         w, a = s * 1.8, s * 0.5
         pts = [
-            (-a / 2, -w / 2), (a / 2, -w / 2), (a / 2, -a / 2),
-            (w / 2, -a / 2), (w / 2, a / 2), (a / 2, a / 2),
-            (a / 2, w / 2), (-a / 2, w / 2), (-a / 2, a / 2),
-            (-w / 2, a / 2), (-w / 2, -a / 2), (-a / 2, -a / 2),
+            (-a / 2, -w / 2),
+            (a / 2, -w / 2),
+            (a / 2, -a / 2),
+            (w / 2, -a / 2),
+            (w / 2, a / 2),
+            (a / 2, a / 2),
+            (a / 2, w / 2),
+            (-a / 2, w / 2),
+            (-a / 2, a / 2),
+            (-w / 2, a / 2),
+            (-w / 2, -a / 2),
+            (-a / 2, -a / 2),
         ]
         pts = [(round(x, 3), round(y, 3)) for x, y in pts]
         return [Op("polyline", {"points": pts}), Op("close", {})]
@@ -97,22 +126,41 @@ class SimpleRevolveFamily(BaseFamily):
         kind = p["profile_kind"]
         if kind == "L":
             pts = [
-                (s * 0.5, 0.0), (s * 1.5, 0.0), (s * 1.5, s * 0.3),
-                (s * 0.7, s * 0.3), (s * 0.7, s * 1.2), (s * 0.5, s * 1.2),
+                (s * 0.5, 0.0),
+                (s * 1.5, 0.0),
+                (s * 1.5, s * 0.3),
+                (s * 0.7, s * 0.3),
+                (s * 0.7, s * 1.2),
+                (s * 0.5, s * 1.2),
             ]
         elif kind == "stepped":
             pts = [
-                (s * 0.4, 0.0), (s * 1.4, 0.0), (s * 1.4, s * 0.4),
-                (s * 1.0, s * 0.4), (s * 1.0, s * 0.9), (s * 0.7, s * 0.9),
-                (s * 0.7, s * 1.4), (s * 0.4, s * 1.4),
+                (s * 0.4, 0.0),
+                (s * 1.4, 0.0),
+                (s * 1.4, s * 0.4),
+                (s * 1.0, s * 0.4),
+                (s * 1.0, s * 0.9),
+                (s * 0.7, s * 0.9),
+                (s * 0.7, s * 1.4),
+                (s * 0.4, s * 1.4),
             ]
         elif kind == "trapezoid":
-            pts = [(s * 0.3, 0.0), (s * 1.5, 0.0), (s * 1.2, s * 1.1), (s * 0.4, s * 1.1)]
+            pts = [
+                (s * 0.3, 0.0),
+                (s * 1.5, 0.0),
+                (s * 1.2, s * 1.1),
+                (s * 0.4, s * 1.1),
+            ]
         else:
             pts = [
-                (s * 0.4, 0.0), (s * 1.6, 0.0), (s * 1.6, s * 0.3),
-                (s * 0.9, s * 0.3), (s * 0.9, s * 1.2), (s * 0.6, s * 1.2),
-                (s * 0.6, s * 0.3), (s * 0.4, s * 0.3),
+                (s * 0.4, 0.0),
+                (s * 1.6, 0.0),
+                (s * 1.6, s * 0.3),
+                (s * 0.9, s * 0.3),
+                (s * 0.9, s * 1.2),
+                (s * 0.6, s * 1.2),
+                (s * 0.6, s * 0.3),
+                (s * 0.4, s * 0.3),
             ]
         pts = [(round(x, 3), round(y, 3)) for x, y in pts]
 
@@ -149,7 +197,9 @@ class SimpleLoftFamily(BaseFamily):
 
     def sample_params(self, difficulty, rng):
         n = int(rng.choice([2, 3, 3]))
-        kinds = [str(rng.choice(["circle", "rect", "polygon", "ellipse"])) for _ in range(n)]
+        kinds = [
+            str(rng.choice(["circle", "rect", "polygon", "ellipse"])) for _ in range(n)
+        ]
         scales = [round(float(rng.uniform(8, 20)), 1) for _ in range(n)]
         return {
             "n_sections": n,
@@ -177,16 +227,26 @@ class SimpleLoftFamily(BaseFamily):
         for i in range(n):
             if i > 0:
                 ops.append(
-                    Op("transformed", {"offset": [0, 0, round(i * dz, 3)], "rotate": [0, 0, 0]})
+                    Op(
+                        "transformed",
+                        {"offset": [0, 0, round(i * dz, 3)], "rotate": [0, 0, 0]},
+                    )
                 )
             k = kinds[i]
             r = scales[i]
             if k == "circle":
                 ops.append(Op("circle", {"radius": round(r, 3)}))
             elif k == "rect":
-                ops.append(Op("rect", {"length": round(r * 1.5, 3), "width": round(r, 3)}))
+                ops.append(
+                    Op("rect", {"length": round(r * 1.5, 3), "width": round(r, 3)})
+                )
             elif k == "ellipse":
-                ops.append(Op("ellipse", {"xRadius": round(r * 1.3, 3), "yRadius": round(r * 0.8, 3)}))
+                ops.append(
+                    Op(
+                        "ellipse",
+                        {"xRadius": round(r * 1.3, 3), "yRadius": round(r * 0.8, 3)},
+                    )
+                )
             else:
                 ops.append(Op("polygon", {"n": pn, "diameter": round(r * 2, 3)}))
         ops.append(Op("loft", {"combine": True}))
@@ -323,7 +383,9 @@ class SimpleTwistExtrudeFamily(BaseFamily):
 
     def make_program(self, p):
         ops = list(_profile_ops(p["profile_kind"], p["profile_size"], p["polygon_n"]))
-        ops.append(Op("twistExtrude", {"distance": p["height"], "angle": p["twist_deg"]}))
+        ops.append(
+            Op("twistExtrude", {"distance": p["height"], "angle": p["twist_deg"]})
+        )
         return Program(
             family=self.name,
             difficulty=p["difficulty"],
@@ -452,24 +514,51 @@ class SimplePolarArrayFamily(BaseFamily):
 def _primitive_sub_ops(kind: str, size: float, polygon_n: int, offset: tuple) -> list:
     """Build a sub-program (list of dicts) that creates one primitive at offset."""
     ox, oy, oz = offset
-    sub = [{"name": "transformed",
-            "args": {"offset": [round(ox, 2), round(oy, 2), round(oz, 2)],
-                     "rotate": [0, 0, 0]}}]
+    sub = [
+        {
+            "name": "transformed",
+            "args": {
+                "offset": [round(ox, 2), round(oy, 2), round(oz, 2)],
+                "rotate": [0, 0, 0],
+            },
+        }
+    ]
     if kind == "cylinder":
-        sub.append({"name": "cylinder",
-                    "args": {"height": round(size * 1.6, 2), "radius": round(size * 0.55, 2)}})
+        sub.append(
+            {
+                "name": "cylinder",
+                "args": {
+                    "height": round(size * 1.6, 2),
+                    "radius": round(size * 0.55, 2),
+                },
+            }
+        )
     elif kind == "box":
-        sub.append({"name": "box",
-                    "args": {"length": round(size * 1.4, 2),
-                             "width": round(size, 2),
-                             "height": round(size * 0.9, 2)}})
+        sub.append(
+            {
+                "name": "box",
+                "args": {
+                    "length": round(size * 1.4, 2),
+                    "width": round(size, 2),
+                    "height": round(size * 0.9, 2),
+                },
+            }
+        )
     elif kind == "sphere":
         sub.append({"name": "sphere", "args": {"radius": round(size * 0.7, 2)}})
     elif kind == "polygon_prism":
-        sub.append({"name": "polygon",
-                    "args": {"n": polygon_n, "diameter": round(size * 1.5, 2)}})
-        sub.append({"name": "extrude",
-                    "args": {"distance": round(size * 0.8, 2), "both": True}})
+        sub.append(
+            {
+                "name": "polygon",
+                "args": {"n": polygon_n, "diameter": round(size * 1.5, 2)},
+            }
+        )
+        sub.append(
+            {
+                "name": "extrude",
+                "args": {"distance": round(size * 0.8, 2), "both": True},
+            }
+        )
     else:
         raise ValueError(f"Unknown sub kind: {kind}")
     return sub
@@ -491,12 +580,16 @@ class SimpleUnionFamily(BaseFamily):
             "polygon_n": int(rng.choice([3, 4, 5, 6])),
             "n_subs": int(rng.choice([1, 1, 2])),
             "offsets": [
-                [round(float(rng.uniform(-bs * 0.6, bs * 0.6)), 1),
-                 round(float(rng.uniform(-bs * 0.4, bs * 0.4)), 1),
-                 round(float(rng.uniform(0, bs * 0.8)), 1)],
-                [round(float(rng.uniform(-bs * 0.6, bs * 0.6)), 1),
-                 round(float(rng.uniform(-bs * 0.4, bs * 0.4)), 1),
-                 round(float(rng.uniform(-bs * 0.5, bs * 0.5)), 1)],
+                [
+                    round(float(rng.uniform(-bs * 0.6, bs * 0.6)), 1),
+                    round(float(rng.uniform(-bs * 0.4, bs * 0.4)), 1),
+                    round(float(rng.uniform(0, bs * 0.8)), 1),
+                ],
+                [
+                    round(float(rng.uniform(-bs * 0.6, bs * 0.6)), 1),
+                    round(float(rng.uniform(-bs * 0.4, bs * 0.4)), 1),
+                    round(float(rng.uniform(-bs * 0.5, bs * 0.5)), 1),
+                ],
             ],
             "difficulty": difficulty,
         }
@@ -508,15 +601,30 @@ class SimpleUnionFamily(BaseFamily):
         bs = p["base_size"]
         ops = []
         if p["base_kind"] == "cylinder":
-            ops.append(Op("cylinder", {"height": round(bs * 1.2, 2), "radius": round(bs * 0.6, 2)}))
+            ops.append(
+                Op(
+                    "cylinder",
+                    {"height": round(bs * 1.2, 2), "radius": round(bs * 0.6, 2)},
+                )
+            )
         elif p["base_kind"] == "box":
-            ops.append(Op("box", {"length": round(bs * 1.4, 2), "width": round(bs, 2),
-                                  "height": round(bs * 0.8, 2)}))
+            ops.append(
+                Op(
+                    "box",
+                    {
+                        "length": round(bs * 1.4, 2),
+                        "width": round(bs, 2),
+                        "height": round(bs * 0.8, 2),
+                    },
+                )
+            )
         else:
             ops.append(Op("sphere", {"radius": round(bs * 0.75, 2)}))
 
         for i in range(p["n_subs"]):
-            sub = _primitive_sub_ops(p["sub_kind"], p["sub_size"], p["polygon_n"], tuple(p["offsets"][i]))
+            sub = _primitive_sub_ops(
+                p["sub_kind"], p["sub_size"], p["polygon_n"], tuple(p["offsets"][i])
+            )
             ops.append(Op("union", {"ops": sub, "plane": "XY"}))
 
         return Program(
@@ -547,12 +655,16 @@ class SimpleCutFamily(BaseFamily):
             "polygon_n": int(rng.choice([3, 4, 6, 8])),
             "n_cuts": int(rng.choice([1, 2])),
             "offsets": [
-                [round(float(rng.uniform(-bs * 0.4, bs * 0.4)), 1),
-                 round(float(rng.uniform(-bs * 0.3, bs * 0.3)), 1),
-                 round(float(rng.uniform(-bs * 0.3, bs * 0.3)), 1)],
-                [round(float(rng.uniform(-bs * 0.4, bs * 0.4)), 1),
-                 round(float(rng.uniform(-bs * 0.3, bs * 0.3)), 1),
-                 round(float(rng.uniform(-bs * 0.3, bs * 0.3)), 1)],
+                [
+                    round(float(rng.uniform(-bs * 0.4, bs * 0.4)), 1),
+                    round(float(rng.uniform(-bs * 0.3, bs * 0.3)), 1),
+                    round(float(rng.uniform(-bs * 0.3, bs * 0.3)), 1),
+                ],
+                [
+                    round(float(rng.uniform(-bs * 0.4, bs * 0.4)), 1),
+                    round(float(rng.uniform(-bs * 0.3, bs * 0.3)), 1),
+                    round(float(rng.uniform(-bs * 0.3, bs * 0.3)), 1),
+                ],
             ],
             "difficulty": difficulty,
         }
@@ -564,15 +676,30 @@ class SimpleCutFamily(BaseFamily):
         bs = p["base_size"]
         ops = []
         if p["base_kind"] == "cylinder":
-            ops.append(Op("cylinder", {"height": round(bs * 1.2, 2), "radius": round(bs * 0.6, 2)}))
+            ops.append(
+                Op(
+                    "cylinder",
+                    {"height": round(bs * 1.2, 2), "radius": round(bs * 0.6, 2)},
+                )
+            )
         else:
-            ops.append(Op("box", {"length": round(bs * 1.4, 2), "width": round(bs, 2),
-                                  "height": round(bs, 2)}))
+            ops.append(
+                Op(
+                    "box",
+                    {
+                        "length": round(bs * 1.4, 2),
+                        "width": round(bs, 2),
+                        "height": round(bs, 2),
+                    },
+                )
+            )
 
         # For cuts we make sub primitives oversized so they pass through.
         cut_oversize = bs * 1.8
         for i in range(p["n_cuts"]):
-            sub = _primitive_sub_ops(p["cut_kind"], p["cut_size"], p["polygon_n"], tuple(p["offsets"][i]))
+            sub = _primitive_sub_ops(
+                p["cut_kind"], p["cut_size"], p["polygon_n"], tuple(p["offsets"][i])
+            )
             # Override last primitive args to extend through base when relevant.
             last = sub[-1]
             if last["name"] == "cylinder":
@@ -624,19 +751,38 @@ class SimpleFilletFamily(BaseFamily):
         s = p["scale"]
         ops = []
         if p["base_kind"] == "box":
-            ops.append(Op("box", {"length": round(s * 1.4, 2),
-                                  "width": round(s, 2),
-                                  "height": round(s * 0.8, 2)}))
+            ops.append(
+                Op(
+                    "box",
+                    {
+                        "length": round(s * 1.4, 2),
+                        "width": round(s, 2),
+                        "height": round(s * 0.8, 2),
+                    },
+                )
+            )
         elif p["base_kind"] == "cylinder":
-            ops.append(Op("cylinder", {"height": round(s * 1.0, 2),
-                                       "radius": round(s * 0.55, 2)}))
+            ops.append(
+                Op(
+                    "cylinder",
+                    {"height": round(s * 1.0, 2), "radius": round(s * 0.55, 2)},
+                )
+            )
         else:  # stepped — bigger box base + smaller box on top
-            ops.append(Op("box", {"length": round(s * 1.4, 2),
-                                  "width": round(s, 2),
-                                  "height": round(s * 0.5, 2)}))
+            ops.append(
+                Op(
+                    "box",
+                    {
+                        "length": round(s * 1.4, 2),
+                        "width": round(s, 2),
+                        "height": round(s * 0.5, 2),
+                    },
+                )
+            )
             ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("rect", {"length": round(s * 0.9, 2),
-                                   "width": round(s * 0.6, 2)}))
+            ops.append(
+                Op("rect", {"length": round(s * 0.9, 2), "width": round(s * 0.6, 2)})
+            )
             ops.append(Op("extrude", {"distance": round(s * 0.5, 2)}))
 
         if p["edge_selector"] != "all":
@@ -703,21 +849,32 @@ def _rare_op_solid_ops(rare: str, s: float, polygon_n: int) -> list:
     """
     if rare == "revolve":
         pts = [
-            (s * 0.45, 0.0), (s * 1.3, 0.0), (s * 1.3, s * 0.4),
-            (s * 0.7, s * 0.4), (s * 0.7, s * 1.0), (s * 0.45, s * 1.0),
+            (s * 0.45, 0.0),
+            (s * 1.3, 0.0),
+            (s * 1.3, s * 0.4),
+            (s * 0.7, s * 0.4),
+            (s * 0.7, s * 1.0),
+            (s * 0.45, s * 1.0),
         ]
         pts = [(round(x, 3), round(y, 3)) for x, y in pts]
         ops = [Op("moveTo", {"x": pts[0][0], "y": pts[0][1]})]
         for x, y in pts[1:]:
             ops.append(Op("lineTo", {"x": x, "y": y}))
         ops.append(Op("close", {}))
-        ops.append(Op("revolve", {"angleDeg": 360,
-                                  "axisStart": (0, 0, 0), "axisEnd": (0, 1, 0)}))
+        ops.append(
+            Op(
+                "revolve",
+                {"angleDeg": 360, "axisStart": (0, 0, 0), "axisEnd": (0, 1, 0)},
+            )
+        )
         return ops
     if rare == "loft":
         return [
             Op("circle", {"radius": round(s * 0.55, 3)}),
-            Op("transformed", {"offset": [0, 0, round(s * 1.2, 3)], "rotate": [0, 0, 0]}),
+            Op(
+                "transformed",
+                {"offset": [0, 0, round(s * 1.2, 3)], "rotate": [0, 0, 0]},
+            ),
             Op("rect", {"length": round(s * 0.9, 3), "width": round(s * 0.7, 3)}),
             Op("loft", {"combine": True}),
         ]
@@ -726,21 +883,32 @@ def _rare_op_solid_ops(rare: str, s: float, polygon_n: int) -> list:
         return [
             Op("center", {"x": r, "y": 0}),
             Op("circle", {"radius": round(s * 0.18, 3)}),
-            Op("sweep", {
-                "path_type": "helix",
-                "path_args": {"pitch": round(s * 0.5, 3),
-                              "height": round(s * 1.6, 3), "radius": r},
-                "isFrenet": True,
-            }),
+            Op(
+                "sweep",
+                {
+                    "path_type": "helix",
+                    "path_args": {
+                        "pitch": round(s * 0.5, 3),
+                        "height": round(s * 1.6, 3),
+                        "radius": r,
+                    },
+                    "isFrenet": True,
+                },
+            ),
         ]
     if rare == "sweep_spline":
         pts = [[0.0, 0.0], [s * 0.9, s * 0.4], [s * 1.7, -s * 0.3], [s * 2.4, s * 0.5]]
         return [
             Op("circle", {"radius": round(s * 0.22, 3)}),
-            Op("sweep", {
-                "path_type": "spline", "path_points": pts,
-                "path_plane": "XZ", "isFrenet": True,
-            }),
+            Op(
+                "sweep",
+                {
+                    "path_type": "spline",
+                    "path_points": pts,
+                    "path_plane": "XZ",
+                    "isFrenet": True,
+                },
+            ),
         ]
     if rare == "twist_extrude":
         return [
@@ -752,12 +920,18 @@ def _rare_op_solid_ops(rare: str, s: float, polygon_n: int) -> list:
         return [
             Op("center", {"x": r, "y": 0}),
             Op("rect", {"length": round(s * 0.5, 3), "width": round(s * 0.18, 3)}),
-            Op("sweep", {
-                "path_type": "helix",
-                "path_args": {"pitch": round(s * 0.55, 3),
-                              "height": round(s * 1.8, 3), "radius": r},
-                "isFrenet": True,
-            }),
+            Op(
+                "sweep",
+                {
+                    "path_type": "helix",
+                    "path_args": {
+                        "pitch": round(s * 0.55, 3),
+                        "height": round(s * 1.8, 3),
+                        "radius": r,
+                    },
+                    "isFrenet": True,
+                },
+            ),
         ]
     if rare == "taper_extrude":
         return [
@@ -777,8 +951,13 @@ class SimpleComposeFamily(BaseFamily):
     standard = "N/A"
 
     RARE_OPS = (
-        "revolve", "loft", "sweep_helix", "sweep_spline",
-        "twist_extrude", "twist_sweep", "taper_extrude",
+        "revolve",
+        "loft",
+        "sweep_helix",
+        "sweep_spline",
+        "twist_extrude",
+        "twist_sweep",
+        "taper_extrude",
     )
 
     def sample_params(self, difficulty, rng):
@@ -907,7 +1086,10 @@ class SimpleArcFamily(BaseFamily):
                 Op("lineTo", {"x": s, "y": -s / 2}),
                 Op("threePointArc", {"point1": [s + s / 2, 0.0], "point2": [s, s / 2]}),
                 Op("lineTo", {"x": -s, "y": s / 2}),
-                Op("threePointArc", {"point1": [-s - s / 2, 0.0], "point2": [-s, -s / 2]}),
+                Op(
+                    "threePointArc",
+                    {"point1": [-s - s / 2, 0.0], "point2": [-s, -s / 2]},
+                ),
                 Op("close", {}),
             ]
         elif kind == "lens":
@@ -921,7 +1103,10 @@ class SimpleArcFamily(BaseFamily):
             ops = [
                 Op("moveTo", {"x": s, "y": 0.0}),
                 Op("lineTo", {"x": -s * 0.5, "y": s * 0.7}),
-                Op("threePointArc", {"point1": [-s, 0.0], "point2": [-s * 0.5, -s * 0.7]}),
+                Op(
+                    "threePointArc",
+                    {"point1": [-s, 0.0], "point2": [-s * 0.5, -s * 0.7]},
+                ),
                 Op("close", {}),
             ]
         else:  # double_arc — pill with one straight side
@@ -966,7 +1151,10 @@ class SimplePolygonFamily(BaseFamily):
         ops = []
         if p["rotation_deg"] != 0:
             ops.append(
-                Op("transformed", {"offset": [0, 0, 0], "rotate": [0, 0, p["rotation_deg"]]})
+                Op(
+                    "transformed",
+                    {"offset": [0, 0, 0], "rotate": [0, 0, p["rotation_deg"]]},
+                )
             )
         ops.extend(
             [
@@ -994,7 +1182,9 @@ class SimpleSphereFamily(BaseFamily):
 
     def sample_params(self, difficulty, rng):
         return {
-            "kind": str(rng.choice(["single", "two_union", "sphere_rod", "sphere_cut"])),
+            "kind": str(
+                rng.choice(["single", "two_union", "sphere_rod", "sphere_cut"])
+            ),
             "radius": round(float(rng.uniform(12, 24)), 1),
             "second_radius": round(float(rng.uniform(6, 13)), 1),
             "second_offset": round(float(rng.uniform(10, 22)), 1),
@@ -1012,24 +1202,37 @@ class SimpleSphereFamily(BaseFamily):
         ops = [Op("sphere", {"radius": round(r, 3)})]
         if kind == "two_union":
             sub = [
-                {"name": "transformed",
-                 "args": {"offset": [round(p["second_offset"], 2), 0, 0], "rotate": [0, 0, 0]}},
+                {
+                    "name": "transformed",
+                    "args": {
+                        "offset": [round(p["second_offset"], 2), 0, 0],
+                        "rotate": [0, 0, 0],
+                    },
+                },
                 {"name": "sphere", "args": {"radius": round(p["second_radius"], 3)}},
             ]
             ops.append(Op("union", {"ops": sub, "plane": "XY"}))
         elif kind == "sphere_rod":
             sub = [
-                {"name": "transformed",
-                 "args": {"offset": [0, 0, round(r * 0.4, 2)], "rotate": [0, 0, 0]}},
-                {"name": "cylinder",
-                 "args": {"height": round(p["rod_height"], 3),
-                          "radius": round(p["rod_radius"], 3)}},
+                {
+                    "name": "transformed",
+                    "args": {"offset": [0, 0, round(r * 0.4, 2)], "rotate": [0, 0, 0]},
+                },
+                {
+                    "name": "cylinder",
+                    "args": {
+                        "height": round(p["rod_height"], 3),
+                        "radius": round(p["rod_radius"], 3),
+                    },
+                },
             ]
             ops.append(Op("union", {"ops": sub, "plane": "XY"}))
         elif kind == "sphere_cut":
             sub = [
-                {"name": "transformed",
-                 "args": {"offset": [round(r * 0.6, 2), 0, 0], "rotate": [0, 0, 0]}},
+                {
+                    "name": "transformed",
+                    "args": {"offset": [round(r * 0.6, 2), 0, 0], "rotate": [0, 0, 0]},
+                },
                 {"name": "sphere", "args": {"radius": round(p["second_radius"], 3)}},
             ]
             ops.append(Op("cut", {"ops": sub, "plane": "XY"}))
@@ -1067,15 +1270,35 @@ class SimpleShellFamily(BaseFamily):
         s = p["scale"]
         ops = []
         if p["base_kind"] == "cylinder":
-            ops.append(Op("cylinder", {"height": round(s, 2), "radius": round(s * 0.5, 2)}))
+            ops.append(
+                Op("cylinder", {"height": round(s, 2), "radius": round(s * 0.5, 2)})
+            )
         elif p["base_kind"] == "box":
-            ops.append(Op("box", {"length": round(s * 1.4, 2),
-                                  "width": round(s, 2), "height": round(s * 0.9, 2)}))
+            ops.append(
+                Op(
+                    "box",
+                    {
+                        "length": round(s * 1.4, 2),
+                        "width": round(s, 2),
+                        "height": round(s * 0.9, 2),
+                    },
+                )
+            )
         else:  # stepped
-            ops.append(Op("box", {"length": round(s * 1.4, 2),
-                                  "width": round(s, 2), "height": round(s * 0.5, 2)}))
+            ops.append(
+                Op(
+                    "box",
+                    {
+                        "length": round(s * 1.4, 2),
+                        "width": round(s, 2),
+                        "height": round(s * 0.5, 2),
+                    },
+                )
+            )
             ops.append(Op("workplane", {"selector": ">Z"}))
-            ops.append(Op("rect", {"length": round(s * 0.9, 2), "width": round(s * 0.6, 2)}))
+            ops.append(
+                Op("rect", {"length": round(s * 0.9, 2), "width": round(s * 0.6, 2)})
+            )
             ops.append(Op("extrude", {"distance": round(s * 0.5, 2)}))
         ops.append(Op("faces", {"selector": p["open_face"]}))
         ops.append(Op("shell", {"thickness": round(-p["thickness"], 2)}))  # inward
@@ -1131,8 +1354,12 @@ class SimpleHoleFamily(BaseFamily):
         elif layout == "two_x":
             pts = [(-ofs, 0.0), (ofs, 0.0)]
         elif layout == "four_corners":
-            pts = [(-ofs, -ofs * 0.6), (ofs, -ofs * 0.6),
-                   (-ofs, ofs * 0.6), (ofs, ofs * 0.6)]
+            pts = [
+                (-ofs, -ofs * 0.6),
+                (ofs, -ofs * 0.6),
+                (-ofs, ofs * 0.6),
+                (ofs, ofs * 0.6),
+            ]
         else:  # row3
             pts = [(-ofs, 0.0), (0.0, 0.0), (ofs, 0.0)]
         pts = [(round(x, 2), round(y, 2)) for x, y in pts]
@@ -1160,12 +1387,20 @@ def _hole_layout_pts(layout: str, ofs: float) -> list:
     if layout == "two_x":
         return [(-ofs, 0.0), (ofs, 0.0)]
     if layout == "four_corners":
-        return [(-ofs, -ofs * 0.6), (ofs, -ofs * 0.6),
-                (-ofs, ofs * 0.6), (ofs, ofs * 0.6)]
+        return [
+            (-ofs, -ofs * 0.6),
+            (ofs, -ofs * 0.6),
+            (-ofs, ofs * 0.6),
+            (ofs, ofs * 0.6),
+        ]
     if layout == "row3":
         return [(-ofs, 0.0), (0.0, 0.0), (ofs, 0.0)]
-    return [(-ofs * 0.5, -ofs * 0.5), (ofs * 0.5, -ofs * 0.5),
-            (-ofs * 0.5, ofs * 0.5), (ofs * 0.5, ofs * 0.5)]
+    return [
+        (-ofs * 0.5, -ofs * 0.5),
+        (ofs * 0.5, -ofs * 0.5),
+        (-ofs * 0.5, ofs * 0.5),
+        (ofs * 0.5, ofs * 0.5),
+    ]
 
 
 # --- simple_box_hole --------------------------------------------------------
@@ -1181,25 +1416,39 @@ class SimpleBoxHoleFamily(BaseFamily):
             "width": round(float(rng.uniform(20, 38)), 1),
             "thickness": round(float(rng.uniform(8, 18)), 1),
             "hole_diameter": round(float(rng.uniform(3, 8)), 1),
-            "layout": str(rng.choice(["center", "two_x", "four_corners", "row3", "grid2x2"])),
+            "layout": str(
+                rng.choice(["center", "two_x", "four_corners", "row3", "grid2x2"])
+            ),
             "difficulty": difficulty,
         }
 
     def validate_params(self, p):
-        return (p["hole_diameter"] < min(p["length"], p["width"]) * 0.2
-                and p["thickness"] > 4)
+        return (
+            p["hole_diameter"] < min(p["length"], p["width"]) * 0.2
+            and p["thickness"] > 4
+        )
 
     def make_program(self, p):
         ofs = min(p["length"], p["width"]) * 0.32
-        pts = [(round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)]
+        pts = [
+            (round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)
+        ]
         ops = [
-            Op("box", {"length": p["length"], "width": p["width"], "height": p["thickness"]}),
+            Op(
+                "box",
+                {"length": p["length"], "width": p["width"], "height": p["thickness"]},
+            ),
             Op("workplane", {"selector": ">Z"}),
             Op("pushPoints", {"points": pts}),
             Op("hole", {"diameter": p["hole_diameter"]}),
         ]
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"layout": p["layout"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"layout": p["layout"]},
+        )
 
 
 # --- simple_box_cut ---------------------------------------------------------
@@ -1236,11 +1485,23 @@ class SimpleBoxCutFamily(BaseFamily):
         if last["name"] in ("cylinder", "box"):
             last["args"]["height"] = round(s * 2.5, 2)
         ops = [
-            Op("box", {"length": round(s * 1.4, 2), "width": round(s, 2), "height": round(s, 2)}),
+            Op(
+                "box",
+                {
+                    "length": round(s * 1.4, 2),
+                    "width": round(s, 2),
+                    "height": round(s, 2),
+                },
+            ),
             Op("cut", {"ops": sub, "plane": "XY"}),
         ]
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"cut_kind": p["cut_kind"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"cut_kind": p["cut_kind"]},
+        )
 
 
 # --- simple_box_chamfer -----------------------------------------------------
@@ -1264,13 +1525,26 @@ class SimpleBoxChamferFamily(BaseFamily):
 
     def make_program(self, p):
         s = p["scale"]
-        ops = [Op("box", {"length": round(s * 1.4, 2), "width": round(s, 2),
-                          "height": round(s * 0.8, 2)})]
+        ops = [
+            Op(
+                "box",
+                {
+                    "length": round(s * 1.4, 2),
+                    "width": round(s, 2),
+                    "height": round(s * 0.8, 2),
+                },
+            )
+        ]
         if p["edge_selector"] != "all":
             ops.append(Op("edges", {"selector": p["edge_selector"]}))
         ops.append(Op("chamfer", {"length": p["chamfer_length"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"edge_selector": p["edge_selector"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"edge_selector": p["edge_selector"]},
+        )
 
 
 # --- simple_cyl_hole --------------------------------------------------------
@@ -1285,7 +1559,9 @@ class SimpleCylHoleFamily(BaseFamily):
             "radius": round(float(rng.uniform(15, 28)), 1),
             "thickness": round(float(rng.uniform(8, 18)), 1),
             "hole_diameter": round(float(rng.uniform(3, 8)), 1),
-            "layout": str(rng.choice(["center", "two_x", "four_corners", "row3", "ring4"])),
+            "layout": str(
+                rng.choice(["center", "two_x", "four_corners", "row3", "ring4"])
+            ),
             "difficulty": difficulty,
         }
 
@@ -1307,8 +1583,13 @@ class SimpleCylHoleFamily(BaseFamily):
             Op("pushPoints", {"points": pts}),
             Op("hole", {"diameter": p["hole_diameter"]}),
         ]
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"layout": p["layout"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"layout": p["layout"]},
+        )
 
 
 # --- simple_cyl_chamfer -----------------------------------------------------
@@ -1335,8 +1616,13 @@ class SimpleCylChamferFamily(BaseFamily):
         if p["edge_selector"] != "all":
             ops.append(Op("edges", {"selector": p["edge_selector"]}))
         ops.append(Op("chamfer", {"length": p["chamfer_length"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"edge_selector": p["edge_selector"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"edge_selector": p["edge_selector"]},
+        )
 
 
 # --- simple_extrude_cut -----------------------------------------------------
@@ -1372,13 +1658,20 @@ class SimpleExtrudeCutFamily(BaseFamily):
         s = p["scale"]
         ops = list(_profile_ops(p["profile_kind"], s, p["polygon_n"]))
         ops.append(Op("extrude", {"distance": round(p["height"], 2)}))
-        sub = _primitive_sub_ops(p["cut_kind"], p["cut_size"], p["polygon_n"], tuple(p["offset"]))
+        sub = _primitive_sub_ops(
+            p["cut_kind"], p["cut_size"], p["polygon_n"], tuple(p["offset"])
+        )
         last = sub[-1]
         if last["name"] in ("cylinder", "box"):
             last["args"]["height"] = round(p["height"] * 3, 2)
         ops.append(Op("cut", {"ops": sub, "plane": "XY"}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"profile": p["profile_kind"], "cut_kind": p["cut_kind"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"profile": p["profile_kind"], "cut_kind": p["cut_kind"]},
+        )
 
 
 # --- simple_extrude_hole ----------------------------------------------------
@@ -1408,12 +1701,19 @@ class SimpleExtrudeHoleFamily(BaseFamily):
         ops = list(_profile_ops(p["profile_kind"], s, p["polygon_n"]))
         ops.append(Op("extrude", {"distance": round(p["height"], 2)}))
         ofs = s * 0.3
-        pts = [(round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)]
+        pts = [
+            (round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)
+        ]
         ops.append(Op("workplane", {"selector": ">Z"}))
         ops.append(Op("pushPoints", {"points": pts}))
         ops.append(Op("hole", {"diameter": p["hole_diameter"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"profile": p["profile_kind"], "layout": p["layout"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"profile": p["profile_kind"], "layout": p["layout"]},
+        )
 
 
 # --- simple_extrude_chamfer -------------------------------------------------
@@ -1443,8 +1743,13 @@ class SimpleExtrudeChamferFamily(BaseFamily):
         if p["edge_selector"] != "all":
             ops.append(Op("edges", {"selector": p["edge_selector"]}))
         ops.append(Op("chamfer", {"length": p["chamfer_length"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"profile": p["profile_kind"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"profile": p["profile_kind"]},
+        )
 
 
 # --- simple_polygon_hole ----------------------------------------------------
@@ -1470,7 +1775,9 @@ class SimplePolygonHoleFamily(BaseFamily):
     def make_program(self, p):
         d = p["diameter"]
         ofs = d * 0.28
-        pts = [(round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)]
+        pts = [
+            (round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)
+        ]
         ops = [
             Op("polygon", {"n": p["n_sides"], "diameter": d}),
             Op("extrude", {"distance": p["height"]}),
@@ -1478,8 +1785,13 @@ class SimplePolygonHoleFamily(BaseFamily):
             Op("pushPoints", {"points": pts}),
             Op("hole", {"diameter": p["hole_diameter"]}),
         ]
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"n_sides": p["n_sides"], "layout": p["layout"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"n_sides": p["n_sides"], "layout": p["layout"]},
+        )
 
 
 # --- simple_revolve_cut -----------------------------------------------------
@@ -1517,8 +1829,13 @@ class SimpleRevolveCutFamily(BaseFamily):
         if last["name"] in ("cylinder", "box"):
             last["args"]["height"] = round(s * 3, 2)
         ops.append(Op("cut", {"ops": sub, "plane": "XY"}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"cut_kind": p["cut_kind"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"cut_kind": p["cut_kind"]},
+        )
 
 
 # --- simple_loft_cut --------------------------------------------------------
@@ -1556,8 +1873,13 @@ class SimpleLoftCutFamily(BaseFamily):
         if last["name"] in ("cylinder", "box"):
             last["args"]["height"] = round(s * 3, 2)
         ops.append(Op("cut", {"ops": sub, "plane": "XY"}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"cut_kind": p["cut_kind"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"cut_kind": p["cut_kind"]},
+        )
 
 
 # === Phase 2: more combo + chain + base families ===========================
@@ -1591,13 +1913,26 @@ class SimpleBoxFilletFamily(BaseFamily):
 
     def make_program(self, p):
         s = p["scale"]
-        ops = [Op("box", {"length": round(s * 1.4, 2), "width": round(s, 2),
-                          "height": round(s * 0.8, 2)})]
+        ops = [
+            Op(
+                "box",
+                {
+                    "length": round(s * 1.4, 2),
+                    "width": round(s, 2),
+                    "height": round(s * 0.8, 2),
+                },
+            )
+        ]
         if p["edge_selector"] != "all":
             ops.append(Op("edges", {"selector": p["edge_selector"]}))
         ops.append(Op("fillet", {"radius": p["fillet_radius"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"edge_selector": p["edge_selector"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"edge_selector": p["edge_selector"]},
+        )
 
 
 class SimpleCylFilletFamily(BaseFamily):
@@ -1621,8 +1956,13 @@ class SimpleCylFilletFamily(BaseFamily):
         if p["edge_selector"] != "all":
             ops.append(Op("edges", {"selector": p["edge_selector"]}))
         ops.append(Op("fillet", {"radius": p["fillet_radius"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"edge_selector": p["edge_selector"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"edge_selector": p["edge_selector"]},
+        )
 
 
 class SimpleCylCutFamily(BaseFamily):
@@ -1650,7 +1990,9 @@ class SimpleCylCutFamily(BaseFamily):
 
     def make_program(self, p):
         r = p["radius"]
-        sub = _primitive_sub_ops(p["cut_kind"], p["cut_size"], p["polygon_n"], tuple(p["offset"]))
+        sub = _primitive_sub_ops(
+            p["cut_kind"], p["cut_size"], p["polygon_n"], tuple(p["offset"])
+        )
         last = sub[-1]
         if last["name"] in ("cylinder", "box"):
             last["args"]["height"] = round(r * 3, 2)
@@ -1661,8 +2003,13 @@ class SimpleCylCutFamily(BaseFamily):
             Op("cylinder", {"height": p["height"], "radius": r}),
             Op("cut", {"ops": sub, "plane": "XY"}),
         ]
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"cut_kind": p["cut_kind"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"cut_kind": p["cut_kind"]},
+        )
 
 
 class SimpleExtrudeFilletFamily(BaseFamily):
@@ -1689,8 +2036,13 @@ class SimpleExtrudeFilletFamily(BaseFamily):
         if p["edge_selector"] != "all":
             ops.append(Op("edges", {"selector": p["edge_selector"]}))
         ops.append(Op("fillet", {"radius": p["fillet_radius"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"profile": p["profile_kind"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"profile": p["profile_kind"]},
+        )
 
 
 class SimplePolygonChamferFamily(BaseFamily):
@@ -1718,8 +2070,13 @@ class SimplePolygonChamferFamily(BaseFamily):
         if p["edge_selector"] != "all":
             ops.append(Op("edges", {"selector": p["edge_selector"]}))
         ops.append(Op("chamfer", {"length": p["chamfer_length"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"n_sides": p["n_sides"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"n_sides": p["n_sides"]},
+        )
 
 
 class SimplePolygonFilletFamily(BaseFamily):
@@ -1747,8 +2104,13 @@ class SimplePolygonFilletFamily(BaseFamily):
         if p["edge_selector"] != "all":
             ops.append(Op("edges", {"selector": p["edge_selector"]}))
         ops.append(Op("fillet", {"radius": p["fillet_radius"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"n_sides": p["n_sides"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"n_sides": p["n_sides"]},
+        )
 
 
 class SimplePolygonCutFamily(BaseFamily):
@@ -1786,21 +2148,32 @@ class SimplePolygonCutFamily(BaseFamily):
             Op("extrude", {"distance": p["height"]}),
             Op("cut", {"ops": sub, "plane": "XY"}),
         ]
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"n_sides": p["n_sides"], "cut_kind": p["cut_kind"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"n_sides": p["n_sides"], "cut_kind": p["cut_kind"]},
+        )
 
 
 def _revolve_solid_ops(s: float, angle: float) -> list:
     pts = [
-        (s * 0.45, 0.0), (s * 1.3, 0.0), (s * 1.3, s * 0.4),
-        (s * 0.7, s * 0.4), (s * 0.7, s * 1.0), (s * 0.45, s * 1.0),
+        (s * 0.45, 0.0),
+        (s * 1.3, 0.0),
+        (s * 1.3, s * 0.4),
+        (s * 0.7, s * 0.4),
+        (s * 0.7, s * 1.0),
+        (s * 0.45, s * 1.0),
     ]
     pts = [(round(x, 3), round(y, 3)) for x, y in pts]
     ops = [Op("moveTo", {"x": pts[0][0], "y": pts[0][1]})]
     for x, y in pts[1:]:
         ops.append(Op("lineTo", {"x": x, "y": y}))
     ops.append(Op("close", {}))
-    ops.append(Op("revolve", {"angleDeg": angle, "axisStart": (0, 0, 0), "axisEnd": (0, 1, 0)}))
+    ops.append(
+        Op("revolve", {"angleDeg": angle, "axisStart": (0, 0, 0), "axisEnd": (0, 1, 0)})
+    )
     return ops
 
 
@@ -1825,8 +2198,13 @@ class SimpleRevolveChamferFamily(BaseFamily):
         if p["edge_selector"] != "all":
             ops.append(Op("edges", {"selector": p["edge_selector"]}))
         ops.append(Op("chamfer", {"length": p["chamfer_length"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"angle": p["angle_deg"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"angle": p["angle_deg"]},
+        )
 
 
 class SimpleRevolveFilletFamily(BaseFamily):
@@ -1850,8 +2228,13 @@ class SimpleRevolveFilletFamily(BaseFamily):
         if p["edge_selector"] != "all":
             ops.append(Op("edges", {"selector": p["edge_selector"]}))
         ops.append(Op("fillet", {"radius": p["fillet_radius"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"angle": p["angle_deg"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"angle": p["angle_deg"]},
+        )
 
 
 class SimpleRevolveHoleFamily(BaseFamily):
@@ -1884,8 +2267,13 @@ class SimpleRevolveHoleFamily(BaseFamily):
         ops.append(Op("workplane", {"selector": ">Y"}))
         ops.append(Op("pushPoints", {"points": pts}))
         ops.append(Op("hole", {"diameter": p["hole_diameter"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"n_holes": p["n_holes"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"n_holes": p["n_holes"]},
+        )
 
 
 def _loft_solid_ops(s: float) -> list:
@@ -1917,8 +2305,13 @@ class SimpleLoftChamferFamily(BaseFamily):
         if p["edge_selector"] != "all":
             ops.append(Op("edges", {"selector": p["edge_selector"]}))
         ops.append(Op("chamfer", {"length": p["chamfer_length"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={},
+        )
 
 
 class SimpleLoftFilletFamily(BaseFamily):
@@ -1941,8 +2334,13 @@ class SimpleLoftFilletFamily(BaseFamily):
         if p["edge_selector"] != "all":
             ops.append(Op("edges", {"selector": p["edge_selector"]}))
         ops.append(Op("fillet", {"radius": p["fillet_radius"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={},
+        )
 
 
 class SimpleLoftHoleFamily(BaseFamily):
@@ -1963,8 +2361,13 @@ class SimpleLoftHoleFamily(BaseFamily):
         ops = _loft_solid_ops(p["scale"])
         ops.append(Op("workplane", {"selector": ">Z"}))
         ops.append(Op("hole", {"diameter": p["hole_diameter"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={},
+        )
 
 
 def _sweep_helix_solid_ops(s: float) -> list:
@@ -1972,12 +2375,18 @@ def _sweep_helix_solid_ops(s: float) -> list:
     return [
         Op("center", {"x": r, "y": 0}),
         Op("circle", {"radius": round(s * 0.18, 3)}),
-        Op("sweep", {
-            "path_type": "helix",
-            "path_args": {"pitch": round(s * 0.5, 3),
-                          "height": round(s * 1.6, 3), "radius": r},
-            "isFrenet": True,
-        }),
+        Op(
+            "sweep",
+            {
+                "path_type": "helix",
+                "path_args": {
+                    "pitch": round(s * 0.5, 3),
+                    "height": round(s * 1.6, 3),
+                    "radius": r,
+                },
+                "isFrenet": True,
+            },
+        ),
     ]
 
 
@@ -2011,8 +2420,13 @@ class SimpleSweepHelixCutFamily(BaseFamily):
             last["args"]["height"] = round(s * 2, 2)
         ops = _sweep_helix_solid_ops(s)
         ops.append(Op("cut", {"ops": sub, "plane": "XY"}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"cut_kind": p["cut_kind"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"cut_kind": p["cut_kind"]},
+        )
 
 
 class SimpleSweepHelixFilletFamily(BaseFamily):
@@ -2032,8 +2446,13 @@ class SimpleSweepHelixFilletFamily(BaseFamily):
     def make_program(self, p):
         ops = _sweep_helix_solid_ops(p["scale"])
         ops.append(Op("fillet", {"radius": p["fillet_radius"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={},
+        )
 
 
 class SimpleTwistExtrudeCutFamily(BaseFamily):
@@ -2062,7 +2481,9 @@ class SimpleTwistExtrudeCutFamily(BaseFamily):
 
     def make_program(self, p):
         s = p["profile_size"]
-        sub = _primitive_sub_ops(p["cut_kind"], p["cut_size"], p["polygon_n"], tuple(p["offset"]))
+        sub = _primitive_sub_ops(
+            p["cut_kind"], p["cut_size"], p["polygon_n"], tuple(p["offset"])
+        )
         last = sub[-1]
         if last["name"] in ("cylinder", "box"):
             last["args"]["height"] = round(p["height"] * 1.5, 2)
@@ -2071,8 +2492,13 @@ class SimpleTwistExtrudeCutFamily(BaseFamily):
             Op("twistExtrude", {"distance": p["height"], "angle": p["twist_deg"]}),
             Op("cut", {"ops": sub, "plane": "XY"}),
         ]
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"twist_deg": p["twist_deg"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"twist_deg": p["twist_deg"]},
+        )
 
 
 class SimpleTwistExtrudeFilletFamily(BaseFamily):
@@ -2098,8 +2524,13 @@ class SimpleTwistExtrudeFilletFamily(BaseFamily):
             Op("twistExtrude", {"distance": p["height"], "angle": p["twist_deg"]}),
             Op("fillet", {"radius": p["fillet_radius"]}),
         ]
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"twist_deg": p["twist_deg"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"twist_deg": p["twist_deg"]},
+        )
 
 
 class SimpleTaperExtrudeHoleFamily(BaseFamily):
@@ -2125,8 +2556,13 @@ class SimpleTaperExtrudeHoleFamily(BaseFamily):
         ops.append(Op("extrude", {"distance": p["height"], "taper": p["taper_deg"]}))
         ops.append(Op("workplane", {"selector": ">Z"}))
         ops.append(Op("hole", {"diameter": p["hole_diameter"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"taper_deg": p["taper_deg"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"taper_deg": p["taper_deg"]},
+        )
 
 
 class SimpleTaperExtrudeChamferFamily(BaseFamily):
@@ -2153,8 +2589,13 @@ class SimpleTaperExtrudeChamferFamily(BaseFamily):
         ops.append(Op("extrude", {"distance": p["height"], "taper": p["taper_deg"]}))
         ops.append(Op("edges", {"selector": p["edge_selector"]}))
         ops.append(Op("chamfer", {"length": p["chamfer_length"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"taper_deg": p["taper_deg"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"taper_deg": p["taper_deg"]},
+        )
 
 
 # --- 3-op chains ------------------------------------------------------------
@@ -2178,22 +2619,31 @@ class SimpleExtrudeHoleChamferFamily(BaseFamily):
         }
 
     def validate_params(self, p):
-        return (p["hole_diameter"] < p["scale"] * 0.18
-                and p["chamfer_length"] < p["scale"] * 0.15)
+        return (
+            p["hole_diameter"] < p["scale"] * 0.18
+            and p["chamfer_length"] < p["scale"] * 0.15
+        )
 
     def make_program(self, p):
         s = p["scale"]
         ops = list(_profile_ops(p["profile_kind"], s, p["polygon_n"]))
         ops.append(Op("extrude", {"distance": p["height"]}))
         ofs = s * 0.3
-        pts = [(round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)]
+        pts = [
+            (round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)
+        ]
         ops.append(Op("workplane", {"selector": ">Z"}))
         ops.append(Op("pushPoints", {"points": pts}))
         ops.append(Op("hole", {"diameter": p["hole_diameter"]}))
         ops.append(Op("edges", {"selector": ">Z"}))
         ops.append(Op("chamfer", {"length": p["chamfer_length"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"profile": p["profile_kind"], "layout": p["layout"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"profile": p["profile_kind"], "layout": p["layout"]},
+        )
 
 
 class SimpleExtrudeHoleFilletFamily(BaseFamily):
@@ -2214,22 +2664,31 @@ class SimpleExtrudeHoleFilletFamily(BaseFamily):
         }
 
     def validate_params(self, p):
-        return (p["hole_diameter"] < p["scale"] * 0.18
-                and p["fillet_radius"] < p["scale"] * 0.15)
+        return (
+            p["hole_diameter"] < p["scale"] * 0.18
+            and p["fillet_radius"] < p["scale"] * 0.15
+        )
 
     def make_program(self, p):
         s = p["scale"]
         ops = list(_profile_ops(p["profile_kind"], s, p["polygon_n"]))
         ops.append(Op("extrude", {"distance": p["height"]}))
         ofs = s * 0.3
-        pts = [(round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)]
+        pts = [
+            (round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)
+        ]
         ops.append(Op("workplane", {"selector": ">Z"}))
         ops.append(Op("pushPoints", {"points": pts}))
         ops.append(Op("hole", {"diameter": p["hole_diameter"]}))
         ops.append(Op("edges", {"selector": ">Z"}))
         ops.append(Op("fillet", {"radius": p["fillet_radius"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"profile": p["profile_kind"], "layout": p["layout"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"profile": p["profile_kind"], "layout": p["layout"]},
+        )
 
 
 class SimpleBoxHoleChamferFamily(BaseFamily):
@@ -2248,22 +2707,34 @@ class SimpleBoxHoleChamferFamily(BaseFamily):
         }
 
     def validate_params(self, p):
-        return (p["hole_diameter"] < min(p["length"], p["width"]) * 0.2
-                and p["chamfer_length"] < min(p["length"], p["width"]) * 0.15)
+        return (
+            p["hole_diameter"] < min(p["length"], p["width"]) * 0.2
+            and p["chamfer_length"] < min(p["length"], p["width"]) * 0.15
+        )
 
     def make_program(self, p):
         ofs = min(p["length"], p["width"]) * 0.32
-        pts = [(round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)]
+        pts = [
+            (round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)
+        ]
         ops = [
-            Op("box", {"length": p["length"], "width": p["width"], "height": p["thickness"]}),
+            Op(
+                "box",
+                {"length": p["length"], "width": p["width"], "height": p["thickness"]},
+            ),
             Op("workplane", {"selector": ">Z"}),
             Op("pushPoints", {"points": pts}),
             Op("hole", {"diameter": p["hole_diameter"]}),
             Op("edges", {"selector": ">Z"}),
             Op("chamfer", {"length": p["chamfer_length"]}),
         ]
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"layout": p["layout"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"layout": p["layout"]},
+        )
 
 
 class SimpleBoxHoleFilletFamily(BaseFamily):
@@ -2282,22 +2753,34 @@ class SimpleBoxHoleFilletFamily(BaseFamily):
         }
 
     def validate_params(self, p):
-        return (p["hole_diameter"] < min(p["length"], p["width"]) * 0.2
-                and p["fillet_radius"] < min(p["length"], p["width"]) * 0.15)
+        return (
+            p["hole_diameter"] < min(p["length"], p["width"]) * 0.2
+            and p["fillet_radius"] < min(p["length"], p["width"]) * 0.15
+        )
 
     def make_program(self, p):
         ofs = min(p["length"], p["width"]) * 0.32
-        pts = [(round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)]
+        pts = [
+            (round(x, 2), round(y, 2)) for x, y in _hole_layout_pts(p["layout"], ofs)
+        ]
         ops = [
-            Op("box", {"length": p["length"], "width": p["width"], "height": p["thickness"]}),
+            Op(
+                "box",
+                {"length": p["length"], "width": p["width"], "height": p["thickness"]},
+            ),
             Op("workplane", {"selector": ">Z"}),
             Op("pushPoints", {"points": pts}),
             Op("hole", {"diameter": p["hole_diameter"]}),
             Op("edges", {"selector": ">Z"}),
             Op("fillet", {"radius": p["fillet_radius"]}),
         ]
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"layout": p["layout"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"layout": p["layout"]},
+        )
 
 
 class SimpleRevolveCutChamferFamily(BaseFamily):
@@ -2328,8 +2811,13 @@ class SimpleRevolveCutChamferFamily(BaseFamily):
         ops.append(Op("cut", {"ops": sub, "plane": "XY"}))
         ops.append(Op("edges", {"selector": ">Z"}))
         ops.append(Op("chamfer", {"length": p["chamfer_length"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={},
+        )
 
 
 # --- new base shapes --------------------------------------------------------
@@ -2352,14 +2840,24 @@ class SimpleTorusFamily(BaseFamily):
 
     def make_program(self, p):
         dir_map = {"Z": (0, 0, 1), "X": (1, 0, 0), "Y": (0, 1, 0)}
-        ops = [Op("torus", {
-            "majorRadius": p["major_radius"],
-            "minorRadius": p["minor_radius"],
-            "pnt": (0, 0, 0),
-            "dir": dir_map[p["axis"]],
-        })]
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"axis": p["axis"]})
+        ops = [
+            Op(
+                "torus",
+                {
+                    "majorRadius": p["major_radius"],
+                    "minorRadius": p["minor_radius"],
+                    "pnt": (0, 0, 0),
+                    "dir": dir_map[p["axis"]],
+                },
+            )
+        ]
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"axis": p["axis"]},
+        )
 
 
 class SimpleConeFamily(BaseFamily):
@@ -2375,8 +2873,11 @@ class SimpleConeFamily(BaseFamily):
         }
 
     def validate_params(self, p):
-        return (p["base_radius"] > 5 and p["height"] > 5
-                and p["top_radius"] < p["base_radius"])
+        return (
+            p["base_radius"] > 5
+            and p["height"] > 5
+            and p["top_radius"] < p["base_radius"]
+        )
 
     def make_program(self, p):
         br, tr, h = p["base_radius"], p["top_radius"], p["height"]
@@ -2389,9 +2890,19 @@ class SimpleConeFamily(BaseFamily):
         for x, y in pts[1:]:
             ops.append(Op("lineTo", {"x": x, "y": y}))
         ops.append(Op("close", {}))
-        ops.append(Op("revolve", {"angleDeg": 360.0, "axisStart": (0, 0, 0), "axisEnd": (0, 1, 0)}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={})
+        ops.append(
+            Op(
+                "revolve",
+                {"angleDeg": 360.0, "axisStart": (0, 0, 0), "axisEnd": (0, 1, 0)},
+            )
+        )
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={},
+        )
 
 
 class SimpleWedgeFamily(BaseFamily):
@@ -2420,8 +2931,13 @@ class SimpleWedgeFamily(BaseFamily):
             Op("close", {}),
             Op("extrude", {"distance": p["thickness"]}),
         ]
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={},
+        )
 
 
 class SimpleRArrayFamily(BaseFamily):
@@ -2445,10 +2961,17 @@ class SimpleRArrayFamily(BaseFamily):
         return p["feature_size"] < min(p["x_spacing"], p["y_spacing"]) * 0.45
 
     def make_program(self, p):
-        ops = [Op("rarray", {
-            "xSpacing": p["x_spacing"], "ySpacing": p["y_spacing"],
-            "xCount": p["x_count"], "yCount": p["y_count"],
-        })]
+        ops = [
+            Op(
+                "rarray",
+                {
+                    "xSpacing": p["x_spacing"],
+                    "ySpacing": p["y_spacing"],
+                    "xCount": p["x_count"],
+                    "yCount": p["y_count"],
+                },
+            )
+        ]
         s = p["feature_size"]
         if p["feature_kind"] == "cylinder":
             ops.append(Op("circle", {"radius": s}))
@@ -2457,8 +2980,13 @@ class SimpleRArrayFamily(BaseFamily):
         else:
             ops.append(Op("polygon", {"n": p["polygon_n"], "diameter": s * 2}))
         ops.append(Op("extrude", {"distance": p["feature_height"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"x_count": p["x_count"], "y_count": p["y_count"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"x_count": p["x_count"], "y_count": p["y_count"]},
+        )
 
 
 class SimpleRArrayCutFamily(BaseFamily):
@@ -2479,22 +3007,37 @@ class SimpleRArrayCutFamily(BaseFamily):
         }
 
     def validate_params(self, p):
-        return (p["hole_diameter"] < min(p["x_spacing"], p["y_spacing"]) * 0.45
-                and p["x_count"] * p["x_spacing"] < p["plate_l"]
-                and p["y_count"] * p["y_spacing"] < p["plate_w"])
+        return (
+            p["hole_diameter"] < min(p["x_spacing"], p["y_spacing"]) * 0.45
+            and p["x_count"] * p["x_spacing"] < p["plate_l"]
+            and p["y_count"] * p["y_spacing"] < p["plate_w"]
+        )
 
     def make_program(self, p):
         ops = [
-            Op("box", {"length": p["plate_l"], "width": p["plate_w"], "height": p["plate_t"]}),
+            Op(
+                "box",
+                {"length": p["plate_l"], "width": p["plate_w"], "height": p["plate_t"]},
+            ),
             Op("workplane", {"selector": ">Z"}),
-            Op("rarray", {
-                "xSpacing": p["x_spacing"], "ySpacing": p["y_spacing"],
-                "xCount": p["x_count"], "yCount": p["y_count"],
-            }),
+            Op(
+                "rarray",
+                {
+                    "xSpacing": p["x_spacing"],
+                    "ySpacing": p["y_spacing"],
+                    "xCount": p["x_count"],
+                    "yCount": p["y_count"],
+                },
+            ),
             Op("hole", {"diameter": p["hole_diameter"]}),
         ]
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"x_count": p["x_count"], "y_count": p["y_count"]})
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"x_count": p["x_count"], "y_count": p["y_count"]},
+        )
 
 
 class SimpleExtrudeMultiplaneFamily(BaseFamily):
@@ -2517,9 +3060,14 @@ class SimpleExtrudeMultiplaneFamily(BaseFamily):
     def make_program(self, p):
         ops = list(_profile_ops(p["profile_kind"], p["scale"], p["polygon_n"]))
         ops.append(Op("extrude", {"distance": p["height"]}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"base_plane": p["base_plane"]},
-                       base_plane=p["base_plane"])
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"base_plane": p["base_plane"]},
+            base_plane=p["base_plane"],
+        )
 
 
 class SimpleRevolveMultiaxisFamily(BaseFamily):
@@ -2540,8 +3088,12 @@ class SimpleRevolveMultiaxisFamily(BaseFamily):
     def make_program(self, p):
         s = p["scale"]
         pts = [
-            (s * 0.5, 0.0), (s * 1.4, 0.0), (s * 1.4, s * 0.4),
-            (s * 0.7, s * 0.4), (s * 0.7, s * 1.0), (s * 0.5, s * 1.0),
+            (s * 0.5, 0.0),
+            (s * 1.4, 0.0),
+            (s * 1.4, s * 0.4),
+            (s * 0.7, s * 0.4),
+            (s * 0.7, s * 1.0),
+            (s * 0.5, s * 1.0),
         ]
         pts = [(round(x, 3), round(y, 3)) for x, y in pts]
         if p["axis_kind"] == "X":
@@ -2558,7 +3110,20 @@ class SimpleRevolveMultiaxisFamily(BaseFamily):
         for x, y in pts[1:]:
             ops.append(Op("lineTo", {"x": x, "y": y}))
         ops.append(Op("close", {}))
-        ops.append(Op("revolve", {"angleDeg": p["angle_deg"],
-                                  "axisStart": axis_start, "axisEnd": axis_end}))
-        return Program(family=self.name, difficulty=p["difficulty"], params=p, ops=ops,
-                       feature_tags={"axis_kind": p["axis_kind"]})
+        ops.append(
+            Op(
+                "revolve",
+                {
+                    "angleDeg": p["angle_deg"],
+                    "axisStart": axis_start,
+                    "axisEnd": axis_end,
+                },
+            )
+        )
+        return Program(
+            family=self.name,
+            difficulty=p["difficulty"],
+            params=p,
+            ops=ops,
+            feature_tags={"axis_kind": p["axis_kind"]},
+        )

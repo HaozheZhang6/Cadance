@@ -1,0 +1,31 @@
+run_name: batch_simple21_apr27
+num_samples: 4200
+seed: 4127
+n_workers: 4
+family_mix:
+  simple_spur_gear: 1
+  simple_helical_gear: 1
+  simple_bevel_gear: 1
+  simple_sprocket: 1
+  simple_double_sprocket: 1
+  simple_impeller: 1
+  simple_propeller: 1
+  simple_bellows: 1
+  simple_coil_spring: 1
+  simple_torsion_spring: 1
+  simple_twisted_drill: 1
+  simple_pulley: 1
+  simple_spline_hub: 1
+  simple_worm_screw: 1
+  simple_plate_holes_grid: 1
+  simple_step_solid: 1
+  simple_l_solid: 1
+  simple_t_solid: 1
+  simple_curved_lobe_plate: 1
+  simple_open_box_thin: 1
+  simple_multi_extrude_step: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true
