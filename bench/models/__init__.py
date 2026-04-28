@@ -39,13 +39,32 @@ EDIT_VLM_SYSTEM_PROMPT = EDIT_IMG_SYSTEM_PROMPT
 # ── Back-compat shims (used by old runners until refactored) ─────────────────
 
 
+def _to_pil(img):
+    """Normalize input (PIL / bytes / {'bytes': ...}) → PIL Image. Raises on bad type."""
+    from PIL import Image as _PIL
+
+    if hasattr(img, "save"):  # already PIL
+        return img
+    if isinstance(img, dict):
+        if "bytes" not in img:
+            raise TypeError(f"_to_pil: dict missing 'bytes' key (got keys={list(img)})")
+        raw = img["bytes"]
+    elif isinstance(img, (bytes, bytearray)):
+        raw = img
+    else:
+        raise TypeError(f"_to_pil: unsupported image type {type(img).__name__}")
+    import io as _io
+
+    return _PIL.open(_io.BytesIO(raw))
+
+
 def call_vlm(
     model: str, pil_img, api_key: str | None = None
 ) -> tuple[str | None, str | None]:
     """Image → CadQuery code (img2cq task)."""
     adapter = get_adapter(model)
     text, err = adapter.generate(
-        SYSTEM_PROMPT, USER_PROMPT, images=[pil_img], max_tokens=2048
+        SYSTEM_PROMPT, USER_PROMPT, images=[_to_pil(pil_img)], max_tokens=2048
     )
     if text is None:
         return None, err
@@ -61,7 +80,7 @@ def call_vlm_qa(
     adapter = get_adapter(model)
     user_text = build_qa_user_text(questions)
     raw, err = adapter.generate(
-        QA_IMG_SYSTEM_PROMPT, user_text, images=[pil_img], max_tokens=512
+        QA_IMG_SYSTEM_PROMPT, user_text, images=[_to_pil(pil_img)], max_tokens=512
     )
     if raw is None:
         return None, err
@@ -95,7 +114,7 @@ def call_edit_vlm(
     adapter = get_adapter(model)
     user_text = build_edit_user_text(orig_code, instruction)
     raw, err = adapter.generate(
-        EDIT_IMG_SYSTEM_PROMPT, user_text, images=[pil_img], max_tokens=4096
+        EDIT_IMG_SYSTEM_PROMPT, user_text, images=[_to_pil(pil_img)], max_tokens=4096
     )
     if raw is None:
         return None, err

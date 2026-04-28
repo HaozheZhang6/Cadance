@@ -1,0 +1,16 @@
+run_name: data_arg_180k_mesh_panel
+num_samples: 1900
+seed: 13055
+n_workers: 4
+family_mix:
+  mesh_panel: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true
+param_scale:
+  enabled: true
+  lo: 0.8
+  hi: 1.2
+dedup_params: true

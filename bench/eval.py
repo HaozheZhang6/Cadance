@@ -294,6 +294,11 @@ def main():
         choices=[0, 6, 24],
         help="0=single axis (default), 6=face-up only, 24=full cube group",
     )
+    ap.add_argument(
+        "--stems-file",
+        default=None,
+        help="path to txt (one stem/line) or jsonl (with 'stem' field). Overrides --limit/--seed.",
+    )
     args = ap.parse_args()
 
     token = (
@@ -309,7 +314,28 @@ def main():
 
     print(f"Loading {args.repo}[{args.split}] ...")
     rows = load_hf(args.repo, args.split, token=token)
-    sampled = sample_rows(rows, args.limit, args.seed)
+    if args.stems_file:
+        wanted: set[str] = set()
+        for line in Path(args.stems_file).read_text().splitlines():
+            s = line.strip()
+            if not s:
+                continue
+            if s.startswith("{"):
+                try:
+                    s = json.loads(s).get("stem", "")
+                except Exception:
+                    s = ""
+            if s:
+                wanted.add(s)
+        sampled = [r for r in rows if r["stem"] in wanted]
+        missing = wanted - {r["stem"] for r in sampled}
+        print(
+            f"stems-file: {len(wanted)} requested, {len(sampled)} matched, {len(missing)} missing"
+        )
+        if missing:
+            print(f"  e.g. missing: {sorted(missing)[:5]}")
+    else:
+        sampled = sample_rows(rows, args.limit, args.seed)
 
     rd = ResultsDir(task="img2cq", model=args.model)
     done = rd.done_keys("stem")

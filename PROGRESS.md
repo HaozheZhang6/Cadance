@@ -1,4 +1,47 @@
 
+## 2026-04-26 (session 35) — UA-24 180k 跑半夜挂 + runner ProcessPool 重构
+
+**事件**:
+- WORKERS=4 起跑 4 family 完成 (ball_knob 1362, battery/bearing/bellows 各 1900 = ~7000 sample)
+- bumpup → WORKERS=10, bevel_gear 36 min 后 macOS fork OOM (per-sample mp.Process spawn 累积 page table 压力)
+- 连带 bolt/bucket/cable_routing_panel 触发 ENOMEM, driver 自杀
+- 后续 WORKERS=8 / WORKERS=4 重启都被 fork 失败挡掉 (~4GB Cursor + 4 claude session 让 RAM 持续紧)
+- 用户起夜确认改造方案 2: ProcessPool
+
+**改造 `pipeline/runner.py`** (待 RAM 恢复后烟测):
+- `_worker(单次, exit)` → `_process_one(纯计算)` + `_worker_loop(持久 loop)` + `_PersistentWorker` 类
+- N 持久 worker, 启动时一次 import cadquery, 之后只在 timeout 时 kill+replace 单 worker
+- per-sample fork 数: N×samples → N (10000x 减)
+- 保留 timeout 杀 OCCT 死循环 + 加 worker_crash detection (proc 死了不等 timeout)
+- 保留 param_invalid + resume skip 主进程处理
+- 每 sample 跑前 IPC 开销 ~0 (vs 旧 ~500ms python+cadquery 启动)
+
+**预期速度**: 持久 worker 后单 sample ~200ms wall (省去 import) → 8 worker × 5 sample/s = 40 sample/s, 1900/40 = 48s/family, 106 × 48s = ~85 min 全跑完
+
+**待办**:
+1. RAM 恢复后跑 5 family × 50 sample 烟测验证新 runner 不挂
+2. 验证 timeout + worker_crash 路径正确
+3. 跑剩 102 family (bevel_gear 后续单独 topup, 跑前 disable scaling)
+4. push BenchCAD/cad_bench_X
+
+**Phase 1 / Phase 2 拆分** (用户决策, 降低 OOM 风险):
+- driver 加 `RENDER` env: `RENDER=0` (默认) → `--no-render` 不出 PNG, 只 code+STEP+meta; `RENDER=1` → 全 pipeline
+- Phase 1 = 全 106 family + RENDER=0 → 验证 exec 全 OK, 留 STEP 文件
+- Phase 2 新脚本 `render_180k_phase2.py`: 走 STEP 补 4-view PNG (ProcessPoolExecutor + workers)
+- 顺序: 持久 worker runner 烟测 → Phase 1 (~hours) → Phase 2 render (~hours) → push_180k.sh
+- 若 Phase 1 (无 render) 仍 OOM → 进一步加 `code_only: true` config 跳 build (尚未实现)
+
+## 2026-04-26 (session 34) — UA-24 180k 数据扩展 scaffolding (data-arg-180k branch)
+
+- 新 branch `data-arg-180k` from origin/main (PR#1 合 data-arg → main 后)
+- 加 `families/base.py::scale_params` — 白名单 ×0.8-1.2 维度扩展 (length/width/height/depth/thickness/radius/diameter + suffix; 排除 int/bool/enum/discrete ISO)
+- runner.py Stage A 加 `param_scale` 配置 + `dedup_params` (md5 hash sorted JSON, 同 run 内去重)
+- 生成 106 single-family configs `configs/data_arg_180k/<family>.yaml` (1900 sample × 106, seed=5000+md5%10000, run_name=data_arg_180k_<fam>)
+- pre-flight 5 family × 50 sample: grease_nipple 100% / pulley 100% / capsule 100% / hex_nut 84% (BRep 几何 invalid) / chair 84% (roundtrip drift) — 平均 93.6%
+- 1900 × 106 × 0.94 ≈ 189k accepted，超 180k target
+- driver `run_180k_batch.sh` (resume safe, FAMILIES env / --start fam 续跑) + `push_180k.sh` (拼 106 --run 推 BenchCAD/cad_bench_X)
+- pytest 400 pass, ruff/black clean
+
 ## 2026-04-26 (session 33) — A 方案: 41 family 全 replace + push HF cad_bench
 
 - 用户决策 A 方案 — 替换 bench 41 family 旧重复样本 → 跑 `batch_replace41_apr25` 6000 sample (5780 accepted, 96.3%)
