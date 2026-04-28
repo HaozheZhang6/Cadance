@@ -39,13 +39,27 @@ EDIT_VLM_SYSTEM_PROMPT = EDIT_IMG_SYSTEM_PROMPT
 # ── Back-compat shims (used by old runners until refactored) ─────────────────
 
 
+def _to_pil(img):
+    """Normalize input (PIL / bytes / {'bytes': ...}) → PIL Image."""
+    from PIL import Image as _PIL
+
+    if hasattr(img, "save"):  # already PIL
+        return img
+    raw = img["bytes"] if isinstance(img, dict) else img
+    if isinstance(raw, (bytes, bytearray)):
+        import io as _io
+
+        return _PIL.open(_io.BytesIO(raw))
+    return img
+
+
 def call_vlm(
     model: str, pil_img, api_key: str | None = None
 ) -> tuple[str | None, str | None]:
     """Image → CadQuery code (img2cq task)."""
     adapter = get_adapter(model)
     text, err = adapter.generate(
-        SYSTEM_PROMPT, USER_PROMPT, images=[pil_img], max_tokens=2048
+        SYSTEM_PROMPT, USER_PROMPT, images=[_to_pil(pil_img)], max_tokens=2048
     )
     if text is None:
         return None, err
