@@ -49,6 +49,7 @@ def collect_rows(include_step: bool = True, max_rows: int | None = None):
         try:
             m = json.loads(mf.read_text())
             code = code_path.read_text()
+            bbox = (list(m.get("bbox") or []) + [0.0, 0.0, 0.0])[:3]
             row = {
                 "stem": stem,
                 "family": m.get("family", ""),
@@ -58,9 +59,9 @@ def collect_rows(include_step: bool = True, max_rows: int | None = None):
                 "ops_json": json.dumps(m.get("ops", []), default=str),
                 "params_json": json.dumps(m.get("params", {}), default=str),
                 "feature_tags_json": json.dumps(m.get("feature_tags", {}), default=str),
-                "bbox_x": float(m.get("bbox", [0, 0, 0])[0]),
-                "bbox_y": float(m.get("bbox", [0, 0, 0])[1]),
-                "bbox_z": float(m.get("bbox", [0, 0, 0])[2]),
+                "bbox_x": float(bbox[0]),
+                "bbox_y": float(bbox[1]),
+                "bbox_z": float(bbox[2]),
                 "base_plane": m.get("base_plane", "XY"),
                 "n_ops": len(m.get("ops", [])),
             }
@@ -77,10 +78,14 @@ def collect_rows(include_step: bool = True, max_rows: int | None = None):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", default="BenchCAD/cad_simple_ops_100k")
-    ap.add_argument("--no-step", action="store_true",
-                    help="omit STEP bytes — code-only push (smaller, faster)")
-    ap.add_argument("--max-rows", type=int, default=None,
-                    help="cap rows (for smoke testing)")
+    ap.add_argument(
+        "--no-step",
+        action="store_true",
+        help="omit STEP bytes — code-only push (smaller, faster)",
+    )
+    ap.add_argument(
+        "--max-rows", type=int, default=None, help="cap rows (for smoke testing)"
+    )
     ap.add_argument("--private", action="store_true", default=False)
     args = ap.parse_args()
 

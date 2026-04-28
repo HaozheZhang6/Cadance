@@ -13,6 +13,7 @@ import logging
 import multiprocessing as mp
 import subprocess
 import time
+from collections import deque
 from pathlib import Path
 
 import numpy as np
@@ -266,7 +267,7 @@ class _PersistentWorker:
             self.proc.kill()
             self.proc.join(timeout=2)
         except Exception:  # noqa: BLE001
-            pass
+            logger.debug("kill_and_replace: kill/join failed", exc_info=True)
         self._cleanup_handles()
         self._spawn()
         self.busy_spec = None
@@ -275,14 +276,14 @@ class _PersistentWorker:
         try:
             self.in_q.put(None)
         except Exception:  # noqa: BLE001
-            pass
+            logger.debug("shutdown: in_q.put(None) failed", exc_info=True)
         try:
             self.proc.join(timeout=3)
             if self.proc.is_alive():
                 self.proc.kill()
                 self.proc.join(timeout=2)
         except Exception:  # noqa: BLE001
-            pass
+            logger.debug("shutdown: proc.join/kill failed", exc_info=True)
         self._cleanup_handles()
 
     def _cleanup_handles(self) -> None:
@@ -291,11 +292,13 @@ class _PersistentWorker:
                 q.close()
                 q.join_thread()
             except Exception:  # noqa: BLE001
-                pass
+                logger.debug(
+                    "_cleanup_handles: q.close/join_thread failed", exc_info=True
+                )
         try:
             self.proc.close()
         except Exception:  # noqa: BLE001
-            pass
+            logger.debug("_cleanup_handles: proc.close failed", exc_info=True)
 
 
 # ── Batch orchestrator ─────────────────────────────────────────────────────────
@@ -343,15 +346,18 @@ def run_batch(
         for _ in range(MAX_PARAM_RETRIES):
             family = get_family(fam_name)
             candidate = family.sample_params(diff, rng)
+            # Hash BASE candidate (pre-scale): scaling otherwise re-randomizes
+            # the hash and lets the same base sample slip through dedup multiple
+            # times with different scale factors.
+            base_hash = _param_hash(candidate) if dedup_enabled else None
+            if dedup_enabled and base_hash in seen_param_hashes:
+                continue
             if scale_enabled:
                 candidate = scale_params(candidate, rng, scale_lo, scale_hi)
             if not family.validate_params(candidate):
                 continue
             if dedup_enabled:
-                h = _param_hash(candidate)
-                if h in seen_param_hashes:
-                    continue
-                seen_param_hashes.add(h)
+                seen_param_hashes.add(base_hash)
             params = candidate
             break
 
@@ -379,7 +385,7 @@ def run_batch(
 
     # ── Stages C–G: persistent worker pool with per-task timeout ──────────
     results = []
-    pending = list(sample_specs)
+    pending: deque[dict] = deque(sample_specs)
     pool: list[_PersistentWorker] = [_PersistentWorker() for _ in range(n_workers)]
 
     def _drain_pre_dispatch(spec: dict) -> bool:
@@ -433,7 +439,7 @@ def run_batch(
         # Assign pending samples to free workers
         for w in pool:
             while w.busy_spec is None and pending:
-                spec = pending.pop(0)
+                spec = pending.popleft()
                 if _drain_pre_dispatch(spec):
                     continue
                 w.submit(spec, run_name, render)

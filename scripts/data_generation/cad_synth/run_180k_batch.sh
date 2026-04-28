@@ -38,7 +38,7 @@ if [[ -n "${FAMILIES:-}" ]]; then
 else
   while IFS= read -r line; do
     CONFIGS+=("$line")
-  done < <(ls "$CONFIG_DIR"/*.yaml | grep -v '/_' | sort)
+  done < <(find "$CONFIG_DIR" -maxdepth 1 -name '*.yaml' ! -name '_*' -print | sort)
 fi
 
 TOTAL=${#CONFIGS[@]}

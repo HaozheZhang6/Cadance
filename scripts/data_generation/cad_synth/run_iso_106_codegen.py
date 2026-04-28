@@ -18,7 +18,6 @@ Resume-safe: skips a stem if all 3 of (.py, .step, .json) already exist.
 import argparse
 import json
 import multiprocessing as mp
-import os
 import signal
 import sys
 import time
@@ -33,7 +32,7 @@ sys.path.insert(0, str(ROOT / "scripts" / "data_generation"))
 
 
 # Same shim as simple_ops — OCP 7.9.3 removed HashCode, cadquery selectors need it.
-_HASHCODE_SHIM = '''\
+_HASHCODE_SHIM = """\
 # --- OCP HashCode shim (OCP 7.9.3 removed HashCode; cadquery selectors need it) ---
 from OCP.TopoDS import (TopoDS_Compound, TopoDS_CompSolid, TopoDS_Edge, TopoDS_Face,
                         TopoDS_Shape, TopoDS_Shell, TopoDS_Solid, TopoDS_Vertex, TopoDS_Wire)
@@ -42,7 +41,7 @@ for _cls in (TopoDS_Shape, TopoDS_Face, TopoDS_Edge, TopoDS_Vertex, TopoDS_Wire,
     if not hasattr(_cls, "HashCode"):
         _cls.HashCode = lambda self, ub=2147483647: id(self) % ub
 # --- end shim ---
-'''
+"""
 
 
 _FAM = None
@@ -57,7 +56,10 @@ def _phase1_init(root_str: str):
 
     global _FAM, _CQ, _RENDER_CODE
     import cadquery as cq
-    from scripts.data_generation.cad_synth.pipeline.builder import render_program_to_code
+
+    from scripts.data_generation.cad_synth.pipeline.builder import (
+        render_program_to_code,
+    )
     from scripts.data_generation.cad_synth.pipeline.registry import (
         get_family,
         list_families,
@@ -79,8 +81,10 @@ def _phase1_worker(args):
         return {"family": fam_name, "stem": stem, "skipped": "phase1_done"}
 
     try:
-        signal.signal(signal.SIGALRM,
-                      lambda *a: (_ for _ in ()).throw(TimeoutError("phase1 timeout")))
+        signal.signal(
+            signal.SIGALRM,
+            lambda *a: (_ for _ in ()).throw(TimeoutError("phase1 timeout")),
+        )
         signal.alarm(30)
 
         fam = _FAM[fam_name]
@@ -90,15 +94,19 @@ def _phase1_worker(args):
         wp = fam.build(params)
         bb = wp.val().BoundingBox()
         if bb.xlen < 0.1 or bb.ylen < 0.1 or bb.zlen < 0.1:
-            return {"family": fam_name, "stem": stem,
-                    "error": f"degen {bb.xlen:.1f}x{bb.ylen:.1f}x{bb.zlen:.1f}"}
+            return {
+                "family": fam_name,
+                "stem": stem,
+                "error": f"degen {bb.xlen:.1f}x{bb.ylen:.1f}x{bb.zlen:.1f}",
+            }
 
         step_path.parent.mkdir(parents=True, exist_ok=True)
         py_path.parent.mkdir(parents=True, exist_ok=True)
         json_path.parent.mkdir(parents=True, exist_ok=True)
 
-        _CQ.exporters.export(wp, str(step_path),
-                             exportType=_CQ.exporters.ExportTypes.STEP)
+        _CQ.exporters.export(
+            wp, str(step_path), exportType=_CQ.exporters.ExportTypes.STEP
+        )
         py_src = _HASHCODE_SHIM + _RENDER_CODE(program)
         py_path.write_text(py_src)
 
@@ -111,15 +119,20 @@ def _phase1_worker(args):
                 raise RuntimeError("no 'result' var")
             r_bb = r.val().BoundingBox()
             if r_bb.xlen < 0.1 or r_bb.ylen < 0.1 or r_bb.zlen < 0.1:
-                raise RuntimeError(f"py-exec degen {r_bb.xlen:.1f}x{r_bb.ylen:.1f}x{r_bb.zlen:.1f}")
+                raise RuntimeError(
+                    f"py-exec degen {r_bb.xlen:.1f}x{r_bb.ylen:.1f}x{r_bb.zlen:.1f}"
+                )
         except Exception as e:
             for f in (step_path, py_path, json_path):
                 try:
                     f.unlink(missing_ok=True)
                 except Exception:
                     pass
-            return {"family": fam_name, "stem": stem,
-                    "error": f"py-exec: {type(e).__name__}: {str(e)[:140]}"}
+            return {
+                "family": fam_name,
+                "stem": stem,
+                "error": f"py-exec: {type(e).__name__}: {str(e)[:140]}",
+            }
 
         prog_json = {
             "family": program.family,
@@ -134,13 +147,21 @@ def _phase1_worker(args):
         json_path.write_text(json.dumps(prog_json, indent=2, default=str))
 
         signal.alarm(0)
-        return {"family": fam_name, "stem": stem,
-                "step": str(step_path), "py": str(py_path), "meta": str(json_path)}
+        return {
+            "family": fam_name,
+            "stem": stem,
+            "step": str(step_path),
+            "py": str(py_path),
+            "meta": str(json_path),
+        }
     except TimeoutError:
         return {"family": fam_name, "stem": stem, "error": "phase1 timeout"}
     except Exception as e:
-        return {"family": fam_name, "stem": stem,
-                "error": f"{type(e).__name__}: {str(e)[:160]}"}
+        return {
+            "family": fam_name,
+            "stem": stem,
+            "error": f"{type(e).__name__}: {str(e)[:160]}",
+        }
     finally:
         signal.alarm(0)
 
@@ -169,13 +190,14 @@ def _build_args_list(plan, out_root: Path, root_seed: int = 5000):
             args_list.append((fam.name, params, stem, diff, str(out_root)))
             got += 1
         if got < n:
-            skip_log.append({"family": fam.name, "got": got, "needed": n,
-                             "shortfall": n - got})
+            skip_log.append(
+                {"family": fam.name, "got": got, "needed": n, "shortfall": n - got}
+            )
     return args_list, skip_log
 
 
 def run_phase1(plan, out_root: Path, n_workers: int = 8):
-    print(f"[Phase 1] Building args ...")
+    print("[Phase 1] Building args ...")
     t0 = time.time()
     args_list, skip_log = _build_args_list(plan, out_root)
     total = len(args_list)
@@ -184,9 +206,12 @@ def run_phase1(plan, out_root: Path, n_workers: int = 8):
     results = []
     fail_log = list(skip_log)
     ctx = mp.get_context("spawn")
-    with ctx.Pool(processes=n_workers, initializer=_phase1_init,
-                  initargs=(str(ROOT),)) as pool:
-        for i, r in enumerate(pool.imap_unordered(_phase1_worker, args_list, chunksize=4)):
+    with ctx.Pool(
+        processes=n_workers, initializer=_phase1_init, initargs=(str(ROOT),)
+    ) as pool:
+        for i, r in enumerate(
+            pool.imap_unordered(_phase1_worker, args_list, chunksize=4)
+        ):
             done = i + 1
             if "step" in r or r.get("skipped"):
                 results.append(r)
@@ -194,16 +219,24 @@ def run_phase1(plan, out_root: Path, n_workers: int = 8):
                     elapsed = time.time() - t0
                     rate = done / max(elapsed, 1)
                     eta = (total - done) / rate
-                    print(f"  [Phase1 {done}/{total}] rate={rate:.1f}/s eta={eta/60:.1f}min")
+                    print(
+                        f"  [Phase1 {done}/{total}] rate={rate:.1f}/s eta={eta/60:.1f}min"
+                    )
             else:
                 fail_log.append(r)
                 if len(fail_log) <= 30 or len(fail_log) % 100 == 0:
                     print(f"  FAIL {r.get('family')}/{r.get('stem')}: {r.get('error')}")
 
     elapsed = time.time() - t0
-    print(f"[Phase 1] Done: {len(results)}/{total} in {elapsed/60:.1f}min, {len(fail_log)} fails")
-    (out_root / "phase1_results.json").write_text(json.dumps(results, indent=2, default=str))
-    (out_root / "phase1_fails.json").write_text(json.dumps(fail_log, indent=2, default=str))
+    print(
+        f"[Phase 1] Done: {len(results)}/{total} in {elapsed/60:.1f}min, {len(fail_log)} fails"
+    )
+    (out_root / "phase1_results.json").write_text(
+        json.dumps(results, indent=2, default=str)
+    )
+    (out_root / "phase1_fails.json").write_text(
+        json.dumps(fail_log, indent=2, default=str)
+    )
     return results, fail_log
 
 
@@ -235,7 +268,9 @@ def build_default_plan(per_family: int):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--per-family", type=int, default=1700)
-    ap.add_argument("--out", default=str(ROOT / "data" / "data_generation" / "iso_106_codegen"))
+    ap.add_argument(
+        "--out", default=str(ROOT / "data" / "data_generation" / "iso_106_codegen")
+    )
     ap.add_argument("--workers", type=int, default=8)
     args = ap.parse_args()
 

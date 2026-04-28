@@ -25,13 +25,28 @@ OUT_DIR = ROOT / "data" / "data_generation" / "bench_subset_figs"
 
 # Tier sets — kept in sync with select_bench_subset.py
 HEAVY = {
-    "spur_gear", "helical_gear", "bevel_gear", "sprocket",
-    "double_simplex_sprocket", "worm_screw", "impeller", "propeller",
-    "coil_spring", "torsion_spring", "bellows",
+    "spur_gear",
+    "helical_gear",
+    "bevel_gear",
+    "sprocket",
+    "double_simplex_sprocket",
+    "worm_screw",
+    "impeller",
+    "propeller",
+    "coil_spring",
+    "torsion_spring",
+    "bellows",
 }
 LIGHT = {
-    "spacer_ring", "circlip", "dowel_pin", "taper_pin", "cotter_pin",
-    "parallel_key", "rivet", "grommet", "washer",
+    "spacer_ring",
+    "circlip",
+    "dowel_pin",
+    "taper_pin",
+    "cotter_pin",
+    "parallel_key",
+    "rivet",
+    "grommet",
+    "washer",
 }
 
 TIER_COLORS = {"HEAVY": "#d62728", "STANDARD": "#1f77b4", "LIGHT": "#2ca02c"}
@@ -47,22 +62,24 @@ def tier_of(fam: str) -> str:
 
 
 def setup_style():
-    plt.rcParams.update({
-        "font.family": "sans-serif",
-        "font.sans-serif": ["Helvetica", "Arial", "DejaVu Sans"],
-        "font.size": 10,
-        "axes.titlesize": 12,
-        "axes.labelsize": 10,
-        "axes.spines.top": False,
-        "axes.spines.right": False,
-        "axes.grid": False,
-        "xtick.direction": "out",
-        "ytick.direction": "out",
-        "legend.frameon": False,
-        "figure.dpi": 100,
-        "savefig.dpi": 300,
-        "savefig.bbox": "tight",
-    })
+    plt.rcParams.update(
+        {
+            "font.family": "sans-serif",
+            "font.sans-serif": ["Helvetica", "Arial", "DejaVu Sans"],
+            "font.size": 10,
+            "axes.titlesize": 12,
+            "axes.labelsize": 10,
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "axes.grid": False,
+            "xtick.direction": "out",
+            "ytick.direction": "out",
+            "legend.frameon": False,
+            "figure.dpi": 100,
+            "savefig.dpi": 300,
+            "savefig.bbox": "tight",
+        }
+    )
 
 
 def save_fig(fig, name):
@@ -79,8 +96,12 @@ PLANE_COLORS = {"XY": "#4c72b0", "YZ": "#dd8452", "XZ": "#55a868"}
 def fig1_overview(subset, ds_rows):
     """2×3 main panel: family / difficulty / plane / top ops / n_ops / plane×diff."""
     fig, axes = plt.subplots(2, 3, figsize=(18, 9))
-    fig.suptitle(f"BenchCAD-{len(ds_rows)} benchmark subset — distribution overview",
-                 fontsize=14, fontweight="bold", y=0.995)
+    fig.suptitle(
+        f"BenchCAD-{len(ds_rows)} benchmark subset — distribution overview",
+        fontsize=14,
+        fontweight="bold",
+        y=0.995,
+    )
 
     # ── (a) Top 20 families
     ax = axes[0, 0]
@@ -105,9 +126,13 @@ def fig1_overview(subset, ds_rows):
     labels = ["easy", "medium", "hard"]
     sizes = [dc.get(k, 0) for k in labels]
     colors = [DIFF_COLORS[k] for k in labels]
-    wedges, texts, autotexts = ax.pie(
-        sizes, labels=labels, colors=colors, autopct="%1.1f%%",
-        startangle=90, wedgeprops={"width": 0.45, "edgecolor": "white", "linewidth": 2},
+    _wedges, _texts, autotexts = ax.pie(
+        sizes,
+        labels=labels,
+        colors=colors,
+        autopct="%1.1f%%",
+        startangle=90,
+        wedgeprops={"width": 0.45, "edgecolor": "white", "linewidth": 2},
         textprops={"fontsize": 10},
     )
     for t in autotexts:
@@ -121,9 +146,13 @@ def fig1_overview(subset, ds_rows):
     plane_labels = ["XY", "YZ", "XZ"]
     plane_sizes = [pc.get(p, 0) for p in plane_labels]
     plane_colors = [PLANE_COLORS[p] for p in plane_labels]
-    wedges_c, texts_c, autotexts_c = ax.pie(
-        plane_sizes, labels=plane_labels, colors=plane_colors, autopct="%1.1f%%",
-        startangle=90, wedgeprops={"width": 0.45, "edgecolor": "white", "linewidth": 2},
+    _wedges_c, _texts_c, autotexts_c = ax.pie(
+        plane_sizes,
+        labels=plane_labels,
+        colors=plane_colors,
+        autopct="%1.1f%%",
+        startangle=90,
+        wedgeprops={"width": 0.45, "edgecolor": "white", "linewidth": 2},
         textprops={"fontsize": 10},
     )
     for t in autotexts_c:
@@ -157,9 +186,10 @@ def fig1_overview(subset, ds_rows):
     parts = ax.violinplot(
         [n_by_diff[d] for d in labels],
         positions=range(3),
-        showmeans=True, widths=0.7,
+        showmeans=True,
+        widths=0.7,
     )
-    for body, k in zip(parts["bodies"], labels):
+    for body, k in zip(parts["bodies"], labels, strict=True):
         body.set_facecolor(DIFF_COLORS[k])
         body.set_edgecolor("white")
         body.set_alpha(0.85)
@@ -177,8 +207,16 @@ def fig1_overview(subset, ds_rows):
     bottoms = np.zeros(3)
     for d in labels:
         h = np.array([pd_counts.get((p, d), 0) for p in plane_labels])
-        ax.bar(plane_labels, h, bottom=bottoms, color=DIFF_COLORS[d],
-               edgecolor="white", linewidth=0.5, label=d, width=0.65)
+        ax.bar(
+            plane_labels,
+            h,
+            bottom=bottoms,
+            color=DIFF_COLORS[d],
+            edgecolor="white",
+            linewidth=0.5,
+            label=d,
+            width=0.65,
+        )
         bottoms += h
     ax.set_ylabel("# samples")
     ax.set_title("(f) plane × difficulty stacked")
@@ -203,8 +241,11 @@ def fig2_family_bar(subset, ds_rows):
     ax.set_yticklabels(fams, fontsize=7)
     ax.invert_yaxis()
     ax.set_xlabel("# samples")
-    ax.set_title(f"BenchCAD subset — all {len(fams)} families × tier ({sum(counts)} samples)",
-                 fontsize=12, fontweight="bold")
+    ax.set_title(
+        f"BenchCAD subset — all {len(fams)} families × tier ({sum(counts)} samples)",
+        fontsize=12,
+        fontweight="bold",
+    )
 
     handles = [plt.Rectangle((0, 0), 1, 1, color=c) for c in TIER_COLORS.values()]
     ax.legend(handles, TIER_COLORS.keys(), loc="lower right", fontsize=10, title="Tier")
@@ -222,7 +263,9 @@ def fig3_op_coverage(subset, ds_rows):
     items = sorted(op_counter.items(), key=lambda x: x[1])
     ops = [o for o, _ in items]
     cnts = [c for _, c in items]
-    colors = ["#d62728" if c < 30 else ("#ff7f0e" if c < 100 else "#5c8bb5") for c in cnts]
+    colors = [
+        "#d62728" if c < 30 else ("#ff7f0e" if c < 100 else "#5c8bb5") for c in cnts
+    ]
 
     fig, ax = plt.subplots(figsize=(11, 10))
     ax.barh(range(len(ops)), cnts, color=colors, edgecolor="white", linewidth=0.4)
@@ -230,10 +273,19 @@ def fig3_op_coverage(subset, ds_rows):
     ax.set_yticklabels(ops, fontsize=8)
     ax.set_xscale("log")
     ax.set_xlabel("op occurrences (log scale)")
-    ax.set_title(f"BenchCAD subset — op vocabulary coverage ({len(ops)} unique ops)",
-                 fontsize=12, fontweight="bold")
-    ax.axvline(30, color="#d62728", linestyle="--", linewidth=0.7, alpha=0.7,
-               label="rare-op threshold (30)")
+    ax.set_title(
+        f"BenchCAD subset — op vocabulary coverage ({len(ops)} unique ops)",
+        fontsize=12,
+        fontweight="bold",
+    )
+    ax.axvline(
+        30,
+        color="#d62728",
+        linestyle="--",
+        linewidth=0.7,
+        alpha=0.7,
+        label="rare-op threshold (30)",
+    )
     ax.legend(loc="lower right", fontsize=9)
     plt.tight_layout()
     save_fig(fig, "fig3_op_coverage")
@@ -268,8 +320,11 @@ def fig4_family_op_heatmap(subset, ds_rows):
     ax.set_xticklabels(top_ops, rotation=45, ha="right", fontsize=8)
     ax.set_yticks(range(len(top_fams)))
     ax.set_yticklabels(top_fams, fontsize=7)
-    ax.set_title("Family × op co-occurrence (top 40 fam × top 25 op, log color)",
-                 fontsize=12, fontweight="bold")
+    ax.set_title(
+        "Family × op co-occurrence (top 40 fam × top 25 op, log color)",
+        fontsize=12,
+        fontweight="bold",
+    )
     cbar = fig.colorbar(im, ax=ax, label="log1p(occurrences)", shrink=0.8)
     plt.tight_layout()
     save_fig(fig, "fig4_family_op_heatmap")
@@ -290,9 +345,10 @@ def fig5_complexity(subset, ds_rows):
     parts = ax.violinplot(
         [n_by_diff[d] for d in diffs],
         positions=range(3),
-        showmeans=True, widths=0.7,
+        showmeans=True,
+        widths=0.7,
     )
-    for body, k in zip(parts["bodies"], diffs):
+    for body, k in zip(parts["bodies"], diffs, strict=True):
         body.set_facecolor(DIFF_COLORS[k])
         body.set_edgecolor("white")
         body.set_alpha(0.85)
@@ -311,9 +367,10 @@ def fig5_complexity(subset, ds_rows):
     parts = ax.violinplot(
         [fc_by_tier[t] for t in tiers],
         positions=range(3),
-        showmeans=True, widths=0.7,
+        showmeans=True,
+        widths=0.7,
     )
-    for body, t in zip(parts["bodies"], tiers):
+    for body, t in zip(parts["bodies"], tiers, strict=True):
         body.set_facecolor(TIER_COLORS[t])
         body.set_edgecolor("white")
         body.set_alpha(0.8)
@@ -325,22 +382,33 @@ def fig5_complexity(subset, ds_rows):
 
     # n_ops overall histogram with diff stack
     ax = axes[2]
-    bins = range(0, max(len(json.loads(r.get("ops_used", "[]") or "[]"))
-                         for r in ds_rows) + 2)
+    bins = range(
+        0, max(len(json.loads(r.get("ops_used", "[]") or "[]")) for r in ds_rows) + 2
+    )
     bottoms = np.zeros(len(bins) - 1, dtype=float)
     for d in diffs:
         n_list = n_by_diff[d]
         h, _ = np.histogram(n_list, bins=bins)
-        ax.bar(bins[:-1], h, bottom=bottoms, color=DIFF_COLORS[d],
-               edgecolor="white", linewidth=0.4, label=d, width=1.0, align="edge")
+        ax.bar(
+            bins[:-1],
+            h,
+            bottom=bottoms,
+            color=DIFF_COLORS[d],
+            edgecolor="white",
+            linewidth=0.4,
+            label=d,
+            width=1.0,
+            align="edge",
+        )
         bottoms += h
     ax.set_xlabel("# ops per sample")
     ax.set_ylabel("# samples")
     ax.set_title(f"(c) n_ops distribution stacked by diff (N={len(ds_rows)})")
     ax.legend(loc="upper right", fontsize=9)
 
-    plt.suptitle("BenchCAD subset — geometric complexity",
-                 fontsize=13, fontweight="bold", y=1.02)
+    plt.suptitle(
+        "BenchCAD subset — geometric complexity", fontsize=13, fontweight="bold", y=1.02
+    )
     plt.tight_layout()
     save_fig(fig, "fig5_complexity")
     plt.close(fig)
@@ -358,6 +426,7 @@ def main():
 
     print("Loading BenchCAD/cad_bench (filtering to subset) ...")
     from datasets import load_dataset
+
     ds = load_dataset("BenchCAD/cad_bench", split="test")
     ds_rows = [r for r in ds if r["stem"] in stem_set]
     print(f"  filtered to {len(ds_rows)} rows")

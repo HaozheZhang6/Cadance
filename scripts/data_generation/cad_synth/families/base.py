@@ -40,11 +40,16 @@ def _is_scalable(key: str, value) -> bool:
 
 
 def scale_params(params: dict, rng, lo: float = 0.8, hi: float = 1.2) -> dict:
-    """Multiply whitelisted float dim keys by uniform[lo, hi]. Caller must re-validate."""
+    """Multiply whitelisted float dim keys by ONE uniform[lo, hi] factor (per call).
+
+    Single factor preserves relative proportions (e.g. radius < width/2 stays
+    valid). Per-key sampling broke geometric constraints. Caller must re-validate.
+    """
+    factor = float(rng.uniform(lo, hi))
     out = dict(params)
     for k, v in params.items():
         if _is_scalable(k, v):
-            out[k] = round(v * float(rng.uniform(lo, hi)), 2)
+            out[k] = round(v * factor, 2)
     return out
 
 

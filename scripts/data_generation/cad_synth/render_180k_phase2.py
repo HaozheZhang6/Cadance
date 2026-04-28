@@ -5,7 +5,7 @@ without PNGs. This script walks every data_arg_180k_<family> verified dir, finds
 gen.step missing render_*.png, and renders.
 
 Resume-safe: skips stems whose 4 render_*.png already exist.
-Workers: thread pool (VTK is GIL-released for offscreen render).
+Workers: process pool (uses ProcessPoolExecutor).
 
 Usage:
   uv run python3 scripts/data_generation/cad_synth/render_180k_phase2.py

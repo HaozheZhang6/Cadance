@@ -23,6 +23,7 @@ DATA = ROOT / "data" / "data_generation" / "iso_106_codegen"
 
 try:
     from dotenv import load_dotenv
+
     load_dotenv(ROOT / ".env", override=False)
 except ImportError:
     pass
@@ -35,6 +36,7 @@ def _build_one_row(stem: str, include_step: bool):
     if not (code_path.exists() and step_path.exists() and meta_path.exists()):
         return None
     m = json.loads(meta_path.read_text())
+    bbox = (list(m.get("bbox") or []) + [0.0, 0.0, 0.0])[:3]
     row = {
         "stem": stem,
         "family": m.get("family", ""),
@@ -44,9 +46,9 @@ def _build_one_row(stem: str, include_step: bool):
         "ops_json": json.dumps(m.get("ops", []), default=str),
         "params_json": json.dumps(m.get("params", {}), default=str),
         "feature_tags_json": json.dumps(m.get("feature_tags", {}), default=str),
-        "bbox_x": float(m.get("bbox", [0, 0, 0])[0]),
-        "bbox_y": float(m.get("bbox", [0, 0, 0])[1]),
-        "bbox_z": float(m.get("bbox", [0, 0, 0])[2]),
+        "bbox_x": float(bbox[0]),
+        "bbox_y": float(bbox[1]),
+        "bbox_z": float(bbox[2]),
         "base_plane": m.get("base_plane", "XY"),
         "n_ops": len(m.get("ops", [])),
     }
@@ -55,8 +57,9 @@ def _build_one_row(stem: str, include_step: bool):
     return row
 
 
-def write_parquet_shards(out_dir: Path, include_step: bool, max_rows: int | None,
-                         shard_size: int = 5000):
+def write_parquet_shards(
+    out_dir: Path, include_step: bool, max_rows: int | None, shard_size: int = 5000
+):
     """Stream rows in chunks of shard_size, write each as parquet — bounded memory."""
     import pyarrow as pa
     import pyarrow.parquet as pq
@@ -66,7 +69,9 @@ def write_parquet_shards(out_dir: Path, include_step: bool, max_rows: int | None
     if max_rows:
         meta_files = meta_files[:max_rows]
     total_meta = len(meta_files)
-    print(f"Found {total_meta} meta files; writing shards to {out_dir} (size={shard_size})")
+    print(
+        f"Found {total_meta} meta files; writing shards to {out_dir} (size={shard_size})"
+    )
 
     total_rows = 0
     skipped = 0
@@ -87,8 +92,10 @@ def write_parquet_shards(out_dir: Path, include_step: bool, max_rows: int | None
             tbl = pa.Table.from_pylist(buf)
             pq.write_table(tbl, shard_path, compression="zstd")
             total_rows += len(buf)
-            print(f"  shard {shard_idx} ({len(buf)} rows) → {shard_path.name}, "
-                  f"total={total_rows}/{total_meta}, skipped={skipped}")
+            print(
+                f"  shard {shard_idx} ({len(buf)} rows) → {shard_path.name}, "
+                f"total={total_rows}/{total_meta}, skipped={skipped}"
+            )
             shard_idx += 1
             buf.clear()
             del tbl
@@ -109,7 +116,11 @@ def main():
     ap.add_argument("--max-rows", type=int, default=None)
     ap.add_argument("--shard-size", type=int, default=5000)
     ap.add_argument("--shard-dir", default=str(DATA / "_parquet_shards"))
-    ap.add_argument("--skip-write", action="store_true", help="reuse existing shard dir, only upload")
+    ap.add_argument(
+        "--skip-write",
+        action="store_true",
+        help="reuse existing shard dir, only upload",
+    )
     ap.add_argument("--private", action="store_true", default=False)
     args = ap.parse_args()
 
@@ -124,12 +135,15 @@ def main():
     out_dir = Path(args.shard_dir)
     if not args.skip_write:
         write_parquet_shards(
-            out_dir, include_step=not args.no_step,
-            max_rows=args.max_rows, shard_size=args.shard_size,
+            out_dir,
+            include_step=not args.no_step,
+            max_rows=args.max_rows,
+            shard_size=args.shard_size,
         )
 
     print(f"\nUploading shards from {out_dir} → {args.repo} ...")
     from huggingface_hub import HfApi
+
     api = HfApi(token=token)
     api.create_repo(args.repo, repo_type="dataset", exist_ok=True, private=args.private)
     api.upload_folder(

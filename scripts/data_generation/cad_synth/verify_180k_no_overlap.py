@@ -42,6 +42,7 @@ def main() -> None:
         sys.exit("No new 180k rows yet — run Phase 1 first.")
 
     old_hashes: set[str] = set()
+    old_skipped = 0
     for s in old["params_json"].fillna(""):
         if not s:
             continue
@@ -49,13 +50,17 @@ def main() -> None:
             p = json.loads(s)
             p.pop("base_plane", None)
             old_hashes.add(_hash(p))
-        except Exception:  # noqa: BLE001
-            pass
-    print(f"old unique param hashes: {len(old_hashes)}")
+        except (json.JSONDecodeError, ValueError):
+            old_skipped += 1
+    print(
+        f"old unique param hashes: {len(old_hashes)} (skipped unparseable: {old_skipped})"
+    )
 
     # Per-family collision count
     coll_by_fam: dict[str, int] = defaultdict(int)
     new_by_fam: dict[str, int] = defaultdict(int)
+    new_parsed = 0
+    new_skipped = 0
     for fam, s in zip(new["family"].fillna(""), new["params_json"].fillna("")):
         new_by_fam[fam] += 1
         if not s:
@@ -63,14 +68,19 @@ def main() -> None:
         try:
             p = json.loads(s)
             p.pop("base_plane", None)
+            new_parsed += 1
             if _hash(p) in old_hashes:
                 coll_by_fam[fam] += 1
-        except Exception:  # noqa: BLE001
-            pass
+        except (json.JSONDecodeError, ValueError):
+            new_skipped += 1
 
     total_coll = sum(coll_by_fam.values())
-    pct = 100 * total_coll / len(new)
-    print(f"\nTotal collisions: {total_coll} / {len(new)} new ({pct:.2f}%)")
+    denom = max(1, new_parsed)
+    pct = 100 * total_coll / denom
+    print(
+        f"\nTotal collisions: {total_coll} / {new_parsed} parsed new "
+        f"({pct:.2f}%); skipped unparseable new: {new_skipped}"
+    )
     if total_coll == 0:
         print("✓ Zero overlap with existing cad_bench")
     else:

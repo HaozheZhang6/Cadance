@@ -1592,7 +1592,11 @@ result = (
 
 
 def page_cq_playground():
-    import os, subprocess, sys, tempfile, shutil
+    import os
+    import shutil
+    import subprocess
+    import sys
+    import tempfile
 
     st.title("CQ Playground")
     st.caption("Paste CadQuery code → Render → see 4-view composite")
@@ -1745,15 +1749,16 @@ def page_bench_curator():
     _ordered_stems = sorted(active_idx.keys())
 
     class _DSAdapter:
-        column_names = list(active_ds.column_names)
-        _stems = _ordered_stems
+        def __init__(self):
+            self.column_names = list(active_ds.column_names)
+            self._stems = list(_ordered_stems)
 
         def __getitem__(self, i):
             s = self._stems[i]
             return active_ds[active_idx[s]]
 
     ds = _DSAdapter()
-    stem_idx = {s: i for i, s in enumerate(_ordered_stems)}
+    stem_idx = {s: i for i, s in enumerate(ds._stems)}
     selected_stems = list(_ordered_stems)
     subset = {"stems": selected_stems}
 
@@ -2096,9 +2101,17 @@ def page_bench_curator():
                     if st.button(
                         "🔧 Render edit", key=f"rnd_{stem}", use_container_width=True
                     ):
+                        import shutil
                         import tempfile
                         from pathlib import Path as _P
+
                         from render import render_cq
+
+                        # Drop previous render's temp dir before mkdtemp again
+                        # (otherwise repeated edits leak ~MB per click).
+                        prev = st.session_state.get(f"rendered_{stem}")
+                        if prev and prev[2]:
+                            shutil.rmtree(prev[2], ignore_errors=True)
 
                         # OCP 7.9.3 shim — same prefix as run_iso_106_codegen
                         # uses, so faces()/edges() selectors work in subprocess.
@@ -2123,6 +2136,7 @@ def page_bench_curator():
                             cq_path = f.name
                         out_dir = _P(tempfile.mkdtemp(prefix="cur_render_"))
                         comp, err = render_cq(cq_path, str(out_dir))
+                        _P(cq_path).unlink(missing_ok=True)
                         st.session_state[f"rendered_{stem}"] = (comp, err, str(out_dir))
                         st.rerun()
                 with bc3:
@@ -2162,11 +2176,6 @@ def page_bench_curator():
         st.divider()
 
     return  # end render
-
-    # ── (legacy single-stem detail kept below for reference, never reached) ──
-    if False:
-        pick_stem = ""
-        return  # noqa: B012 — never reached
 
 
 # ── navigation ────────────────────────────────────────────────────────────────

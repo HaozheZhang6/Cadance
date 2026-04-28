@@ -35,13 +35,28 @@ OUT = ROOT / "data" / "data_generation"
 
 
 HEAVY = {
-    "spur_gear", "helical_gear", "bevel_gear", "sprocket",
-    "double_simplex_sprocket", "worm_screw", "impeller", "propeller",
-    "coil_spring", "torsion_spring", "bellows",
+    "spur_gear",
+    "helical_gear",
+    "bevel_gear",
+    "sprocket",
+    "double_simplex_sprocket",
+    "worm_screw",
+    "impeller",
+    "propeller",
+    "coil_spring",
+    "torsion_spring",
+    "bellows",
 }
 LIGHT = {
-    "spacer_ring", "circlip", "dowel_pin", "taper_pin", "cotter_pin",
-    "parallel_key", "rivet", "grommet", "washer",
+    "spacer_ring",
+    "circlip",
+    "dowel_pin",
+    "taper_pin",
+    "cotter_pin",
+    "parallel_key",
+    "rivet",
+    "grommet",
+    "washer",
 }
 W_HEAVY, W_STANDARD, W_LIGHT = 18, 9, 6  # plan A: /3 → per-diff 6/3/2
 
@@ -118,11 +133,13 @@ def main():
         feats = []
         for ci in cell_indices:
             r = ds[ci]
-            feats.append([
-                len(json.loads(r.get("ops_used", "[]") or "[]")),
-                int(r.get("feature_count", 0) or 0),
-                hash(r["stem"]) % 100,
-            ])
+            feats.append(
+                [
+                    len(json.loads(r.get("ops_used", "[]") or "[]")),
+                    int(r.get("feature_count", 0) or 0),
+                    hash(r["stem"]) % 100,
+                ]
+            )
         feats = np.array(feats, dtype=np.float64)
         picks = furthest_point_sample(feats, k, rng)
         return [cell_indices[p] for p in picks]
@@ -168,8 +185,10 @@ def main():
             rationale[f"{fam}/{diff}"] = {
                 "available": len(cell),
                 "picked": picked_in_cell,
-                "by_plane": {pl: len([1 for ci in picks_total if ds[ci].get("base_plane") == pl])
-                             for pl in planes},
+                "by_plane": {
+                    pl: len([1 for ci in picks_total if ds[ci].get("base_plane") == pl])
+                    for pl in planes
+                },
             }
 
     # Rare-op top-up: any op with <RARE_OP_TARGET in subset → pull more samples
@@ -218,8 +237,6 @@ def main():
                     op_counter[o] += 1
             if op_counter[op] >= RARE_OP_TARGET:
                 break
-            if op_counter[op] >= RARE_OP_TARGET:
-                break
 
     chosen_idx.extend(topup)
     print(f"  rare-op top-up added {len(topup)} samples")
@@ -235,19 +252,29 @@ def main():
         for op in json.loads(ds[i].get("ops_used", "[]") or "[]"):
             op_counter[op] += 1
 
-    Path(args.out).write_text(json.dumps({
-        "target": args.target,
-        "actual": len(chosen_idx),
-        "seed": args.seed,
-        "tier_weights": {"HEAVY": W_HEAVY, "STANDARD": W_STANDARD, "LIGHT": W_LIGHT},
-        "heavy_families": sorted(HEAVY),
-        "light_families": sorted(LIGHT),
-        "stems": chosen_stems,
-        "by_family": dict(chosen_families.most_common()),
-        "by_difficulty": dict(chosen_diffs),
-        "op_coverage": dict(op_counter.most_common()),
-        "rationale": rationale,
-    }, indent=2, default=str))
+    Path(args.out).write_text(
+        json.dumps(
+            {
+                "target": args.target,
+                "actual": len(chosen_idx),
+                "seed": args.seed,
+                "tier_weights": {
+                    "HEAVY": W_HEAVY,
+                    "STANDARD": W_STANDARD,
+                    "LIGHT": W_LIGHT,
+                },
+                "heavy_families": sorted(HEAVY),
+                "light_families": sorted(LIGHT),
+                "stems": chosen_stems,
+                "by_family": dict(chosen_families.most_common()),
+                "by_difficulty": dict(chosen_diffs),
+                "op_coverage": dict(op_counter.most_common()),
+                "rationale": rationale,
+            },
+            indent=2,
+            default=str,
+        )
+    )
 
     # Report.
     lines = [
@@ -266,13 +293,15 @@ def main():
         lines.append(f"  {op:25s} {c}")
     rare_ops = [(op, c) for op, c in op_counter.items() if c < 30]
     if rare_ops:
-        lines.append(f"\n=== Rare ops (<30 in subset) ===")
+        lines.append("\n=== Rare ops (<30 in subset) ===")
         for op, c in sorted(rare_ops, key=lambda x: x[1]):
             lines.append(f"  {op:25s} {c}")
     Path(args.report).write_text("\n".join(lines))
 
     print(f"\n✓ Selected {len(chosen_idx)} stems")
-    print(f"  by family: {len(chosen_families)} families, top 3: {chosen_families.most_common(3)}")
+    print(
+        f"  by family: {len(chosen_families)} families, top 3: {chosen_families.most_common(3)}"
+    )
     print(f"  by diff: {dict(chosen_diffs)}")
     print(f"  op coverage: {len(op_counter)} unique ops")
     print(f"  output: {args.out}")

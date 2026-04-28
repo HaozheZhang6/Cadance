@@ -9,13 +9,19 @@ from __future__ import annotations
 import json as _json
 import re
 
+# ── shared view-layout description (single source of truth) ──────────────────
+
+DIAGONAL_VIEW_LAYOUT = (
+    "2x2 composite of 4 diagonal views, all looking at the part center [0.5,0.5,0.5]:\n"
+    "- Top-left: camera at [ 1,  1,  1]\n"
+    "- Top-right: camera at [-1, -1, -1]\n"
+    "- Bottom-left: camera at [-1,  1, -1]\n"
+    "- Bottom-right: camera at [ 1, -1,  1]"
+)
+
 # ── img2cq (eval.py / run_test.py) ────────────────────────────────────────────
 
-SYSTEM_PROMPT = """Generate CadQuery Python code from a 2x2 composite of 4 diagonal views, all looking at the part center [0.5,0.5,0.5]:
-- Top-left: camera at [ 1,  1,  1]
-- Top-right: camera at [-1, -1, -1]
-- Bottom-left: camera at [-1,  1, -1]
-- Bottom-right: camera at [ 1, -1,  1]
+SYSTEM_PROMPT = f"""Generate CadQuery Python code from a {DIAGONAL_VIEW_LAYOUT}
 
 Renders are normalized: bbox centered at [0.5,0.5,0.5], longest side maps to [0,1].
 Match the orientation exactly - do not rotate or remap axes. World XYZ in your code must match world XYZ in the renders.
@@ -30,15 +36,15 @@ USER_PROMPT = (
 )
 
 CADRILLE_SYSTEM_PROMPT = (
-    "You are a CadQuery expert. Given a 2×2 grid of normalized multi-view renders "
-    "of a mechanical part (four diagonal viewpoints: [1,1,1], [-1,-1,-1], [-1,1,-1], "
-    "[1,-1,1]), write CadQuery Python code that reproduces the geometry. "
+    "You are a CadQuery expert. Given a normalized "
+    f"{DIAGONAL_VIEW_LAYOUT}\n"
+    "Write CadQuery Python code that reproduces the geometry. "
     "Output ONLY Python code."
 )
 
 # ── QA (img + Qs) and code-QA (code + Qs) ─────────────────────────────────────
 
-QA_IMG_SYSTEM_PROMPT = """You are an expert CAD engineer. You will be shown a 2×2 composite image of a mechanical part (4 diagonal viewpoints: camera at [1,1,1], [-1,-1,-1], [-1,1,-1], [1,-1,1], looking at bbox center [0.5, 0.5, 0.5]).
+QA_IMG_SYSTEM_PROMPT = f"""You are an expert CAD engineer. You will be shown a {DIAGONAL_VIEW_LAYOUT}
 
 You will be given a list of numeric questions about the part. Answer each with a single number.
 
