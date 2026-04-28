@@ -2,19 +2,22 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 def load(p: Path):
-    return [json.loads(line) for line in p.read_text().splitlines() if line.strip()][
-        -30:
-    ]
+    return pd.read_json(p, lines=True).tail(30).to_dict(orient="records")
+
+
+def _iou(r: dict) -> float:
+    v = r.get("iou_rot")
+    return float(v) if v is not None else float(r.get("iou", 0.0))
 
 
 def main(out: Path) -> None:
@@ -44,8 +47,8 @@ def main(out: Path) -> None:
                 "stem": s,
                 "qa_off": qa_off[s].get("qa_score", 0.0),
                 "qa_on": qa_on[s].get("qa_score", 0.0),
-                "iou_off": cg_off[s].get("iou_rot") or cg_off[s].get("iou", 0.0),
-                "iou_on": cg_on[s].get("iou_rot") or cg_on[s].get("iou", 0.0),
+                "iou_off": _iou(cg_off[s]),
+                "iou_on": _iou(cg_on[s]),
             }
         )
 

@@ -8,6 +8,8 @@ import random
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
@@ -25,11 +27,11 @@ def main():
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
-    rows = [
-        json.loads(line)
-        for line in Path(args.model_results).read_text().splitlines()
-        if line.strip()
-    ][-args.n_targets :]
+    rows = (
+        pd.read_json(args.model_results, lines=True)
+        .tail(args.n_targets)
+        .to_dict(orient="records")
+    )
 
     print(f"Loaded {len(rows)} rows from {args.model_results}")
     rng = random.Random(args.seed)
@@ -105,7 +107,9 @@ def main():
     )
 
     if args.out:
-        Path(args.out).write_text(
+        out_p = Path(args.out)
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        out_p.write_text(
             json.dumps(
                 {"pairs": out, "iou": iou_mean, "iou_rot": iou_rot_mean}, indent=2
             )
