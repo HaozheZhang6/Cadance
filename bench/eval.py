@@ -20,8 +20,10 @@ import os
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -299,6 +301,12 @@ def main():
         default=None,
         help="path to txt (one stem/line) or jsonl (with 'stem' field). Overrides --limit/--seed.",
     )
+    ap.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="concurrent samples (1=sequential). Each sample = 1 VLM call + exec/IoU.",
+    )
     args = ap.parse_args()
 
     token = (
@@ -348,22 +356,28 @@ def main():
     )
     print(f"Results dir: {rd.root}")
 
-    with rd:
-        for i, row in enumerate(todo):
-            print(f"[{i+1}/{len(todo)}] {row['stem']} ...", end=" ", flush=True)
-            res = eval_sample(
-                row, args.model, api_key, rot_invariant=args.rot_invariant
-            )
+    write_lock = threading.Lock()
+
+    def _process(row: dict) -> dict:
+        res = eval_sample(row, args.model, api_key, rot_invariant=args.rot_invariant)
+        with write_lock:
             if res.get("gen_code"):
                 rd.save_code(row["stem"], res["gen_code"])
             rd.append(res)
+        return res
+
+    with rd, ThreadPoolExecutor(max_workers=max(1, args.workers)) as ex:
+        futs = {ex.submit(_process, row): row for row in todo}
+        for i, fut in enumerate(as_completed(futs)):
+            row = futs[fut]
+            res = fut.result()
             status = (
                 f"iou={res['iou']:.3f} f1={res['feature_f1']:.3f} "
                 f"score={res.get('score',0):.3f} exec={res['exec_ok']}"
             )
             if res.get("error"):
                 status += f"  ERR={res['error'][:60]}"
-            print(status)
+            print(f"[{i+1}/{len(todo)}] {row['stem']} {status}", flush=True)
 
     # Final report = full pool for this (task, model)
     with open(rd.results_path) as f:
