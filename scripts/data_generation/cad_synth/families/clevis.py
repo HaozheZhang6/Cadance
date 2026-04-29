@@ -167,14 +167,19 @@ class ClevisFamily(BaseFamily):
                 ops.append(Op("chamfer", {"length": ch}))
 
         # Pin hole through both arms (X-direction long cylinder).
-        # Drilled from `>X` face = arm outer face (远离主体). Hole passes
-        # through arm1 → gap → arm2. Position vertically at arm midline
-        # (centered in arm region, NOT in base). On `>X` workplane local_y
-        # maps to world Z; arm midline = total_h/2 - arm_h/2.
+        # Drilled from `>X` face (arm outer face, 远离主体). Hole passes
+        # through arm1 → gap → arm2. Use centerOption="CenterOfMass" so the
+        # workplane origin sits at the face geometric center (instead of
+        # inheriting prior workplane's projected origin). pin position 在 arm
+        # 区底部偏一点点 (距 arm-base 接口 pin_d 的 clearance) 让 pin 离 base 近.
         # bore_form (from data-arg merge) toggles hole op vs circle+cutThruAll.
         bore_form = params.get("bore_form", "hole")
-        pin_z_local = round(total_h / 2 - arm_h / 2, 4)
-        ops.append(Op("workplane", {"selector": ">X"}))
+        # arm region world Z = [total_h/2 - arm_h, total_h/2]; with CoM origin at
+        # face center (world Z=0), local_y = arm_bottom + pin_d ≈ near arm底部.
+        pin_z_local = round(total_h / 2 - arm_h + pin_d, 4)
+        ops.append(
+            Op("workplane", {"selector": ">X", "center_option": "CenterOfMass"})
+        )
         ops.append(Op("pushPoints", {"points": [(0.0, pin_z_local)]}))
         if bore_form == "hole":
             ops.append(Op("hole", {"diameter": round(pin_d, 4)}))
