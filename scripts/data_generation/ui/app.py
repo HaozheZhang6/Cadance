@@ -752,6 +752,73 @@ _RENDER_NAMES = (
 )
 
 
+HF_RENDER_CACHE = ROOT / "data/data_generation/.hf_render_cache"
+
+
+@st.cache_resource(show_spinner="loading HF cad_bench renders ...")
+def _hf_stem_index() -> dict:
+    """Build {stem: composite_png bytes} from the curated HF benches.
+
+    Sources (in order; later overrides earlier — but they shouldn't overlap):
+      • BenchCAD/cad_bench_722  — 720 curated, includes substitute_bench_stem
+      • BenchCAD/cad_bench      — 20143 full test split
+
+    Each value is the raw PNG bytes; on first lookup we materialize to disk.
+    Lookup also indexes `substitute_bench_stem` and `original_diverse_stem`
+    so synth_parts.csv stems still hit even when the bench row is a dvsub.
+    """
+    import io  # noqa: F401  (used in _render_img)
+    try:
+        from datasets import load_dataset
+    except ImportError:
+        return {}
+
+    idx: dict[str, bytes] = {}
+    for repo in ("BenchCAD/cad_bench_722", "BenchCAD/cad_bench"):
+        try:
+            ds = load_dataset(repo)
+        except Exception:
+            continue
+        for split in ds:
+            df = ds[split].to_pandas()
+            if "composite_png" not in df.columns or "stem" not in df.columns:
+                continue
+            for _, r in df.iterrows():
+                cp = r["composite_png"]
+                if isinstance(cp, dict) and "bytes" in cp:
+                    raw = cp["bytes"]
+                elif isinstance(cp, bytes):
+                    raw = cp
+                else:  # PIL Image already
+                    buf = io.BytesIO()
+                    cp.save(buf, format="PNG")
+                    raw = buf.getvalue()
+                if not raw:
+                    continue
+                idx[r["stem"]] = raw
+                # also index alt stem keys present in cad_bench_722
+                for alt_col in ("substitute_bench_stem", "original_diverse_stem"):
+                    alt = r.get(alt_col) if alt_col in df.columns else None
+                    if isinstance(alt, str) and alt and alt not in idx:
+                        idx[alt] = raw
+    return idx
+
+
+def _hf_fallback_png(stem: str) -> Path | None:
+    """Materialize HF composite_png for `stem` to local cache; return path."""
+    if not stem:
+        return None
+    HF_RENDER_CACHE.mkdir(parents=True, exist_ok=True)
+    cached = HF_RENDER_CACHE / f"{stem}.png"
+    if cached.exists() and cached.stat().st_size > 0:
+        return cached
+    raw = _hf_stem_index().get(stem)
+    if not raw:
+        return None
+    cached.write_bytes(raw)
+    return cached
+
+
 def _render_img(row) -> Path | None:
     """Return path to the isometric render image for a synth row."""
     # 1. render_dir column → check all known render filenames
@@ -776,7 +843,8 @@ def _render_img(row) -> Path | None:
             if p.exists():
                 return p
 
-    return None
+    # 3. fallback: HF curated bench composite_png by stem (covers cad_bench_722)
+    return _hf_fallback_png(_s(row.get("stem", "")))
 
 
 def page_synth():

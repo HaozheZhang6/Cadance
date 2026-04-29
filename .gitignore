@@ -279,3 +279,4 @@ bench_smoke_runs/
 bench_edit_runs/
 bench_edit_vlm_runs/
 bench/research/outputs/
+data/data_generation/.hf_render_cache/
