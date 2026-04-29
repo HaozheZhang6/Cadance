@@ -139,6 +139,7 @@ def eval_sample(
         "cd_score": 0.0,
         "hd_score": 0.0,
         "feature_f1": 0.0,
+        "essential_pass": None,
         "score": 0.0,
         "gen_features": {},
         "error": None,
@@ -158,7 +159,7 @@ def eval_sample(
     res["feature_f1"] = round(feature_f1(gen_feats, gt_features), 4)
 
     # canonical-ops essential check (per-family, hand-curated)
-    from bench.research.canonical_ops import find_ops, essential_pass
+    from bench.research.canonical_ops import essential_pass, find_ops
 
     res["essential_pass"] = essential_pass(row["family"], find_ops(gen_code))
 

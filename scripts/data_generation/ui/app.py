@@ -1,5 +1,6 @@
 """CAD Data Pipeline — Overview + Stem Viewer."""
 
+import io
 import sys
 from pathlib import Path
 
@@ -755,53 +756,53 @@ _RENDER_NAMES = (
 HF_RENDER_CACHE = ROOT / "data/data_generation/.hf_render_cache"
 
 
-@st.cache_resource(show_spinner="loading HF cad_bench renders ...")
+@st.cache_resource(show_spinner="indexing HF cad_bench stems ...")
 def _hf_stem_index() -> dict:
-    """Build {stem: composite_png bytes} from the curated HF benches.
+    """Build {stem: (repo, row_idx)} from the curated HF benches.
 
-    Sources (in order; later overrides earlier — but they shouldn't overlap):
-      • BenchCAD/cad_bench_722  — 720 curated, includes substitute_bench_stem
-      • BenchCAD/cad_bench      — 20143 full test split
+    cad_bench_722 has priority — only stems missing from it fall through to
+    cad_bench. setdefault preserves cad_bench_722 entries for both `stem`
+    and the `substitute_bench_stem` / `original_diverse_stem` aliases.
 
-    Each value is the raw PNG bytes; on first lookup we materialize to disk.
-    Lookup also indexes `substitute_bench_stem` and `original_diverse_stem`
-    so synth_parts.csv stems still hit even when the bench row is a dvsub.
+    Stores only metadata (repo + row index); PNG bytes are fetched lazily
+    in _hf_fallback_png so app startup memory stays small.
     """
-    import io  # noqa: F401  (used in _render_img)
     try:
         from datasets import load_dataset
     except ImportError:
         return {}
 
-    idx: dict[str, bytes] = {}
+    idx: dict[str, tuple[str, int]] = {}
     for repo in ("BenchCAD/cad_bench_722", "BenchCAD/cad_bench"):
         try:
             ds = load_dataset(repo)
         except Exception:
             continue
         for split in ds:
-            df = ds[split].to_pandas()
-            if "composite_png" not in df.columns or "stem" not in df.columns:
+            cols = ds[split].column_names
+            if "composite_png" not in cols or "stem" not in cols:
                 continue
-            for _, r in df.iterrows():
-                cp = r["composite_png"]
-                if isinstance(cp, dict) and "bytes" in cp:
-                    raw = cp["bytes"]
-                elif isinstance(cp, bytes):
-                    raw = cp
-                else:  # PIL Image already
-                    buf = io.BytesIO()
-                    cp.save(buf, format="PNG")
-                    raw = buf.getvalue()
-                if not raw:
-                    continue
-                idx[r["stem"]] = raw
-                # also index alt stem keys present in cad_bench_722
-                for alt_col in ("substitute_bench_stem", "original_diverse_stem"):
-                    alt = r.get(alt_col) if alt_col in df.columns else None
-                    if isinstance(alt, str) and alt and alt not in idx:
-                        idx[alt] = raw
+            stems = ds[split]["stem"]
+            alt_cols = [c for c in ("substitute_bench_stem", "original_diverse_stem") if c in cols]
+            alt_data = {c: ds[split][c] for c in alt_cols}
+            for i, stem in enumerate(stems):
+                idx.setdefault(stem, (repo, i))
+                for c in alt_cols:
+                    alt = alt_data[c][i]
+                    if isinstance(alt, str) and alt:
+                        idx.setdefault(alt, (repo, i))
     return idx
+
+
+@st.cache_resource(show_spinner=False)
+def _hf_dataset(repo: str):
+    """Lazy-load (and cache) one HF dataset by name."""
+    try:
+        from datasets import load_dataset
+
+        return load_dataset(repo)["train"]
+    except Exception:
+        return None
 
 
 def _hf_fallback_png(stem: str) -> Path | None:
@@ -812,7 +813,22 @@ def _hf_fallback_png(stem: str) -> Path | None:
     cached = HF_RENDER_CACHE / f"{stem}.png"
     if cached.exists() and cached.stat().st_size > 0:
         return cached
-    raw = _hf_stem_index().get(stem)
+    location = _hf_stem_index().get(stem)
+    if not location:
+        return None
+    repo, row_idx = location
+    ds = _hf_dataset(repo)
+    if ds is None:
+        return None
+    cp = ds[row_idx]["composite_png"]
+    if isinstance(cp, dict) and "bytes" in cp:
+        raw = cp["bytes"]
+    elif isinstance(cp, bytes):
+        raw = cp
+    else:  # PIL Image
+        buf = io.BytesIO()
+        cp.save(buf, format="PNG")
+        raw = buf.getvalue()
     if not raw:
         return None
     cached.write_bytes(raw)

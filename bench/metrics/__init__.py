@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import re
 import math
+import re
 
 LD = __import__("os").environ.get("LD_LIBRARY_PATH", "/workspace/.local/lib")
 
@@ -83,9 +83,9 @@ def feature_f1(pred: dict, gt: dict) -> float:
 
 def _load_normalized_mesh(step_path: str):
     """Load STEP → tessellate → normalize bbox center→[0.5,0.5,0.5], longest→[0,1]³."""
+    import cadquery as cq
     import numpy as np
     import trimesh
-    import cadquery as cq
 
     shape = cq.importers.importStep(step_path)
     solid = shape.val()

@@ -8,13 +8,13 @@ Every img2cq bench run produces one row per stem. Every stem row has these 7 col
 | 2 | **`iou_rot24`** (a.k.a. `iou_rot` when `--rot-invariant 24`) | [0, 1] | Max IoU over the 24-element axis-aligned cube rotation group. Robust to the model picking a different "up". |
 | 3 | **`cd_score`** (raw saved as `chamfer`) | [0, 1] | Bidirectional Chamfer distance (2048 sampled points). Raw distance preserved in `chamfer` field; `cd_score = cd_to_score(chamfer)` is the mapped [0, 1] value used in the final score (lower CD ↔ higher score). |
 | 4 | **`hd_score`** (raw saved as `hausdorff`) | [0, 1] | Hausdorff distance. Raw distance preserved in `hausdorff` field; `hd_score = hd_to_score(hausdorff)` is the mapped [0, 1] value used in the final score. |
-| 5 | **`essential_pass`** | {0, 1, N/A} | Hand-curated per-family op check (`bench/research/canonical_ops.yaml`). 1 if every essential AND-element is satisfied by gen ops, 0 if any missing, **N/A** for the 13 families with no canonical essential. |
+| 5 | **`essential_pass`** | {0, 1, N/A} | Hand-curated per-family op check (`bench/research/canonical_ops.yaml`, loaded by `bench/research/canonical_ops.py`). 1 if every essential AND-element is satisfied by gen ops, 0 if any missing, **N/A** for the 13 families with no canonical essential. |
 | 6 | **`feature_f1`** | [0, 1] | F1 over `{has_chamfer, has_fillet, has_hole}` indicators (independent of essential). |
 | 7 | **`score`** | [0, 1] | Final — linear combination of 1–6. |
 
 ## Final score formula
 
-```
+```text
 score = 0.60·IoU                  ← max(iou, iou_rot24) when rot24 is computed
       + 0.20·essential_pass
       + 0.10·feature_f1
@@ -40,9 +40,9 @@ Total weights = 1.0. Implemented in `bench/metrics/combined_score()`.
 | Generated code fails to exec | `iou = iou_rot24 = cd_score = hd_score = 0`. `feature_f1` and `essential_pass` still computed from `gen_code` text. Partial-credit fallback: `score = 0.10·feature_f1 + 0.20·ess` (max 0.3); N/A scaling still applies. |
 | GT exec fails | Same as above. Drop the sample from the run (rare). |
 | `--rot-invariant` not used | `iou_rot` is None → `IoU` term in formula uses raw `iou`. |
-| Family is N/A in `canonical_ops.yaml` | `essential_pass = None` → drop 0.20 term, multiply remaining sum by **1.25** to renormalize. 13 N/A families: `chair`, `dowel_pin`, `i_beam`, `parallel_key`, `stepped_shaft`, `table`, `wall_anchor`, `clevis_pin`, `round_flange`, `t_pipe_fitting`, `tee_nut`, `phone_stand`, `pull_handle`. |
+| Family is N/A in `bench/research/canonical_ops.yaml` | `essential_pass = None` → drop 0.20 term, multiply remaining sum by **1.25** to renormalize. 13 N/A families: `chair`, `dowel_pin`, `i_beam`, `parallel_key`, `stepped_shaft`, `table`, `wall_anchor`, `clevis_pin`, `round_flange`, `t_pipe_fitting`, `tee_nut`, `phone_stand`, `pull_handle`. |
 
-## Per-stem result schema (`results.jsonl`)
+## Per-stem result schema (`results/<task>/<model>/results.jsonl`)
 
 Each line:
 ```json
@@ -85,7 +85,7 @@ Per model, aggregate over the run:
 | **feature_f1** | mean over all | column 6 |
 | **final score** | mean of `score` field | column 7 |
 
-Convention: report the `_score` columns in main paper tables (uniform [0, 1]); keep raw `chamfer` and `hausdorff` (mm) in supplementary / debug tables for diagnostic detail. Both are saved per stem in `results.jsonl`.
+Convention: report the `_score` columns in main paper tables (uniform [0, 1]); keep raw `chamfer` and `hausdorff` (mm) in supplementary / debug tables for diagnostic detail. Both are saved per stem in `results/<task>/<model>/results.jsonl`.
 
 For comparison tables across models, all 7 columns should be reported. Don't average iou_rot24 across some N/A condition — every stem has it.
 
@@ -118,4 +118,4 @@ mean_final = sum(scores) / len(scores)
 
 ## Versioning
 
-Score formula and `canonical_ops.yaml` are versioned together. Any change to weights or essential specs must be commented in the PR; existing `results.jsonl` from older runs may need re-scoring (the per-stem fields are stable; only `score` changes).
+Score formula and `bench/research/canonical_ops.yaml` are versioned together. Any change to weights or essential specs must be commented in the PR; existing `results/<task>/<model>/results.jsonl` from older runs may need re-scoring (the per-stem fields are stable; only `score` changes).

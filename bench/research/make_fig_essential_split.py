@@ -18,7 +18,10 @@ OUT = ROOT / "bench/research/outputs/run_2026_04_27"
 sys.path.insert(0, str(Path(__file__).parent))
 
 from canonical_ops import (  # noqa: E402
-    ESSENTIAL_BY_FAMILY, essential_pass, find_ops, fmt_spec,
+    ESSENTIAL_BY_FAMILY,
+    essential_pass,
+    find_ops,
+    fmt_spec,
 )
 
 # ── manual category ordering (within green) ───────────────────────────────
@@ -151,7 +154,8 @@ def _render_page(title: str, family_groups: dict, df, fam_n, out: Path,
 
         # cell BG
         bg_ax = fig.add_axes([x0 + 0.004, y0 + 0.005, cell_w - 0.012, cell_h - 0.01])
-        bg_ax.set_xticks([]); bg_ax.set_yticks([])
+        bg_ax.set_xticks([])
+        bg_ax.set_yticks([])
         bg_ax.set_facecolor(BG[cls])
         for s in bg_ax.spines.values():
             s.set_edgecolor(EDGE[cls])

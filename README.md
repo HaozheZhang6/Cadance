@@ -81,7 +81,7 @@ See `CLAUDE.md` "Synth Monitor UI" — do NOT build a separate family-preview UI
 | HF dataset loader | `bench/dataloader/__init__.py` | `load_hf(repo, split, token)` |
 | Stratified sampling | `bench/sampling.py` | `sample_rows(rows, n, seed)` |
 | Results dir (append-only, dedup by stem) | `bench/results.py` | `ResultsDir(task, model)` |
-| Model adapter (LLM/VLM) | `bench/models/registry.py` + `providers/` | `get_adapter(name).generate(...)` |
+| Model adapter (LLM/VLM) | `bench/models/registry.py` + `bench/models/providers/` | `get_adapter(name).generate(...)` |
 | Per-family essential spec (config) | `bench/research/canonical_ops.yaml` | edit YAML, no code change needed |
 
 **Camera convention** — fixed; do NOT re-derive in any other script:

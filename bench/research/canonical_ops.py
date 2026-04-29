@@ -19,11 +19,10 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Union
 
 import yaml
 
-OpSpec = Union[str, tuple[str, ...]]
+OpSpec = str | tuple[str, ...]
 EssentialList = list[OpSpec]
 
 YAML_PATH = Path(__file__).with_suffix(".yaml")
@@ -70,6 +69,8 @@ def _load_essentials(path: Path = YAML_PATH) -> dict[str, EssentialList]:
     for fam, spec in raw.items():
         if not isinstance(spec, list):
             raise ValueError(f"{fam}: spec must be a list, got {type(spec).__name__}")
+        if not spec:
+            raise ValueError(f"{fam}: spec is empty — remove the entry to mark N/A")
         elements: EssentialList = []
         for elem in spec:
             if isinstance(elem, str):
@@ -92,12 +93,23 @@ ESSENTIAL_BY_FAMILY: dict[str, EssentialList] = _load_essentials()
 
 # ── helpers ───────────────────────────────────────────────────────────────
 def find_ops(code: str) -> set[str]:
-    """All recognized ops in code. Collapses sweep+helix → drops plain sweep."""
+    """All recognized ops in code.
+
+    sweep+helix detection is order-agnostic: if both `.sweep(` and a helix
+    builder (`makeHelix(...)` or `.helix(...)`) appear ANYWHERE in the code,
+    the result is `sweep+helix` (and plain `sweep` is dropped). This catches
+    the common cross-statement pattern:
+        path = cq.Wire.makeHelix(...)
+        result = profile.sweep(path)
+    """
+    code = code or ""
     found = set()
     for name, pat in OP_PATTERNS.items():
-        if re.search(pat, code or ""):
+        if re.search(pat, code):
             found.add(name)
-    if "sweep+helix" in found:
+    has_helix = bool(re.search(r"makeHelix\s*\(|\.helix\s*\(", code))
+    if "sweep" in found and has_helix:
+        found.add("sweep+helix")
         found.discard("sweep")
     return found
 
