@@ -166,15 +166,16 @@ class ClevisFamily(BaseFamily):
             else:
                 ops.append(Op("chamfer", {"length": ch}))
 
-        # Pin hole through the SIDE of the clevis (perpendicular to U arms).
-        # Curated fixes (cq_gui/curated_722/clevis/) show pin drilled from `>X` face,
-        # going through the body (X-direction). Position at (0, -arm_h*0.35):
-        # local_x=0 (centered along Y/depth), local_y=offset below midline (in base region).
-        # bore_form (from data-arg merge) toggles hole op vs circle+cutThruAll for code variety.
+        # Pin hole through both arms (X-direction long cylinder).
+        # Drilled from `>X` face = arm outer face (远离主体). Hole passes
+        # through arm1 → gap → arm2. Position vertically at arm midline
+        # (centered in arm region, NOT in base). On `>X` workplane local_y
+        # maps to world Z; arm midline = total_h/2 - arm_h/2.
+        # bore_form (from data-arg merge) toggles hole op vs circle+cutThruAll.
         bore_form = params.get("bore_form", "hole")
-        pin_y_local = round(-arm_h * 0.35, 4)
+        pin_z_local = round(total_h / 2 - arm_h / 2, 4)
         ops.append(Op("workplane", {"selector": ">X"}))
-        ops.append(Op("pushPoints", {"points": [(0.0, pin_y_local)]}))
+        ops.append(Op("pushPoints", {"points": [(0.0, pin_z_local)]}))
         if bore_form == "hole":
             ops.append(Op("hole", {"diameter": round(pin_d, 4)}))
         else:
@@ -224,8 +225,11 @@ class ClevisFamily(BaseFamily):
                         ((-total_h / 2 - sh) + (total_h / 2 - arm_h)) / 2, 4
                     )
                 else:
+                    # blind: cut top exactly at stub-base interface (Z = -total_h/2),
+                    # 2mm buffer extends BELOW stub bottom for clean Boolean — no
+                    # base intrusion (preserves blind/through distinction).
                     cut_h = sh + 2.0
-                    cut_center_z = stub_center_z
+                    cut_center_z = round(stub_center_z - 1.0, 4)
                 ops.append(
                     Op(
                         "cut",
