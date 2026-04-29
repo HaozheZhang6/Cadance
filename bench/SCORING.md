@@ -15,31 +15,32 @@ Every img2cq bench run produces one row per stem. Every stem row has these 7 col
 ## Final score formula
 
 ```
-score = 0.25·iou
-      + 0.25·iou_rot24
-      + 0.20·essential_pass     ← N/A → counted as 1.0 (no penalty)
-      + 0.20·feature_f1
+score = 0.60·IoU                  ← max(iou, iou_rot24) when rot24 is computed
+      + 0.20·essential_pass
+      + 0.10·feature_f1
       + 0.05·cd_score
       + 0.05·hd_score
 ```
 
 Total weights = 1.0. Implemented in `bench/metrics/combined_score()`.
 
+**N/A handling**: when `essential_pass = None` (family has no canonical essential), drop the 0.20 essential term and **rescale by ×1.25** so the remaining 0.80 weight covers the full [0, 1] range. Equivalent to treating the dropped 0.20 share as evenly redistributed across the other components — N/A samples are not penalized OR boosted relative to non-N/A samples that score the same on the other 0.80.
+
 ### Why this split
 
-- **0.50 geometry total** (iou + iou_rot24): rewards both as-rendered fidelity AND rotation-robustness; encourages model to produce correct shape regardless of orientation guess.
-- **0.20 essential**: hard semantic check — model used the canonically-required op for this family (e.g. `sweep+helix` for `torsion_spring`). Catches cases where IoU is decent but model used a substitute op (anti-shortcut signal).
-- **0.20 feature_f1**: orthogonal feature presence check (chamfer / fillet / hole). Cheap to compute, complements geometry.
-- **0.05 + 0.05 cd / hd**: surface-level fidelity tiebreakers; small weight because they're highly correlated with IoU.
+- **0.60 geometry** (max of raw IoU and 24-rotation IoU): single dominant term — geometric fidelity is the headline metric; rotation-invariant preferred when computed.
+- **0.20 essential**: hard semantic check — model used the canonically-required op for this family (e.g. `sweep+helix` for `torsion_spring`). Catches cases where IoU is decent but model used a substitute op (anti-shortcut signal). Rescaled away when N/A.
+- **0.10 feature_f1**: orthogonal feature presence check (chamfer / fillet / hole). Light tiebreaker.
+- **0.05 + 0.05 cd / hd**: surface-level fidelity. Small weight because highly correlated with IoU.
 
 ## Edge cases
 
 | Scenario | Behavior |
 |---|---|
-| Generated code fails to exec | `iou = iou_rot24 = cd_score = hd_score = 0`. `feature_f1` and `essential_pass` still computed from `gen_code` text. Partial-credit fallback: `score = 0.20·feature_f1 + 0.20·ess` (max 0.4). |
+| Generated code fails to exec | `iou = iou_rot24 = cd_score = hd_score = 0`. `feature_f1` and `essential_pass` still computed from `gen_code` text. Partial-credit fallback: `score = 0.10·feature_f1 + 0.20·ess` (max 0.3); N/A scaling still applies. |
 | GT exec fails | Same as above. Drop the sample from the run (rare). |
-| `--rot-invariant` not used | `iou_rot24 = iou` → geometry weight effectively all on raw IoU at 0.5. |
-| Family is N/A in `canonical_ops.yaml` | `essential_pass = None`, contributes 1.0 (full credit, no penalty). 13 families: `chair`, `dowel_pin`, `i_beam`, `parallel_key`, `stepped_shaft`, `table`, `wall_anchor`, `clevis_pin`, `round_flange`, `t_pipe_fitting`, `tee_nut`, `phone_stand`, `pull_handle`. |
+| `--rot-invariant` not used | `iou_rot` is None → `IoU` term in formula uses raw `iou`. |
+| Family is N/A in `canonical_ops.yaml` | `essential_pass = None` → drop 0.20 term, multiply remaining sum by **1.25** to renormalize. 13 N/A families: `chair`, `dowel_pin`, `i_beam`, `parallel_key`, `stepped_shaft`, `table`, `wall_anchor`, `clevis_pin`, `round_flange`, `t_pipe_fitting`, `tee_nut`, `phone_stand`, `pull_handle`. |
 
 ## Per-stem result schema (`results.jsonl`)
 

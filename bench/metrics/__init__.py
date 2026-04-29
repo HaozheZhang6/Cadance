@@ -347,24 +347,21 @@ def combined_score(
 ) -> float:
     """Bench final score — see bench/SCORING.md.
 
-        score = 0.25·IoU + 0.25·IoU@24
-              + 0.20·essential
-              + 0.20·Feat-F1
+        score = 0.60·IoU + 0.20·essential + 0.10·Feat-F1
               + 0.05·cd_score + 0.05·hd_score
 
-    iou_rot: 24-rotation IoU (max over cube group). If None, falls back to
-             `iou` (raw IoU gets full 0.5 geometry weight).
-    essential_pass: True / False (binary) → counted at full weight.
-                    None (family is N/A) → treated as 1.0 (no penalty).
+    IoU = max(iou, iou_rot24) when `iou_rot` is provided, else raw `iou`.
+    essential_pass = True / False → counted at full weight.
+                   = None (family is N/A) → drop the 0.20 essential term and
+                     rescale the remaining 0.80 weight back to [0, 1] by ×1.25.
     """
-    ess = 1.0 if essential_pass is None else (1.0 if essential_pass else 0.0)
-    iou24 = iou if iou_rot is None else iou_rot
-    return round(
-        0.25 * iou
-        + 0.25 * iou24
-        + 0.20 * ess
-        + 0.20 * feature_f1
+    eff_iou = max(iou, iou_rot) if iou_rot is not None else iou
+    geom = (
+        0.60 * eff_iou
+        + 0.10 * feature_f1
         + 0.05 * cd_to_score(cd)
-        + 0.05 * hd_to_score(hd),
-        4,
-    )
+        + 0.05 * hd_to_score(hd)
+    )  # cumulative 0.80
+    if essential_pass is None:
+        return round(geom * 1.25, 4)
+    return round(geom + 0.20 * (1.0 if essential_pass else 0.0), 4)

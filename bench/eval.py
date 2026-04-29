@@ -165,10 +165,12 @@ def eval_sample(
     if not gen_step:
         res["error"] = f"exec_fail: {exec_err}"
         # partial-credit fallback (gen failed exec)
-        ess_fallback = 1.0 if res["essential_pass"] is None else (
-            1.0 if res["essential_pass"] else 0.0
+        # Partial credit (geom = 0): only F1 + ess contribute.
+        # Use full combined_score so N/A re-scaling stays consistent.
+        res["score"] = combined_score(
+            res["feature_f1"], 0.0, float("inf"), float("inf"),
+            essential_pass=res["essential_pass"],
         )
-        res["score"] = round(0.2 * res["feature_f1"] + 0.2 * ess_fallback, 4)
         return res
 
     res["exec_ok"] = 1
@@ -176,10 +178,12 @@ def eval_sample(
     gt_step, gt_err = exec_cq(row["gt_code"])
     if not gt_step:
         res["error"] = f"gt_exec_fail: {gt_err}"
-        ess_fallback = 1.0 if res["essential_pass"] is None else (
-            1.0 if res["essential_pass"] else 0.0
+        # Partial credit (geom = 0): only F1 + ess contribute.
+        # Use full combined_score so N/A re-scaling stays consistent.
+        res["score"] = combined_score(
+            res["feature_f1"], 0.0, float("inf"), float("inf"),
+            essential_pass=res["essential_pass"],
         )
-        res["score"] = round(0.2 * res["feature_f1"] + 0.2 * ess_fallback, 4)
         Path(gen_step).unlink(missing_ok=True)
         return res
 

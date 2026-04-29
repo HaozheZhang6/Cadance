@@ -76,7 +76,7 @@ See `CLAUDE.md` "Synth Monitor UI" — do NOT build a separate family-preview UI
 | Normalize STEP + cadrille 4-view render | `scripts/data_generation/render_normalized_views.py` | `render_step_normalized(step_path, out_dir)` |
 | Voxel IoU + 24-rotation IoU | `bench/metrics/__init__.py` | `compute_iou(gt, gen)`, `compute_rotation_invariant_iou(...)` |
 | Per-stem essential ops + Feat-F1 | `bench/research/canonical_ops.py` (loads `.yaml`) | `essential_pass(family, gen_ops)`, `feature_f1(...)` |
-| Final bench score (7-column standard) | `bench/SCORING.md` + `bench/metrics/combined_score()` | 0.25·IoU + 0.25·IoU@24 + 0.20·essential + 0.20·F1 + 0.05·cd + 0.05·hd |
+| Final bench score (7-column standard) | `bench/SCORING.md` + `bench/metrics/combined_score()` | 0.60·IoU + 0.20·essential + 0.10·F1 + 0.05·cd + 0.05·hd  (×1.25 if essential N/A) |
 | CadQuery exec sandbox | `bench/eval.py` | `exec_cq(code, timeout=60) → (step_path, err)` |
 | HF dataset loader | `bench/dataloader/__init__.py` | `load_hf(repo, split, token)` |
 | Stratified sampling | `bench/sampling.py` | `sample_rows(rows, n, seed)` |
