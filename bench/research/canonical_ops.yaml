@@ -1,0 +1,90 @@
+# BenchCAD per-family essential ops — edit this file to tweak the metric.
+#
+# Format: family_name: [<element>, <element>, ...]
+#   • outer list = AND (every element must be satisfied)
+#   • element = string (single op required)  OR  list (OR-tuple of alternatives)
+#
+# Recognized op names (must match keys in canonical_ops.OP_PATTERNS):
+#   structural  : sweep+helix, sweep, revolve, loft, shell, taper=,
+#                 polarArray, rarray, twistExtrude, makeTorus
+#   feature     : chamfer, fillet, hole          (independent — DO NOT use here;
+#                                                 those go through feature_f1)
+#
+# A family NOT listed here is automatically N/A — no essential check, only
+# soft feature_f1 applies.
+#
+# Alternatives policy (when adding new entries):
+#   revolve(360°) ↔ sweep along closed circle
+#   revolve(180°) ↔ sweep along U / J path
+#   torus         ↔ revolve | sweep | makeTorus
+#   sweep+helix   ↔ sweep along spline (for non-perfect helices)
+#   twistExtrude  ↔ loft of N rotated cross-sections
+#   taper=        ↔ loft between two scaled circles
+
+# ── axisymmetric ──────────────────────────────────────────────────────────
+bellows:           [[revolve, sweep]]
+bucket:            [[revolve, sweep]]
+cotter_pin:        [[revolve, sweep]]
+dome_cap:          [[revolve, sweep]]
+grease_nipple:     [[revolve, sweep]]
+grommet:           [[revolve, sweep]]
+lathe_turned_part: [[revolve, sweep]]
+nozzle:            [[revolve, sweep]]
+piston:            [[revolve, sweep]]
+pulley:            [[revolve, sweep]]
+rivet:             [[revolve, sweep]]
+taper_pin:         [[revolve, sweep]]
+venturi_tube:      [[revolve, sweep]]
+
+# ── ring / torus shapes ───────────────────────────────────────────────────
+torus_link:        [[revolve, sweep, makeTorus]]
+eyebolt:           [[makeTorus, revolve, sweep]]
+
+# ── partial-rotational (U / J) ────────────────────────────────────────────
+u_bolt:            [[sweep, revolve]]
+j_hook:            [[sweep, revolve]]
+
+# ── helical (springs / threads) ───────────────────────────────────────────
+torsion_spring:    [sweep+helix]
+worm_screw:        [sweep+helix]
+coil_spring:       [[sweep+helix, sweep]]
+
+# ── twisted along axis ────────────────────────────────────────────────────
+twisted_drill:     [[twistExtrude, loft]]
+twisted_bracket:   [[loft, twistExtrude]]
+helical_gear:      [[loft, twistExtrude]]
+
+# ── loft (cross-section interpolation) ────────────────────────────────────
+bevel_gear:        [loft]
+propeller:         [loft]
+tapered_boss:      [[loft, taper=]]
+wing_nut:          [loft]
+
+# ── tapered profile ───────────────────────────────────────────────────────
+knob:              [[taper=, loft]]
+
+# ── shell / hollow ────────────────────────────────────────────────────────
+enclosure:         [shell]
+sheet_metal_tray:  [shell]
+
+# ── polar (rotational) arrays ─────────────────────────────────────────────
+motor_end_cap:     [polarArray]
+
+# ── linear / rectangular arrays ───────────────────────────────────────────
+cable_routing_panel: [rarray]
+heat_sink:         [rarray]
+mesh_panel:        [rarray]
+rib_plate:         [rarray]
+slotted_plate:     [rarray]
+vented_panel:      [rarray]
+waffle_plate:      [rarray]
+
+# ── general curved sweep (non-helical) ────────────────────────────────────
+duct_elbow:        [sweep]
+pipe_elbow:        [sweep]
+
+# ── uncertain (yellow — variants in GT) ───────────────────────────────────
+wall_anchor:       [[revolve, sweep]]
+round_flange:      [polarArray]
+t_pipe_fitting:    [polarArray]
+tee_nut:           [[taper=, loft]]

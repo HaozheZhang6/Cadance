@@ -1,39 +1,32 @@
-"""Per-family essential ops — v4, AND-of-(OR-tuples) format.
+"""Per-family essential ops — AND-of-(OR-tuples) format.
 
-User-requested format (2026-04-28):
-  spec = [<element>, <element>, ...]      ← outer list is AND
-  element = "op"  OR  ("op_a", "op_b")    ← string or tuple-of-alternatives is OR
+The dict `ESSENTIAL_BY_FAMILY` is loaded at import time from the sibling
+`canonical_ops.yaml`. Edit the YAML to tweak the metric — no code change.
+
+Format (in YAML):
+  family_name: [<element>, ...]
+    • outer list = AND (every element must be satisfied)
+    • element = string (single required op)  OR  list of strings (OR alternatives)
 
 Match rule:
-  full score iff for every element, AT LEAST ONE of its alternatives is in
-  gen_ops.  E.g. spec = [("sweep", "revolve"), "rarray"] requires gen to
-  contain (sweep OR revolve) AND rarray.
+  essential_pass = True iff for every outer element, at least one alternative
+  is in gen_ops. E.g. `[[sweep, revolve], rarray]` ⇒ (sweep OR revolve) AND rarray.
 
-Independent of FEATURE_CLASS (chamfer / fillet / hole) — those are scored
-separately via has_* indicators; they never appear inside essentials.
-
-Alternatives policy:
-  - revolve ↔ sweep (axisymmetric: revolve(360°) ≡ sweep along closed circle)
-  - revolve ↔ makeTorus (torus = revolved circle)
-  - U/J  bend: sweep ≡ revolve(180°) trick
-  - twistExtrude ↔ loft (twisted profile ≈ loft of N rotated cross-sections)
-  - sweep+helix ↔ sweep (helix path is a special sweep curve)
-  - taper= ↔ loft (tapered extrude ≈ loft between two scaled circles)
-
-Excluded as essential (always-OK alternatives exist):
-  - shell: NO good alternative — extrude+cut produces same shape but not the
-    same intent; we still keep `shell` as the only spec because reviewer
-    might disagree on "extrude+cut equivalent".
-  - polarArray, rarray: arrays could be N copies via union, but that's brittle
-    and not realistic for typical synthesis. We keep them strict.
+Independent of FEATURE_CLASS (chamfer / fillet / hole) — scored separately
+via feature_f1; those names must NOT appear inside essentials.
 """
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Union
+
+import yaml
 
 OpSpec = Union[str, tuple[str, ...]]
 EssentialList = list[OpSpec]
+
+YAML_PATH = Path(__file__).with_suffix(".yaml")
 
 # ── ops we recognize in code ──────────────────────────────────────────────
 OP_PATTERNS: dict[str, str] = {
@@ -60,77 +53,31 @@ ESSENTIAL_CLASS: frozenset[str] = frozenset({
 FEATURE_CLASS: frozenset[str] = frozenset({"chamfer", "fillet", "hole"})
 
 
-# ── per-family essentials ─────────────────────────────────────────────────
-# 44 families with essentials; 62 omitted = N/A (no essential check)
-ESSENTIAL_BY_FAMILY: dict[str, EssentialList] = {
-    # ── axisymmetric ──── revolve OR sweep (closed-path sweep ≡ revolve)
-    "bellows":           [("revolve", "sweep")],
-    "bucket":            [("revolve", "sweep")],
-    "cotter_pin":        [("revolve", "sweep")],
-    "dome_cap":          [("revolve", "sweep")],
-    "grease_nipple":     [("revolve", "sweep")],
-    "grommet":           [("revolve", "sweep")],
-    "lathe_turned_part": [("revolve", "sweep")],
-    "nozzle":            [("revolve", "sweep")],
-    "piston":            [("revolve", "sweep")],
-    "pulley":            [("revolve", "sweep")],
-    "rivet":             [("revolve", "sweep")],
-    "taper_pin":         [("revolve", "sweep")],
-    "venturi_tube":      [("revolve", "sweep")],
+def _load_essentials(path: Path = YAML_PATH) -> dict[str, EssentialList]:
+    """Read canonical_ops.yaml; convert YAML lists → tuples for hashable OR-sets."""
+    raw = yaml.safe_load(path.read_text()) or {}
+    out: dict[str, EssentialList] = {}
+    for fam, spec in raw.items():
+        if not isinstance(spec, list):
+            raise ValueError(f"{fam}: spec must be a list, got {type(spec).__name__}")
+        elements: EssentialList = []
+        for elem in spec:
+            if isinstance(elem, str):
+                elements.append(elem)
+            elif isinstance(elem, list):
+                elements.append(tuple(elem))
+            else:
+                raise ValueError(f"{fam}: element must be str or list, got {elem!r}")
+        # sanity: forbid feature ops in essentials
+        flat = {a for e in elements for a in (e if isinstance(e, tuple) else (e,))}
+        bad = flat & FEATURE_CLASS
+        if bad:
+            raise ValueError(f"{fam}: feature ops {bad} cannot be in essentials")
+        out[fam] = elements
+    return out
 
-    # ── ring / torus shapes ────
-    "torus_link":  [("revolve", "sweep", "makeTorus")],
-    "eyebolt":     [("makeTorus", "revolve", "sweep")],
 
-    # ── partial-rotational (U / J) ────
-    "u_bolt":  [("sweep", "revolve")],
-    "j_hook":  [("sweep", "revolve")],
-
-    # ── helical ────
-    "torsion_spring": ["sweep+helix"],
-    "worm_screw":     ["sweep+helix"],
-    "coil_spring":    [("sweep+helix", "sweep")],
-
-    # ── twisted along axis ────
-    "twisted_drill":   [("twistExtrude", "loft")],
-    "twisted_bracket": [("loft", "twistExtrude")],
-    "helical_gear":    [("loft", "twistExtrude")],
-
-    # ── loft (cross-section interpolation) ────
-    "bevel_gear":   ["loft"],
-    "propeller":    ["loft"],
-    "tapered_boss": [("loft", "taper=")],
-    "wing_nut":     ["loft"],
-
-    # ── tapered profile ────
-    "knob": [("taper=", "loft")],
-
-    # ── shell / hollow ────
-    "enclosure":        ["shell"],
-    "sheet_metal_tray": ["shell"],
-
-    # ── polar (rotational) arrays ────
-    "motor_end_cap": ["polarArray"],
-
-    # ── linear arrays ────
-    "cable_routing_panel": ["rarray"],
-    "heat_sink":           ["rarray"],
-    "mesh_panel":          ["rarray"],
-    "rib_plate":           ["rarray"],
-    "slotted_plate":       ["rarray"],
-    "vented_panel":        ["rarray"],
-    "waffle_plate":        ["rarray"],
-
-    # ── general sweep (non-helical) ────
-    "duct_elbow": ["sweep"],
-    "pipe_elbow": ["sweep"],
-
-    # ── uncertain (yellow) — variants in GT ────
-    "wall_anchor":    [("revolve", "sweep")],
-    "round_flange":   ["polarArray"],
-    "t_pipe_fitting": ["polarArray"],
-    "tee_nut":        [("taper=", "loft")],
-}
+ESSENTIAL_BY_FAMILY: dict[str, EssentialList] = _load_essentials()
 
 
 # ── helpers ───────────────────────────────────────────────────────────────
