@@ -83,6 +83,14 @@ class WingNutFamily(BaseFamily):
 
         d = int(rng.choice(pool))
         row = _DIN315[d]
+
+        # Free shape ratios (was hub_top=1/3, ear_thick=1/8, fillet=0.8·t)
+        hub_top_ratio = round(float(rng.uniform(0.25, 0.45)), 3)
+        ear_thickness_ratio = round(float(rng.uniform(0.10, 0.18)), 3)
+        fillet_enable = bool(rng.random() < 0.7)
+        fillet_ratio = round(float(rng.uniform(0.4, 0.95)), 2) if fillet_enable else 0.0
+        ear_order_swap = bool(rng.random() < 0.5)
+
         params = {
             "d_thread": float(d),
             "d2": float(row["d2"]),
@@ -91,6 +99,11 @@ class WingNutFamily(BaseFamily):
             "h": float(row["h"]),
             "d3": float(row["d3"]),
             "hole_d": float(row["hole_d"]),
+            "hub_top_ratio": hub_top_ratio,
+            "ear_thickness_ratio": ear_thickness_ratio,
+            "fillet_enable": fillet_enable,
+            "fillet_ratio": fillet_ratio,
+            "ear_order_swap": ear_order_swap,
             "difficulty": difficulty,
             "base_plane": "XY",
         }
@@ -124,6 +137,11 @@ class WingNutFamily(BaseFamily):
         h = params["h"]
         d3 = params["d3"]
         hole_d = params["hole_d"]
+        hub_top_ratio = float(params.get("hub_top_ratio", 1.0 / 3.0))
+        ear_thickness_ratio = float(params.get("ear_thickness_ratio", 1.0 / 8.0))
+        fillet_enable = bool(params.get("fillet_enable", True))
+        fillet_ratio = float(params.get("fillet_ratio", 0.8))
+        ear_order_swap = bool(params.get("ear_order_swap", False))
 
         x_arc = e / 4 + d2 / 4
         X_end = e / 2
@@ -147,71 +165,71 @@ class WingNutFamily(BaseFamily):
         x_arc_r = round(x_arc, 3)
         mr = round(m, 3)
         hr = round(h, 3)
-        ear_half_t = round(d3 / 8, 3)
-        fillet_r = round(ear_half_t * 0.8, 3)
+        ear_half_t = round(d3 * ear_thickness_ratio / 2, 3)
+        fillet_r = round(ear_half_t * fillet_ratio, 3) if fillet_enable else 0.0
         hole_r = round(hole_d / 2, 3)
 
         tags = {
             "has_hole": True,
             "has_slot": False,
-            "has_fillet": True,
+            "has_fillet": fillet_enable,
             "has_chamfer": False,
             "rotational": False,
         }
 
         ops: list = []
 
-        # 1. Tapered hub: loft circle(d2/2) at z=0 → circle(d2/3) at z=m
+        # 1. Tapered hub: loft circle(d2/2) at z=0 → circle(d2·hub_top_ratio) at z=m
         ops.append(Op("circle", {"radius": half_d2}))
         ops.append(Op("workplane_offset", {"offset": mr}))
-        ops.append(Op("circle", {"radius": round(d2 / 3, 3)}))
+        ops.append(Op("circle", {"radius": round(d2 * hub_top_ratio, 3)}))
         ops.append(Op("loft", {"combine": True}))
 
-        # 2. +X ear on XZ plane (extrude both=True in ±Y)
-        ops.append(
-            Op(
-                "union",
-                {
-                    "plane": "XZ",
-                    "ops": _ear_polyline_ops(
-                        1,
-                        half_d2,
-                        X_end_r,
-                        Z_end_r,
-                        mid_x_r,
-                        mid_z_r,
-                        x_arc_r,
-                        hr,
-                        half_d3,
-                        mr,
-                        ear_half_t,
-                    ),
-                },
-            )
+        # 2 & 3. ±X ears on XZ plane — order optionally swapped (commutative union)
+        plus_ear = Op(
+            "union",
+            {
+                "plane": "XZ",
+                "ops": _ear_polyline_ops(
+                    1,
+                    half_d2,
+                    X_end_r,
+                    Z_end_r,
+                    mid_x_r,
+                    mid_z_r,
+                    x_arc_r,
+                    hr,
+                    half_d3,
+                    mr,
+                    ear_half_t,
+                ),
+            },
         )
-
-        # 3. -X ear (mirror across YZ by negating X coords)
-        ops.append(
-            Op(
-                "union",
-                {
-                    "plane": "XZ",
-                    "ops": _ear_polyline_ops(
-                        -1,
-                        half_d2,
-                        X_end_r,
-                        Z_end_r,
-                        mid_x_r,
-                        mid_z_r,
-                        x_arc_r,
-                        hr,
-                        half_d3,
-                        mr,
-                        ear_half_t,
-                    ),
-                },
-            )
+        minus_ear = Op(
+            "union",
+            {
+                "plane": "XZ",
+                "ops": _ear_polyline_ops(
+                    -1,
+                    half_d2,
+                    X_end_r,
+                    Z_end_r,
+                    mid_x_r,
+                    mid_z_r,
+                    x_arc_r,
+                    hr,
+                    half_d3,
+                    mr,
+                    ear_half_t,
+                ),
+            },
         )
+        if ear_order_swap:
+            ops.append(minus_ear)
+            ops.append(plus_ear)
+        else:
+            ops.append(plus_ear)
+            ops.append(minus_ear)
 
         # 4. Through-hole
         ops.append(
@@ -228,9 +246,10 @@ class WingNutFamily(BaseFamily):
             )
         )
 
-        # 5. Fillet ear perimeter edges (parallel to Y axis)
-        ops.append(Op("edges", {"selector": "|Y"}))
-        ops.append(Op("fillet", {"radius": fillet_r}))
+        # 5. Fillet ear perimeter edges (parallel to Y axis) — optional.
+        if fillet_enable and fillet_r > 0:
+            ops.append(Op("edges", {"selector": "|Y"}))
+            ops.append(Op("fillet", {"radius": fillet_r}))
 
         return Program(
             family=self.name,

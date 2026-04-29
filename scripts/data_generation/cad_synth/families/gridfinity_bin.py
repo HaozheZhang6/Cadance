@@ -38,19 +38,23 @@ class GridfinityBinFamily(BaseFamily):
             uy = int(rng.choice([2, 3, 4]))
             uz = int(rng.choice([6, 8]))
 
+        # Free wall_t and base_chamfer ratios (was hardcoded 1.6/1.6).
+        wall_t = round(float(rng.uniform(1.2, 2.5)), 2)
+        base_chamfer = round(float(rng.uniform(0.8, 2.5)), 2)
         params = {
             "units_x": ux,
             "units_y": uy,
             "units_z": uz,
             "cell_size": _CELL,
             "stack_h": _STACK,
-            "wall_t": 1.6,
-            "base_chamfer": 1.6,
+            "wall_t": wall_t,
+            "base_chamfer": base_chamfer,
+            "base_edge_op": str(rng.choice(["chamfer", "fillet"])),
             "difficulty": difficulty,
         }
         if difficulty in ("medium", "hard"):
-            params["label_lip_h"] = 12.0
-            params["label_lip_w"] = 13.0
+            params["label_lip_h"] = round(float(rng.uniform(8.0, 16.0)), 1)
+            params["label_lip_w"] = round(float(rng.uniform(10.0, 18.0)), 1)
         if difficulty == "hard" and ux * uy >= 4:
             params["divider"] = True
         return params
@@ -88,9 +92,13 @@ class GridfinityBinFamily(BaseFamily):
                 {"length": round(L, 3), "width": round(W, 3), "height": round(H, 3)},
             ),
         ]
-        # Base chamfer (represents stacking lip) — chamfer bottom edges
+        # Base edge mod — chamfer or fillet on bottom edges (stacking lip).
+        base_edge_op = params.get("base_edge_op", "chamfer")
         ops.append(Op("edges", {"selector": "<Z"}))
-        ops.append(Op("chamfer", {"length": base_ch}))
+        if base_edge_op == "fillet":
+            ops.append(Op("fillet", {"radius": base_ch}))
+        else:
+            ops.append(Op("chamfer", {"length": base_ch}))
 
         # Hollow inner pocket (from top): cut a box leaving wall_t around
         inner_L = L - 2 * wall

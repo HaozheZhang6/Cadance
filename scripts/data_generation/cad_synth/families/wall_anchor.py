@@ -59,8 +59,14 @@ class WallAnchorFamily(BaseFamily):
         if difficulty == "easy":
             params["tip_taper_length"] = 0.0
         if difficulty == "hard":
-            params["rib_count"] = 4
+            params["rib_count"] = int(rng.choice([3, 4, 5, 6]))  # was always 4
             params["rib_h"] = round(d_nom * 0.18, 2)
+        # slot count free in {2,3,4,6}
+        params["slot_count"] = int(rng.choice([2, 3, 4, 6]))
+        params["slot_length"] = round(L * 0.55, 1)
+        params["slot_width"] = round(d_nom * 0.18, 2)
+        # Code-syntax mutations
+        params["flange_form"] = str(rng.choice(["cylinder", "extrude"]))
         return params
 
     def validate_params(self, params: dict) -> bool:
@@ -108,11 +114,21 @@ class WallAnchorFamily(BaseFamily):
         tip_z_bot = -L
         straight_len = body_z_top - body_z_bot
 
+        flange_form = params.get("flange_form", "cylinder")
         # Flange (base solid)
-        ops = [
-            Op("transformed", {"offset": [0, 0, flange_t / 2], "rotate": [0, 0, 0]}),
-            Op("cylinder", {"height": round(flange_t, 4), "radius": r_flange}),
-        ]
+        if flange_form == "cylinder":
+            ops = [
+                Op(
+                    "transformed",
+                    {"offset": [0, 0, flange_t / 2], "rotate": [0, 0, 0]},
+                ),
+                Op("cylinder", {"height": round(flange_t, 4), "radius": r_flange}),
+            ]
+        else:
+            ops = [
+                Op("circle", {"radius": r_flange}),
+                Op("extrude", {"distance": round(flange_t, 4)}),
+            ]
         # Body straight part
         ops.append(
             Op(
@@ -210,19 +226,16 @@ class WallAnchorFamily(BaseFamily):
                     )
                 )
 
-        # Expansion slots cut along body (longitudinal). Pair in X axis (and Y).
+        # Expansion slots cut along body (longitudinal). Free count 2/3/4/6.
         slot_cz = round(body_z_top - sl / 2 - flange_t * 0.2, 4)
-        slot_planes = [(1, 0), (-1, 0)]
-        if sc >= 4:
-            slot_planes += [(0, 1), (0, -1)]
-        for sx, _sy in slot_planes:
-            # cut a thin box oriented radially: along X or Y depending on dir
-            if sx != 0:
-                box_L = round(d * 1.2, 4)
-                box_W = sw
-            else:
-                box_L = sw
-                box_W = round(d * 1.2, 4)
+        slot_planes = []
+        for i in range(sc):
+            ang = 2 * math.pi * i / sc
+            slot_planes.append((math.cos(ang), math.sin(ang)))
+        box_L = round(d * 1.2, 4)
+        box_W = sw
+        for cx, cy in slot_planes:
+            ang_deg = math.degrees(math.atan2(cy, cx))
             ops.append(
                 Op(
                     "cut",
@@ -233,7 +246,7 @@ class WallAnchorFamily(BaseFamily):
                                 "name": "transformed",
                                 "args": {
                                     "offset": [0, 0, slot_cz],
-                                    "rotate": [0, 0, 0],
+                                    "rotate": [0, 0, ang_deg],
                                 },
                             },
                             {

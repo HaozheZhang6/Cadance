@@ -76,6 +76,13 @@ class WasherFamily(BaseFamily):
             wall = (d2 - d1) / 2
             r = round(min(h * 0.25, wall * 0.25, 0.4), 2)
             params["fillet_radius"] = max(r, 0.1)
+            # Code-syntax: chamfer ↔ fillet equivalent edge mod
+            params["edge_op"] = str(rng.choice(["fillet", "chamfer"]))
+
+        # Body form: cylinder() vs circle().extrude() (same prism).
+        params["body_form"] = str(rng.choice(["cylinder", "extrude"]))
+        # Bore form: hole() vs circle().cutThruAll() (same hole).
+        params["bore_form"] = str(rng.choice(["hole", "cut"]))
 
         return params
 
@@ -99,25 +106,40 @@ class WasherFamily(BaseFamily):
         h = params["thickness"]
         fr = params.get("fillet_radius")
 
+        edge_op = params.get("edge_op", "fillet")
+        body_form = params.get("body_form", "cylinder")
+        bore_form = params.get("bore_form", "hole")
+
         ops, tags = [], {
             "has_hole": True,
             "has_slot": False,
-            "has_fillet": bool(fr),
-            "has_chamfer": False,
+            "has_fillet": bool(fr) and edge_op == "fillet",
+            "has_chamfer": bool(fr) and edge_op == "chamfer",
             "rotational": True,
         }
 
-        ops.append(Op("cylinder", {"height": h, "radius": round(d2 / 2, 4)}))
+        # Body
+        if body_form == "cylinder":
+            ops.append(Op("cylinder", {"height": h, "radius": round(d2 / 2, 4)}))
+        else:
+            ops.append(Op("circle", {"radius": round(d2 / 2, 4)}))
+            ops.append(Op("extrude", {"distance": h}))
+
+        # Bore
         ops.append(Op("workplane", {"selector": ">Z"}))
-        ops.append(Op("hole", {"diameter": round(d1, 4)}))
+        if bore_form == "hole":
+            ops.append(Op("hole", {"diameter": round(d1, 4)}))
+        else:
+            ops.append(Op("circle", {"radius": round(d1 / 2, 4)}))
+            ops.append(Op("cutThruAll", {}))
 
         if fr:
-            # Medium = one face, Hard = both faces. `>Z` on the ring picks both
-            # the outer and inner circular edges of the top face; `<Z` picks both
-            # on the bottom face.
             sel = ">Z" if difficulty == "medium" else ">Z or <Z"
             ops.append(Op("edges", {"selector": sel}))
-            ops.append(Op("fillet", {"radius": fr}))
+            if edge_op == "fillet":
+                ops.append(Op("fillet", {"radius": fr}))
+            else:
+                ops.append(Op("chamfer", {"length": fr}))
 
         return Program(
             family=self.name,

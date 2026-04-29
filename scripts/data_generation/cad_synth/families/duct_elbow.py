@@ -26,6 +26,9 @@ class DuctElbowFamily(BaseFamily):
         trail = round(rng.uniform(10, 50), 1)  # straight run after bend
 
         wall_t = round(rng.uniform(2, max(3, min(duct_w * 0.1, 8))), 1)
+        # Asymmetric wall thickness on x vs y dim (was equal). Independent ratio.
+        wall_t_y = round(wall_t * float(rng.uniform(0.7, 1.3)), 1)
+        wall_t_y = max(2.0, min(wall_t_y, min(duct_h * 0.4, 10.0)))
 
         params = {
             "duct_width": duct_w,
@@ -34,10 +37,13 @@ class DuctElbowFamily(BaseFamily):
             "lead_length": lead,
             "trail_length": trail,
             "wall_thickness": wall_t,
+            "wall_thickness_y": wall_t_y,
             "difficulty": difficulty,
         }
 
-        if difficulty == "medium":
+        # Rib: medium 80%, easy/hard 30% (was medium only).
+        rib_prob = 0.8 if difficulty == "medium" else 0.3
+        if rng.random() < rib_prob:
             params["rib_height"] = round(rng.uniform(3, max(4, min(lead * 0.5, 20))), 1)
             params["rib_depth"] = round(
                 rng.uniform(3, max(4, min(duct_w * 0.15, 10))), 1
@@ -53,7 +59,10 @@ class DuctElbowFamily(BaseFamily):
         trail = params["trail_length"]
 
         wt = params.get("wall_thickness", 0)
-        if wt and (dw - 2 * wt < 5 or dh - 2 * wt < 5):
+        wty = params.get("wall_thickness_y", wt)
+        if wt and (dw - 2 * wt < 5):
+            return False
+        if wty and (dh - 2 * wty < 5):
             return False
 
         if dw < 12 or dh < 12:
@@ -82,6 +91,7 @@ class DuctElbowFamily(BaseFamily):
         lead = params["lead_length"]
         trail = params["trail_length"]
         wt = params["wall_thickness"]
+        wty = params.get("wall_thickness_y", wt)
 
         ops = []
         tags = {"has_hole": False, "has_fillet": False, "has_chamfer": False}
@@ -101,9 +111,9 @@ class DuctElbowFamily(BaseFamily):
         )
 
         # Hollow bore: cut a smaller elbow sweep along the same path.
-        # This opens both ends and creates proper duct wall thickness.
+        # Asymmetric wall thickness allowed (wt on x, wty on y).
         inner_dw = round(dw - 2 * wt, 4)
-        inner_dh = round(dh - 2 * wt, 4)
+        inner_dh = round(dh - 2 * wty, 4)
         ops.append(
             Op(
                 "cut",

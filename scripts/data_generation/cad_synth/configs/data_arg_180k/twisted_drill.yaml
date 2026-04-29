@@ -1,0 +1,16 @@
+run_name: data_arg_180k_twisted_drill
+num_samples: 1900
+seed: 7896
+n_workers: 4
+family_mix:
+  twisted_drill: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true
+param_scale:
+  enabled: true
+  lo: 0.8
+  hi: 1.2
+dedup_params: true

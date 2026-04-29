@@ -23,19 +23,26 @@ class BucketFamily(BaseFamily):
         wall = round(rng.uniform(3, min(r_bot * 0.1, 8)), 1)
         bottom_t = round(wall * rng.uniform(1.0, 1.5), 1)
 
+        chamfer_prob = {"easy": 0.2, "medium": 0.7, "hard": 0.9}[difficulty]
+        boss_prob = {"easy": 0.0, "medium": 0.3, "hard": 0.8}[difficulty]
+        profile_reverse = bool(rng.random() < 0.5)
+        boss_order_swap = bool(rng.random() < 0.5)
+
         params = {
             "r_bottom": r_bot,
             "r_top": r_top,
             "height": height,
             "wall_thickness": wall,
             "bottom_thickness": bottom_t,
+            "profile_reverse": profile_reverse,
+            "boss_order_swap": boss_order_swap,
             "difficulty": difficulty,
         }
 
-        if difficulty in ("medium", "hard"):
+        if rng.random() < chamfer_prob:
             params["top_chamfer"] = round(min(wall * 0.4, 2.5), 1)
 
-        if difficulty == "hard":
+        if rng.random() < boss_prob:
             params["boss_width"] = round(rng.uniform(10, 22), 1)
             params["boss_height"] = round(rng.uniform(15, 32), 1)
             params["boss_depth"] = round(rng.uniform(4, 9), 1)
@@ -90,12 +97,22 @@ class BucketFamily(BaseFamily):
         # 2D profile in XY plane, revolved around Y axis [0,1,0]:
         #   x = radial distance (≥0), y = height (0=bottom, H=top)
         # Outer taper + inner taper + closed bottom disk
-        ops.append(Op("moveTo", {"x": 0.0, "y": 0.0}))
-        ops.append(Op("lineTo", {"x": round(r_bot, 4), "y": 0.0}))
-        ops.append(Op("lineTo", {"x": round(r_top, 4), "y": round(H, 4)}))
-        ops.append(Op("lineTo", {"x": round(r_top_inner, 4), "y": round(H, 4)}))
-        ops.append(Op("lineTo", {"x": round(r_bot_inner, 4), "y": round(bt, 4)}))
-        ops.append(Op("lineTo", {"x": 0.0, "y": round(bt, 4)}))
+        forward_pts = [
+            (0.0, 0.0),
+            (round(r_bot, 4), 0.0),
+            (round(r_top, 4), round(H, 4)),
+            (round(r_top_inner, 4), round(H, 4)),
+            (round(r_bot_inner, 4), round(bt, 4)),
+            (0.0, round(bt, 4)),
+        ]
+        pts = (
+            list(reversed(forward_pts))
+            if params.get("profile_reverse", False)
+            else forward_pts
+        )
+        ops.append(Op("moveTo", {"x": pts[0][0], "y": pts[0][1]}))
+        for x, y in pts[1:]:
+            ops.append(Op("lineTo", {"x": x, "y": y}))
         ops.append(Op("close", {}))
         ops.append(
             Op(
@@ -120,7 +137,8 @@ class BucketFamily(BaseFamily):
         bh = params.get("boss_height")
         bd = params.get("boss_depth")
         if bw and bh and bd:
-            for sx in (+1, -1):
+            sx_order = (-1, +1) if params.get("boss_order_swap", False) else (+1, -1)
+            for sx in sx_order:
                 boss_cx = round(sx * (r_top + bd / 2), 4)
                 boss_cy = round(H - bh / 2, 4)
                 ops.append(

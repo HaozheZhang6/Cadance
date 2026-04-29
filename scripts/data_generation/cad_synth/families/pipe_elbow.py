@@ -82,10 +82,12 @@ class PipeElbowFamily(BaseFamily):
             )
 
         if difficulty == "hard":
-            n_bolts = 4 if od_mm <= 60 else 6
+            n_bolts = int(rng.choice([3, 4, 5, 6, 8]))  # was 4 or 6 fixed
             bolt_r = round(outer_r * 0.12, 1)
             params.update(n_bolts=n_bolts, bolt_hole_radius=bolt_r)
 
+        # Code-syntax: which end-flange built first (inlet vs outlet primary)
+        params["flange_order_swap"] = bool(rng.random() < 0.5)
         return params
 
     def validate_params(self, params: dict) -> bool:

@@ -14,6 +14,11 @@ Easy:   M8–M16 (common rigging sizes)
 Medium: M12–M24
 Hard:   M20–M36 (heavy lifting)
 
+Free shape params (off DIN nominal, perturbed per sample):
+  neck_base_ratio ∈ [0.55, 0.90] — neck_base_d = neck_base_ratio · d2
+  eye_z_off       ∈ [-1.5, 1.5]  — eye_center_z = (h - d3/2) + eye_z_off
+  eye_axis_y      bool           — torus axis Y (default) or X (90° rotated)
+
 Reference: DIN 580:2010 — Lifting eye bolts — Tapping thread; Table 1
   (M8..M36 with d1, l, d2, d3, d4, h, e tolerances).
 """
@@ -22,8 +27,6 @@ from ..pipeline.builder import Op, Program
 from .base import BaseFamily
 
 # DIN 580:2010 Table 1 — full M8..M36 series
-# (d1 thread dia, l thread length, d2 collar OD, d3 eye OD, d4 eye ID,
-#  h total height, e collar thickness, m neck top width).
 _DIN580 = {
     "M8": {"d1": 8, "l": 13, "d2": 20, "d3": 36, "d4": 20, "h": 36, "e": 6, "m": 10},
     "M10": {"d1": 10, "l": 17, "d2": 25, "d3": 45, "d4": 25, "h": 45, "e": 8, "m": 12},
@@ -76,6 +79,15 @@ class EyeboltFamily(BaseFamily):
             pool = ["M20", "M24", "M30", "M36"]
         size = str(rng.choice(pool))
         d = _DIN580[size]
+
+        neck_base_ratio = round(float(rng.uniform(0.55, 0.90)), 3)
+        # eye_z_off: shift eye center ±10% of d3/2
+        eye_z_max = float(d["d3"]) * 0.1
+        eye_z_off = round(float(rng.uniform(-eye_z_max, eye_z_max)), 3)
+        eye_axis_y = bool(rng.random() < 0.5)
+        # Shank↔neck union order: both unioned to collar, geometry-equivalent.
+        shank_first = bool(rng.random() < 0.5)
+
         params = {
             "size": size,
             "d1": float(d["d1"]),
@@ -86,6 +98,10 @@ class EyeboltFamily(BaseFamily):
             "h": float(d["h"]),
             "e": float(d["e"]),
             "m": float(d["m"]),
+            "neck_base_ratio": neck_base_ratio,
+            "eye_z_off": eye_z_off,
+            "eye_axis_y": eye_axis_y,
+            "shank_first": shank_first,
             "difficulty": difficulty,
             "base_plane": "XY",
         }
@@ -101,6 +117,16 @@ class EyeboltFamily(BaseFamily):
             return False
         if params["m"] <= 0 or params["m"] >= d2:
             return False
+        # neck_base_d must clear m and stay below d2
+        nb = params["neck_base_ratio"] * d2
+        if nb <= params["m"] * 1.05 or nb >= d2 * 0.95:
+            return False
+        # eye center within bolt body
+        ec = (h - d3 / 2) + params["eye_z_off"]
+        if ec - (d3 - d4) / 4 <= e + 0.5:
+            return False
+        if ec + (d3 - d4) / 4 >= h - 0.5:
+            return False
         return True
 
     def make_program(self, params: dict) -> Program:
@@ -108,13 +134,17 @@ class EyeboltFamily(BaseFamily):
         d1, shank_l = params["d1"], params["l"]
         d2, d3, d4 = params["d2"], params["d3"], params["d4"]
         h, e, m = params["h"], params["e"], params["m"]
+        neck_base_ratio = params["neck_base_ratio"]
+        eye_z_off = params["eye_z_off"]
+        eye_axis_y = bool(params.get("eye_axis_y", True))
+        shank_first = bool(params.get("shank_first", True))
 
         minor_R = round((d3 - d4) / 4.0, 3)
         major_R = round((d3 + d4) / 4.0, 3)
-        eye_center_z = round(h - d3 / 2.0, 3)
+        eye_center_z = round((h - d3 / 2.0) + eye_z_off, 3)
         ring_bottom_z = round(eye_center_z - minor_R, 3)
 
-        neck_base_d = round(min(m * 1.5, d2 * 0.8), 3)
+        neck_base_d = round(neck_base_ratio * d2, 3)
         neck_top_z = round(ring_bottom_z - minor_R, 3)
 
         tags = {
@@ -122,7 +152,7 @@ class EyeboltFamily(BaseFamily):
             "has_slot": False,
             "has_fillet": False,
             "has_chamfer": False,
-            "rotational": True,
+            "rotational": False,  # eye ring breaks rotational symmetry vs world Z
         }
 
         # 1. Collar (z = 0 .. e)
@@ -130,50 +160,50 @@ class EyeboltFamily(BaseFamily):
             Op("circle", {"radius": round(d2 / 2, 3)}),
             Op("extrude", {"distance": round(e, 3)}),
         ]
-        # 2. Shank (z = -l .. 0) — union via sub-op (separate body below collar)
-        ops.append(
-            Op(
-                "union",
-                {
-                    "ops": [
-                        {
-                            "name": "transformed",
-                            "args": {"offset": [0, 0, -shank_l], "rotate": [0, 0, 0]},
-                        },
-                        {"name": "circle", "args": {"radius": round(d1 / 2, 3)}},
-                        {"name": "extrude", "args": {"distance": round(shank_l, 3)}},
-                    ]
-                },
-            )
+
+        shank_op = Op(
+            "union",
+            {
+                "ops": [
+                    {
+                        "name": "transformed",
+                        "args": {"offset": [0, 0, -shank_l], "rotate": [0, 0, 0]},
+                    },
+                    {"name": "circle", "args": {"radius": round(d1 / 2, 3)}},
+                    {"name": "extrude", "args": {"distance": round(shank_l, 3)}},
+                ]
+            },
         )
-        # 3. Neck (loft from collar-top to eye-bottom)
-        ops.append(
-            Op(
-                "union",
-                {
-                    "ops": [
-                        {
-                            "name": "transformed",
-                            "args": {"offset": [0, 0, e], "rotate": [0, 0, 0]},
+        neck_op = Op(
+            "union",
+            {
+                "ops": [
+                    {
+                        "name": "transformed",
+                        "args": {"offset": [0, 0, e], "rotate": [0, 0, 0]},
+                    },
+                    {"name": "circle", "args": {"radius": round(neck_base_d / 2, 3)}},
+                    {
+                        "name": "transformed",
+                        "args": {
+                            "offset": [0, 0, neck_top_z - e],
+                            "rotate": [0, 0, 0],
                         },
-                        {
-                            "name": "circle",
-                            "args": {"radius": round(neck_base_d / 2, 3)},
-                        },
-                        {
-                            "name": "transformed",
-                            "args": {
-                                "offset": [0, 0, neck_top_z - e],
-                                "rotate": [0, 0, 0],
-                            },
-                        },
-                        {"name": "circle", "args": {"radius": round(m / 2, 3)}},
-                        {"name": "loft", "args": {"combine": True}},
-                    ]
-                },
-            )
+                    },
+                    {"name": "circle", "args": {"radius": round(m / 2, 3)}},
+                    {"name": "loft", "args": {"combine": True}},
+                ]
+            },
         )
-        # 4. Eye ring (torus with axis Y at eye_center_z)
+        # Shank↔neck both unioned to the collar — commutative, geometry-equivalent.
+        if shank_first:
+            ops.append(shank_op)
+            ops.append(neck_op)
+        else:
+            ops.append(neck_op)
+            ops.append(shank_op)
+        # 4. Eye ring (torus at eye_center_z, axis Y or X)
+        torus_dir = [0, 1, 0] if eye_axis_y else [1, 0, 0]
         ops.append(
             Op(
                 "torus",
@@ -181,7 +211,7 @@ class EyeboltFamily(BaseFamily):
                     "majorRadius": major_R,
                     "minorRadius": minor_R,
                     "pnt": [0, 0, eye_center_z],
-                    "dir": [0, 1, 0],
+                    "dir": torus_dir,
                 },
             )
         )

@@ -45,23 +45,29 @@ class LobedKnobFamily(BaseFamily):
     def sample_params(self, difficulty: str, rng) -> dict:
         if difficulty == "easy":
             thread_pool = [5, 6, 8]
-            n_pool = [5]
+            n_pool = [3, 4, 5]
         elif difficulty == "medium":
             thread_pool = [8, 10, 12]
-            n_pool = [3, 5, 6]
+            n_pool = [3, 4, 5, 6, 7]
         else:
             thread_pool = [10, 12, 16]
-            n_pool = [3, 5, 6]
+            n_pool = [3, 4, 5, 6, 7, 8]
 
         d = int(rng.choice(thread_pool))
         N = int(rng.choice(n_pool))
         row = _DIMS[d]
+
+        lobe_r_ratio = round(float(rng.uniform(0.45, 0.62)), 3)
+        core_r_off = round(float(rng.uniform(0.0, 1.5)), 2)
+
         params = {
             "d_thread": float(d),
             "d1": float(row["d1"]),
             "h1": float(row["h1"]),
             "N": N,
             "bush_h": float(row["bush_h"]),
+            "lobe_r_ratio": lobe_r_ratio,
+            "core_r_off": core_r_off,
             "difficulty": difficulty,
             "base_plane": "XY",
         }
@@ -77,7 +83,7 @@ class LobedKnobFamily(BaseFamily):
             return False
         if h1 <= 0 or h1 > d1:
             return False
-        if N not in (3, 5, 6):
+        if N not in (3, 4, 5, 6, 7, 8):
             return False
         if bush_h <= 0 or bush_h > h1 * 1.5:
             return False
@@ -94,9 +100,9 @@ class LobedKnobFamily(BaseFamily):
         bush_h = params["bush_h"]
 
         R_outer = d1 / 2
-        lobe_r = round(R_outer * 0.55, 3)
+        lobe_r = round(R_outer * float(params.get("lobe_r_ratio", 0.55)), 3)
         R_inner = round(R_outer - lobe_r, 3)
-        core_r = round(R_inner + 0.5, 3)
+        core_r = round(R_inner + float(params.get("core_r_off", 0.5)), 3)
         bush_d = round(d_thread * 2.0, 3)
 
         tags = {

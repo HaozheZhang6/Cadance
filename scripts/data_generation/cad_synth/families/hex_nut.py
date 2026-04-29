@@ -19,6 +19,18 @@ import math
 from ..pipeline.builder import Op, Program
 from .base import BaseFamily
 
+
+def _hex_polyline_pts(ac: float) -> list:
+    """6 vertices of a regular hexagon with circumscribed-circle diameter ac.
+    First vertex on +X axis, going CCW."""
+    r = ac / 2.0
+    pts = []
+    for i in range(6):
+        ang = math.radians(60 * i)
+        pts.append((round(r * math.cos(ang), 4), round(r * math.sin(ang), 4)))
+    return pts
+
+
 # ISO 4032 Table 1 — exact nominal values (mm)
 # (M_nominal, s_across_flats, m_nut_height)
 _ISO4032 = [
@@ -71,9 +83,20 @@ class HexNutFamily(BaseFamily):
             "difficulty": difficulty,
         }
 
-        if difficulty in ("medium", "hard"):
-            params["chamfer"] = round(min(m * 0.15, 2.0), 1)
-
+        # Code-syntax diversity (Tier B style):
+        # polygon_form: "polygon" (single op) vs "polyline" (6 lineTo's)
+        # edge_op: chamfer / fillet / none — already had chamfer for med+
+        # edge_loc: where to apply — "vertical" (|Z), "top" (>Z), "bottom" (<Z), "both"
+        params["polygon_form"] = str(rng.choice(["polygon", "polyline"]))
+        edge_prob = {"easy": 0.2, "medium": 0.85, "hard": 0.95}[difficulty]
+        if rng.random() < edge_prob:
+            params["edge_op"] = str(rng.choice(["chamfer", "fillet"]))
+            params["edge_loc"] = str(rng.choice(["vertical", "top", "bottom", "both"]))
+            # Face-based loc includes bore edge — scale size down (chamfer/fillet
+            # of both outer-hex and inner-bore can collide for large radii).
+            base = min(m * 0.15, 2.0)
+            cap = base if params["edge_loc"] == "vertical" else min(base, M * 0.18)
+            params["edge_size"] = round(cap, 2)
         return params
 
     def validate_params(self, params: dict) -> bool:
@@ -90,8 +113,8 @@ class HexNutFamily(BaseFamily):
         if bore < 3:
             return False
 
-        ch = params.get("chamfer", 0)
-        if ch and ch >= h * 0.4:
+        es = params.get("edge_size", 0)
+        if es and es >= h * 0.4:
             return False
 
         return True
@@ -105,8 +128,16 @@ class HexNutFamily(BaseFamily):
         ops = []
         tags = {"has_hole": True, "has_fillet": False, "has_chamfer": False}
 
-        # Hex prism (across-corners = circumscribed circle diameter)
-        ops.append(Op("polygon", {"n": 6, "diameter": ac}))
+        # Hex prism — polygon op or 6× lineTo polyline (geometry equivalent).
+        polygon_form = params.get("polygon_form", "polygon")
+        if polygon_form == "polygon":
+            ops.append(Op("polygon", {"n": 6, "diameter": ac}))
+        else:
+            pts = _hex_polyline_pts(ac)
+            ops.append(Op("moveTo", {"x": pts[0][0], "y": pts[0][1]}))
+            for x, y in pts[1:]:
+                ops.append(Op("lineTo", {"x": x, "y": y}))
+            ops.append(Op("close", {}))
         ops.append(Op("extrude", {"distance": h}))
 
         # Central bore
@@ -114,12 +145,31 @@ class HexNutFamily(BaseFamily):
         ops.append(Op("circle", {"radius": round(bore / 2, 4)}))
         ops.append(Op("cutThruAll", {}))
 
-        # Chamfer 6 vertical hex edges (medium+)
-        ch = params.get("chamfer")
-        if ch:
-            tags["has_chamfer"] = True
-            ops.append(Op("edges", {"selector": "|Z"}))
-            ops.append(Op("chamfer", {"length": ch}))
+        # Edge mod (medium+) — chamfer or fillet on vertical/top/bottom/both edges.
+        edge_op = params.get("edge_op")
+        edge_loc = params.get("edge_loc", "vertical")
+        edge_size = float(params.get("edge_size", 0.0))
+        if edge_op and edge_size > 0:
+            if edge_op == "chamfer":
+                tags["has_chamfer"] = True
+            else:
+                tags["has_fillet"] = True
+            selectors = {
+                "vertical": ["|Z"],
+                "top": [">Z"],
+                "bottom": ["<Z"],
+                "both": [">Z", "<Z"],
+            }[edge_loc]
+            for sel in selectors:
+                if sel.startswith("|"):
+                    ops.append(Op("edges", {"selector": sel}))
+                else:
+                    ops.append(Op("faces", {"selector": sel}))
+                    ops.append(Op("edges", {}))
+                if edge_op == "chamfer":
+                    ops.append(Op("chamfer", {"length": edge_size}))
+                else:
+                    ops.append(Op("fillet", {"radius": edge_size}))
 
         return Program(
             family=self.name,

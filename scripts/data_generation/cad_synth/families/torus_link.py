@@ -32,15 +32,20 @@ class TorusLinkFamily(BaseFamily):
             "difficulty": difficulty,
         }
 
-        if difficulty in ("medium", "hard"):
+        lug_prob = {"easy": 0.2, "medium": 0.7, "hard": 0.85}[difficulty]
+        hole_prob = {"easy": 0.0, "medium": 0.4, "hard": 0.85}[difficulty]
+
+        if rng.random() < lug_prob:
             params["lug_width"] = round(rng.uniform(8, max(8.5, min(r * 1.5, 20))), 1)
             params["lug_height"] = round(rng.uniform(6, max(6.5, min(r * 1.2, 16))), 1)
             params["lug_depth"] = round(rng.uniform(4, max(4.5, min(r * 0.8, 12))), 1)
+            # Variable lug count (was fixed 4)
+            params["n_lugs"] = int(rng.choice([2, 3, 4, 6, 8]))
 
-        if difficulty == "hard":
-            params["lug_hole_d"] = round(
-                rng.uniform(3, min(params["lug_width"] * 0.45, 10)), 1
-            )
+            if rng.random() < hole_prob:
+                params["lug_hole_d"] = round(
+                    rng.uniform(3, min(params["lug_width"] * 0.45, 10)), 1
+                )
 
         return params
 
@@ -106,9 +111,11 @@ class TorusLinkFamily(BaseFamily):
         lw = params.get("lug_width")
         lh = params.get("lug_height")
         ld = params.get("lug_depth")
+        n_lugs = int(params.get("n_lugs", 4))
+        lug_angles = [round(360.0 * i / n_lugs, 4) for i in range(n_lugs)]
         if lw and lh and ld:
             lug_cx = round(R + r + ld / 2, 4)  # centre of lug in radial direction
-            for angle_deg in [0.0, 90.0, 180.0, 270.0]:
+            for angle_deg in lug_angles:
                 angle_rad = math.radians(angle_deg)
                 cx = round(lug_cx * math.cos(angle_rad), 4)
                 cz = round(lug_cx * math.sin(angle_rad), 4)
@@ -143,7 +150,7 @@ class TorusLinkFamily(BaseFamily):
         if hd and lw and lh and ld:
             tags["has_hole"] = True
             lug_cx = round(R + r + ld / 2, 4)
-            for angle_deg in [0.0, 90.0, 180.0, 270.0]:
+            for angle_deg in lug_angles:
                 angle_rad = math.radians(angle_deg)
                 cx = round(lug_cx * math.cos(angle_rad), 4)
                 cz = round(lug_cx * math.sin(angle_rad), 4)

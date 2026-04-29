@@ -67,6 +67,7 @@ class ClevisFamily(BaseFamily):
 
         if difficulty in ("medium", "hard"):
             params["chamfer"] = round(min(arm_t * 0.12, 2.0), 1)
+            params["edge_op"] = str(rng.choice(["fillet", "chamfer"]))
 
         if difficulty == "hard":
             # DIN 71751 Form A: cylindrical threaded socket on opposite end of fork
@@ -78,6 +79,9 @@ class ClevisFamily(BaseFamily):
             # 那一头). DIN 71751 doesn't forbid through-bore — the user request explicitly
             # added this option. ~50% chance of through-bore for variant coverage.
             params["through_bore"] = bool(rng.random() < 0.5)
+
+        # Code-syntax: bore form + pin order swap
+        params["bore_form"] = str(rng.choice(["hole", "cut"]))
 
         return params
 
@@ -147,22 +151,35 @@ class ClevisFamily(BaseFamily):
         ops.append(Op("rect", {"length": round(gap, 4), "width": round(depth + 1, 4)}))
         ops.append(Op("cutBlind", {"depth": round(arm_h, 4)}))
 
-        # Chamfer top edges of arms (medium+)
+        # Edge fillet/chamfer on arm tops (推 fillet 频率)
         ch = params.get("chamfer")
+        edge_op = params.get("edge_op", "chamfer")
         if ch:
-            tags["has_chamfer"] = True
+            if edge_op == "fillet":
+                tags["has_fillet"] = True
+            else:
+                tags["has_chamfer"] = True
             ops.append(Op("faces", {"selector": ">Z"}))
             ops.append(Op("edges", {"selector": ">Z"}))
-            ops.append(Op("chamfer", {"length": ch}))
+            if edge_op == "fillet":
+                ops.append(Op("fillet", {"radius": ch}))
+            else:
+                ops.append(Op("chamfer", {"length": ch}))
 
         # Pin hole through the SIDE of the clevis (perpendicular to U arms).
         # Curated fixes (cq_gui/curated_722/clevis/) show pin drilled from `>X` face,
         # going through the body (X-direction). Position at (0, -arm_h*0.35):
         # local_x=0 (centered along Y/depth), local_y=offset below midline (in base region).
+        # bore_form (from data-arg merge) toggles hole op vs circle+cutThruAll for code variety.
+        bore_form = params.get("bore_form", "hole")
         pin_y_local = round(-arm_h * 0.35, 4)
         ops.append(Op("workplane", {"selector": ">X"}))
         ops.append(Op("pushPoints", {"points": [(0.0, pin_y_local)]}))
-        ops.append(Op("hole", {"diameter": round(pin_d, 4)}))
+        if bore_form == "hole":
+            ops.append(Op("hole", {"diameter": round(pin_d, 4)}))
+        else:
+            ops.append(Op("circle", {"radius": round(pin_d / 2, 4)}))
+            ops.append(Op("cutThruAll", {}))
 
         # DIN 71751 Form A (hard): cylindrical threaded SOCKET below the base.
         # The rod screws into a central through-bore (the "螺丝固定" hole).

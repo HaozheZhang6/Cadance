@@ -63,6 +63,10 @@ def _supports_temperature(model: str) -> bool:
     "gpt-5.4-mini",
     "gpt-5.4-nano",
     "gpt-5.4-pro",
+    # GPT-5 thinking aliases (high reasoning effort)
+    "gpt-5.2-thinking",
+    "gpt-5.3-thinking",
+    "gpt-5.4-thinking",
     # o-series
     "o1",
     "o1-mini",
@@ -107,16 +111,26 @@ class OpenAIAdapter(ModelAdapter):
                         },
                     }
                 )
+            # Map *-thinking aliases to chat-latest + high reasoning effort
+            model_real = self.name
+            reasoning_effort = None
+            if self.name.endswith("-thinking"):
+                base = self.name[: -len("-thinking")]
+                model_real = f"{base}-chat-latest"
+                # gpt-5.3-chat-latest currently caps at 'medium'
+                reasoning_effort = "medium"
             kwargs: dict = {
-                "model": self.name,
+                "model": model_real,
                 "messages": [
                     {"role": "system", "content": system},
                     {"role": "user", "content": user_content},
                 ],
-                **_max_tokens_kwarg(self.name, max_tokens),
+                **_max_tokens_kwarg(model_real, max_tokens),
             }
-            if _supports_temperature(self.name):
+            if _supports_temperature(model_real):
                 kwargs["temperature"] = 0.0
+            if reasoning_effort:
+                kwargs["reasoning_effort"] = reasoning_effort
             resp = client.chat.completions.create(**kwargs)
             return resp.choices[0].message.content or "", None
         except Exception as e:

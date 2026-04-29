@@ -54,12 +54,15 @@ class TeeNutFamily(BaseFamily):
             "difficulty": difficulty,
         }
         if difficulty in ("medium", "hard"):
-            params["prong_count"] = 4
+            params["prong_count"] = int(rng.choice([3, 4, 5, 6]))  # was always 4
             params["prong_h"] = round(b * 2.5, 1)
             params["prong_w"] = round(b * 1.2, 1)
         if difficulty == "hard":
             params["flange_chamfer"] = round(b * 0.3, 2)
-            params["prong_taper"] = 10.0  # degrees (tapered to tip)
+            params["flange_edge_op"] = str(rng.choice(["chamfer", "fillet"]))
+            params["prong_taper"] = 10.0
+        # Code-syntax: flange form + barrel form
+        params["flange_form"] = str(rng.choice(["extrude", "cylinder"]))
         return params
 
     def validate_params(self, params: dict) -> bool:
@@ -96,12 +99,20 @@ class TeeNutFamily(BaseFamily):
         }
 
         # Layout: flange at z=[0, b] (top), barrel extends DOWN to z=-H.
-        # Build flange first (extrude up from z=0), then barrel as union
-        # extending downward from z=0.
-        ops = [
-            Op("circle", {"radius": r_flange}),
-            Op("extrude", {"distance": round(b, 4)}),
-        ]
+        flange_form = params.get("flange_form", "extrude")
+        if flange_form == "cylinder":
+            ops = [
+                Op(
+                    "transformed",
+                    {"offset": [0, 0, round(b / 2, 4)], "rotate": [0, 0, 0]},
+                ),
+                Op("cylinder", {"height": round(b, 4), "radius": r_flange}),
+            ]
+        else:
+            ops = [
+                Op("circle", {"radius": r_flange}),
+                Op("extrude", {"distance": round(b, 4)}),
+            ]
         # Barrel extending down from z=0 to z=-H (union)
         ops.append(
             Op(
@@ -122,12 +133,19 @@ class TeeNutFamily(BaseFamily):
             )
         )
 
-        # Edge chamfer on flange OD (hard)
+        # Edge chamfer/fillet on flange OD (hard)
         ch = params.get("flange_chamfer")
+        flange_edge_op = params.get("flange_edge_op", "chamfer")
         if ch:
-            tags["has_chamfer"] = True
+            if flange_edge_op == "fillet":
+                tags["has_fillet"] = True
+            else:
+                tags["has_chamfer"] = True
             ops.append(Op("edges", {"selector": ">Z"}))
-            ops.append(Op("chamfer", {"length": ch}))
+            if flange_edge_op == "fillet":
+                ops.append(Op("fillet", {"radius": ch}))
+            else:
+                ops.append(Op("chamfer", {"length": ch}))
 
         # Prongs on flange underside (medium+)
         pc = params.get("prong_count", 0)
