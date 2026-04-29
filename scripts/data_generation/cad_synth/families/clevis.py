@@ -170,13 +170,13 @@ class ClevisFamily(BaseFamily):
         # Drilled from `>X` face (arm outer face, 远离主体). Hole passes
         # through arm1 → gap → arm2. Use centerOption="CenterOfMass" so the
         # workplane origin sits at the face geometric center (instead of
-        # inheriting prior workplane's projected origin). pin position 在 arm
-        # 区底部偏一点点 (距 arm-base 接口 pin_d 的 clearance) 让 pin 离 base 近.
+        # inheriting prior workplane's projected origin). pin 位置靠近 arm 顶端
+        # (远离 base 那一头), 距离 arm 顶 pin_d clearance — 标准 DIN clevis 风格.
         # bore_form (from data-arg merge) toggles hole op vs circle+cutThruAll.
         bore_form = params.get("bore_form", "hole")
         # arm region world Z = [total_h/2 - arm_h, total_h/2]; with CoM origin at
-        # face center (world Z=0), local_y = arm_bottom + pin_d ≈ near arm底部.
-        pin_z_local = round(total_h / 2 - arm_h + pin_d, 4)
+        # face center (world Z=0), local_y = arm_top - pin_d (近 arm 顶, 离 base 远).
+        pin_z_local = round(total_h / 2 - pin_d, 4)
         ops.append(
             Op("workplane", {"selector": ">X", "center_option": "CenterOfMass"})
         )
