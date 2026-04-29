@@ -186,15 +186,13 @@ def eval_sample(
     iou, iou_err = compute_iou(gt_step, gen_step)
     cd, cd_err = compute_chamfer(gt_step, gen_step)
     hd, hd_err = compute_hausdorff(gt_step, gen_step)
+    rot_iou: float | None = None
     if rot_invariant in (6, 24):
         rot_iou, rot_idx, _ = compute_rotation_invariant_iou(
             gt_step, gen_step, n_orientations=rot_invariant
         )
         res["iou_rot"] = round(rot_iou, 4)
         res["iou_rot_idx"] = rot_idx
-        score_iou = max(iou, rot_iou)
-    else:
-        score_iou = iou
     res["iou"] = round(iou, 4)
     res["chamfer"] = round(cd, 6) if cd != float("inf") else float("inf")
     res["hausdorff"] = round(hd, 6) if hd != float("inf") else float("inf")
@@ -207,8 +205,9 @@ def eval_sample(
     if hd_err:
         res["hd_error"] = hd_err
     res["score"] = combined_score(
-        res["feature_f1"], score_iou, cd, hd,
+        res["feature_f1"], iou, cd, hd,
         essential_pass=res["essential_pass"],
+        iou_rot=rot_iou,
     )
 
     Path(gen_step).unlink(missing_ok=True)
