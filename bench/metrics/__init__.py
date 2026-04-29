@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import re
 import math
+import re
 
 LD = __import__("os").environ.get("LD_LIBRARY_PATH", "/workspace/.local/lib")
 
@@ -83,9 +83,9 @@ def feature_f1(pred: dict, gt: dict) -> float:
 
 def _load_normalized_mesh(step_path: str):
     """Load STEP → tessellate → normalize bbox center→[0.5,0.5,0.5], longest→[0,1]³."""
+    import cadquery as cq
     import numpy as np
     import trimesh
-    import cadquery as cq
 
     shape = cq.importers.importStep(step_path)
     solid = shape.val()
@@ -337,12 +337,31 @@ def hd_to_score(hd: float) -> float:
     return (_HD_HIGH - hd) / (_HD_HIGH - _HD_LOW)
 
 
-def combined_score(feature_f1: float, iou: float, cd: float, hd: float) -> float:
-    """Bench score = 0.25·feature_f1 + 0.7·IoU + 0.025·cd_score + 0.025·hd_score."""
-    return round(
-        0.25 * feature_f1
-        + 0.7 * iou
-        + 0.025 * cd_to_score(cd)
-        + 0.025 * hd_to_score(hd),
-        4,
-    )
+def combined_score(
+    feature_f1: float,
+    iou: float,
+    cd: float,
+    hd: float,
+    essential_pass: bool | None = None,
+    iou_rot: float | None = None,
+) -> float:
+    """Bench final score — see bench/SCORING.md.
+
+        score = 0.60·IoU + 0.20·essential + 0.10·Feat-F1
+              + 0.05·cd_score + 0.05·hd_score
+
+    IoU = max(iou, iou_rot24) when `iou_rot` is provided, else raw `iou`.
+    essential_pass = True / False → counted at full weight.
+                   = None (family is N/A) → drop the 0.20 essential term and
+                     rescale the remaining 0.80 weight back to [0, 1] by ×1.25.
+    """
+    eff_iou = max(iou, iou_rot) if iou_rot is not None else iou
+    geom = (
+        0.60 * eff_iou
+        + 0.10 * feature_f1
+        + 0.05 * cd_to_score(cd)
+        + 0.05 * hd_to_score(hd)
+    )  # cumulative 0.80
+    if essential_pass is None:
+        return round(geom * 1.25, 4)
+    return round(geom + 0.20 * (1.0 if essential_pass else 0.0), 4)

@@ -67,6 +67,32 @@ See `CLAUDE.md` "Synth Monitor UI" — do NOT build a separate family-preview UI
 
 ---
 
+## Common tools — single-source ⚠️
+
+**Do NOT write a new render / IoU / op-extraction / exec script when one of these exists.** Always import the canonical implementation; if you find yourself copying logic into a new file, fix it in place. Duplicate scripts have caused view-alignment drift, IoU disagreement, and metric mismatches in the past.
+
+| Function | Canonical module | API |
+|---|---|---|
+| Normalize STEP + cadrille 4-view render | `scripts/data_generation/render_normalized_views.py` | `render_step_normalized(step_path, out_dir)` |
+| Voxel IoU + 24-rotation IoU | `bench/metrics/__init__.py` | `compute_iou(gt, gen)`, `compute_rotation_invariant_iou(...)` |
+| Per-stem essential ops + Feat-F1 | `bench/research/canonical_ops.py` (loads `.yaml`) | `essential_pass(family, gen_ops)`, `feature_f1(...)` |
+| Final bench score (7-column standard) | `bench/SCORING.md` + `bench/metrics/combined_score()` | 0.60·IoU + 0.20·essential + 0.10·F1 + 0.05·cd + 0.05·hd  (×1.25 if essential N/A) |
+| CadQuery exec sandbox | `bench/eval.py` | `exec_cq(code, timeout=60) → (step_path, err)` |
+| HF dataset loader | `bench/dataloader/__init__.py` | `load_hf(repo, split, token)` |
+| Stratified sampling | `bench/sampling.py` | `sample_rows(rows, n, seed)` |
+| Results dir (append-only, dedup by stem) | `bench/results.py` | `ResultsDir(task, model)` |
+| Model adapter (LLM/VLM) | `bench/models/registry.py` + `bench/models/providers/` | `get_adapter(name).generate(...)` |
+| Per-family essential spec (config) | `bench/research/canonical_ops.yaml` | edit YAML, no code change needed |
+
+**Camera convention** — fixed; do NOT re-derive in any other script:
+```python
+CAMERA_FRONTS = [[1,1,1], [-1,-1,-1], [-1,1,-1], [1,-1,1]]   # cadrille
+# 2×2 composite, 268×268, normalized bbox center→[0.5]³, longest→[0,1]³
+```
+Any prompt under `bench/models/prompts.py` describing image views must match this set; changing camera = changing prompts.
+
+---
+
 ## .env keys
 
 | Variable | Used by |

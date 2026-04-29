@@ -1,5 +1,6 @@
 """CAD Data Pipeline — Overview + Stem Viewer."""
 
+import io
 import sys
 from pathlib import Path
 
@@ -752,6 +753,88 @@ _RENDER_NAMES = (
 )
 
 
+HF_RENDER_CACHE = ROOT / "data/data_generation/.hf_render_cache"
+
+
+@st.cache_resource(show_spinner="indexing HF cad_bench stems ...")
+def _hf_stem_index() -> dict:
+    """Build {stem: (repo, row_idx)} from the curated HF benches.
+
+    cad_bench_722 has priority — only stems missing from it fall through to
+    cad_bench. setdefault preserves cad_bench_722 entries for both `stem`
+    and the `substitute_bench_stem` / `original_diverse_stem` aliases.
+
+    Stores only metadata (repo + row index); PNG bytes are fetched lazily
+    in _hf_fallback_png so app startup memory stays small.
+    """
+    try:
+        from datasets import load_dataset
+    except ImportError:
+        return {}
+
+    idx: dict[str, tuple[str, int]] = {}
+    for repo in ("BenchCAD/cad_bench_722", "BenchCAD/cad_bench"):
+        try:
+            ds = load_dataset(repo)
+        except Exception:
+            continue
+        for split in ds:
+            cols = ds[split].column_names
+            if "composite_png" not in cols or "stem" not in cols:
+                continue
+            stems = ds[split]["stem"]
+            alt_cols = [c for c in ("substitute_bench_stem", "original_diverse_stem") if c in cols]
+            alt_data = {c: ds[split][c] for c in alt_cols}
+            for i, stem in enumerate(stems):
+                idx.setdefault(stem, (repo, i))
+                for c in alt_cols:
+                    alt = alt_data[c][i]
+                    if isinstance(alt, str) and alt:
+                        idx.setdefault(alt, (repo, i))
+    return idx
+
+
+@st.cache_resource(show_spinner=False)
+def _hf_dataset(repo: str):
+    """Lazy-load (and cache) one HF dataset by name."""
+    try:
+        from datasets import load_dataset
+
+        return load_dataset(repo)["train"]
+    except Exception:
+        return None
+
+
+def _hf_fallback_png(stem: str) -> Path | None:
+    """Materialize HF composite_png for `stem` to local cache; return path."""
+    if not stem:
+        return None
+    HF_RENDER_CACHE.mkdir(parents=True, exist_ok=True)
+    cached = HF_RENDER_CACHE / f"{stem}.png"
+    if cached.exists() and cached.stat().st_size > 0:
+        return cached
+    location = _hf_stem_index().get(stem)
+    if not location:
+        return None
+    repo, row_idx = location
+    ds = _hf_dataset(repo)
+    if ds is None:
+        return None
+    cp = ds[row_idx]["composite_png"]
+    if isinstance(cp, dict) and "bytes" in cp:
+        raw = cp["bytes"]
+    elif isinstance(cp, bytes):
+        raw = cp
+    else:  # PIL Image
+        buf = io.BytesIO()
+        cp.save(buf, format="PNG")
+        raw = buf.getvalue()
+    if not raw:
+        return None
+    cached.write_bytes(raw)
+    return cached
+
+
 def _render_img(row) -> Path | None:
     """Return path to the isometric render image for a synth row."""
     # 1. render_dir column → check all known render filenames
@@ -776,7 +859,8 @@ def _render_img(row) -> Path | None:
             if p.exists():
                 return p
 
-    return None
+    # 3. fallback: HF curated bench composite_png by stem (covers cad_bench_722)
+    return _hf_fallback_png(_s(row.get("stem", "")))
 
 
 def page_synth():

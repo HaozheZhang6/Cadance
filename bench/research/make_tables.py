@@ -371,8 +371,58 @@ def table_models():
     )
 
 
+def table_v4_score():
+    """Table 6 — per-model essential / feature / IoU score on N=30."""
+    rows = [
+        {"kind": "rule", "weight": "top"},
+        {"kind": "data", "weight": "bold", "cells": [
+            "Model", "essential pass", "Feat-F1", "IoU",
+            "shortcut (ess=fail ∧ IoU≥0.3)",
+        ]},
+        {"kind": "rule"},
+        {"kind": "data", "cells": [
+            "gpt-4o",                  "2 / 13  (15\\%)", "0.604", "0.137",
+            "1 / 13  (knob)",
+        ]},
+        {"kind": "data", "cells": [
+            "gpt-5.3 (no reasoning)",  "6 / 13  (46\\%)", "0.677", "0.202",
+            "2 / 13  (worm\\_screw, pulley)",
+        ]},
+        {"kind": "data", "cells": [
+            "gpt-5.3 (reasoning=med)", "6 / 13  (46\\%)", "0.706", "0.226",
+            "3 / 13  (worm\\_screw, pulley, wall\\_anchor)",
+        ]},
+        {"kind": "data", "cells": [
+            "gemini-2.5-flash",        "1 / 13  ( 8\\%)", "0.461", "0.055",
+            "1 / 13  (mesh\\_panel)",
+        ]},
+        {"kind": "rule", "weight": "bot"},
+    ]
+    render_table(
+        rows=rows,
+        column_widths=[2.4, 1.5, 0.7, 0.6, 2.6],
+        col_aligns=["l", "c", "c", "c", "l"],
+        caption=(
+            "Improved Feature Score on N=30 (seed 42). "
+            "essential pass = fraction of stems whose family has an essential op spec, "
+            "and gen_code emits at least one alternative for every AND-element. "
+            "13/30 stems have essentials; 17/30 are N/A. "
+            "Feat-F1 over independent feature class {chamfer, fillet, hole}; IoU is plain (no rotation). "
+            "The 'shortcut' column counts cases where the model gets respectable geometry "
+            "(IoU ≥0.3) without using the canonical op — a strong negative signal: "
+            "the model approximates the geometry with substitutable ops rather than constructing it correctly. "
+            "gpt-5.3 reasoning ON has the most shortcut cases (3) despite the highest "
+            "IoU mean — reasoning helps mid-IoU but does not improve essential-op selection."
+        ),
+        label="6",
+        out=OUT / "tab_v4_score.png",
+        fig_width=8.5,
+    )
+
+
 if __name__ == "__main__":
     table_main()
     table_failures()
     table_mismatch()
     table_models()
+    table_v4_score()
