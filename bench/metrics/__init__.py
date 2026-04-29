@@ -343,21 +343,24 @@ def combined_score(
     cd: float,
     hd: float,
     essential_pass: bool | None = None,
-    iou_rot: float | None = None,
+    iou_rot: float | None = None,  # noqa: ARG001 — kept in API for back-compat / sidecar reporting; NOT used in score
 ) -> float:
     """Bench final score — see bench/SCORING.md.
 
         score = 0.60·IoU + 0.20·essential + 0.10·Feat-F1
               + 0.05·cd_score + 0.05·hd_score
 
-    IoU = max(iou, iou_rot24) when `iou_rot` is provided, else raw `iou`.
-    essential_pass = True / False → counted at full weight.
+    IoU is the raw fixed-orientation voxel IoU. iou_rot24 is reported per
+    stem as a diagnostic (orientation tolerance) but is NEVER added to the
+    final score — model is judged on whether it built the correct shape in
+    the correct orientation, not on rotation tolerance.
+
+    essential_pass = True / False → counted at full weight (0.20).
                    = None (family is N/A) → drop the 0.20 essential term and
                      rescale the remaining 0.80 weight back to [0, 1] by ×1.25.
     """
-    eff_iou = max(iou, iou_rot) if iou_rot is not None else iou
     geom = (
-        0.60 * eff_iou
+        0.60 * iou
         + 0.10 * feature_f1
         + 0.05 * cd_to_score(cd)
         + 0.05 * hd_to_score(hd)

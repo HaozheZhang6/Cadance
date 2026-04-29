@@ -1,21 +1,21 @@
 # BenchCAD Scoring — single source of truth
 
-Every img2cq bench run produces one row per stem. Every stem row has these 7 columns; the **final score** is a fixed linear combination of the first 6.
+Every img2cq bench run produces one row per stem. Every stem row has these 7 columns. The **final score** is a fixed linear combination of `iou` (column 1, raw fixed-orientation), `essential_pass` (5), `feature_f1` (6), `cd_score` (3), `hd_score` (4). `iou_rot24` (column 2) is **diagnostic only** and does not enter the score.
 
 | # | Column | Range | What it measures |
 |---|---|---|---|
 | 1 | **`iou`** | [0, 1] | Voxel IoU @ 64³ between gen STEP and gt STEP, both normalized (bbox center → [0.5]³, longest → [0,1]³). Fixed orientation. |
-| 2 | **`iou_rot24`** (a.k.a. `iou_rot` when `--rot-invariant 24`) | [0, 1] | Max IoU over the 24-element axis-aligned cube rotation group. Robust to the model picking a different "up". |
+| 2 | **`iou_rot24`** (a.k.a. `iou_rot` when `--rot-invariant 24`) | [0, 1] | Max IoU over the 24-element axis-aligned cube rotation group. **Diagnostic / orientation reference only — not in final score.** |
 | 3 | **`cd_score`** (raw saved as `chamfer`) | [0, 1] | Bidirectional Chamfer distance (2048 sampled points). Raw distance preserved in `chamfer` field; `cd_score = cd_to_score(chamfer)` is the mapped [0, 1] value used in the final score (lower CD ↔ higher score). |
 | 4 | **`hd_score`** (raw saved as `hausdorff`) | [0, 1] | Hausdorff distance. Raw distance preserved in `hausdorff` field; `hd_score = hd_to_score(hausdorff)` is the mapped [0, 1] value used in the final score. |
 | 5 | **`essential_pass`** | {0, 1, N/A} | Hand-curated per-family op check (`bench/research/canonical_ops.yaml`, loaded by `bench/research/canonical_ops.py`). 1 if every essential AND-element is satisfied by gen ops, 0 if any missing, **N/A** for the 13 families with no canonical essential. |
 | 6 | **`feature_f1`** | [0, 1] | F1 over `{has_chamfer, has_fillet, has_hole}` indicators (independent of essential). |
-| 7 | **`score`** | [0, 1] | Final — linear combination of 1–6. |
+| 7 | **`score`** | [0, 1] | Final — linear combination of columns 1, 3, 4, 5, 6 (column 2 `iou_rot24` is diagnostic, not in score). |
 
 ## Final score formula
 
 ```text
-score = 0.60·IoU                  ← max(iou, iou_rot24) when rot24 is computed
+score = 0.60·iou                  ← raw, fixed-orientation IoU (NOT iou_rot24)
       + 0.20·essential_pass
       + 0.10·feature_f1
       + 0.05·cd_score
@@ -24,11 +24,13 @@ score = 0.60·IoU                  ← max(iou, iou_rot24) when rot24 is compute
 
 Total weights = 1.0. Implemented in `bench/metrics/combined_score()`.
 
-**N/A handling**: when `essential_pass = None` (family has no canonical essential), drop the 0.20 essential term and **rescale by ×1.25** so the remaining 0.80 weight covers the full [0, 1] range. Equivalent to treating the dropped 0.20 share as evenly redistributed across the other components — N/A samples are not penalized OR boosted relative to non-N/A samples that score the same on the other 0.80.
+**`iou_rot24` is diagnostic only.** It is reported per stem as a separate column to indicate orientation-tolerance, but does **not** enter the final score. Rationale: judging the model on whether it built the right shape in the right orientation is more informative than crediting rotation luck. `iou_rot24` is for ablations (e.g. "does reasoning fix orientation errors?") and qualitative analysis only.
+
+**N/A handling**: when `essential_pass = None` (family has no canonical essential), drop the 0.20 essential term and **rescale by ×1.25** so the remaining 0.80 weight covers the full [0, 1] range. N/A samples are not penalized OR boosted relative to non-N/A samples that score the same on the other 0.80.
 
 ### Why this split
 
-- **0.60 geometry** (max of raw IoU and 24-rotation IoU): single dominant term — geometric fidelity is the headline metric; rotation-invariant preferred when computed.
+- **0.60 IoU** (raw, fixed orientation): headline geometric fidelity. Model must build the right shape in the right orientation.
 - **0.20 essential**: hard semantic check — model used the canonically-required op for this family (e.g. `sweep+helix` for `torsion_spring`). Catches cases where IoU is decent but model used a substitute op (anti-shortcut signal). Rescaled away when N/A.
 - **0.10 feature_f1**: orthogonal feature presence check (chamfer / fillet / hole). Light tiebreaker.
 - **0.05 + 0.05 cd / hd**: surface-level fidelity. Small weight because highly correlated with IoU.
@@ -39,7 +41,7 @@ Total weights = 1.0. Implemented in `bench/metrics/combined_score()`.
 |---|---|
 | Generated code fails to exec | `iou = iou_rot24 = cd_score = hd_score = 0`. `feature_f1` and `essential_pass` still computed from `gen_code` text. Partial-credit fallback: `score = 0.10·feature_f1 + 0.20·ess` (max 0.3); N/A scaling still applies. |
 | GT exec fails | Same as above. Drop the sample from the run (rare). |
-| `--rot-invariant` not used | `iou_rot` is None → `IoU` term in formula uses raw `iou`. |
+| `--rot-invariant` not used | `iou_rot24` field absent in result. Score unaffected (it never enters the formula anyway). |
 | Family is N/A in `bench/research/canonical_ops.yaml` | `essential_pass = None` → drop 0.20 term, multiply remaining sum by **1.25** to renormalize. 13 N/A families: `chair`, `dowel_pin`, `i_beam`, `parallel_key`, `stepped_shaft`, `table`, `wall_anchor`, `clevis_pin`, `round_flange`, `t_pipe_fitting`, `tee_nut`, `phone_stand`, `pull_handle`. |
 
 ## Per-stem result schema (`results/<task>/<model>/results.jsonl`)
