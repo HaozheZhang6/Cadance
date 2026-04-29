@@ -337,12 +337,24 @@ def hd_to_score(hd: float) -> float:
     return (_HD_HIGH - hd) / (_HD_HIGH - _HD_LOW)
 
 
-def combined_score(feature_f1: float, iou: float, cd: float, hd: float) -> float:
-    """Bench score = 0.25·feature_f1 + 0.7·IoU + 0.025·cd_score + 0.025·hd_score."""
+def combined_score(
+    feature_f1: float,
+    iou: float,
+    cd: float,
+    hd: float,
+    essential_pass: bool | None = None,
+) -> float:
+    """Bench score = 0.5·IoU + 0.2·essential + 0.2·Feat-F1 + 0.05·cd + 0.05·hd.
+
+    essential_pass: True / False (binary) → counted at full weight.
+                    None (family is N/A) → treated as 1.0 (no penalty).
+    """
+    ess = 1.0 if essential_pass is None else (1.0 if essential_pass else 0.0)
     return round(
-        0.25 * feature_f1
-        + 0.7 * iou
-        + 0.025 * cd_to_score(cd)
-        + 0.025 * hd_to_score(hd),
+        0.5 * iou
+        + 0.2 * ess
+        + 0.2 * feature_f1
+        + 0.05 * cd_to_score(cd)
+        + 0.05 * hd_to_score(hd),
         4,
     )

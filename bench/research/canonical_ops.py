@@ -40,6 +40,14 @@ OP_PATTERNS: dict[str, str] = {
     "polarArray":    r"\.polarArray\s*\(",
     "rarray":        r"\.rarray\s*\(",
     "makeTorus":     r"makeTorus\s*\(",
+    "sphere":        r"\.(sphere|makeSphere)\s*\(",
+    "cut":           r"\.(cut|cutBlind)\s*\(",
+    "polyline":      r"\.polyline\s*\(",
+    "spline":        r"\.spline\s*\(",
+    "threePointArc": r"\.threePointArc\s*\(",
+    "Sketch":        r"cq\.Sketch\s*\(|\.placeSketch\s*\(",
+    "polygon":       r"\.polygon\s*\(",
+    "lineTo":        r"\.lineTo\s*\(",
     # feature class (independent — for has_* score, NOT for essentials)
     "chamfer":       r"\.chamfer\s*\(",
     "fillet":        r"\.fillet\s*\(",
@@ -49,6 +57,8 @@ OP_PATTERNS: dict[str, str] = {
 ESSENTIAL_CLASS: frozenset[str] = frozenset({
     "sweep+helix", "sweep", "revolve", "loft", "shell", "taper=",
     "polarArray", "rarray", "twistExtrude", "makeTorus",
+    "sphere", "cut",
+    "polyline", "spline", "threePointArc", "Sketch", "polygon", "lineTo",
 })
 FEATURE_CLASS: frozenset[str] = frozenset({"chamfer", "fillet", "hole"})
 
@@ -68,11 +78,11 @@ def _load_essentials(path: Path = YAML_PATH) -> dict[str, EssentialList]:
                 elements.append(tuple(elem))
             else:
                 raise ValueError(f"{fam}: element must be str or list, got {elem!r}")
-        # sanity: forbid feature ops in essentials
+        # sanity: every op must be recognized by OP_PATTERNS
         flat = {a for e in elements for a in (e if isinstance(e, tuple) else (e,))}
-        bad = flat & FEATURE_CLASS
-        if bad:
-            raise ValueError(f"{fam}: feature ops {bad} cannot be in essentials")
+        unknown = flat - set(OP_PATTERNS)
+        if unknown:
+            raise ValueError(f"{fam}: unknown ops {unknown}")
         out[fam] = elements
     return out
 
