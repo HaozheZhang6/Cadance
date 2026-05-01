@@ -1097,14 +1097,24 @@ def page_synth():
 # ── code edit bench page (interactive review) ────────────────────────────────
 
 BENCH_EDIT = ROOT / "data" / "data_generation" / "bench_edit"
-EDIT_SOURCES = {
-    "pairs_curated": (BENCH_EDIT / "pairs_curated.jsonl", BENCH_EDIT),
-    "topup_final": (
-        BENCH_EDIT / "topup_final" / "records.jsonl",
-        BENCH_EDIT / "topup_final",
-    ),
-}
 EDIT_CACHE = ROOT / "bench" / "ui" / "edit_cache"
+# 扫描时跳过的文件（schema 不全或备份）
+_EB_SKIP_STEMS = {"prompt_only"}
+
+
+def _eb_discover_sources() -> dict[str, tuple[Path, Path]]:
+    """{key: (jsonl_path, base_dir)}；topup_final/*.jsonl 动态发现。"""
+    sources: dict[str, tuple[Path, Path]] = {}
+    pc = BENCH_EDIT / "pairs_curated.jsonl"
+    if pc.exists():
+        sources["pairs_curated"] = (pc, BENCH_EDIT)
+    tf_dir = BENCH_EDIT / "topup_final"
+    if tf_dir.is_dir():
+        for p in sorted(tf_dir.glob("*.jsonl")):
+            if p.stem in _EB_SKIP_STEMS or ".bak_" in p.name:
+                continue
+            sources[f"topup_final/{p.stem}"] = (p, tf_dir)
+    return sources
 
 
 def _eb_load_jsonl(p: Path):
@@ -1313,9 +1323,15 @@ def _eb_save_gt_code(
 def page_edit_bench():
     st.title("代码编辑 Bench — 交互式审查")
 
+    sources = _eb_discover_sources()
+    if not sources:
+        st.error(
+            "未发现任何数据源（pairs_curated.jsonl / topup_final/*.jsonl 都不存在）"
+        )
+        return
     with st.sidebar:
-        src_key = st.selectbox("数据源", list(EDIT_SOURCES.keys()), key="eb_source")
-    jsonl_path, base_dir = EDIT_SOURCES[src_key]
+        src_key = st.selectbox("数据源", list(sources.keys()), key="eb_source")
+    jsonl_path, base_dir = sources[src_key]
 
     recs = _eb_load_jsonl(jsonl_path)
     if not recs:
@@ -1416,13 +1432,42 @@ def page_edit_bench():
         st.markdown(f"### `{rec['record_id']}`")
         iou_val = _eb_iou(rec)
         iou_s = f"{iou_val:.3f}" if isinstance(iou_val, (float, int)) else "?"
-        st.markdown(
-            f"**Family**: `{rec.get('family','?')}`  ·  "
-            f"**类型**: `{rec.get('edit_type','?')}`"
+        st.markdown(f"**Family**: `{rec.get('family','?')}`  ·  **IoU**: `{iou_s}`")
+
+        # 类型：下拉选择 + 支持自定义，改动后自动保存
+        all_types = sorted({r.get("edit_type", "") for r in recs if r.get("edit_type")})
+        cur_type = rec.get("edit_type", "")
+        type_opts = list(all_types)
+        if cur_type and cur_type not in type_opts:
+            type_opts.append(cur_type)
+            type_opts.sort()
+        type_idx = type_opts.index(cur_type) if cur_type in type_opts else 0
+        new_type = st.selectbox(
+            "类型",
+            type_opts,
+            index=type_idx if type_opts else None,
+            accept_new_options=True,
+            key=f"eb_type_edit_{wid}",
         )
-        st.markdown(
-            f"**难度**: `{rec.get('difficulty','?')}`  ·  " f"**IoU**: `{iou_s}`"
+        if new_type and new_type != rec.get("edit_type"):
+            recs[rec_idx]["edit_type"] = new_type
+            _eb_write_jsonl(jsonl_path, recs)
+            st.rerun()
+
+        # 难度：固定三选一，改动后自动保存
+        _DIFF_OPTS = ["easy", "medium", "hard"]
+        cur_diff = rec.get("difficulty") or "easy"
+        diff_idx = _DIFF_OPTS.index(cur_diff) if cur_diff in _DIFF_OPTS else 0
+        new_diff = st.selectbox(
+            "难度",
+            _DIFF_OPTS,
+            index=diff_idx,
+            key=f"eb_diff_edit_{wid}",
         )
+        if new_diff != rec.get("difficulty"):
+            recs[rec_idx]["difficulty"] = new_diff
+            _eb_write_jsonl(jsonl_path, recs)
+            st.rerun()
         extras = []
         for k in (
             "level",
@@ -1458,9 +1503,7 @@ def page_edit_bench():
             st.rerun()
 
         del_flag = f"eb_confirm_del_{wid}"
-        if b2.button(
-            "🗑 删除该条", use_container_width=True, key=f"eb_del_btn_{wid}"
-        ):
+        if b2.button("🗑 删除该条", use_container_width=True, key=f"eb_del_btn_{wid}"):
             st.session_state[del_flag] = True
         if st.session_state.get(del_flag):
             st.warning(f"确认从 {jsonl_path.name} 中永久删除 `{sel_rid}`？")
@@ -1476,9 +1519,7 @@ def page_edit_bench():
                 st.session_state[del_flag] = False
                 st.success(f"已删除 {sel_rid}")
                 st.rerun()
-            if cc2.button(
-                "取消", use_container_width=True, key=f"eb_del_no_{wid}"
-            ):
+            if cc2.button("取消", use_container_width=True, key=f"eb_del_no_{wid}"):
                 st.session_state[del_flag] = False
                 st.rerun()
 
