@@ -1313,10 +1313,34 @@ def _eb_save_gt_code(
 
     recs[rec_idx]["gt_code_path"] = str(final_code.relative_to(base_dir))
     recs[rec_idx]["gt_step_path"] = str(final_step.relative_to(base_dir))
+
+    # Recompute baseline iou_orig_gt against the new GT — keeps scoring honest
+    # without requiring the user to remember to click 🔄 重算 IoU.
+    iou_msg = ""
+    orig_rel = rec.get("orig_step_path")
+    if orig_rel:
+        orig_abs = base_dir / orig_rel
+        if orig_abs.exists():
+            if str(ROOT) not in sys.path:
+                sys.path.insert(0, str(ROOT))
+            try:
+                from bench.metrics import compute_iou
+
+                new_iou, iou_err = compute_iou(str(orig_abs), str(final_step))
+                if iou_err is None:
+                    recs[rec_idx]["iou"] = round(float(new_iou), 6)
+                    iou_msg = f"IoU={new_iou:.4f}"
+                else:
+                    iou_msg = f"IoU 重算失败: {iou_err}"
+            except Exception as e:
+                iou_msg = f"IoU 重算异常: {str(e)[:80]}"
+
     _eb_write_jsonl(jsonl_path, recs)
     msg = []
     msg.append(f"{'解除共用，' if code_shared else ''}代码 → {final_code.name}")
     msg.append(f"{'解除共用，' if step_shared else ''}STEP → {final_step.name}")
+    if iou_msg:
+        msg.append(iou_msg)
     return True, "  ·  ".join(msg)
 
 
@@ -1432,7 +1456,38 @@ def page_edit_bench():
         st.markdown(f"### `{rec['record_id']}`")
         iou_val = _eb_iou(rec)
         iou_s = f"{iou_val:.3f}" if isinstance(iou_val, (float, int)) else "?"
-        st.markdown(f"**Family**: `{rec.get('family','?')}`  ·  **IoU**: `{iou_s}`")
+        ic1, ic2 = st.columns([3, 1])
+        ic1.markdown(f"**Family**: `{rec.get('family','?')}`  ·  **IoU**: `{iou_s}`")
+        orig_rel = rec.get("orig_step_path") or ""
+        gt_rel = rec.get("gt_step_path") or ""
+        orig_step_abs = base_dir / orig_rel if orig_rel else None
+        gt_step_abs = base_dir / gt_rel if gt_rel else None
+        can_recompute = bool(
+            orig_step_abs
+            and gt_step_abs
+            and orig_step_abs.exists()
+            and gt_step_abs.exists()
+        )
+        if ic2.button(
+            "🔄 重算 IoU",
+            key=f"eb_recompute_iou_{wid}",
+            disabled=not can_recompute,
+            use_container_width=True,
+            help=None if can_recompute else "orig_step_path / gt_step_path 文件缺失",
+        ):
+            if str(ROOT) not in sys.path:
+                sys.path.insert(0, str(ROOT))
+            from bench.metrics import compute_iou
+
+            with st.spinner("重算 ORI vs GT IoU…"):
+                new_iou, err = compute_iou(str(orig_step_abs), str(gt_step_abs))
+            if err:
+                st.error(f"IoU 计算失败: {err}")
+            else:
+                recs[rec_idx]["iou"] = round(float(new_iou), 6)
+                _eb_write_jsonl(jsonl_path, recs)
+                st.success(f"IoU 已更新: {new_iou:.4f}")
+                st.rerun()
 
         # 类型：下拉选择 + 支持自定义，改动后自动保存
         all_types = sorted({r.get("edit_type", "") for r in recs if r.get("edit_type")})
