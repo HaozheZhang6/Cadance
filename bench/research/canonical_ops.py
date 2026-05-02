@@ -136,10 +136,6 @@ def find_ops(code: str) -> set[str]:
     # 闭合 polyline 几何上等同 polygon 轮廓
     if "polyline" in found and re.search(r"\.close\s*\(", code):
         found.add("polygon")
-    # ≥2 profile + extrude → 内/外轮廓 = 等价 cut/hole (washer/管/带孔板)
-    n_profiles = len(re.findall(r"\.(circle|rect|polygon|polyline|ellipse)\s*\(", code))
-    if n_profiles >= 2 and re.search(r"\.extrude\s*\(", code):
-        found.add("hole")
     return found
 
 
