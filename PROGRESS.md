@@ -1,4 +1,27 @@
 
+## 2026-04-30 — essential_ops 误判修复 (`bench/research/canonical_ops.{py,yaml}`)
+
+bug: `circle(R).circle(r).extrude(d)` 这种 sketch 多 profile + extrude 的 idiomatic 写法（washer / 管 / 带孔板）几何上有 hole, 但 `find_ops` regex 不匹配 → 31 个 `[[cut, hole]]` family essential=fail (false negative 暴增)。
+
+`canonical_ops.py`:
+- OP_PATTERNS 扩展: `Sketch` += `\.sketch\(` (lowercase wp 方法), `polyline` += `\.segment\(` (BenchCAD shell), `cut` += `mode=['"]s['"]` (sketch subtract)
+- `find_ops` 加 3 alias: polyline ⇒ lineTo; polyline + .close( ⇒ polygon; **≥2 profile + .extrude( ⇒ hole** (核心修复)
+
+`canonical_ops.yaml`:
+- `taper_pin: [[revolve, sweep]] → [[revolve, sweep, loft]]` (圆台 loft 等价)
+
+verify: 11 case 全过 (lowercase sketch / segment / mode=s / polyline→lineTo / polyline+close→polygon / washer-pattern→hole / rect+circle / hex+circle / 单 circle 不误报 / taper_pin via loft / yaml taper_pin 加 loft)。tests/test_bench 139/139 pass(剩 5 个 TestCombinedScore fail 是 pre-existing, 与本次无关 — 写死旧权重 0.25·F1+0.7·IoU, 现公式是 0.10·F1+0.60·IoU+0.05·CD+0.05·HD+0.20·ess)。
+
+后续 yaml 人工 review (`canonical_ops.yaml`):
+- 加 `circle` op (OP_PATTERNS + ESSENTIAL_CLASS), regex `\.circle\s*\(` 同时盖 Workplane 和 Sketch dialect
+- 16 处 family 加 `circle` 作 OR alt: hex_key_organizer / lobed_knob / handwheel(AND-1st) / hex_nut(AND-2nd) / hex_standoff / threaded_adapter / bearing_retainer_cap / connecting_rod / hinge / turnbuckle / fan_shroud / pipe_flange / spacer_ring / washer / z_bracket / connector_faceplate
+- 收紧到纯 `[[cut]]` (去掉 hole alt): battery_holder, pan_head_screw, spline_hub(AND-1st)
+- 10 个 family entry 删除 (变 N/A): clevis / u_channel / flat_link / gusseted_bracket / hollow_tube / l_bracket / mounting_angle / rect_frame / t_slot_rail / wire_grid
+- 总 family 数 93 → 83
+- review 工具: `tmd/essential_na_check/essential_holecut_36families.png` (6×6 grid w/ ess spec 标签) 推 dc
+
+trade-off note: `circle` 作 OR alt 把 `wp.circle(R).extrude(d)` (光秃秃圆柱) 也判 essential pass — 是 false-positive,但 IoU/CD/HD 会扣分,0.20 essential 漏失可接受。
+
 ## 2026-04-27 (session 30) — UA-25 cad_curated_722 → v2 (720 rows, OCC 验证, HF 推 `Hula0401/cad_curated_722_v2`) ✅
 
 - 起因:`qixiaoqi/cad_curated_722` 是 bench 最终评测集,5 个 substitution-target family 需 gt_code 手改 (`cable_routing_panel` / `clevis` / `parallel_key` / `tapered_boss` / `z_bracket`)
