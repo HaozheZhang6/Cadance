@@ -15,6 +15,7 @@ Match rule:
 Independent of FEATURE_CLASS (chamfer / fillet / hole) — scored separately
 via feature_f1; those names must NOT appear inside essentials.
 """
+
 from __future__ import annotations
 
 import re
@@ -29,36 +30,54 @@ YAML_PATH = Path(__file__).with_suffix(".yaml")
 
 # ── ops we recognize in code ──────────────────────────────────────────────
 OP_PATTERNS: dict[str, str] = {
-    "twistExtrude":  r"\.twistExtrude\s*\(",
-    "sweep+helix":   r"\.sweep\s*\([^)]*helix|\.sweep\s*\([^)]*makeHelix|sweep.*makeHelix",
-    "sweep":         r"\.sweep\s*\(",
-    "revolve":       r"\.revolve\s*\(",
-    "loft":          r"\.loft\s*\(",
-    "shell":         r"\.shell\s*\(",
-    "taper=":        r"taper\s*=",
-    "polarArray":    r"\.polarArray\s*\(",
-    "rarray":        r"\.rarray\s*\(",
-    "makeTorus":     r"makeTorus\s*\(",
-    "sphere":        r"\.(sphere|makeSphere)\s*\(",
-    "cut":           r"\.(cut|cutBlind)\s*\(",
-    "polyline":      r"\.polyline\s*\(",
-    "spline":        r"\.spline\s*\(",
+    "twistExtrude": r"\.twistExtrude\s*\(",
+    "sweep+helix": r"\.sweep\s*\([^)]*helix|\.sweep\s*\([^)]*makeHelix|sweep.*makeHelix",
+    "sweep": r"\.sweep\s*\(",
+    "revolve": r"\.revolve\s*\(",
+    "loft": r"\.loft\s*\(",
+    "shell": r"\.shell\s*\(",
+    "taper=": r"taper\s*=",
+    "polarArray": r"\.polarArray\s*\(",
+    "rarray": r"\.rarray\s*\(",
+    "makeTorus": r"makeTorus\s*\(",
+    "sphere": r"\.(sphere|makeSphere)\s*\(",
+    "cut": r"\.(cut|cutBlind)\s*\(|mode\s*=\s*['\"]s['\"]",
+    "polyline": r"\.polyline\s*\(|\.segment\s*\(",
+    "spline": r"\.spline\s*\(",
     "threePointArc": r"\.threePointArc\s*\(",
-    "Sketch":        r"cq\.Sketch\s*\(|\.placeSketch\s*\(",
-    "polygon":       r"\.polygon\s*\(",
-    "lineTo":        r"\.lineTo\s*\(",
+    "Sketch": r"cq\.Sketch\s*\(|\.placeSketch\s*\(|\.sketch\s*\(",
+    "polygon": r"\.polygon\s*\(",
+    "lineTo": r"\.lineTo\s*\(",
+    "circle": r"\.circle\s*\(",
     # feature class (independent — for has_* score, NOT for essentials)
-    "chamfer":       r"\.chamfer\s*\(",
-    "fillet":        r"\.fillet\s*\(",
-    "hole":          r"\.(hole|cboreHole|cskHole|cutThruAll)\s*\(",
+    "chamfer": r"\.chamfer\s*\(",
+    "fillet": r"\.fillet\s*\(",
+    "hole": r"\.(hole|cboreHole|cskHole|cutThruAll)\s*\(",
 }
 
-ESSENTIAL_CLASS: frozenset[str] = frozenset({
-    "sweep+helix", "sweep", "revolve", "loft", "shell", "taper=",
-    "polarArray", "rarray", "twistExtrude", "makeTorus",
-    "sphere", "cut",
-    "polyline", "spline", "threePointArc", "Sketch", "polygon", "lineTo",
-})
+ESSENTIAL_CLASS: frozenset[str] = frozenset(
+    {
+        "sweep+helix",
+        "sweep",
+        "revolve",
+        "loft",
+        "shell",
+        "taper=",
+        "polarArray",
+        "rarray",
+        "twistExtrude",
+        "makeTorus",
+        "sphere",
+        "cut",
+        "polyline",
+        "spline",
+        "threePointArc",
+        "Sketch",
+        "polygon",
+        "lineTo",
+        "circle",
+    }
+)
 FEATURE_CLASS: frozenset[str] = frozenset({"chamfer", "fillet", "hole"})
 
 
@@ -111,6 +130,12 @@ def find_ops(code: str) -> set[str]:
     if "sweep" in found and has_helix:
         found.add("sweep+helix")
         found.discard("sweep")
+    # polyline 内部就是 lineTo 链
+    if "polyline" in found:
+        found.add("lineTo")
+    # 闭合 polyline 几何上等同 polygon 轮廓
+    if "polyline" in found and re.search(r"\.close\s*\(", code):
+        found.add("polygon")
     return found
 
 
