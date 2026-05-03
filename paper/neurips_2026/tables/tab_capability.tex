@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\small
+\caption{\textbf{Capability decomposition.} BenchCAD's five tasks isolate the three sub-capabilities along the image$\to$code causal chain: $C_1$ visual + 3D reconstruction, $C_2$ geometric$\to$parametric abstraction, and $C_3$ parametric$\to$code synthesis. Score differences across paired tasks (e.g.\ \texttt{qa\_img}$-$\texttt{qa\_code}) directly diagnose which capability is the bottleneck. ``part.'' indicates partial coverage (the original code constrains, but does not eliminate, the corresponding sub-capability).}
+\label{tab:capability}
+\begin{tabular}{llccc}
+\toprule
+Task & Input $\to$ Output & $C_1$ vision & $C_2$ param. & $C_3$ code \\
+\midrule
+\texttt{img2cq}    & 4 views $\to$ code              & \cmark & \cmark & \cmark \\
+\texttt{qa\_img}   & 4 views $+$ Q $\to$ number      & \cmark & \cmark & --     \\
+\texttt{qa\_code}  & code $+$ Q $\to$ number         & --     & \cmark & --     \\
+\texttt{edit\_img} & views $+$ code $+$ instr $\to$ code  & \cmark & part.  & \cmark \\
+\texttt{edit\_code}& code $+$ instr $\to$ code       & --     & part.  & \cmark \\
+\bottomrule
+\end{tabular}
+\end{table}

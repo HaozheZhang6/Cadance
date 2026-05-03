@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\small
+\caption{\textbf{The Family Cliff.} \texttt{img2cq} pass rate (\%) split by family difficulty tier. Even the strongest reasoning model collapses on the hard tier, exhibiting a $>$45-point gap from easy. The 26 hard-tier families exercise advanced operations (helical sweeps, twist-extrusion, lofted Booleans) and parametric constraints (gear module--tooth--pitch consistency, spring free-length--turn-count coupling) that no evaluated model reliably preserves. \textcolor{red}{Numbers are placeholders.}}
+\label{tab:family_cliff}
+\begin{tabular}{lrrrr}
+\toprule
+Model & Easy (40 fam.) & Medium (40 fam.) & Hard (26 fam.) & $\Delta$ E$-$H \\
+\midrule
+Human (expert)         & 96 & 91 & 80 & 16 \\
+GPT-5 (think)          & 68 & 42 & \textbf{20} & \textbf{48} \\
+Claude 4.6 Opus (think)& 65 & 40 & 19 & 46 \\
+GPT-4o                 & 52 & 28 & 9  & 43 \\
+Qwen2.5-VL-72B         & 38 & 18 & 5  & 33 \\
+InternVL3-1B           & 15 & 4  & 1  & 14 \\
+\bottomrule
+\end{tabular}
+\end{table}
