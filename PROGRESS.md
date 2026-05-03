@@ -1,5 +1,22 @@
 
-## 2026-04-26 (session 35) — UA-24 180k 跑半夜挂 + runner ProcessPool 重构
+## 2026-04-27 (session 36) — bench prompt 瘦身 + paper 工具脚手架
+
+**改动** (一次 commit):
+- `bench/models/prompts.py`: img2cq SYSTEM_PROMPT 大幅瘦身, 去 example/Requirements 长 list, 留 view 几何 + orientation 锁定 + 输出格式 (~70% 体积↓)
+- `bench/eval_qa_img.py`: 加 `--blank-image` (替图为黑) baseline, task name 自动改 `qa_img_blank`
+- `bench/research/{cross_stem_baseline,make_fig_perception_program,make_tables}.py` 落仓 (paper potential 工具, 图未定); 修 cross_stem_baseline `iou24_mean` → `iou_rot_mean` 真 bug
+- `scripts/.../configs/batch_data_arg_smoke.yaml` (31 family × 3 diff × ~13 sample = 1240 烟测)
+- `.gitignore` 加 `bench/research/outputs/`
+- skip: 4 个 repo root `tmp-*` scratch (UA-20 edit pair 草稿), 不入仓
+
+**24 轴 IoU 状态** (晚上大跑前确认):
+- impl: `bench/metrics/__init__.py:180` `compute_rotation_invariant_iou(n=24)` ✓
+- pipeline: `bench/eval.py:174-185` `score_iou = max(iou, rot_iou)` ✓
+- CLI default = 0 (off); 大跑必须 `--rot-invariant 24`
+
+**pre-commit**: black + ruff (5 file) + pytest tests/test_bench/ + test_download_gencad.py = 150 passed
+
+
 
 **事件**:
 - WORKERS=4 起跑 4 family 完成 (ball_knob 1362, battery/bearing/bellows 各 1900 = ~7000 sample)

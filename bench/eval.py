@@ -141,6 +141,7 @@ def eval_sample(
         "cd_score": 0.0,
         "hd_score": 0.0,
         "feature_f1": 0.0,
+        "essential_pass": None,
         "score": 0.0,
         "gen_features": {},
         "error": None,
@@ -159,9 +160,20 @@ def eval_sample(
     res["gen_features"] = gen_feats
     res["feature_f1"] = round(feature_f1(gen_feats, gt_features), 4)
 
+    # canonical-ops essential check (per-family, hand-curated)
+    from bench.research.canonical_ops import essential_pass, find_ops
+
+    res["essential_pass"] = essential_pass(row["family"], find_ops(gen_code))
+
     if not gen_step:
         res["error"] = f"exec_fail: {exec_err}"
-        res["score"] = round(0.25 * res["feature_f1"], 4)
+        # partial-credit fallback (gen failed exec)
+        # Partial credit (geom = 0): only F1 + ess contribute.
+        # Use full combined_score so N/A re-scaling stays consistent.
+        res["score"] = combined_score(
+            res["feature_f1"], 0.0, float("inf"), float("inf"),
+            essential_pass=res["essential_pass"],
+        )
         return res
 
     res["exec_ok"] = 1
@@ -169,22 +181,25 @@ def eval_sample(
     gt_step, gt_err = exec_cq(row["gt_code"])
     if not gt_step:
         res["error"] = f"gt_exec_fail: {gt_err}"
-        res["score"] = round(0.25 * res["feature_f1"], 4)
+        # Partial credit (geom = 0): only F1 + ess contribute.
+        # Use full combined_score so N/A re-scaling stays consistent.
+        res["score"] = combined_score(
+            res["feature_f1"], 0.0, float("inf"), float("inf"),
+            essential_pass=res["essential_pass"],
+        )
         Path(gen_step).unlink(missing_ok=True)
         return res
 
     iou, iou_err = compute_iou(gt_step, gen_step)
     cd, cd_err = compute_chamfer(gt_step, gen_step)
     hd, hd_err = compute_hausdorff(gt_step, gen_step)
+    rot_iou: float | None = None
     if rot_invariant in (6, 24):
         rot_iou, rot_idx, _ = compute_rotation_invariant_iou(
             gt_step, gen_step, n_orientations=rot_invariant
         )
         res["iou_rot"] = round(rot_iou, 4)
         res["iou_rot_idx"] = rot_idx
-        score_iou = max(iou, rot_iou)
-    else:
-        score_iou = iou
     res["iou"] = round(iou, 4)
     res["chamfer"] = round(cd, 6) if cd != float("inf") else float("inf")
     res["hausdorff"] = round(hd, 6) if hd != float("inf") else float("inf")
@@ -196,7 +211,11 @@ def eval_sample(
         res["cd_error"] = cd_err
     if hd_err:
         res["hd_error"] = hd_err
-    res["score"] = combined_score(res["feature_f1"], score_iou, cd, hd)
+    res["score"] = combined_score(
+        res["feature_f1"], iou, cd, hd,
+        essential_pass=res["essential_pass"],
+        iou_rot=rot_iou,
+    )
 
     Path(gen_step).unlink(missing_ok=True)
     Path(gt_step).unlink(missing_ok=True)
