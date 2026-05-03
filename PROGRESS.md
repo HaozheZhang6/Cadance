@@ -1,4 +1,176 @@
 
+## 2026-04-27 (session 36) — bench prompt 瘦身 + paper 工具脚手架
+
+**改动** (一次 commit):
+- `bench/models/prompts.py`: img2cq SYSTEM_PROMPT 大幅瘦身, 去 example/Requirements 长 list, 留 view 几何 + orientation 锁定 + 输出格式 (~70% 体积↓)
+- `bench/eval_qa_img.py`: 加 `--blank-image` (替图为黑) baseline, task name 自动改 `qa_img_blank`
+- `bench/research/{cross_stem_baseline,make_fig_perception_program,make_tables}.py` 落仓 (paper potential 工具, 图未定); 修 cross_stem_baseline `iou24_mean` → `iou_rot_mean` 真 bug
+- `scripts/.../configs/batch_data_arg_smoke.yaml` (31 family × 3 diff × ~13 sample = 1240 烟测)
+- `.gitignore` 加 `bench/research/outputs/`
+- skip: 4 个 repo root `tmp-*` scratch (UA-20 edit pair 草稿), 不入仓
+
+**24 轴 IoU 状态** (晚上大跑前确认):
+- impl: `bench/metrics/__init__.py:180` `compute_rotation_invariant_iou(n=24)` ✓
+- pipeline: `bench/eval.py:174-185` `score_iou = max(iou, rot_iou)` ✓
+- CLI default = 0 (off); 大跑必须 `--rot-invariant 24`
+
+**pre-commit**: black + ruff (5 file) + pytest tests/test_bench/ + test_download_gencad.py = 150 passed
+
+
+
+**事件**:
+- WORKERS=4 起跑 4 family 完成 (ball_knob 1362, battery/bearing/bellows 各 1900 = ~7000 sample)
+- bumpup → WORKERS=10, bevel_gear 36 min 后 macOS fork OOM (per-sample mp.Process spawn 累积 page table 压力)
+- 连带 bolt/bucket/cable_routing_panel 触发 ENOMEM, driver 自杀
+- 后续 WORKERS=8 / WORKERS=4 重启都被 fork 失败挡掉 (~4GB Cursor + 4 claude session 让 RAM 持续紧)
+- 用户起夜确认改造方案 2: ProcessPool
+
+**改造 `pipeline/runner.py`** (待 RAM 恢复后烟测):
+- `_worker(单次, exit)` → `_process_one(纯计算)` + `_worker_loop(持久 loop)` + `_PersistentWorker` 类
+- N 持久 worker, 启动时一次 import cadquery, 之后只在 timeout 时 kill+replace 单 worker
+- per-sample fork 数: N×samples → N (10000x 减)
+- 保留 timeout 杀 OCCT 死循环 + 加 worker_crash detection (proc 死了不等 timeout)
+- 保留 param_invalid + resume skip 主进程处理
+- 每 sample 跑前 IPC 开销 ~0 (vs 旧 ~500ms python+cadquery 启动)
+
+**预期速度**: 持久 worker 后单 sample ~200ms wall (省去 import) → 8 worker × 5 sample/s = 40 sample/s, 1900/40 = 48s/family, 106 × 48s = ~85 min 全跑完
+
+**待办**:
+1. RAM 恢复后跑 5 family × 50 sample 烟测验证新 runner 不挂
+2. 验证 timeout + worker_crash 路径正确
+3. 跑剩 102 family (bevel_gear 后续单独 topup, 跑前 disable scaling)
+4. push BenchCAD/cad_bench_X
+
+**Phase 1 / Phase 2 拆分** (用户决策, 降低 OOM 风险):
+- driver 加 `RENDER` env: `RENDER=0` (默认) → `--no-render` 不出 PNG, 只 code+STEP+meta; `RENDER=1` → 全 pipeline
+- Phase 1 = 全 106 family + RENDER=0 → 验证 exec 全 OK, 留 STEP 文件
+- Phase 2 新脚本 `render_180k_phase2.py`: 走 STEP 补 4-view PNG (ProcessPoolExecutor + workers)
+- 顺序: 持久 worker runner 烟测 → Phase 1 (~hours) → Phase 2 render (~hours) → push_180k.sh
+- 若 Phase 1 (无 render) 仍 OOM → 进一步加 `code_only: true` config 跳 build (尚未实现)
+
+## 2026-04-26 (session 34) — UA-24 180k 数据扩展 scaffolding (data-arg-180k branch)
+
+- 新 branch `data-arg-180k` from origin/main (PR#1 合 data-arg → main 后)
+- 加 `families/base.py::scale_params` — 白名单 ×0.8-1.2 维度扩展 (length/width/height/depth/thickness/radius/diameter + suffix; 排除 int/bool/enum/discrete ISO)
+- runner.py Stage A 加 `param_scale` 配置 + `dedup_params` (md5 hash sorted JSON, 同 run 内去重)
+- 生成 106 single-family configs `configs/data_arg_180k/<family>.yaml` (1900 sample × 106, seed=5000+md5%10000, run_name=data_arg_180k_<fam>)
+- pre-flight 5 family × 50 sample: grease_nipple 100% / pulley 100% / capsule 100% / hex_nut 84% (BRep 几何 invalid) / chair 84% (roundtrip drift) — 平均 93.6%
+- 1900 × 106 × 0.94 ≈ 189k accepted，超 180k target
+- driver `run_180k_batch.sh` (resume safe, FAMILIES env / --start fam 续跑) + `push_180k.sh` (拼 106 --run 推 BenchCAD/cad_bench_X)
+- pytest 400 pass, ruff/black clean
+
+## 2026-04-26 (session 33) — A 方案: 41 family 全 replace + push HF cad_bench
+
+- 用户决策 A 方案 — 替换 bench 41 family 旧重复样本 → 跑 `batch_replace41_apr25` 6000 sample (5780 accepted, 96.3%)
+- 改 `push_bench_hf.py`: --run 重复 + --include-families/--exclude-families 同位置 filter, dedup-by-stem
+- 推 `BenchCAD/cad_bench` test 17,871 rows (388 MB):
+  | 来源 | 行数 |
+  |---|---|
+  | batch_20k_apr20 排除 41 family | 12,091 |
+  | batch_replace41_apr25 (41 全) | 5,780 |
+- 5780 新 sample 跨 41 family: **864 templates** (改前 ~85, **10× 涨幅**), N/T 167→6.7 (25× 收敛)
+- top 涨幅 family: shaft_collar 9→98, flat_link 9→55, cam 9→54, washer 11→53, locator_block 9→52
+- pytest 81 pass, push log 全 ok
+- batch 跑 ~1.5 h (4 worker, 16 GB Mac, RAM 紧但稳)
+
+## 2026-04-25 (session 32) — data-arg: Tier C C1 top10 + 推 loft/fillet/cut 频率
+
+- 用户指示: 改 C1 时多用 loft/fillet/cut (整体数据集偏少)
+- 10 family 按"每模板平均样本数"排重复度: coil_spring, flat_link, chair, spacer_ring, cam, shaft_collar, round_flange, clevis, locator_block, rect_frame — 改前全 8-9 模板
+- 通用招术: ① edge_op fillet ↔ chamfer 二选 (推 fillet 频率); ② edge_loc top/bottom/both 三选; ③ feature (hole/slot/boss/cb) 跨 difficulty 概率出现; ④ bore_form hole() ↔ cut(circle.extrude); ⑤ body_form cylinder() ↔ circle().extrude(); ⑥ N 扩 (n_bolts 3-12, screw_count 1/2/3, n_end 1/2)
+- 单 family 模板涨幅:
+  | family | 前 → 后 |
+  |---|---|
+  | shaft_collar | 9 → **32** |
+  | rect_frame | 9 → **23** |
+  | cam | 9 → 19 |
+  | flat_link | 9 → 18 |
+  | locator_block | 9 → 18 |
+  | spacer_ring | 9 → 17 |
+  | round_flange | 9 → 13 |
+  | clevis / coil_spring / chair | 9 → 9/7/5 (full-uniq 100%) |
+- C1 总模板量: 90 → 161 (1.79×)
+- 实测 batch_data_arg_smoke (1166 sample / 31 改过家族): full-code uniq 1106/1166 (95%), 总模板 297, **每模板样本数 N/T 平均 4-21** (改前 100-300, 47× 收敛)
+- pytest 81 pass, 全 black + ruff 过
+
+## 2026-04-25 (session 31) — data-arg: Tier B 全 15 + Tier A round 2 (chamfer + A↔B)
+
+- Tier A round 2 (4 family): grommet rim chamfer/fillet (1→7), dome_cap bottom rim (4→12), piston crown rim (8→21), grease_nipple hex_first A↔B 翻转 (3→6). 4 commits
+- torsion_spring round 3: 4 种 build_order (coil_legs / leg1_first / leg2_first / reverse) — 用户提议的"线之间连接顺序倒序" (1→3 模板). 1 commit
+- Tier B 15 family — 全按用户指示重 code 语法多样化轻几何加. 通用招术: ① body cylinder()↔circle().extrude(); ② polygon op ↔ N×lineTo; ③ chamfer↔fillet 二选; ④ profile_reverse 顶点序; ⑤ union 顺序二选; ⑥ A↔B primary 翻转; ⑦ feature 跨 difficulty 概率出现; ⑧ 可数特征 N 扩
+- Tier B 单 family tmpl 前→后:
+  | family | 前 | 后 |
+  |---|---|---|
+  | hex_nut | 8 | 16 |
+  | worm_screw | 5 | 10 |
+  | wall_anchor | 9 | **32** |
+  | pipe_elbow | 4 | 7 |
+  | phone_stand | 9 | 8 |
+  | gridfinity_bin | 9 | 6 |
+  | pan_head_screw | 9 | 10 |
+  | tee_nut | 9 | **22** |
+  | u_bolt | 15 | 4 (numbers stripped, full-uniq 28/60) |
+  | washer | 11 | **19** |
+  | capsule | 8 | 6 (full-uniq 60/60) |
+  | t_pipe_fitting | 6 | 2 (full-uniq 33/33) |
+  | ball_knob | 6 | **19** |
+  | rivet | 7 | 6 |
+  | tapered_boss | 11 | 7 |
+- Tier B pre-flight 总 906/900 ok (验证拒受原代码 validate_params 限制)
+- 最大 4×4 panel 视觉对照网格 `tmp/tier_a_grid9/grid_4x4_panels_3x3.png` (1382×1454, 16 family × 9 sample)
+- pytest 81 pass, black + ruff 全过
+
+## 2026-04-25 (session 30) — data-arg: Tier A 全 16 family 多样化完成
+
+- branch `data-arg`, 16 commits 一一对应 family + 第 0 个 grease_nipple
+- 跨 family 通用招术: ① 把 module-level / 表锚定的常量改成 `sample_params` 自由 (±10-50%); ② cross-difficulty feature probability (chamfer/fillet/holes 不再严格按 diff); ③ profile_reverse 顶点序反转 (close 闭合等价); ④ commutative union 顺序二选一 (shank↔neck / leg1↔leg2 / ±X ear / ±X boss); ⑤ 可数特征 N 扩 (n_lugs 4→{2,3,4,6,8}, n_grooves fixed 2→{1,2,3}, n_holes 4/6/8→{3,4,5,6,8,10,12})
+- twisted_drill: r_phi/Ra/phi 微几何 + 左/右旋 (twist sign)
+- venturi_tube: polyline ↔ moveTo+lineTo 二种 op-form (template-hash 可见结构差)
+- nozzle: 螺栓 polar pattern (bolt circle 中心) — 之前只有 docstring
+- 60 sample / family pre-flight 总 942/960 ok (98.1%); full-code unique 接近 100% (除 cotter_pin 55/60); template hash 累计 61 (改前 ~30)
+- 改造前后单 family 模板数:
+  | family | 前 | 后 |
+  |---|---|---|
+  | grease_nipple | 1 | 3 |
+  | eyebolt | 1 | 2 |
+  | twisted_drill | 1 | 1 (numbers) ← full-uniq 60/60 |
+  | venturi_tube | 1 | 2 |
+  | wing_nut | 1 | 2 |
+  | cotter_pin | 3 | 1 ← full-uniq 55/60 (params 自由) |
+  | torsion_spring | 9 | 1 ← 同上 |
+  | duct_elbow | 2 | 2 |
+  | twisted_bracket | 2 | 2 |
+  | lobed_knob | 3 | 6 |
+  | nozzle | 3 | 11 |
+  | bucket | 3 | 4 |
+  | piston | 3 | 8 |
+  | torus_link | 3 | 11 |
+  | dome_cap | 3 | 4 |
+  | grommet | 3 | 1 (numbers) ← full-uniq 60/60 |
+- 视觉对照网格 4×4: `tmp/tier_a_grid/grid_4x4_hard.png` (16 family × hard sample)
+- pytest 81 pass, black + ruff 全过
+
+## 2026-04-25 (session 29) — data-arg branch: grease_nipple 多样化 (Tier A 起手)
+
+- 全 35,683 accepted 样本/2,383 唯一代码模板 → 平均 15 条/模板，5 family 单模板（eyebolt/grease_nipple/twisted_drill/venturi_tube/wing_nut）。诊断列在 PROGRESS / 对话
+- branch `data-arg` 起，先打 `grease_nipple` (240/1/100%): 原 `_H/_L/_D2/_B/_Z/_BORE` 6 个常量锁死 + revolve 10 顶点 8 个写死 + 6 个 thread_code 离散
+- 4 处 lineTo 顶点参数化 (用户 `tmp-grease_nipple` 注释): `d_neck` ∈ (5.0,6.0), `d_head_max` ∈ (6.0,8.0), `h_straight_top` 自由, `delta_taper` ∈ (1.8,3.0); apex 仍 0.55·6.5=3.575
+- medium/hard 加 chamfer ⇋ fillet 二选一 on `edges("|Y")` (XZ base_plane → world `|Z`，6 个 hex 垂直边); 40% chamfer / 40% fillet / 20% none
+- profile 顶点序 forward / reverse 二选一 (close 等价闭合)
+- pre-flight 200 samples: ok=173/200 (12% 拒) → full-code uniq 173/173 (每条 .py 独一无二) / template uniq (numbers stripped) 1→3 / face count 16→22 ✅ chamfer/fillet 真生效，没被静默吞
+- roundtrip render→exec 几何 100% 等同 (15/15 sample bbox match) 满足 memory `feedback_roundtrip_required`
+- 视觉抽检 5 sample（tmp/grease_check/）: 锐边 / 倒角 / 圆角 三种各异，head 比例随 d_head_max 可见变化
+- black + ruff + pytest 81 pass
+
+
+
+- 新 `bench/fetch_data.py`:一行 `uv run python bench/fetch_data.py` 拉两个 HF repo (`BenchCAD/cad_bench` 20143 + `BenchCAD/cad_bench_edit` 336) 入 `~/.cache/huggingface`,顺手把 edit bench 解包到 `data/data_generation/bench_edit/from_hf/` (records.jsonl + orig_steps/ + gt_steps/ + orig_codes/ + gt_codes/, ~124MB)
+- UI `EDIT_SOURCES` 加 `"from_hf"` (`scripts/data_generation/ui/app.py:1108-1112`):fresh clone 起 streamlit 直接选数据源 from_hf 就能看 — 不用先跑 curation 链
+- HF cad_bench_edit 实际 schema 只有 `record_id/family/edit_type/difficulty/instruction/iou/source/orig_code/gt_code/orig_step/gt_step` (README 写的 `iou_orig_gt`/`level`/`axis`/etc 早过时);UI 通过 `_eb_iou` fallback 自洽,但 dump 字段按真实 schema 取
+- 顶层 README + bench/README 加快速启动 step
+- argparse 风格、ROOT/sys.path/load_dotenv 顶部样板对齐 `bench/eval.py`,走 `bench.dataloader.load_hf` 复用现有 wrapper
+- Smoke:`fetch_data.py` 实跑 OK,records.jsonl 336 行 iou 全填,UI 数据源切 from_hf 路径连通;black/ruff(新文件 0 err)/pytest 81 pass
+
 ## 2026-04-23 (session 27) — UA-23 apr20-20k 全清 + HF 重推 + 本地↔HF align
 
 - hollow_tube YZ/XZ base_plane 下 box+rect 切成两块板（33 apr20 sample），family op 序列只适配 XY → 直接删样本 + 家族 standard 字段 `EN 10305 → EN 10219`（尺寸表本来就是 EN 10219，346 行回填）

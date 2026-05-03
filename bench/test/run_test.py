@@ -192,11 +192,15 @@ def step_eval(
     rot_invariant: int = 0,
 ) -> list[dict]:
     from bench.metrics import (
+        cd_to_score,
+        combined_score,
         compute_chamfer,
+        compute_hausdorff,
         compute_iou,
         compute_rotation_invariant_iou,
         extract_features,
         feature_f1,
+        hd_to_score,
     )
     from bench.results import ResultsDir
 
@@ -229,8 +233,11 @@ def step_eval(
                 "exec_ok": 0,
                 "iou": 0.0,
                 "chamfer": float("inf"),
+                "hausdorff": float("inf"),
+                "cd_score": 0.0,
+                "hd_score": 0.0,
                 "feature_f1": 0.0,
-                "detail_score": 0.0,
+                "score": 0.0,
                 "gt_features": gt_features,
                 "gen_features": {},
                 "error": None,
@@ -257,7 +264,7 @@ def step_eval(
 
             if not gen_step:
                 res["error"] = f"exec_fail: {exec_err}"
-                res["detail_score"] = round(0.6 * res["feature_f1"], 4)
+                res["score"] = round(0.25 * res["feature_f1"], 4)
                 rd.append(res)
                 results.append(res)
                 print(
@@ -270,7 +277,7 @@ def step_eval(
             gt_step, gt_err = _exec_cq(meta["gt_code"])
             if not gt_step:
                 res["error"] = f"gt_exec_fail: {gt_err}"
-                res["detail_score"] = round(0.6 * res["feature_f1"], 4)
+                res["score"] = round(0.25 * res["feature_f1"], 4)
                 Path(gen_step).unlink(missing_ok=True)
                 rd.append(res)
                 results.append(res)
@@ -279,8 +286,12 @@ def step_eval(
 
             iou, _ = compute_iou(gt_step, gen_step)
             cd, _ = compute_chamfer(gt_step, gen_step)
+            hd, _ = compute_hausdorff(gt_step, gen_step)
             res["iou"] = round(iou, 4)
             res["chamfer"] = round(cd, 6) if cd != float("inf") else float("inf")
+            res["hausdorff"] = round(hd, 6) if hd != float("inf") else float("inf")
+            res["cd_score"] = round(cd_to_score(cd), 4)
+            res["hd_score"] = round(hd_to_score(hd), 4)
             if rot_invariant in (6, 24):
                 rot_iou, rot_idx, _ = compute_rotation_invariant_iou(
                     gt_step, gen_step, n_orientations=rot_invariant
@@ -290,7 +301,7 @@ def step_eval(
                 score_iou = max(iou, rot_iou)
             else:
                 score_iou = iou
-            res["detail_score"] = round(0.4 * score_iou + 0.6 * res["feature_f1"], 4)
+            res["score"] = combined_score(res["feature_f1"], score_iou, cd, hd)
 
             if save_render:
                 render_dir = rd.renders / stem
@@ -305,7 +316,7 @@ def step_eval(
             print(
                 f"  [{i + 1}/{len(todo)}] {stem}  "
                 f"exec=1  iou={iou:.3f}  f1={res['feature_f1']:.3f}  "
-                f"detail={res['detail_score']:.3f}"
+                f"score={res['score']:.3f}"
             )
 
     # Return full pool for the summary
@@ -323,14 +334,14 @@ def print_summary(results: list[dict]) -> None:
     exec_ok = [r for r in results if r["exec_ok"]]
     ious = [r["iou"] for r in exec_ok]
     f1s = [r["feature_f1"] for r in results]
-    details = [r["detail_score"] for r in results]
+    scores = [r.get("score", 0.0) for r in results]
 
     print(f"\n{'=' * 50}")
     print(f"  N={total}  model={results[0].get('model', '?')}")
     print(f"  Exec%   : {len(exec_ok) / total * 100:.1f}%")
     print(f"  IoU     : {sum(ious) / len(ious):.3f}" if ious else "  IoU     : —")
     print(f"  Feat-F1 : {sum(f1s) / len(f1s):.3f}")
-    print(f"  Detail↑ : {sum(details) / len(details):.3f}")
+    print(f"  Score↑  : {sum(scores) / len(scores):.3f}")
     print(f"{'=' * 50}")
 
 

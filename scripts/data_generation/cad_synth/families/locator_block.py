@@ -40,20 +40,30 @@ class LocatorBlockFamily(BaseFamily):
             "difficulty": difficulty,
         }
 
-        if difficulty in ("medium", "hard"):
+        # Spread features cross-difficulty (was strict by diff)
+        pin_prob = {"easy": 0.2, "medium": 0.7, "hard": 0.85}[difficulty]
+        chamfer_prob = {"easy": 0.3, "medium": 0.7, "hard": 0.85}[difficulty]
+        boss_prob = {"easy": 0.0, "medium": 0.3, "hard": 0.7}[difficulty]
+        fillet_prob = {"easy": 0.2, "medium": 0.5, "hard": 0.7}[difficulty]
+
+        if rng.random() < pin_prob:
             pin_d = rng.uniform(3.0, min(8.0, width * 0.12))
             params["pin_diameter"] = round(pin_d, 1)
             params["pin_depth"] = round(
                 rng.uniform(pin_d * 1.5, min(20.0, width * 0.35)), 1
             )
+        if rng.random() < chamfer_prob:
             params["chamfer_length"] = round(rng.uniform(0.5, min(2.0, height / 12)), 1)
-
-        if difficulty == "hard":
+            params["chamfer_op"] = str(rng.choice(["chamfer", "fillet"]))
+        if rng.random() < boss_prob:
             boss_d = rng.uniform(8, min(20, width * 0.3))
             boss_depth = rng.uniform(3.0, min(10.0, height * 0.2))
             params["boss_pocket_diameter"] = round(boss_d, 1)
             params["boss_pocket_depth"] = round(boss_depth, 1)
+        if rng.random() < fillet_prob:
             params["fillet_radius"] = round(rng.uniform(0.5, min(2.0, height / 15)), 1)
+        # Code-syntax: mount hole pushPoints order
+        params["hole_order_swap"] = bool(rng.random() < 0.5)
 
         return params
 
@@ -105,12 +115,19 @@ class LocatorBlockFamily(BaseFamily):
         # Base block
         ops.append(Op("box", {"length": l, "width": w, "height": h}))
 
-        # Chamfer (medium+) — BEFORE V-groove so top face is still clean
+        # Edge fillet/chamfer top — BEFORE V-groove (推 fillet/chamfer 频率)
         cl = params.get("chamfer_length")
+        chamfer_op = params.get("chamfer_op", "chamfer")
         if cl:
-            tags["has_chamfer"] = True
+            if chamfer_op == "fillet":
+                tags["has_fillet"] = True
+            else:
+                tags["has_chamfer"] = True
             ops.append(Op("faces", {"selector": ">Z"}))
-            ops.append(Op("chamfer", {"length": cl}))
+            if chamfer_op == "fillet":
+                ops.append(Op("fillet", {"radius": cl}))
+            else:
+                ops.append(Op("chamfer", {"length": cl}))
 
         # V-groove cut: rectangular slot of width vwt and depth vd from top face
         half_vw = round(vwt / 2, 3)
@@ -127,6 +144,8 @@ class LocatorBlockFamily(BaseFamily):
             (round(l / 2 - ins, 3), round(-w / 2 + ins, 3)),
             (round(-l / 2 + ins, 3), round(-w / 2 + ins, 3)),
         ]
+        if params.get("hole_order_swap", False):
+            pts = list(reversed(pts))
         ops.append(Op("pushPoints", {"points": pts}))
         ops.append(Op("hole", {"diameter": hd}))
 

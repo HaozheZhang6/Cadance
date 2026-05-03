@@ -49,11 +49,15 @@ class PhoneStandFamily(BaseFamily):
             "shell_thickness": thick,
             "difficulty": difficulty,
         }
-        if difficulty in ("medium", "hard"):
+        # Spread features cross-difficulty (was strict by diff)
+        lip_prob = {"easy": 0.3, "medium": 0.7, "hard": 0.85}[difficulty]
+        slot_prob = {"easy": 0.15, "medium": 0.65, "hard": 0.8}[difficulty]
+        pocket_prob = {"easy": 0.0, "medium": 0.2, "hard": 0.7}[difficulty]
+        if rng.random() < lip_prob:
             params["front_lip_h"] = round(rng.uniform(8.0, 14.0), 1)
+        if rng.random() < slot_prob:
             params["cable_slot_w"] = round(rng.uniform(14.0, 22.0), 1)
-        if difficulty == "hard":
-            # Relief pocket under base (material savings, common print optimization)
+        if rng.random() < pocket_prob:
             params["relief_pocket_L"] = round(base_L * 0.55, 1)
             params["relief_pocket_W"] = round(base_W * 0.55, 1)
             params["relief_pocket_D"] = round(thick * 0.5, 1)

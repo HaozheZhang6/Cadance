@@ -74,7 +74,7 @@ class TPipeFittingFamily(BaseFamily):
         if difficulty in ("medium", "hard"):
             flange_od = round(od * 1.8, 1)
             flange_t = round(max(3.0, wall * 1.5), 1)
-            n_bolt = 4 if od <= 60 else 6
+            n_bolt = int(rng.choice([3, 4, 5, 6, 8]))  # was 4 or 6 by od
             bolt_d = round(max(3.0, min(8.0, flange_od * 0.09)), 1)
             pcd_lo = max(flange_od * 0.55, od + bolt_d + 4)
             pcd_hi = min(flange_od * 0.85, flange_od - bolt_d - 4)

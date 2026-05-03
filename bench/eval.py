@@ -38,10 +38,15 @@ LD = os.environ.get("LD_LIBRARY_PATH", "/workspace/.local/lib")
 
 from bench.dataloader import load_hf  # noqa: E402
 from bench.metrics import (  # noqa: E402
+    cd_to_score,
+    combined_score,
     compute_chamfer,
+    compute_hausdorff,
     compute_iou,
+    compute_rotation_invariant_iou,
     extract_features,
     feature_f1,
+    hd_to_score,
 )
 from bench.models import call_vlm  # noqa: E402
 from bench.results import ResultsDir  # noqa: E402
@@ -110,7 +115,9 @@ def exec_cq(code: str, timeout: int = 60) -> tuple[str | None, str | None]:
 # ── Per-sample eval ───────────────────────────────────────────────────────────
 
 
-def eval_sample(row: dict, model: str, api_key: str | None) -> dict:
+def eval_sample(
+    row: dict, model: str, api_key: str | None, rot_invariant: int = 0
+) -> dict:
     gt_features = (
         json.loads(row["feature_tags"])
         if isinstance(row["feature_tags"], str)
@@ -128,8 +135,12 @@ def eval_sample(row: dict, model: str, api_key: str | None) -> dict:
         "exec_ok": 0,
         "iou": 0.0,
         "chamfer": float("inf"),
+        "hausdorff": float("inf"),
+        "cd_score": 0.0,
+        "hd_score": 0.0,
         "feature_f1": 0.0,
-        "detail_score": 0.0,
+        "essential_pass": None,
+        "score": 0.0,
         "gen_features": {},
         "error": None,
     }
@@ -147,9 +158,20 @@ def eval_sample(row: dict, model: str, api_key: str | None) -> dict:
     res["gen_features"] = gen_feats
     res["feature_f1"] = round(feature_f1(gen_feats, gt_features), 4)
 
+    # canonical-ops essential check (per-family, hand-curated)
+    from bench.research.canonical_ops import essential_pass, find_ops
+
+    res["essential_pass"] = essential_pass(row["family"], find_ops(gen_code))
+
     if not gen_step:
         res["error"] = f"exec_fail: {exec_err}"
-        res["detail_score"] = round(0.6 * res["feature_f1"], 4)
+        # partial-credit fallback (gen failed exec)
+        # Partial credit (geom = 0): only F1 + ess contribute.
+        # Use full combined_score so N/A re-scaling stays consistent.
+        res["score"] = combined_score(
+            res["feature_f1"], 0.0, float("inf"), float("inf"),
+            essential_pass=res["essential_pass"],
+        )
         return res
 
     res["exec_ok"] = 1
@@ -157,19 +179,41 @@ def eval_sample(row: dict, model: str, api_key: str | None) -> dict:
     gt_step, gt_err = exec_cq(row["gt_code"])
     if not gt_step:
         res["error"] = f"gt_exec_fail: {gt_err}"
-        res["detail_score"] = round(0.6 * res["feature_f1"], 4)
+        # Partial credit (geom = 0): only F1 + ess contribute.
+        # Use full combined_score so N/A re-scaling stays consistent.
+        res["score"] = combined_score(
+            res["feature_f1"], 0.0, float("inf"), float("inf"),
+            essential_pass=res["essential_pass"],
+        )
         Path(gen_step).unlink(missing_ok=True)
         return res
 
     iou, iou_err = compute_iou(gt_step, gen_step)
     cd, cd_err = compute_chamfer(gt_step, gen_step)
+    hd, hd_err = compute_hausdorff(gt_step, gen_step)
+    rot_iou: float | None = None
+    if rot_invariant in (6, 24):
+        rot_iou, rot_idx, _ = compute_rotation_invariant_iou(
+            gt_step, gen_step, n_orientations=rot_invariant
+        )
+        res["iou_rot"] = round(rot_iou, 4)
+        res["iou_rot_idx"] = rot_idx
     res["iou"] = round(iou, 4)
     res["chamfer"] = round(cd, 6) if cd != float("inf") else float("inf")
+    res["hausdorff"] = round(hd, 6) if hd != float("inf") else float("inf")
+    res["cd_score"] = round(cd_to_score(cd), 4)
+    res["hd_score"] = round(hd_to_score(hd), 4)
     if iou_err:
         res["iou_error"] = iou_err
     if cd_err:
         res["cd_error"] = cd_err
-    res["detail_score"] = round(0.4 * iou + 0.6 * res["feature_f1"], 4)
+    if hd_err:
+        res["hd_error"] = hd_err
+    res["score"] = combined_score(
+        res["feature_f1"], iou, cd, hd,
+        essential_pass=res["essential_pass"],
+        iou_rot=rot_iou,
+    )
 
     Path(gen_step).unlink(missing_ok=True)
     Path(gt_step).unlink(missing_ok=True)
@@ -190,7 +234,12 @@ def report(results: list[dict]) -> None:
         r["chamfer"] for r in exec_ok if r.get("chamfer", float("inf")) != float("inf")
     ]
     f1s = [r["feature_f1"] for r in results]
-    details = [r["detail_score"] for r in results]
+    scores = [r.get("score", 0.0) for r in results]
+    hds = [
+        r["hausdorff"]
+        for r in exec_ok
+        if r.get("hausdorff", float("inf")) != float("inf")
+    ]
 
     print(f"\n{'='*60}")
     print(f"Model: {results[0].get('model','?')}  |  N={total}")
@@ -206,27 +255,32 @@ def report(results: list[dict]) -> None:
         if cds
         else "CD: —"
     )
+    print(
+        f"HD  (exec'd): {sum(hds)/len(hds):.4f}  (n={len(hds)})  [lower=better]"
+        if hds
+        else "HD: —"
+    )
     print(f"Feat-F1:      {sum(f1s)/len(f1s):.3f}")
-    print(f"Detail↑:      {sum(details)/len(details):.3f}")
+    print(f"Score↑:       {sum(scores)/len(scores):.3f}")
 
     by_split = defaultdict(list)
     for r in results:
         by_split[r["split"]].append(r)
-    print(f"\n{'Split':<22} {'N':>5} {'Exec%':>7} {'IoU':>6} {'F1':>6} {'Detail':>7}")
+    print(f"\n{'Split':<22} {'N':>5} {'Exec%':>7} {'IoU':>6} {'F1':>6} {'Score':>7}")
     print("-" * 57)
     for sp, rs in sorted(by_split.items()):
         ex = [x for x in rs if x["exec_ok"]]
         iou = sum(x["iou"] for x in ex) / len(ex) if ex else 0.0
         f1 = sum(x["feature_f1"] for x in rs) / len(rs)
-        det = sum(x["detail_score"] for x in rs) / len(rs)
+        sc = sum(x.get("score", 0.0) for x in rs) / len(rs)
         print(
-            f"{sp:<22} {len(rs):>5} {len(ex)/len(rs)*100:>6.1f}% {iou:>6.3f} {f1:>6.3f} {det:>7.3f}"
+            f"{sp:<22} {len(rs):>5} {len(ex)/len(rs)*100:>6.1f}% {iou:>6.3f} {f1:>6.3f} {sc:>7.3f}"
         )
 
     by_diff = defaultdict(list)
     for r in results:
         by_diff[r["difficulty"]].append(r)
-    print(f"\n{'Difficulty':<12} {'N':>5} {'Exec%':>7} {'IoU':>6} {'Detail':>7}")
+    print(f"\n{'Difficulty':<12} {'N':>5} {'Exec%':>7} {'IoU':>6} {'Score':>7}")
     print("-" * 42)
     for d in ["easy", "medium", "hard"]:
         rs = by_diff.get(d, [])
@@ -234,9 +288,9 @@ def report(results: list[dict]) -> None:
             continue
         ex = [x for x in rs if x["exec_ok"]]
         iou = sum(x["iou"] for x in ex) / len(ex) if ex else 0.0
-        det = sum(x["detail_score"] for x in rs) / len(rs)
+        sc = sum(x.get("score", 0.0) for x in rs) / len(rs)
         print(
-            f"{d:<12} {len(rs):>5} {len(ex)/len(rs)*100:>6.1f}% {iou:>6.3f} {det:>7.3f}"
+            f"{d:<12} {len(rs):>5} {len(ex)/len(rs)*100:>6.1f}% {iou:>6.3f} {sc:>7.3f}"
         )
     print("=" * 60)
 
@@ -252,6 +306,18 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="0=all; >200 stratified")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--api-key", default=None)
+    ap.add_argument(
+        "--rot-invariant",
+        type=int,
+        default=0,
+        choices=[0, 6, 24],
+        help="0=single axis (default), 6=face-up only, 24=full cube group",
+    )
+    ap.add_argument(
+        "--stems-file",
+        default=None,
+        help="path to txt (one stem/line) or jsonl (with 'stem' field). Overrides --limit/--seed.",
+    )
     args = ap.parse_args()
 
     token = (
@@ -267,7 +333,28 @@ def main():
 
     print(f"Loading {args.repo}[{args.split}] ...")
     rows = load_hf(args.repo, args.split, token=token)
-    sampled = sample_rows(rows, args.limit, args.seed)
+    if args.stems_file:
+        wanted: set[str] = set()
+        for line in Path(args.stems_file).read_text().splitlines():
+            s = line.strip()
+            if not s:
+                continue
+            if s.startswith("{"):
+                try:
+                    s = json.loads(s).get("stem", "")
+                except Exception:
+                    s = ""
+            if s:
+                wanted.add(s)
+        sampled = [r for r in rows if r["stem"] in wanted]
+        missing = wanted - {r["stem"] for r in sampled}
+        print(
+            f"stems-file: {len(wanted)} requested, {len(sampled)} matched, {len(missing)} missing"
+        )
+        if missing:
+            print(f"  e.g. missing: {sorted(missing)[:5]}")
+    else:
+        sampled = sample_rows(rows, args.limit, args.seed)
 
     rd = ResultsDir(task="img2cq", model=args.model)
     done = rd.done_keys("stem")
@@ -283,12 +370,15 @@ def main():
     with rd:
         for i, row in enumerate(todo):
             print(f"[{i+1}/{len(todo)}] {row['stem']} ...", end=" ", flush=True)
-            res = eval_sample(row, args.model, api_key)
+            res = eval_sample(
+                row, args.model, api_key, rot_invariant=args.rot_invariant
+            )
             if res.get("gen_code"):
                 rd.save_code(row["stem"], res["gen_code"])
             rd.append(res)
             status = (
-                f"iou={res['iou']:.3f} f1={res['feature_f1']:.3f} exec={res['exec_ok']}"
+                f"iou={res['iou']:.3f} f1={res['feature_f1']:.3f} "
+                f"score={res.get('score',0):.3f} exec={res['exec_ok']}"
             )
             if res.get("error"):
                 status += f"  ERR={res['error'][:60]}"

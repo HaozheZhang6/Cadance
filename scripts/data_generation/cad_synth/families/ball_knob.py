@@ -56,6 +56,14 @@ class BallKnobFamily(BaseFamily):
         if difficulty == "hard":
             params["bore_diameter"] = float(M)  # M-thread through bore
 
+        # Code-syntax: A↔B (stem first vs sphere first) + cylinder/extrude form
+        params["stem_first"] = bool(rng.random() < 0.5)
+        params["stem_form"] = str(rng.choice(["cylinder", "extrude"]))
+        # Bottom-of-stem edge mod (medium/hard, 50%)
+        if difficulty in ("medium", "hard") and rng.random() < 0.5:
+            params["stem_tip_op"] = str(rng.choice(["chamfer", "fillet"]))
+            params["stem_tip_size"] = round(stem_r * 0.15, 2)
+
         return params
 
     def validate_params(self, params: dict) -> bool:
@@ -80,6 +88,8 @@ class BallKnobFamily(BaseFamily):
         stem_r = params["stem_radius"]
         stem_h = params["stem_height"]
 
+        stem_first = bool(params.get("stem_first", False))
+        stem_form = params.get("stem_form", "cylinder")
         ops = []
         tags = {
             "has_hole": False,
@@ -89,34 +99,68 @@ class BallKnobFamily(BaseFamily):
             "rotational": True,
         }
 
-        # Sphere (ball) centred at origin
-        ops.append(Op("sphere", {"radius": round(ball_r, 4)}))
-
-        # Stem: cylinder pointing downward from sphere.
         stem_cz = round(-(ball_r + stem_h / 2), 4)
-        ops.append(
-            Op(
-                "union",
+        # Stem ops (cylinder vs circle.extrude form)
+        if stem_form == "cylinder":
+            stem_sub_ops = [
                 {
-                    "ops": [
-                        {
-                            "name": "transformed",
-                            "args": {
-                                "offset": [0.0, 0.0, stem_cz],
-                                "rotate": [0, 0, 0],
-                            },
-                        },
-                        {
-                            "name": "cylinder",
-                            "args": {
-                                "height": round(stem_h, 4),
-                                "radius": round(stem_r, 4),
-                            },
-                        },
-                    ]
+                    "name": "transformed",
+                    "args": {"offset": [0.0, 0.0, stem_cz], "rotate": [0, 0, 0]},
                 },
+                {
+                    "name": "cylinder",
+                    "args": {"height": round(stem_h, 4), "radius": round(stem_r, 4)},
+                },
+            ]
+        else:
+            stem_sub_ops = [
+                {
+                    "name": "transformed",
+                    "args": {
+                        "offset": [0.0, 0.0, round(-(ball_r + stem_h), 4)],
+                        "rotate": [0, 0, 0],
+                    },
+                },
+                {"name": "circle", "args": {"radius": round(stem_r, 4)}},
+                {"name": "extrude", "args": {"distance": round(stem_h, 4)}},
+            ]
+
+        if stem_first:
+            # Stem primary, sphere unioned in.
+            for sub in stem_sub_ops:
+                ops.append(Op(sub["name"], sub["args"]))
+            ops.append(
+                Op(
+                    "union",
+                    {
+                        "ops": [
+                            {
+                                "name": "sphere",
+                                "args": {"radius": round(ball_r, 4)},
+                            }
+                        ]
+                    },
+                )
             )
-        )
+        else:
+            # Sphere primary, stem unioned in (original order).
+            ops.append(Op("sphere", {"radius": round(ball_r, 4)}))
+            ops.append(Op("union", {"ops": stem_sub_ops}))
+
+        # Stem tip edge mod (medium/hard) — chamfer/fillet on bottom circle.
+        stem_tip_op = params.get("stem_tip_op")
+        stem_tip_size = float(params.get("stem_tip_size", 0.0))
+        if stem_tip_op and stem_tip_size > 0:
+            if stem_tip_op == "fillet":
+                tags["has_fillet"] = True
+            else:
+                tags["has_chamfer"] = True
+            ops.append(Op("faces", {"selector": "<Z"}))
+            ops.append(Op("edges", {}))
+            if stem_tip_op == "fillet":
+                ops.append(Op("fillet", {"radius": stem_tip_size}))
+            else:
+                ops.append(Op("chamfer", {"length": stem_tip_size}))
 
         # Through bore (hard) — along Z axis through stem and into ball
         bore_d = params.get("bore_diameter", 0)

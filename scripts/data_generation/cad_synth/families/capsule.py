@@ -40,6 +40,10 @@ class CapsuleFamily(BaseFamily):
             )
             params["stub_height"] = round(rng.uniform(8, max(8.5, min(r * 0.6, 25))), 1)
 
+        # Code-syntax: cylinder ↔ circle.extrude form for body, sphere order swap
+        params["body_form"] = str(rng.choice(["cylinder", "extrude"]))
+        params["sphere_order_swap"] = bool(rng.random() < 0.5)
+
         return params
 
     def validate_params(self, params: dict) -> bool:
@@ -79,38 +83,49 @@ class CapsuleFamily(BaseFamily):
         top_z = round(h_cyl / 2, 4)
         bot_z = round(-h_cyl / 2, 4)
 
+        body_form = params.get("body_form", "cylinder")
+        sphere_order_swap = bool(params.get("sphere_order_swap", False))
+
         ops = []
         tags = {"has_hole": False, "has_fillet": False, "has_chamfer": False}
 
-        ops.append(Op("cylinder", {"height": h_cyl, "radius": r}))
-        ops.append(
-            Op(
-                "union",
-                {
-                    "ops": [
-                        {
-                            "name": "transformed",
-                            "args": {"offset": [0.0, 0.0, top_z], "rotate": [0, 0, 0]},
-                        },
-                        {"name": "sphere", "args": {"radius": r}},
-                    ]
-                },
+        if body_form == "cylinder":
+            ops.append(Op("cylinder", {"height": h_cyl, "radius": r}))
+        else:
+            # circle().extrude() — same prism, different op count.
+            ops.append(
+                Op(
+                    "transformed",
+                    {"offset": [0.0, 0.0, bot_z], "rotate": [0, 0, 0]},
+                )
             )
-        )
-        ops.append(
-            Op(
-                "union",
+            ops.append(Op("circle", {"radius": r}))
+            ops.append(Op("extrude", {"distance": h_cyl}))
+
+        top_sphere = {
+            "ops": [
                 {
-                    "ops": [
-                        {
-                            "name": "transformed",
-                            "args": {"offset": [0.0, 0.0, bot_z], "rotate": [0, 0, 0]},
-                        },
-                        {"name": "sphere", "args": {"radius": r}},
-                    ]
+                    "name": "transformed",
+                    "args": {"offset": [0.0, 0.0, top_z], "rotate": [0, 0, 0]},
                 },
-            )
-        )
+                {"name": "sphere", "args": {"radius": r}},
+            ]
+        }
+        bot_sphere = {
+            "ops": [
+                {
+                    "name": "transformed",
+                    "args": {"offset": [0.0, 0.0, bot_z], "rotate": [0, 0, 0]},
+                },
+                {"name": "sphere", "args": {"radius": r}},
+            ]
+        }
+        if sphere_order_swap:
+            ops.append(Op("union", bot_sphere))
+            ops.append(Op("union", top_sphere))
+        else:
+            ops.append(Op("union", top_sphere))
+            ops.append(Op("union", bot_sphere))
 
         # Weld ring at equator (medium+): outer annular band, cylinder along Z
         # at z=0, radius=r+rw, height=rh. Union overlaps the body for radii ≤r

@@ -62,19 +62,30 @@ class ShaftCollarFamily(BaseFamily):
             "difficulty": difficulty,
         }
 
-        if difficulty in ("medium", "hard"):
-            cl = round(rng.uniform(0.4, min(2.0, width / 6)), 1)
+        # Edge fillet/chamfer + setscrew + hub all spread cross-difficulty.
+        edge_prob = {"easy": 0.3, "medium": 0.7, "hard": 0.85}[difficulty]
+        if rng.random() < edge_prob:
+            params["chamfer_length"] = round(rng.uniform(0.4, min(2.0, width / 6)), 1)
+            params["edge_op"] = str(rng.choice(["fillet", "chamfer"]))
+            params["edge_loc"] = str(rng.choice([">Z", "<Z", "both"]))
+        screw_prob = {"easy": 0.0, "medium": 0.6, "hard": 0.7}[difficulty]
+        if rng.random() < screw_prob:
             sd = round(rng.uniform(2.0, max(2.1, min(5.0, (od - bore_d) / 6))), 1)
-            params["chamfer_length"] = cl
             params["screw_diameter"] = sd
-
-        if difficulty == "hard":
+            # Variable setscrew count: 1, 2, 3 around 360°
+            params["screw_count"] = int(rng.choice([1, 1, 2, 3]))
+        hub_prob = {"easy": 0.0, "medium": 0.2, "hard": 0.6}[difficulty]
+        if rng.random() < hub_prob:
             hub_lo = bore_d * 1.4
             hub_hi = od * 0.75
             hub_od = round(rng.uniform(hub_lo, max(hub_lo + 1, hub_hi)), 1)
             hub_h = round(rng.uniform(width * 0.4, width * 0.85), 1)
             params["hub_diameter"] = hub_od
             params["hub_height"] = hub_h
+
+        # Code-syntax: body cylinder/extrude + bore form
+        params["body_form"] = str(rng.choice(["cylinder", "extrude"]))
+        params["bore_form"] = str(rng.choice(["hole", "cut"]))
 
         return params
 
@@ -110,8 +121,16 @@ class ShaftCollarFamily(BaseFamily):
             "rotational": True,
         }
 
+        body_form = params.get("body_form", "cylinder")
+        bore_form = params.get("bore_form", "hole")
         # Base ring
-        ops.append(Op("cylinder", {"height": round(w, 3), "radius": round(od / 2, 3)}))
+        if body_form == "cylinder":
+            ops.append(
+                Op("cylinder", {"height": round(w, 3), "radius": round(od / 2, 3)})
+            )
+        else:
+            ops.append(Op("circle", {"radius": round(od / 2, 3)}))
+            ops.append(Op("extrude", {"distance": round(w, 3)}))
 
         # Hard: union hub on top (raised smaller cylinder, same bore)
         hub_od = params.get("hub_diameter")
@@ -144,22 +163,63 @@ class ShaftCollarFamily(BaseFamily):
 
         # Center bore (axial, thru entire part)
         ops.append(Op("workplane", {"selector": ">Z"}))
-        ops.append(Op("hole", {"diameter": round(bd, 3)}))
+        if bore_form == "hole":
+            ops.append(Op("hole", {"diameter": round(bd, 3)}))
+        else:
+            ops.append(Op("circle", {"radius": round(bd / 2, 3)}))
+            ops.append(Op("cutThruAll", {}))
 
-        # Chamfer top rim (medium+)
+        # Edge fillet/chamfer top/bottom rim (推 fillet 频率)
         cl = params.get("chamfer_length")
+        edge_op = params.get("edge_op", "chamfer")
+        edge_loc = params.get("edge_loc", ">Z")
         if cl:
-            tags["has_chamfer"] = True
-            ops.append(Op("edges", {"selector": ">Z"}))
-            ops.append(Op("chamfer", {"length": round(cl, 3)}))
+            if edge_op == "fillet":
+                tags["has_fillet"] = True
+            else:
+                tags["has_chamfer"] = True
+            sels = {">Z": [">Z"], "<Z": ["<Z"], "both": [">Z", "<Z"]}[edge_loc]
+            for sel in sels:
+                ops.append(Op("edges", {"selector": sel}))
+                if edge_op == "fillet":
+                    ops.append(Op("fillet", {"radius": round(cl, 3)}))
+                else:
+                    ops.append(Op("chamfer", {"length": round(cl, 3)}))
 
-        # Radial set screw hole on side — drill through diameter in Y direction
+        # Radial set screws — variable count around 360° (推 cut 频率)
         sd = params.get("screw_diameter")
-        if sd:
-            # XZ plane at Z=0 (mid-height), hole goes radially through in Y
-            ops.append(Op("workplane", {"selector": "XZ"}))
-            ops.append(Op("pushPoints", {"points": [[0, 0]]}))
-            ops.append(Op("hole", {"diameter": round(sd, 3)}))
+        sn = int(params.get("screw_count", 1) or 0)
+        if sd and sn:
+            import math as _m
+
+            for i in range(sn):
+                ang_deg = 360.0 * i / sn
+                ang_rad = _m.radians(ang_deg)
+                # Cut a cylindrical hole radially at this angle
+                ops.append(
+                    Op(
+                        "cut",
+                        {
+                            "ops": [
+                                {
+                                    "name": "transformed",
+                                    "args": {
+                                        "offset": [0.0, 0.0, round(w / 2, 3)],
+                                        "rotate": [90.0, 0.0, ang_deg],
+                                    },
+                                },
+                                {
+                                    "name": "cylinder",
+                                    "args": {
+                                        "height": round(od + 4, 3),
+                                        "radius": round(sd / 2, 3),
+                                    },
+                                },
+                            ]
+                        },
+                    )
+                )
+                _ = ang_rad
 
         return Program(
             family=self.name,

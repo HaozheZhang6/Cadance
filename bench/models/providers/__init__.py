@@ -9,6 +9,7 @@ from . import (  # noqa: F401
     anthropic,
     deepseek,
     gemini,
+    kimi,
     local_hf,
     mistral,
     openai,

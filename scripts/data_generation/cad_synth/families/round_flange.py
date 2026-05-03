@@ -32,7 +32,7 @@ class RoundFlangeFamily(BaseFamily):
             if bolt_r_max <= bolt_r_min:
                 bolt_r_max = bolt_r_min + 1
             bolt_r = rng.uniform(bolt_r_min, bolt_r_max)
-            n_bolts = rng.choice([4, 6, 8])
+            n_bolts = int(rng.choice([3, 4, 5, 6, 8, 10, 12]))  # was 4/6/8
             pitch = 2 * math.pi * bolt_r / n_bolts
             max_bolt_d = min(
                 pitch / 2, (outer_r - bolt_r - 1) * 2, (bolt_r - inner_r - 1) * 2
@@ -43,9 +43,11 @@ class RoundFlangeFamily(BaseFamily):
             params["bolt_hole_diameter"] = round(bolt_d, 1)
 
         if difficulty in ("medium", "hard"):
-            # Chamfer on bottom face edge (more reliable than fillet on cylinder)
+            # Edge fillet/chamfer (推 fillet/chamfer 频率)
             ch = rng.uniform(0.3, min(2.0, height / 4))
             params["chamfer_length"] = round(ch, 1)
+            params["edge_op"] = str(rng.choice(["fillet", "chamfer"]))
+            params["edge_loc"] = str(rng.choice(["<Z", ">Z", "both"]))
 
         if difficulty in ("medium", "hard"):
             rfr = round(outer_r * rng.uniform(0.55, 0.72), 1)
@@ -119,12 +121,22 @@ class RoundFlangeFamily(BaseFamily):
             )
         )
 
-        # Chamfer bottom outer edge first — before holes pierce <Z face
+        # Edge fillet/chamfer first — before holes pierce face (推 fillet 频率)
         cl = params.get("chamfer_length")
+        edge_op = params.get("edge_op", "chamfer")
+        edge_loc = params.get("edge_loc", "<Z")
         if cl is not None:
-            tags["has_chamfer"] = True
-            ops.append(Op("faces", {"selector": "<Z"}))
-            ops.append(Op("chamfer", {"length": cl}))
+            if edge_op == "fillet":
+                tags["has_fillet"] = True
+            else:
+                tags["has_chamfer"] = True
+            sels = {"<Z": ["<Z"], ">Z": [">Z"], "both": ["<Z", ">Z"]}[edge_loc]
+            for sel in sels:
+                ops.append(Op("faces", {"selector": sel}))
+                if edge_op == "fillet":
+                    ops.append(Op("fillet", {"radius": cl}))
+                else:
+                    ops.append(Op("chamfer", {"length": cl}))
 
         # Bolt pattern on flange face (medium/hard) — before raised face so >Z = flange top
         bcr = params.get("bolt_circle_radius")

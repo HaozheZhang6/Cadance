@@ -76,9 +76,12 @@ class PanHeadScrewFamily(BaseFamily):
         }
         if difficulty in ("medium", "hard"):
             params["head_edge_chamfer"] = round(k * 0.2, 2)
+            params["head_edge_op"] = str(rng.choice(["chamfer", "fillet"]))
         if difficulty == "hard":
             params["thread_length"] = round(min(2 * d + 6, L * 0.6), 1)
             params["thread_pitch"] = float(_ISO261_PITCH[d])
+        # Code-syntax: shaft form (extrude/cylinder) + head form (extrude/cylinder)
+        params["shaft_form"] = str(rng.choice(["extrude", "cylinder"]))
         return params
 
     def validate_params(self, params: dict) -> bool:
@@ -116,22 +119,40 @@ class PanHeadScrewFamily(BaseFamily):
             "rotational": True,
         }
 
-        # Layout: tip at z=0, shaft up, head on top (same as bolt.py)
-        ops = [
-            Op("circle", {"radius": r_shaft}),
-            Op("extrude", {"distance": round(L, 4)}),
-        ]
+        shaft_form = params.get("shaft_form", "extrude")
+        head_edge_op = params.get("head_edge_op", "chamfer")
+
+        # Layout: tip at z=0, shaft up, head on top.
+        if shaft_form == "cylinder":
+            ops = [
+                Op(
+                    "transformed",
+                    {"offset": [0, 0, round(L / 2, 4)], "rotate": [0, 0, 0]},
+                ),
+                Op("cylinder", {"height": round(L, 4), "radius": r_shaft}),
+            ]
+        else:
+            ops = [
+                Op("circle", {"radius": r_shaft}),
+                Op("extrude", {"distance": round(L, 4)}),
+            ]
         # Pan head
         ops.append(Op("workplane", {"selector": ">Z"}))
         ops.append(Op("circle", {"radius": r_head}))
         ops.append(Op("extrude", {"distance": round(k, 4)}))
 
-        # Top edge chamfer to suggest pan dome (medium+)
+        # Top edge chamfer/fillet to suggest pan dome (medium+)
         ch = params.get("head_edge_chamfer")
         if ch:
-            tags["has_chamfer"] = True
+            if head_edge_op == "fillet":
+                tags["has_fillet"] = True
+            else:
+                tags["has_chamfer"] = True
             ops.append(Op("edges", {"selector": ">Z"}))
-            ops.append(Op("chamfer", {"length": ch}))
+            if head_edge_op == "fillet":
+                ops.append(Op("fillet", {"radius": ch}))
+            else:
+                ops.append(Op("chamfer", {"length": ch}))
 
         # Slot across head top: box cut length=dk, width=n, depth=t
         slot_z = L + k - t / 2  # slot floor center z

@@ -41,16 +41,25 @@ class RectFrameFamily(BaseFamily):
             "difficulty": difficulty,
         }
 
-        if difficulty in ("medium", "hard"):
-            hole_d = round(min(rail * 0.5, 8.0), 1)
-            hole_d = max(3.0, hole_d)
-            params["hole_diameter"] = hole_d
+        # Spread features cross-difficulty
+        hole_prob = {"easy": 0.3, "medium": 0.7, "hard": 0.85}[difficulty]
+        slot_prob = {"easy": 0.0, "medium": 0.3, "hard": 0.75}[difficulty]
+        edge_prob = {"easy": 0.3, "medium": 0.55, "hard": 0.7}[difficulty]
 
-        if difficulty == "hard":
-            # Cap slot depth ≤ 0.40×rail so remaining rail ≥ 0.6×rail (avoid wireframe).
-            slot_d = round(min(rail * 0.40, 7.0), 1)
-            slot_d = max(3.0, slot_d)
+        if rng.random() < hole_prob:
+            hole_d = max(3.0, round(min(rail * 0.5, 8.0), 1))
+            params["hole_diameter"] = hole_d
+            params["bore_form"] = str(rng.choice(["hole", "cut"]))
+
+        if rng.random() < slot_prob:
+            slot_d = max(3.0, round(min(rail * 0.40, 7.0), 1))
             params["side_slot_depth"] = slot_d
+
+        # Edge fillet/chamfer on inner window or outer perimeter (推 fillet 频率)
+        if rng.random() < edge_prob:
+            params["edge_op"] = str(rng.choice(["fillet", "chamfer"]))
+            params["edge_size"] = round(min(thick * 0.3, rail * 0.2, 1.5), 2)
+            params["edge_loc"] = str(rng.choice(["top", "bottom", "both"]))
 
         return params
 
@@ -117,9 +126,14 @@ class RectFrameFamily(BaseFamily):
                 (half_ol, -half_ow),
                 (-half_ol, -half_ow),
             ]
+            bore_form = params.get("bore_form", "hole")
             ops.append(Op("workplane", {"selector": ">Z"}))
             ops.append(Op("pushPoints", {"points": corner_pts}))
-            ops.append(Op("hole", {"diameter": round(hd, 4)}))
+            if bore_form == "hole":
+                ops.append(Op("hole", {"diameter": round(hd, 4)}))
+            else:
+                ops.append(Op("circle", {"radius": round(hd / 2, 4)}))
+                ops.append(Op("cutThruAll", {}))
 
         # Side slot cutouts on long edges (hard)
         sd = params.get("side_slot_depth")
@@ -152,6 +166,24 @@ class RectFrameFamily(BaseFamily):
                         },
                     )
                 )
+
+        # Edge fillet/chamfer (推 fillet 频率)
+        edge_op = params.get("edge_op")
+        edge_size = float(params.get("edge_size", 0.0))
+        edge_loc = params.get("edge_loc", "top")
+        if edge_op and edge_size > 0:
+            if edge_op == "fillet":
+                tags["has_fillet"] = True
+            else:
+                tags["has_chamfer"] = True
+            sels = {"top": [">Z"], "bottom": ["<Z"], "both": [">Z", "<Z"]}[edge_loc]
+            for sel in sels:
+                ops.append(Op("faces", {"selector": sel}))
+                ops.append(Op("edges", {}))
+                if edge_op == "fillet":
+                    ops.append(Op("fillet", {"radius": edge_size}))
+                else:
+                    ops.append(Op("chamfer", {"length": edge_size}))
 
         return Program(
             family=self.name,

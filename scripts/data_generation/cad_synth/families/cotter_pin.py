@@ -52,7 +52,13 @@ class CotterPinFamily(BaseFamily):
         if not lens:
             lens = [max(_LENGTHS[0], int(d * 5))]
         L_long = float(rng.choice(lens))
-        L_short = L_long if difficulty == "easy" else round(L_long * 0.8, 1)
+        if difficulty == "easy":
+            leg_ratio = 1.0
+        else:
+            leg_ratio = round(float(rng.uniform(0.55, 0.95)), 2)
+        L_short = round(L_long * leg_ratio, 1)
+
+        leg_order_swap = bool(rng.random() < 0.5)
 
         params = {
             "d": float(d),
@@ -60,6 +66,8 @@ class CotterPinFamily(BaseFamily):
             "a": float(a),
             "long_leg": L_long,
             "short_leg": L_short,
+            "leg_ratio": leg_ratio,
+            "leg_order_swap": leg_order_swap,
             "difficulty": difficulty,
         }
         if difficulty == "hard":
@@ -81,8 +89,9 @@ class CotterPinFamily(BaseFamily):
         a = params["a"]
         Ll = params["long_leg"]
         Ls = params["short_leg"]
+        leg_order_swap = bool(params.get("leg_order_swap", False))
         r = round(d / 2, 3)
-        eye_R = round(c / 2, 3)
+        eye_R = round(c / 2, 3)  # noqa: F841
         # Leg centers separated by a/2 on each side of axis
         dx = round(a / 2, 3)
 
@@ -98,12 +107,20 @@ class CotterPinFamily(BaseFamily):
         # Left leg (long) at x=-dx, right leg (short) at x=+dx. Eye is a torus
         # with axis along X (along leg spacing), center at (0,0,0).
 
-        # 1. Long leg (base solid)
+        # Determine which leg is "primary" (base) vs unioned. Both equivalent.
+        if leg_order_swap:
+            primary_x, primary_L = dx, Ls  # short leg primary
+            union_x, union_L = -dx, Ll
+        else:
+            primary_x, primary_L = -dx, Ll
+            union_x, union_L = dx, Ls
         ops = [
-            Op("transformed", {"offset": [-dx, 0, -Ll / 2], "rotate": [0, 0, 0]}),
-            Op("cylinder", {"height": round(Ll, 3), "radius": r}),
+            Op(
+                "transformed",
+                {"offset": [primary_x, 0, -primary_L / 2], "rotate": [0, 0, 0]},
+            ),
+            Op("cylinder", {"height": round(primary_L, 3), "radius": r}),
         ]
-        # 2. Short leg
         ops.append(
             Op(
                 "union",
@@ -111,20 +128,22 @@ class CotterPinFamily(BaseFamily):
                     "ops": [
                         {
                             "name": "transformed",
-                            "args": {"offset": [dx, 0, -Ls / 2], "rotate": [0, 0, 0]},
+                            "args": {
+                                "offset": [union_x, 0, -union_L / 2],
+                                "rotate": [0, 0, 0],
+                            },
                         },
                         {
                             "name": "cylinder",
-                            "args": {"height": round(Ls, 3), "radius": r},
+                            "args": {"height": round(union_L, 3), "radius": r},
                         },
                     ]
                 },
             )
         )
-        # 3. Eye loop: half-torus above legs (wire curls from one leg top to
-        # the other). Profile = circle of radius r at x=dx on XY plane, revolved
-        # 180° around Y axis so it sweeps through +Z (top half only).
-        # Right-hand rule: +Y axis rotates +X into -Z, so use -Y to go through +Z.
+        # Eye loop: half-torus above legs (curls one leg-top to the other).
+        # Profile = circle radius r at (dx, 0), revolved 180° around -Y (sweeps
+        # +X through +Z to -X, putting the eye above the legs).
         ops.append(
             Op(
                 "union",

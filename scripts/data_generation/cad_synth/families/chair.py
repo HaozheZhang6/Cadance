@@ -35,10 +35,16 @@ class ChairFamily(BaseFamily):
 
         if difficulty in ("medium", "hard"):
             params["chamfer"] = round(min(seat_t * 0.12, 1.5), 1)
+            params["edge_op"] = str(rng.choice(["fillet", "chamfer"]))
 
-        if difficulty == "hard":
+        # Crossbar 跨 difficulty
+        cb_prob = {"easy": 0.0, "medium": 0.3, "hard": 0.7}[difficulty]
+        if rng.random() < cb_prob:
             params["crossbar_height"] = round(back_h * rng.uniform(0.35, 0.65), 1)
             params["crossbar_thickness"] = round(leg_w * rng.uniform(0.7, 1.2), 1)
+
+        # Code-syntax: leg corner shuffle (4 corner build order)
+        params["leg_order"] = int(rng.choice([0, 1, 2, 3]))
 
         return params
 
@@ -91,13 +97,20 @@ class ChairFamily(BaseFamily):
         # Seat slab (centered at origin): z from -st/2 to +st/2
         ops.append(Op("box", {"length": sl, "width": sw, "height": st}))
 
-        # Chamfer top edges (medium+)
+        # Edge fillet/chamfer on seat top (推 fillet 频率)
         ch = params.get("chamfer")
+        edge_op = params.get("edge_op", "chamfer")
         if ch:
-            tags["has_chamfer"] = True
+            if edge_op == "fillet":
+                tags["has_fillet"] = True
+            else:
+                tags["has_chamfer"] = True
             ops.append(Op("faces", {"selector": ">Z"}))
             ops.append(Op("edges", {"selector": ">Z"}))
-            ops.append(Op("chamfer", {"length": ch}))
+            if edge_op == "fillet":
+                ops.append(Op("fillet", {"radius": ch}))
+            else:
+                ops.append(Op("chamfer", {"length": ch}))
 
         # 4 legs
         inset = lw / 2
@@ -105,8 +118,12 @@ class ChairFamily(BaseFamily):
         leg_cy = round(sw / 2 - inset, 4)
         leg_center_z = round(-(st + lh) / 2, 4)
 
-        for sx in (+1, -1):
-            for sy in (+1, -1):
+        leg_pos_pairs = [(+1, +1), (+1, -1), (-1, +1), (-1, -1)]
+        # Rotate leg order based on leg_order param (0..3 — 4 cyclic shifts)
+        ord_idx = int(params.get("leg_order", 0)) % 4
+        leg_pos_pairs = leg_pos_pairs[ord_idx:] + leg_pos_pairs[:ord_idx]
+        for sx, sy in leg_pos_pairs:
+            for _ in range(1):
                 ops.append(
                     Op(
                         "union",

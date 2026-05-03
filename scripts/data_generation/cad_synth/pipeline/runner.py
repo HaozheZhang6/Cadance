@@ -7,21 +7,31 @@ Parallel execution with per-sample subprocess isolation:
 """
 
 import argparse
+import hashlib
 import json
 import logging
 import multiprocessing as mp
 import subprocess
 import time
+from collections import deque
 from pathlib import Path
 
 import numpy as np
 import yaml
 
+from ..families.base import scale_params
 from .exporter import export_sample, log_rejection
 from .registry import get_family
 from .reporter import build_report, write_report
 from .sampler import sample_difficulty, sample_family
 from .validator import validate_geometry, validate_realism, validate_roundtrip
+
+
+def _param_hash(params: dict) -> str:
+    return hashlib.md5(
+        json.dumps(params, sort_keys=True, default=str).encode()
+    ).hexdigest()
+
 
 ROOT = Path(__file__).resolve().parents[4]
 DATA = ROOT / "data" / "data_generation"
@@ -117,8 +127,7 @@ def _scan_stuck_workers() -> list[tuple[str, str, str]]:
 # ── Worker ────────────────────────────────────────────────────────────────────
 
 
-def _worker(
-    queue: mp.Queue,
+def _process_one(
     sample_id: int,
     stem: str,
     fam_name: str,
@@ -126,8 +135,8 @@ def _worker(
     params: dict,
     run_name: str,
     render: bool,
-) -> None:
-    """Runs in a subprocess. Result is put on queue."""
+) -> dict:
+    """Process a single sample (build → validate → export). Pure compute, no IPC."""
     result = {
         "sample_id": sample_id,
         "stem": stem,
@@ -141,53 +150,155 @@ def _worker(
     }
     try:
         family = get_family(fam_name)
-
-        # Stage C: build
         program = family.make_program(params)
         wp = family.build(params)
-
         result["ops_used"] = [op.name for op in program.ops]
         result["feature_tags"] = program.feature_tags
 
-        # Stage E: geometry validation
         geo_ok, geo_reason = validate_geometry(wp)
         if not geo_ok:
             result["reject_stage"] = "degenerate_geometry"
             result["reject_reason"] = geo_reason
-            queue.put(result)
-            return
+            return result
 
-        # Stage F: realism filter
         real_ok, real_reason = validate_realism(program)
         if not real_ok:
             result["reject_stage"] = "realism_filter"
             result["reject_reason"] = real_reason
-            queue.put(result)
-            return
+            return result
 
-        # Stage F2: roundtrip check — ensure emitted gt_code re-execs to
-        # geometry matching wp (catches families where _apply_op silently
-        # succeeded but the string code crashes, or where the two paths
-        # diverge in face count).
         rt_ok, rt_reason = validate_roundtrip(program, wp)
         if not rt_ok:
             result["reject_stage"] = "roundtrip_mismatch"
             result["reject_reason"] = rt_reason
-            queue.put(result)
-            return
+            return result
 
-        # Stage G: export + render
         code = family.export_code(params)
         export_sample(sample_id, stem, program, wp, code, run_name, render=render)
-
         result["status"] = "accepted"
-
     except Exception as e:  # noqa: BLE001
         stage = result.get("reject_stage") or "build_failed"
         result["reject_stage"] = stage
         result["reject_reason"] = str(e)[:200]
+    return result
 
-    queue.put(result)
+
+def _worker_loop(in_q: "mp.Queue", out_q: "mp.Queue") -> None:
+    """Persistent worker: import cadquery once, then loop on tasks until poison pill."""
+    while True:
+        try:
+            task = in_q.get()
+        except (EOFError, OSError):
+            return
+        if task is None:
+            return
+        try:
+            res = _process_one(*task)
+        except Exception as e:  # noqa: BLE001
+            sid, stem, fam_name, diff, *_ = task
+            res = {
+                "sample_id": sid,
+                "stem": stem,
+                "family": fam_name,
+                "difficulty": diff,
+                "status": "rejected",
+                "reject_stage": "worker_crash",
+                "reject_reason": str(e)[:200],
+                "ops_used": [],
+                "feature_tags": {},
+            }
+        try:
+            out_q.put(res)
+        except Exception:  # noqa: BLE001
+            return
+
+
+class _PersistentWorker:
+    """One subprocess that processes samples in a loop. Replace on timeout."""
+
+    __slots__ = ("in_q", "out_q", "proc", "busy_spec", "t_start")
+
+    def __init__(self) -> None:
+        self._spawn()
+        self.busy_spec: dict | None = None
+        self.t_start: float = 0.0
+
+    def _spawn(self) -> None:
+        self.in_q = mp.Queue()
+        self.out_q = mp.Queue()
+        self.proc = mp.Process(
+            target=_worker_loop, args=(self.in_q, self.out_q), daemon=True
+        )
+        self.proc.start()
+
+    def submit(self, spec: dict, run_name: str, render: bool) -> None:
+        self.in_q.put(
+            (
+                spec["sample_id"],
+                spec["stem"],
+                spec["fam_name"],
+                spec["diff"],
+                spec["params"],
+                run_name,
+                render,
+            )
+        )
+        self.busy_spec = spec
+        self.t_start = time.time()
+
+    def try_collect(self) -> dict | None:
+        if self.busy_spec is None:
+            return None
+        try:
+            res = self.out_q.get_nowait()
+        except Exception:  # noqa: BLE001 — Empty et al.
+            return None
+        self.busy_spec = None
+        return res
+
+    def is_dead(self) -> bool:
+        return not self.proc.is_alive()
+
+    def elapsed(self) -> float:
+        return time.time() - self.t_start if self.busy_spec else 0.0
+
+    def kill_and_replace(self) -> None:
+        try:
+            self.proc.kill()
+            self.proc.join(timeout=2)
+        except Exception:  # noqa: BLE001
+            logger.debug("kill_and_replace: kill/join failed", exc_info=True)
+        self._cleanup_handles()
+        self._spawn()
+        self.busy_spec = None
+
+    def shutdown(self) -> None:
+        try:
+            self.in_q.put(None)
+        except Exception:  # noqa: BLE001
+            logger.debug("shutdown: in_q.put(None) failed", exc_info=True)
+        try:
+            self.proc.join(timeout=3)
+            if self.proc.is_alive():
+                self.proc.kill()
+                self.proc.join(timeout=2)
+        except Exception:  # noqa: BLE001
+            logger.debug("shutdown: proc.join/kill failed", exc_info=True)
+        self._cleanup_handles()
+
+    def _cleanup_handles(self) -> None:
+        for q in (self.in_q, self.out_q):
+            try:
+                q.close()
+                q.join_thread()
+            except Exception:  # noqa: BLE001
+                logger.debug(
+                    "_cleanup_handles: q.close/join_thread failed", exc_info=True
+                )
+        try:
+            self.proc.close()
+        except Exception:  # noqa: BLE001
+            logger.debug("_cleanup_handles: proc.close failed", exc_info=True)
 
 
 # ── Batch orchestrator ─────────────────────────────────────────────────────────
@@ -202,17 +313,26 @@ def run_batch(
     run_name = config.get("run_name", f"synth_s{seed}")
     family_mix = config["family_mix"]
     difficulty_mix = config["difficulty_mix"]
+    scale_cfg = config.get("param_scale", {}) or {}
+    scale_enabled = bool(scale_cfg.get("enabled", False))
+    scale_lo = float(scale_cfg.get("lo", 0.8))
+    scale_hi = float(scale_cfg.get("hi", 1.2))
+    dedup_enabled = bool(config.get("dedup_params", False))
 
     rng = np.random.default_rng(seed)
 
     logger.info(
-        "Batch: %d samples, seed=%d, run=%s, workers=%d, resume=%s",
+        "Batch: %d samples, seed=%d, run=%s, workers=%d, resume=%s, scale=%s, dedup=%s",
         num_samples,
         seed,
         run_name,
         n_workers,
         resume,
+        f"[{scale_lo},{scale_hi}]" if scale_enabled else "off",
+        dedup_enabled,
     )
+
+    seen_param_hashes: set[str] = set()
 
     # ── Stage A+B: pre-sample all params (deterministic, single-threaded) ──
     sample_specs = []
@@ -226,9 +346,20 @@ def run_batch(
         for _ in range(MAX_PARAM_RETRIES):
             family = get_family(fam_name)
             candidate = family.sample_params(diff, rng)
-            if family.validate_params(candidate):
-                params = candidate
-                break
+            # Hash BASE candidate (pre-scale): scaling otherwise re-randomizes
+            # the hash and lets the same base sample slip through dedup multiple
+            # times with different scale factors.
+            base_hash = _param_hash(candidate) if dedup_enabled else None
+            if dedup_enabled and base_hash in seen_param_hashes:
+                continue
+            if scale_enabled:
+                candidate = scale_params(candidate, rng, scale_lo, scale_hi)
+            if not family.validate_params(candidate):
+                continue
+            if dedup_enabled:
+                seen_param_hashes.add(base_hash)
+            params = candidate
+            break
 
         if params is not None and "base_plane" not in params:
             allowed = _ALLOWED_PLANES.get(fam_name, ("XY", "YZ", "XZ"))
@@ -252,115 +383,109 @@ def run_batch(
         n_workers,
     )
 
-    # ── Stages C–G: parallel execution with kill-on-timeout ────────────────
+    # ── Stages C–G: persistent worker pool with per-task timeout ──────────
     results = []
-    pending = list(sample_specs)
-    running: dict[mp.Process, tuple] = {}  # proc → (spec, queue, t_start)
+    pending: deque[dict] = deque(sample_specs)
+    pool: list[_PersistentWorker] = [_PersistentWorker() for _ in range(n_workers)]
 
-    while pending or running:
-        # Launch new workers up to n_workers
-        while pending and len(running) < n_workers:
-            spec = pending.pop(0)
+    def _drain_pre_dispatch(spec: dict) -> bool:
+        """Handle param_invalid + resume skip in main proc. Returns True if consumed."""
+        sid = spec["sample_id"]
+        if spec["params"] is None:
+            results.append(
+                {
+                    "sample_id": sid,
+                    "stem": spec["stem"],
+                    "family": spec["fam_name"],
+                    "difficulty": spec["diff"],
+                    "status": "rejected",
+                    "reject_stage": "param_invalid",
+                    "reject_reason": "exceeded_max_retries",
+                    "ops_used": [],
+                    "feature_tags": {},
+                }
+            )
+            log_rejection(
+                sid,
+                spec["stem"],
+                spec["fam_name"],
+                spec["diff"],
+                {},
+                "param_invalid",
+                "exceeded_max_retries",
+                run_name,
+            )
+            logger.debug("[%d] REJECT param_invalid: %s", sid, spec["stem"])
+            return True
+        if resume and _step_exists(spec["stem"], run_name):
+            results.append(
+                {
+                    "sample_id": sid,
+                    "stem": spec["stem"],
+                    "family": spec["fam_name"],
+                    "difficulty": spec["diff"],
+                    "status": "skipped_resume",
+                    "reject_stage": "",
+                    "reject_reason": "",
+                    "ops_used": [],
+                    "feature_tags": {},
+                }
+            )
+            logger.debug("[%d] SKIP (resume) %s", sid, spec["stem"])
+            return True
+        return False
+
+    while pending or any(w.busy_spec is not None for w in pool):
+        # Assign pending samples to free workers
+        for w in pool:
+            while w.busy_spec is None and pending:
+                spec = pending.popleft()
+                if _drain_pre_dispatch(spec):
+                    continue
+                w.submit(spec, run_name, render)
+                break
+
+        # Poll workers for completions / timeouts / unexpected death
+        for w in pool:
+            if w.busy_spec is None:
+                continue
+            spec = w.busy_spec
             sid = spec["sample_id"]
+            elapsed = w.elapsed()
 
-            # param_invalid → no worker needed
-            if spec["params"] is None:
-                results.append(
-                    {
-                        "sample_id": sid,
-                        "stem": spec["stem"],
-                        "family": spec["fam_name"],
-                        "difficulty": spec["diff"],
-                        "status": "rejected",
-                        "reject_stage": "param_invalid",
-                        "reject_reason": "exceeded_max_retries",
-                        "ops_used": [],
-                        "feature_tags": {},
-                    }
-                )
+            res = w.try_collect()
+            if res is not None:
+                _log_result(res, run_name, elapsed)
+                results.append(res)
+                continue
+
+            if w.is_dead():
+                res = {
+                    "sample_id": sid,
+                    "stem": spec["stem"],
+                    "family": spec["fam_name"],
+                    "difficulty": spec["diff"],
+                    "status": "rejected",
+                    "reject_stage": "worker_crash",
+                    "reject_reason": "worker exited without result",
+                    "ops_used": [],
+                    "feature_tags": {},
+                }
                 log_rejection(
                     sid,
                     spec["stem"],
                     spec["fam_name"],
                     spec["diff"],
-                    {},
-                    "param_invalid",
-                    "exceeded_max_retries",
-                    run_name,
-                )
-                logger.debug("[%d] REJECT param_invalid: %s", sid, spec["stem"])
-                continue
-
-            # resume skip
-            if resume and _step_exists(spec["stem"], run_name):
-                results.append(
-                    {
-                        "sample_id": sid,
-                        "stem": spec["stem"],
-                        "family": spec["fam_name"],
-                        "difficulty": spec["diff"],
-                        "status": "skipped_resume",
-                        "reject_stage": "",
-                        "reject_reason": "",
-                        "ops_used": [],
-                        "feature_tags": {},
-                    }
-                )
-                logger.debug("[%d] SKIP (resume) %s", sid, spec["stem"])
-                continue
-
-            q = mp.Queue()
-            p = mp.Process(
-                target=_worker,
-                args=(
-                    q,
-                    sid,
-                    spec["stem"],
-                    spec["fam_name"],
-                    spec["diff"],
                     spec["params"],
+                    "worker_crash",
+                    "worker exited without result",
                     run_name,
-                    render,
-                ),
-                daemon=True,
-            )
-            p.start()
-            running[p] = (spec, q, time.time())
-
-        # Poll running workers
-        for proc in list(running.keys()):
-            spec, q, t_start = running[proc]
-            sid = spec["sample_id"]
-            elapsed = time.time() - t_start
-
-            if not proc.is_alive():
-                # Worker finished (success or exception)
-                proc.join()
-                if not q.empty():
-                    res = q.get_nowait()
-                else:
-                    res = {
-                        "sample_id": sid,
-                        "stem": spec["stem"],
-                        "family": spec["fam_name"],
-                        "difficulty": spec["diff"],
-                        "status": "rejected",
-                        "reject_stage": "worker_crash",
-                        "reject_reason": "worker exited without result",
-                        "ops_used": [],
-                        "feature_tags": {},
-                    }
-                _log_result(res, run_name, elapsed)
+                )
                 results.append(res)
-                q.close()
-                q.join_thread()
-                proc.close()
-                del running[proc]
+                w.kill_and_replace()
+                continue
 
-            elif elapsed > TOTAL_TIMEOUT_S:
-                # Hard kill — handles OCCT infinite loops
-                proc.kill()
-                proc.join()
+            if elapsed > TOTAL_TIMEOUT_S:
                 res = {
                     "sample_id": sid,
                     "stem": spec["stem"],
@@ -386,12 +511,9 @@ def run_batch(
                     "[%d] REJECT timeout: %s (%.0fs)", sid, spec["stem"], elapsed
                 )
                 results.append(res)
-                q.close()
-                q.join_thread()
-                proc.close()
-                del running[proc]
+                w.kill_and_replace()
 
-        if running:
+        if any(w.busy_spec is not None for w in pool):
             time.sleep(0.05)
 
     # Sort by sample_id (parallel completion is out of order)

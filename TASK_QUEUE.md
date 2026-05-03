@@ -4,6 +4,34 @@
 
 ## ⚠️ USER-ASSIGNED — 进行中
 
+### UA-24 — 新增 180k 训练数据 (data-arg 扩展) 🔴 HIGH (2026-04-26)
+
+**目标：** 在现 BenchCAD/cad_bench 17.8k 基础上 +180k accepted 样本，推到新 dataset `BenchCAD/cad_bench_X`。
+
+**用户决策：**
+- 增量 180k accepted (非总量)
+- 106 family 均摊 (~1.7k/family，按 96% accept → 1900 attempt/family)
+- 质量门槛严格保留 (exec / 渲染 / iou / bbox / validate_params)；ISO 标准放宽
+- 参数：沿用 sample_params + **白名单 ×0.8-1.2 扩展** (DIM_KEYS: length/width/height/radius/diameter/depth/thickness)
+- 新 HF dataset: `BenchCAD/cad_bench_X`
+- img2cq only (不出 json2cq / edit pair)
+- 本机 4 worker 跑 (~47 h，~2 天)
+- 模式 B: 106 single-family configs + family-scoped resume (避坑 RNG drift)
+- 全跑完一次 push (不增量)
+- 参数哈希去重 (仅在新 180k 内)
+- 新 branch: `data-arg-180k` from origin/main
+
+**实现 checklist:**
+1. 切新 branch `data-arg-180k` (origin/main 已 merge data-arg PR#1)
+2. 加白名单 param scaler 0.8-1.2 (families/base.py)
+3. runner.py Stage A 加 param-hash dedup (reject_stage=param_dup)
+4. 生成 106 single-family configs (configs/data_arg_180k/<family>.yaml)
+5. Pre-flight 5 family × 100 sample 烟测
+6. serial driver run_180k_batch.sh (resume 安全)
+7. push_bench_hf.py 加 --repo-id arg
+8. 启动 47h 长跑
+9. push BenchCAD/cad_bench_X
+
 ### UA-23 — apr20-20k 数据集全清 + HF 重推 + 本地↔HF align ✅ DONE (2026-04-23)
 
 **结果：**

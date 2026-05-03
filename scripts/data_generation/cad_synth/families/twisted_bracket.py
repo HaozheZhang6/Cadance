@@ -32,19 +32,22 @@ class TwistedBracketFamily(BaseFamily):
             h = float(rng.choice([16.0, 18.0, 20.0, 24.0]))
             t = float(rng.choice([4.0, 5.0, 6.0]))
             Lt = round(float(rng.uniform(1.5 * t, 3.0 * t)), 1)
-            n_holes = 1
         elif difficulty == "medium":
             Lp = float(rng.choice([30.0, 40.0, 50.0, 60.0]))
             h = float(rng.choice([14.0, 18.0, 22.0, 26.0]))
             t = float(rng.choice([3.0, 4.0, 5.0, 6.0]))
             Lt = round(float(rng.uniform(2.0 * t, 4.0 * t)), 1)
-            n_holes = 2
         else:
             Lp = float(rng.choice([40.0, 50.0, 60.0, 70.0, 80.0]))
             h = float(rng.choice([12.0, 16.0, 20.0, 24.0]))
             t = float(rng.choice([3.0, 4.0, 5.0]))
             Lt = round(float(rng.uniform(3.0 * t, 5.0 * t)), 1)
-            n_holes = 2
+        # n_holes free 1/2 on all difficulties (was strict by difficulty)
+        n_holes = int(rng.choice([1, 2]))
+        # Free hole position ratio for n_holes==1 (was always center 0.5)
+        hole_pos_ratio = (
+            round(float(rng.uniform(0.35, 0.65)), 2) if n_holes == 1 else 0.5
+        )
 
         # Hole diameter — scale with plate width, snap to common bolt clearance series
         hole_dia = round(float(rng.uniform(h * 0.25, h * 0.40)), 1)
@@ -60,6 +63,7 @@ class TwistedBracketFamily(BaseFamily):
             "twist_length": Lt,
             "hole_diameter": hole_dia,
             "n_holes_per_flange": n_holes,
+            "hole_pos_ratio": hole_pos_ratio,
             "twist_angle_deg": 90.0,
             "difficulty": difficulty,
             "base_plane": "XY",
@@ -200,8 +204,9 @@ class TwistedBracketFamily(BaseFamily):
         r_hole = round(hd / 2, 3)
 
         if n_holes == 1:
-            plate1_x_positions = [round(Lp / 2, 3)]
-            plate2_x_positions = [x_plate2_center]
+            hpr = float(params.get("hole_pos_ratio", 0.5))
+            plate1_x_positions = [round(Lp * hpr, 3)]
+            plate2_x_positions = [round(x_plate2_center - Lp / 2 + Lp * hpr, 3)]
         else:
             dx = round(Lp / 4, 3)
             plate1_x_positions = [round(Lp / 2 - dx, 3), round(Lp / 2 + dx, 3)]

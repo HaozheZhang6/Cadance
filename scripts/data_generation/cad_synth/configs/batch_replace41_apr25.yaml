@@ -1,0 +1,52 @@
+run_name: batch_replace41_apr25
+num_samples: 6000
+seed: 4252
+n_workers: 4
+family_mix:
+  # 41 改过家族 (Tier A 16 + round 2/3 5 + Tier B 15 + C1 top10)
+  grease_nipple: 1
+  eyebolt: 1
+  twisted_drill: 1
+  venturi_tube: 1
+  wing_nut: 1
+  cotter_pin: 1
+  torsion_spring: 1
+  duct_elbow: 1
+  twisted_bracket: 1
+  lobed_knob: 1
+  nozzle: 1
+  bucket: 1
+  piston: 1
+  torus_link: 1
+  dome_cap: 1
+  grommet: 1
+  hex_nut: 1
+  worm_screw: 1
+  wall_anchor: 1
+  pipe_elbow: 1
+  phone_stand: 1
+  gridfinity_bin: 1
+  pan_head_screw: 1
+  tee_nut: 1
+  u_bolt: 1
+  washer: 1
+  capsule: 1
+  t_pipe_fitting: 1
+  ball_knob: 1
+  rivet: 1
+  tapered_boss: 1
+  coil_spring: 1
+  flat_link: 1
+  chair: 1
+  spacer_ring: 1
+  cam: 1
+  shaft_collar: 1
+  round_flange: 1
+  clevis: 1
+  locator_block: 1
+  rect_frame: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true
