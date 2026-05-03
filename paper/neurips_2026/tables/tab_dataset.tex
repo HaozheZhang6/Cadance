@@ -1,0 +1,19 @@
+\begin{table}[t]
+\centering
+\small
+\caption{\textbf{BenchCAD dataset composition.} The verified evaluation core consists of 20{,}143 procedurally generated parts spanning 106 families, with each record carrying parametric source code, executable STEP, four canonical-view renders, and a parameter JSON. We additionally release an Edit subset, a stratified Lite split, two OOD subsets, and a 162K-pair training corpus.}
+\label{tab:dataset}
+\begin{tabular}{lrrl}
+\toprule
+Split & \#Parts & \#Families & GT artefacts \\
+\midrule
+BenchCAD-Synth (verified)   & 20{,}143 & 106 & code $\cdot$ STEP $\cdot$ 4 views $\cdot$ params $\cdot$ ops \\
+BenchCAD-Edit               & 433      & 106 & before/after $+$ NL instruction \\
+BenchCAD-Lite (stratified)  & 530      & 106 & same as Synth \\
+BenchCAD-Fusion360 (verif.) & 726      & 52  & + raw STEP \\
+BenchCAD-DeepCAD (verif.)   & 920      & --  & code $\cdot$ STEP $\cdot$ views \\
+\midrule
+BenchCAD-GenCAD (training)  & 162{,}000 & -- & image $\cdot$ code (SFT pairs) \\
+\bottomrule
+\end{tabular}
+\end{table}

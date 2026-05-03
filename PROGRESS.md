@@ -1,4 +1,74 @@
 
+## 2026-04-30 — essential_ops 误判修复 (`bench/research/canonical_ops.{py,yaml}`)
+
+bug: `circle(R).circle(r).extrude(d)` 这种 sketch 多 profile + extrude 的 idiomatic 写法（washer / 管 / 带孔板）几何上有 hole, 但 `find_ops` regex 不匹配 → 31 个 `[[cut, hole]]` family essential=fail (false negative 暴增)。
+
+`canonical_ops.py`:
+- OP_PATTERNS 扩展: `Sketch` += `\.sketch\(` (lowercase wp 方法), `polyline` += `\.segment\(` (BenchCAD shell), `cut` += `mode=['"]s['"]` (sketch subtract)
+- `find_ops` 加 3 alias: polyline ⇒ lineTo; polyline + .close( ⇒ polygon; **≥2 profile + .extrude( ⇒ hole** (核心修复)
+
+`canonical_ops.yaml`:
+- `taper_pin: [[revolve, sweep]] → [[revolve, sweep, loft]]` (圆台 loft 等价)
+
+verify: 11 case 全过 (lowercase sketch / segment / mode=s / polyline→lineTo / polyline+close→polygon / washer-pattern→hole / rect+circle / hex+circle / 单 circle 不误报 / taper_pin via loft / yaml taper_pin 加 loft)。tests/test_bench 139/139 pass(剩 5 个 TestCombinedScore fail 是 pre-existing, 与本次无关 — 写死旧权重 0.25·F1+0.7·IoU, 现公式是 0.10·F1+0.60·IoU+0.05·CD+0.05·HD+0.20·ess)。
+
+后续 yaml 人工 review (`canonical_ops.yaml`):
+- 加 `circle` op (OP_PATTERNS + ESSENTIAL_CLASS), regex `\.circle\s*\(` 同时盖 Workplane 和 Sketch dialect
+- 16 处 family 加 `circle` 作 OR alt: hex_key_organizer / lobed_knob / handwheel(AND-1st) / hex_nut(AND-2nd) / hex_standoff / threaded_adapter / bearing_retainer_cap / connecting_rod / hinge / turnbuckle / fan_shroud / pipe_flange / spacer_ring / washer / z_bracket / connector_faceplate
+- 收紧到纯 `[[cut]]` (去掉 hole alt): battery_holder, pan_head_screw, spline_hub(AND-1st)
+- 10 个 family entry 删除 (变 N/A): clevis / u_channel / flat_link / gusseted_bracket / hollow_tube / l_bracket / mounting_angle / rect_frame / t_slot_rail / wire_grid
+- 总 family 数 93 → 83
+- review 工具: `tmd/essential_na_check/essential_holecut_36families.png` (6×6 grid w/ ess spec 标签) 推 dc
+
+trade-off note: `circle` 作 OR alt 把 `wp.circle(R).extrude(d)` (光秃秃圆柱) 也判 essential pass — 是 false-positive,但 IoU/CD/HD 会扣分,0.20 essential 漏失可接受。
+
+## 2026-04-27 (session 30) — UA-25 cad_curated_722 → v2 (720 rows, OCC 验证, HF 推 `Hula0401/cad_curated_722_v2`) ✅
+
+- 起因:`qixiaoqi/cad_curated_722` 是 bench 最终评测集,5 个 substitution-target family 需 gt_code 手改 (`cable_routing_panel` / `clevis` / `parallel_key` / `tapered_boss` / `z_bracket`)
+- **新建 `cq_gui/`** sandbox (gitignore):py3.11 + cadquery 2.7 + cq-editor 0.7 隔离 venv,本 repo cq 2.3 不动
+  - `cq_gui/launch.sh` → CQ-editor 启动;`cq_gui/scratch.py` 起手 demo
+  - `cq_gui/curated_722/<family>/<idx>__<stem>.py` × 722 dump (META sentinel 隔离 + gt_code body 可改),`_INDEX.md` 索引,`_original.parquet` 冻结源
+  - `cq_gui/sync_back.py` → 扫 .py → diff vs `_original.parquet` → 写新 parquet
+- **手改 20 行 + 删 2 行**: 5 高亮 family 内 gt_code 修(loft circle 顺序、hole 偏移、slot 尺寸等);clevis #10 #11 (`synth_clevis_000074/000177`) 因 geometry 不合理 drop
+- **OCC 全量校验** (`cq_gui/exec_check.py`):cadquery 2.7 exec gt_code → bbox + volume → **719/720 pass (99.86%)**, 1 fail = `synth_double_simplex_sprocket_000579_s4420` (hard, 20s timeout);median 0.088s · p95 0.467s
+- **重 render 20 个改过的 case** (`cq_gui/rerender_edited.py`):exec → STEP export → `render_normalized_views.render_step_normalized` 4-view composite,与 v1 同 cadrille style
+- **HF push** `Hula0401/cad_curated_722_v2`(720 rows · 14.4MB · `+exec_ok` `+exec_reason` `+exec_dt_s` 三列 · README diff 写明)
+- **Discord** 发分布长图 6 段 chunk (3426×33596 单图 15MB 超 webhook → 切 6 段) + v2 chunk 1 重画(`EDIT` blue + `OK`/`FAIL` badge,只 chunk 1 含改动,2-6 沿用 v1)
+- **artifacts**:`cq_gui/curated_722/{curated_722_v2.parquet, exec_report.json, _v2_chunk1.png, _rerendered/*.png}`、`tmp/cad_curated_722/{cad_curated_722_gallery.png, chunk_01-06.png}`
+- 一个坑:cq-editor pip 装 default Python 3.14 没 PyQt5 wheel → 隔离 venv 钉 3.11
+
+## 2026-04-27 (session 29) — UA-24 106 simple_* family + 7655 rows → HF `cad_bench_simple106` ✅
+
+- **registry 最终 106 个 simple_*** = 21 part-style + 85 across 5 packs (profiles/cylindrical/blocks/multi_stage/sheet_sections)。Pack 文件:`scripts/data_generation/cad_synth/families/simple_{profiles,cylindrical,blocks,multi_stage,sheet_sections}_pack.py`
+- **第 1 阶段 21 个 simple_<part>** (替复杂 parent 简化 + DeepCAD/F360 启发独特):
+  spur_gear / helical_gear / bevel_gear / sprocket / double_sprocket / impeller / propeller /
+  bellows / coil_spring / torsion_spring / twisted_drill / pulley / spline_hub / worm_screw +
+  plate_holes_grid / step_solid / l_solid / t_solid / curved_lobe_plate / open_box_thin / multi_extrude_step
+- **第 2 阶段 85 个 pack family** (来自 F360/DeepCAD 视检 138+53 样本归类的 16 类 shape):
+  - **profiles_pack 30**: trapezoid/parallelogram/wedge/diamond/chevron/cross/arrow/house/pentagon/hexagon/heptagon/octagon/n_star/keyhole/stadium/half_disc/pie_slice/quarter_disc/crescent/dogbone/h_section/z_section/y_shape/corrugated/serrated/d_shape/annulus/rounded_rect/capsule/slot_through (`_PolyFamily` 基类,sketch-first 单 polyline → close → extrude,`ALLOW_FEATURES = False` 防 BRep)
+  - **cylindrical_pack 15**: frustum_cone/d_shaft/double_d_shaft/grooved_shaft/radial_holes_tube/axial_slot_cylinder/chamfer_shaft/stepped_shaft_basic/hollow_pipe/thin_disc/thick_ring/hemisphere/tapered_pin/capsule_3d/grooved_disc
+  - **blocks_pack 15**: chamfered/filleted/pyramid/obelisk/pocket/through_slot/round_hole/oval_hole/keyway/cross_cut/array_holes/chamfered_corners/dovetail/v_block/round_pocket
+  - **multi_stage_pack 12**: disc_with_boss/pegs/skirt/holes_polar/plate_with_pegs/button/funnel/handle_block/two_step_cylinder/block_with_studs/lid_flange/axle_yoke
+  - **sheet_sections_pack 13**: c_channel/u_channel_simple/hat_section/z_section_struct/i_beam_simple/angle_bracket_90/angle_bracket_135/box_section/unistrut/top_hat_section/l_section_thin/split_tube/bent_strip
+- **REF 来源**: 每 family 带 `REF` 属性 — F360 stem (`f360:<stem>`) 或 imagined rationale。预览 gallery 把 ref 放最左 (F360 红框,imagined 文字卡)
+- **数据生成**:
+  - batch_simple21_apr27 (seed=4127, 4200 → **3473 verified, 82.7%**)
+  - batch_simple85_apr27 (seed=4128, 4250 → **4182 verified, 98.4%**) — 最高 100% (hat_section/oval_hole/top_hat/obelisk/serrated), 最低 28% (split_tube)
+- **HF push**: `BenchCAD/cad_bench_simple106` 单 test split, **7655 rows** (3473+4182), 160MB parquet, `source_run` 字段标 batch 来源 → https://huggingface.co/datasets/BenchCAD/cad_bench_simple106 (与现有 `cad_bench` 完全独立,不覆盖 20143 行)
+- **预览 gallery**: `tmp/simple106_previews/GALLERY_simple106.png` (2400×44472, 12MB) + 102 单 family strip,layout = [REF | s1 | s2 | s3 | s4 | s5]
+- **F360/DeepCAD 数据落盘**: F360 r1.0.1 reconstruction (8626 jsons, 2.1GB) + DeepCAD data.tar (208MB) → `data/data_generation/open_source/`
+- **视觉分类**: F360 138 + DeepCAD 53 = 191 张人工分 16 类 (trapezoid 18%, parallelogram 11%, frustum 9%, polygon block / wedge / ring / crescent / cross / half-disc / diamond / concave polygon / multi-piece / corrugated / pie slice / keyhole / sheet section)
+- **Discord webhook integration**: `scripts/data_generation/discord_progress.py` 读 `DISCORD_WEBHOOK_URL` (`.zshrc` 全局变量),`discord_status_loop.sh` 5 min 间隔 post (batch + render + family-pack 计数器),所有里程碑实时通知
+- **修复记录**:
+  - simple_propeller polyline coincident pts → BRep failure → consecutive-point dedupe + twistExtrude angle=0 ZeroDivisionError → 过滤 [15,20,25,35,45]
+  - simple_impeller petal_outline 复用 dedupe
+  - simple_l_solid l_filleted fillet 半径过大 → `min(t * 0.3, 1.5)`
+  - simple_sprocket hub_d ≥ radius INVALID → clamped `min(bore * uniform, r * 0.85)`
+  - simple_worm_screw flat_helix_cut Null TopoDS → 替换为 `shaft_two_steps`
+  - blocks_pack cross_cut/dovetail/v_block/round_pocket validate 过紧 → 改 L/W/H 比例 clamp
+  - DeepCAD render 米单位 → `SCALE = 1000.0` 修
+- **CLAUDE.md** 更新 family registry source-of-truth note (count 106, 不引用过时 docstring)
+
 ## 2026-04-27 (session 36) — bench prompt 瘦身 + paper 工具脚手架
 
 **改动** (一次 commit):
@@ -48,7 +118,7 @@
 - 顺序: 持久 worker runner 烟测 → Phase 1 (~hours) → Phase 2 render (~hours) → push_180k.sh
 - 若 Phase 1 (无 render) 仍 OOM → 进一步加 `code_only: true` config 跳 build (尚未实现)
 
-## 2026-04-26 (session 34) — UA-24 180k 数据扩展 scaffolding (data-arg-180k branch)
+## 2026-04-26 (session 34) — UA-26 180k 数据扩展 scaffolding (data-arg-180k branch) — 原 UA-24, 与 simple106 UA-24 同号合并冲突, 已重编 UA-26
 
 - 新 branch `data-arg-180k` from origin/main (PR#1 合 data-arg → main 后)
 - 加 `families/base.py::scale_params` — 白名单 ×0.8-1.2 维度扩展 (length/width/height/depth/thickness/radius/diameter + suffix; 排除 int/bool/enum/discrete ISO)
@@ -162,7 +232,7 @@
 - 视觉抽检 5 sample（tmp/grease_check/）: 锐边 / 倒角 / 圆角 三种各异，head 比例随 d_head_max 可见变化
 - black + ruff + pytest 81 pass
 
-
+## 2026-04-25 (session 28) — bench 一键 fetch + UI 直读 from_hf
 
 - 新 `bench/fetch_data.py`:一行 `uv run python bench/fetch_data.py` 拉两个 HF repo (`BenchCAD/cad_bench` 20143 + `BenchCAD/cad_bench_edit` 336) 入 `~/.cache/huggingface`,顺手把 edit bench 解包到 `data/data_generation/bench_edit/from_hf/` (records.jsonl + orig_steps/ + gt_steps/ + orig_codes/ + gt_codes/, ~124MB)
 - UI `EDIT_SOURCES` 加 `"from_hf"` (`scripts/data_generation/ui/app.py:1108-1112`):fresh clone 起 streamlit 直接选数据源 from_hf 就能看 — 不用先跑 curation 链
@@ -170,6 +240,17 @@
 - 顶层 README + bench/README 加快速启动 step
 - argparse 风格、ROOT/sys.path/load_dotenv 顶部样板对齐 `bench/eval.py`,走 `bench.dataloader.load_hf` 复用现有 wrapper
 - Smoke:`fetch_data.py` 实跑 OK,records.jsonl 336 行 iou 全填,UI 数据源切 from_hf 路径连通;black/ruff(新文件 0 err)/pytest 81 pass
+
+## 2026-04-24 (session 28b) — NeurIPS 2026 D&B 投稿启动 + 7 篇 reference digest
+
+- 下 NeurIPS 2026 LaTeX 模板到 `paper/neurips_2026/`(`neurips_2026.{tex,sty}` + `checklist.tex`);E&D track 用 `\usepackage[eandd]{neurips_2026}`(默认双盲,可加 `nonanonymous` 切单盲);9 页正文上限,refs/appendix/checklist 不计;abstract 5/4 截、全文 5/6 截 AoE
+- 写 intro 第一稿到 `paper/draft_intro.md`(750 字,5 段 + 5 contribution),把 CVPR 旧稿的 *curation pipeline* framing 改成 *dataset + benchmark* 框架
+- 下 7 篇 reference PDF 到 `paper/references/`:
+  - CAD 直接竞品 4 篇:Text2CAD (NeurIPS'24 D&B)、CAD-Coder (NeurIPS'25 main)、CAD-Recode (ICCV'25)、CADCodeVerify/CADPrompt (ICLR'25)
+  - D&B 结构标杆 3 篇:Infinity-Chat (NeurIPS'25 best D&B)、MMSI-Bench (ICLR'26)、AutoCodeBench (ICLR'26)
+- 4 个并行 agent 分工读 + 写 7 个 `paper/references/notes/<slug>.md` 结构化分析(storyline / claim 链条 / 关键数字 / 对 Cadance 启发 / 一句话定位)
+- 综合写 `paper/references/SUMMARY.md`:跨篇 storyline DNA、表/图 layout 标杆、metric 对比、4 个 CAD 竞品逐一定位、6 条审稿人会问 + 答案模板、intro 更新 checklist
+- 关键发现:(a) 三件套 contribution(real data + taxonomy + dense GT)是 D&B 通用骨架;(b) sticky term 命名(Hivemind / scaling cliff)是 sell finding 的标配;(c) AutoCodeBench 的 Lite/Complete 子集设计强烈建议借鉴;(d) CADCodeVerify 200 例 + 无 family + bbox IoU 是其结构性弱点,我们 20K + 106 family + rotation-inv IoU 直接打;(e) human/expert upper bound + scaling cliff 实验是 reviewer hard requirement,Cadance 还缺,需补
 
 ## 2026-04-23 (session 27) — UA-23 apr20-20k 全清 + HF 重推 + 本地↔HF align
 

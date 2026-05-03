@@ -1,0 +1,54 @@
+\section{The BenchCAD Dataset}
+\label{sec:dataset}
+
+\subsection{Design Principles}
+We design BenchCAD around four principles that prior CAD datasets violate either individually or jointly.
+
+\paragraph{P1 --- Execution as ground truth.} Every record's ground truth is the \emph{executed} solid: the CadQuery source code is run inside a sandboxed CadQuery / PythonOCC environment, the resulting STEP file is voxelised, and compared against a reference solid by 3D IoU under the rotation-invariant 6-face cube group~\citep{rot_iou}. A record enters the verified split only if IoU $\geq 0.99$ \emph{and} executes within a 30\,s timeout with non-degenerate volume. This rules out the silent failure mode common in DeepCAD-derived corpora where parsed code is assumed correct but neither re-executed nor geometrically validated.
+
+\paragraph{P2 --- Standard-table anchoring.} Where a part has an industrial counterpart, parameters sample from real specification tables (ISO 22 V-belt cross-section series, DIN 338 twist-drill diameter ranges, ISO 23509 bevel-gear pitch--module relationship). Geometry that ``looks right'' but violates manufacturable proportions (e.g.\ M6 bolt with 3\,mm thread pitch) is rejected at sampling time. 55\% of BenchCAD families are standard-anchored; Table~\ref{tab:standards} enumerates the standard codes.
+
+\paragraph{P3 --- Family-level taxonomy.} Records are grouped into 106 named families (e.g.\ \texttt{coil\_spring}, \texttt{helical\_gear}, \texttt{twisted\_drill}), each implemented by a small Python module exposing a typed parameter schema, a sampler, a validator, and a deterministic builder. This makes coverage measurable, sampling reproducible, difficulty controllable, and per-family analysis trivial --- properties absent from DeepCAD/Fusion360 where parts are pooled without semantic structure.
+
+\paragraph{P4 --- Operation breadth.} The dataset exercises 45+ distinct CadQuery operations spanning sketch primitives, contour drawing (lines, arcs, splines), workplane manipulation, sketch arrays, 3D operations (extrude, twist-extrude, revolve, loft, sweep), Booleans, hole variants, and edge finishing (fillet, chamfer, shell). Appendix~\ref{app:ops} contrasts this against prior corpora restricted to sketch+extrude.
+
+\subsection{Family Registry and Standard Compliance}
+Each family is a class implementing the \texttt{Family} interface: a JSON-schema parameter spec; a \texttt{sample\_params(difficulty, rng)} method that draws a parameter dictionary; a \texttt{validate\_params(p)} predicate enforcing geometric and standard-table constraints; and a \texttt{make\_program(p)} method that emits a typed list of \texttt{Op} dicts consumable by the builder. Families are auto-discovered from a registry module; adding a new family requires no changes to the pipeline beyond registering one class. A family declares \texttt{standard = "ISO 23509"} (etc.) when its parameter ranges and inter-parameter relations are fixed by an external specification table. As of submission, BenchCAD covers 22 ISO codes (e.g.\ ISO 22, 113, 272, 1234, 2339, 2936, 10828, 23509), 28 DIN codes (e.g.\ DIN 338, 471/472, 580, 5480, 2095, 8187), 4 EN codes, 3 ASME codes, and 2 IEC codes --- totalling 59 standard-anchored families. The remaining 47 families cover bespoke industrial parts (e.g.\ \texttt{twisted\_bracket}, \texttt{venturi\_tube}, \texttt{lobed\_knob}) without formal standards but governed by analogous proportional rules.
+
+Each family supports three difficulty tiers --- \emph{easy}, \emph{medium}, \emph{hard} --- defined by parameter complexity (op count, feature count, non-axis-aligned geometry, presence of helical, lofted, or boolean operations). Tier definitions are family-specific and machine-checkable; aggregate counts and tier example renders appear in Figure~\ref{fig:taxonomy}.
+
+\input{tables/tab_standards}
+
+\subsection{The CadGen Pipeline}
+We name the data construction pipeline \textbf{CadGen} to separate it as a standalone contribution from the resulting dataset. CadGen has four stages.
+
+\paragraph{Stage 1 --- Parameter sampling.} For each family $\times$ difficulty bucket, the sampler draws parameters from the JSON schema under standard-table constraints. Sampling is deterministic given a seed.
+
+\paragraph{Stage 2 --- Program emission.} The family's \texttt{make\_program} returns an op sequence. The builder consumes the op list and produces (i) Python CadQuery source code via a per-op code template, and (ii) a CadQuery \texttt{Workplane} object via direct API dispatch. Both representations are aligned by construction: the same op list yields equivalent geometry whether interpreted via the builder or by executing the emitted code in a fresh sandbox.
+
+\paragraph{Stage 3 --- Execution and verification.} We re-execute the emitted code in an isolated sandbox, export STEP, voxelise at 64$^3$ resolution, and compute rotation-invariant 3D IoU against the builder's direct STEP output. Records with IoU $< 0.99$, execution failures, timeouts ($>$30\,s), or zero/inverted volume are quarantined for review. A persistent execution cache avoids re-running the same code on subsequent syncs.
+
+\paragraph{Stage 4 --- Render and package.} Each verified record is rendered to four canonical views (front / right / top / iso) at 512$\times$512 with VTK, and the (parameters, program, code, STEP, views) bundle is registered to the dataset CSV.
+
+\paragraph{Yield.} From a 20{,}221-sample run on the April 2026 batch, 20{,}143 records (99.6\%) passed all checks; the 78 failures concentrated in three pathological families (\texttt{double\_simplex\_sprocket}, \texttt{stepped\_shaft}, \texttt{torus\_link}) due to OCCT \texttt{Standard\_Failure} on extreme parameter combinations.
+
+\subsection{Splits, Documentation, and Hosting}
+\paragraph{Splits.} The full release contains six subsets (Table~\ref{tab:dataset}): \emph{BenchCAD-Synth} (20{,}143 verified procedural parts, primary evaluation set); \emph{BenchCAD-Edit} (433 curated edit pairs spanning dimensional / additive / subtractive / multi-step modifications across 106 families); \emph{BenchCAD-Lite} (530-sample stratified subset for fast leaderboards); \emph{BenchCAD-Fusion360} and \emph{BenchCAD-DeepCAD} (verified subsets for OOD evaluation); and \emph{BenchCAD-GenCAD} (162{,}000 image-to-code pairs derived from GenCAD~\citep{GenCAD2025} for SFT-scale training).
+
+\paragraph{Documentation, hosting, licence.} Every dataset ships with a Croissant 1.0 metadata file including all required Responsible AI fields. Validation passes the public Croissant checker. All splits are hosted on Hugging Face under \texttt{BenchCAD/cad\_bench} (test) and \texttt{BenchCAD/cad\_bench\_edit} (edit), with the verification-pipeline source under MIT and the dataset under CC-BY-4.0. Dataset cards link to per-family parameter schemas and the standard-table sources used for compliance. A datasheet following~\citet{rot_iou} appears in Appendix~\ref{app:datasheet}.
+
+\input{tables/tab_dataset}
+
+\begin{figure}[t]
+  \centering
+  \fbox{\rule[-2cm]{0cm}{4cm} \rule[0cm]{14cm}{0cm}}
+  \caption{\textbf{BenchCAD overview.} (Top-left) sample parts from four families, with the formula-driven parametric structure highlighted (involute equation for gears, helix parametric for springs, ISO 23509 module--tooth--pitch relation for bevel gears). (Top-right) the 106-family taxonomy split by standard body (ISO/DIN/EN/ASME/IEC/custom). (Bottom-left) the five evaluation tasks and their capability coverage. (Bottom-right) headline finding: image-conditioned QA trails code-conditioned QA by 15--20\,pt across all 30+ evaluated models (Vision Bottleneck). \emph{Placeholder figure --- replace with composed PDF.}}
+  \label{fig:overview}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \fbox{\rule[-2cm]{0cm}{4cm} \rule[0cm]{14cm}{0cm}}
+  \caption{\textbf{Family taxonomy and difficulty stratification.} Each row shows three representative parts (easy / medium / hard) drawn from a single family. Difficulty tiers are family-specific and machine-checkable; complexity grows along (a) op count, (b) feature count, (c) presence of helical/lofted/boolean operations. \emph{Placeholder figure --- replace with composed PDF.}}
+  \label{fig:taxonomy}
+\end{figure}

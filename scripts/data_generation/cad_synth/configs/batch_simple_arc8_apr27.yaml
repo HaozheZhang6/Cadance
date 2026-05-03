@@ -1,0 +1,18 @@
+run_name: batch_simple_arc8_apr27
+num_samples: 240
+seed: 4129
+n_workers: 4
+family_mix:
+  simple_oval_plate: 1
+  simple_tear_drop_plate: 1
+  simple_tab_plate: 1
+  simple_lobe_plate: 1
+  simple_lens_plate: 1
+  simple_arc_bar_plate: 1
+  simple_ring_segment_plate: 1
+  simple_arc_corner_bracket: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true

@@ -2,8 +2,8 @@
 
 from ..families.ball_knob import BallKnobFamily
 from ..families.base import BaseFamily
-from ..families.bearing_retainer_cap import BearingRetainerCapFamily
 from ..families.battery_holder import BatteryHolderFamily
+from ..families.bearing_retainer_cap import BearingRetainerCapFamily
 from ..families.bellows import BellowsFamily
 from ..families.bevel_gear import BevelGearFamily
 from ..families.bolt import BoltFamily
@@ -28,6 +28,7 @@ from ..families.dowel_pin import DowelPinFamily
 from ..families.duct_elbow import DuctElbowFamily
 from ..families.enclosure import EnclosureFamily
 from ..families.eyebolt import EyeboltFamily
+from ..families.f_bracket import FBracketFamily
 from ..families.fan_shroud import FanShroudFamily
 from ..families.flat_link import FlatLinkFamily
 from ..families.grease_nipple import GreaseNippleFamily
@@ -76,6 +77,39 @@ from ..families.rivet import RivetFamily
 from ..families.round_flange import RoundFlangeFamily
 from ..families.shaft_collar import ShaftCollarFamily
 from ..families.sheet_metal_tray import SheetMetalTrayFamily
+from ..families.simple_alphabet_pack import ALL_FAMILIES as _PACK_ALPHABET
+from ..families.simple_arc_profiles_pack import ALL_FAMILIES as _PACK_ARC
+from ..families.simple_bellows import SimpleBellowsFamily
+from ..families.simple_bevel_gear import SimpleBevelGearFamily
+
+# 5 thematic packs (UA-24 round-2): 85 additional simple_xxx families
+from ..families.simple_blocks_pack import ALL_FAMILIES as _PACK_BLOCKS
+from ..families.simple_coil_spring import SimpleCoilSpringFamily
+from ..families.simple_cylindrical_pack import ALL_FAMILIES as _PACK_CYL
+from ..families.simple_double_sprocket import SimpleDoubleSprocketFamily
+from ..families.simple_face_pack import ALL_FAMILIES as _PACK_FACE
+from ..families.simple_filleted_pack import ALL_FAMILIES as _PACK_FILLETED
+from ..families.simple_helical_gear import SimpleHelicalGearFamily
+from ..families.simple_impeller import SimpleImpellerFamily
+from ..families.simple_l_solid import SimpleLSolidFamily
+from ..families.simple_lobed_pack import ALL_FAMILIES as _PACK_LOBED
+from ..families.simple_multi_extrude_step import SimpleMultiExtrudeStepFamily
+from ..families.simple_multi_stage_pack import ALL_FAMILIES as _PACK_MULTI
+from ..families.simple_open_box_thin import SimpleOpenBoxThinFamily
+from ..families.simple_plate_holes_grid import SimplePlateHolesGridFamily
+from ..families.simple_profiles_pack import ALL_FAMILIES as _PACK_PROFILES
+from ..families.simple_propeller import SimplePropellerFamily
+from ..families.simple_pulley import SimplePulleyFamily
+from ..families.simple_sheet_sections_pack import ALL_FAMILIES as _PACK_SHEETS
+from ..families.simple_spline_hub import SimpleSplineHubFamily
+from ..families.simple_sprocket import SimpleSprocketFamily
+from ..families.simple_spur_gear import SimpleSpurGearFamily
+from ..families.simple_strip_pack import ALL_FAMILIES as _PACK_STRIP
+from ..families.simple_symbol_pack import ALL_FAMILIES as _PACK_SYMBOL
+from ..families.simple_t_solid import SimpleTSolidFamily
+from ..families.simple_torsion_spring import SimpleTorsionSpringFamily
+from ..families.simple_twisted_drill import SimpleTwistedDrillFamily
+from ..families.simple_worm_screw import SimpleWormScrewFamily
 from ..families.slotted_plate import SlottedPlateFamily
 from ..families.snap_clip import SnapClipFamily
 from ..families.spacer_ring import SpacerRingFamily
@@ -106,121 +140,153 @@ from ..families.wall_anchor import WallAnchorFamily
 from ..families.wing_nut import WingNutFamily
 from ..families.wire_grid import WireGridFamily
 from ..families.worm_screw import WormScrewFamily
-from ..families.z_bracket import ZBracketFamily
 
 _FAMILIES: dict[str, BaseFamily] = {}
 
 
 def _register_builtins():
     """Register built-in families."""
-    for cls in [
-        MountingPlateFamily,
-        RoundFlangeFamily,
-        LBracketFamily,
-        EnclosureFamily,
-        HollowTubeFamily,
-        VentedPanelFamily,
-        SteppedShaftFamily,
-        HeatSinkFamily,
-        PipeFlangeFamily,
-        UChannelFamily,
-        StandoffFamily,
-        SlottedPlateFamily,
-        BearingRetainerCapFamily,
-        ShaftCollarFamily,
-        ConnectorFaceplateFamily,
-        MotorEndCapFamily,
-        PcbStandoffPlateFamily,
-        CableRoutingPanelFamily,
-        LocatorBlockFamily,
-        GussetedBracketFamily,
-        SpacerRingFamily,
-        LatheTurnedPartFamily,
-        TSlotRailFamily,
-        RibPlateFamily,
-        HexStandoffFamily,
-        TaperedBossFamily,
-        IBeamFamily,
-        WafflePlateFamily,
-        CoilSpringFamily,
-        PipeElbowFamily,
-        HingeFamily,
-        SpurGearFamily,
-        ImpellerFamily,
-        PulleyFamily,
-        KnobFamily,
-        DovetailSlideFamily,
-        CamFamily,
-        SheetMetalTrayFamily,
-        WormScrewFamily,
-        ThreadedAdapterFamily,
-        ZBracketFamily,
-        TPipeFittingFamily,
-        BellowsFamily,
-        ManifoldBlockFamily,
-        ConnectingRodFamily,
-        HelicalGearFamily,
-        PropellerFamily,
-        BevelGearFamily,
-        DomeCapFamily,
-        CapsuleFamily,
-        TorusLinkFamily,
-        PistonFamily,
-        DuctElbowFamily,
-        BallKnobFamily,
-        BoltFamily,
-        BucketFamily,
-        ChairFamily,
-        ClevisFamily,
-        FanShroudFamily,
-        HandwheelFamily,
-        HexNutFamily,
-        MeshPanelFamily,
-        MountingAngleFamily,
-        NozzleFamily,
-        SnapClipFamily,
-        TableFamily,
-        WireGridFamily,
-        FlatLinkFamily,
-        RatchetSectorFamily,
-        CruciformFamily,
-        DogBoneFamily,
-        RectFrameFamily,
-        StarBlankFamily,
-        CirclipFamily,
-        DowelPinFamily,
-        SprocketFamily,
-        DoubleSimplexSprocketFamily,
-        WasherFamily,
-        ParallelKeyFamily,
-        ClevisPinFamily,
-        TaperPinFamily,
-        TorsionSpringFamily,
-        EyeboltFamily,
-        SplineHubFamily,
-        VenturiTubeFamily,
-        TwistedBracketFamily,
-        TwistedDrillFamily,
-        WingNutFamily,
-        LobedKnobFamily,
-        GreaseNippleFamily,
-        UBoltFamily,
-        RivetFamily,
-        CotterPinFamily,
-        PullHandleFamily,
-        PillowBlockFamily,
-        TurnbuckleFamily,
-        KeyholePlateFamily,
-        PanHeadScrewFamily,
-        GrommetFamily,
-        TeeNutFamily,
-        JHookFamily,
-        WallAnchorFamily,
-        GridfinityBinFamily,
-        HexKeyOrganizerFamily,
-        BatteryHolderFamily,
-        PhoneStandFamily,
-    ]:
+    for cls in (
+        [
+            MountingPlateFamily,
+            RoundFlangeFamily,
+            LBracketFamily,
+            EnclosureFamily,
+            HollowTubeFamily,
+            VentedPanelFamily,
+            SteppedShaftFamily,
+            HeatSinkFamily,
+            PipeFlangeFamily,
+            UChannelFamily,
+            StandoffFamily,
+            SlottedPlateFamily,
+            BearingRetainerCapFamily,
+            ShaftCollarFamily,
+            ConnectorFaceplateFamily,
+            MotorEndCapFamily,
+            PcbStandoffPlateFamily,
+            CableRoutingPanelFamily,
+            LocatorBlockFamily,
+            GussetedBracketFamily,
+            SpacerRingFamily,
+            LatheTurnedPartFamily,
+            TSlotRailFamily,
+            RibPlateFamily,
+            HexStandoffFamily,
+            TaperedBossFamily,
+            IBeamFamily,
+            WafflePlateFamily,
+            CoilSpringFamily,
+            PipeElbowFamily,
+            HingeFamily,
+            SpurGearFamily,
+            ImpellerFamily,
+            PulleyFamily,
+            KnobFamily,
+            DovetailSlideFamily,
+            CamFamily,
+            SheetMetalTrayFamily,
+            WormScrewFamily,
+            ThreadedAdapterFamily,
+            FBracketFamily,
+            TPipeFittingFamily,
+            BellowsFamily,
+            ManifoldBlockFamily,
+            ConnectingRodFamily,
+            HelicalGearFamily,
+            PropellerFamily,
+            BevelGearFamily,
+            DomeCapFamily,
+            CapsuleFamily,
+            TorusLinkFamily,
+            PistonFamily,
+            DuctElbowFamily,
+            BallKnobFamily,
+            BoltFamily,
+            BucketFamily,
+            ChairFamily,
+            ClevisFamily,
+            FanShroudFamily,
+            HandwheelFamily,
+            HexNutFamily,
+            MeshPanelFamily,
+            MountingAngleFamily,
+            NozzleFamily,
+            SnapClipFamily,
+            TableFamily,
+            WireGridFamily,
+            FlatLinkFamily,
+            RatchetSectorFamily,
+            CruciformFamily,
+            DogBoneFamily,
+            RectFrameFamily,
+            StarBlankFamily,
+            CirclipFamily,
+            DowelPinFamily,
+            SprocketFamily,
+            DoubleSimplexSprocketFamily,
+            WasherFamily,
+            ParallelKeyFamily,
+            ClevisPinFamily,
+            TaperPinFamily,
+            TorsionSpringFamily,
+            EyeboltFamily,
+            SplineHubFamily,
+            VenturiTubeFamily,
+            TwistedBracketFamily,
+            TwistedDrillFamily,
+            WingNutFamily,
+            LobedKnobFamily,
+            GreaseNippleFamily,
+            UBoltFamily,
+            RivetFamily,
+            CotterPinFamily,
+            PullHandleFamily,
+            PillowBlockFamily,
+            TurnbuckleFamily,
+            KeyholePlateFamily,
+            PanHeadScrewFamily,
+            GrommetFamily,
+            TeeNutFamily,
+            JHookFamily,
+            WallAnchorFamily,
+            GridfinityBinFamily,
+            HexKeyOrganizerFamily,
+            BatteryHolderFamily,
+            PhoneStandFamily,
+            SimpleSpurGearFamily,
+            SimpleHelicalGearFamily,
+            SimpleBevelGearFamily,
+            SimpleSprocketFamily,
+            SimpleDoubleSprocketFamily,
+            SimpleImpellerFamily,
+            SimplePropellerFamily,
+            SimpleBellowsFamily,
+            SimpleCoilSpringFamily,
+            SimpleTorsionSpringFamily,
+            SimpleTwistedDrillFamily,
+            SimplePulleyFamily,
+            SimpleSplineHubFamily,
+            SimpleWormScrewFamily,
+            SimplePlateHolesGridFamily,
+            SimpleLSolidFamily,
+            SimpleTSolidFamily,
+            SimpleOpenBoxThinFamily,
+            SimpleMultiExtrudeStepFamily,
+        ]
+        + _PACK_PROFILES
+        + _PACK_CYL
+        + _PACK_BLOCKS
+        + _PACK_MULTI
+        + _PACK_SHEETS
+        + _PACK_ARC
+        + _PACK_SYMBOL
+        + _PACK_FILLETED
+        + _PACK_ALPHABET
+        + _PACK_FACE
+        + _PACK_LOBED
+        + _PACK_STRIP
+    ):
         _FAMILIES[cls.name] = cls()
 
 

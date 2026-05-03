@@ -1,0 +1,34 @@
+run_name: batch_simple_creative22_apr28
+num_samples: 660
+seed: 4130
+n_workers: 4
+family_mix:
+  # symbol_pack (10)
+  simple_letter_s_plate: 1
+  simple_letter_c_plate: 1
+  simple_letter_g_plate: 1
+  simple_smiley_plate: 1
+  simple_hollow_key_plate: 1
+  simple_curved_arrow_plate: 1
+  simple_heart_plate: 1
+  simple_plate_with_s_cut: 1
+  simple_question_mark_plate: 1
+  simple_yin_yang_plate: 1
+  # filleted_pack (12)
+  simple_filleted_l_plate: 1
+  simple_filleted_t_plate: 1
+  simple_filleted_u_plate: 1
+  simple_filleted_cross_plate: 1
+  simple_filleted_step_plate: 1
+  simple_filleted_zigzag_plate: 1
+  simple_filleted_hexagon_plate: 1
+  simple_filleted_octagon_plate: 1
+  simple_filleted_arrow_plate: 1
+  simple_filleted_chevron_plate: 1
+  simple_filleted_dumbbell_plate: 1
+  simple_filleted_ribbon_plate: 1
+difficulty_mix:
+  easy: 1
+  medium: 1
+  hard: 1
+render: true

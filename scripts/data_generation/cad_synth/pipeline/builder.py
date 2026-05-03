@@ -88,7 +88,10 @@ def _apply_op(wp, op: Op):
         wp = wp.shell(a["thickness"])
     elif name == "workplane":
         try:
-            wp = wp.faces(_remap_sel(a["selector"])).workplane()
+            kwargs = {}
+            if "center_option" in a:
+                kwargs["centerOption"] = a["center_option"]
+            wp = wp.faces(_remap_sel(a["selector"])).workplane(**kwargs)
         except Exception:
             try:
                 wp = wp.newObject([wp.findSolid()])
@@ -395,6 +398,8 @@ def _op_to_code(op: Op) -> str:
     elif name == "shell":
         return f".shell({a['thickness']})"
     elif name == "workplane":
+        if "center_option" in a:
+            return f'.faces("{_remap_sel(a["selector"])}").workplane(centerOption="{a["center_option"]}")'
         return f'.faces("{_remap_sel(a["selector"])}").workplane()'
     elif name == "pushPoints":
         return f".pushPoints({a['points']})"

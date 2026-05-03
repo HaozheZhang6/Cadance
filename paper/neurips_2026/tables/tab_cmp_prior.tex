@@ -1,0 +1,23 @@
+\begin{table*}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\caption{\textbf{BenchCAD versus prior CAD code-generation benchmarks.} BenchCAD is the first CAD benchmark with explicit family taxonomy, multi-task coverage (including a verified parametric edit task with non-target preservation), formula-driven standard-anchored data, rotation- and scale-invariant scoring, and execution-verified ground truth at scale. \cmark$\,$ = supported; -- = absent; \emph{seq.} = command sequence; \emph{part.} = partial. \emph{Code style} distinguishes runnable Python (Py) from custom DSL/JSON.}
+\label{tab:cmp_prior}
+\begin{tabular}{lrrcccccccccr}
+\toprule
+Benchmark & Year & \#Samples & Code & Std. & Img & NL & Edit & QA & Verif. & RotIoU & ScaleInv & \#Models \\
+\midrule
+DeepCAD~\citep{Wu2021}                & '21 & 178K   & seq.  & --     & --     & --     & --     & --     & --     & --     & --     & -- \\
+Fusion360 G.~\citep{Willis2021fusion} & '21 & 8K     & JSON  & --     & part.  & --     & --     & --     & --     & --     & --     & -- \\
+Text2CAD~\citep{Khan2024}             & '24 & 170K   & seq.  & --     & --     & \cmark & --     & --     & part.  & --     & --     & 1  \\
+CADPrompt~\citep{Alrashedy2025}       & '25 & 200    & Py    & --     & \cmark & \cmark & --     & part.  & part.  & --     & --     & 3  \\
+CAD-Coder~\citep{Guan2025}            & '25 & 110K   & Py    & --     & --     & \cmark & part.  & --     & \cmark & --     & --     & 6  \\
+CAD-Recode~\citep{Rukhovich2025}      & '25 & 1M+7K  & Py    & --     & pts.   & --     & part.  & seq.   & \cmark & --     & --     & 5  \\
+cadrille~\citep{Kolodiazhnyi2026}     & '26 & 1M+7K  & Py    & --     & \cmark & --     & --     & --     & \cmark & --     & --     & 4  \\
+CADEvolve~\citep{Elistratov2026}      & '26 & 2.7M   & Py    & --     & \cmark & --     & --     & --     & \cmark & --     & --     & 4  \\
+\midrule
+\textbf{BenchCAD (ours)} & \textbf{'26} & \textbf{20{,}143} & \textbf{Py} & \textbf{\cmark} & \textbf{\cmark} & \textbf{\cmark} & \textbf{\cmark} & \textbf{\cmark} & \textbf{\cmark} & \textbf{\cmark} & \textbf{\cmark} & \textbf{30+} \\
+\bottomrule
+\end{tabular}
+\end{table*}
