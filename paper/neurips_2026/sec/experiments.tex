@@ -8,7 +8,7 @@
 
 Table~\ref{tab:main_eval} reports per-task accuracy and the macro-mean. The strongest model overall is GPT-5.3 (think) at 46.8\% Avg --- well below the IoU $\geq 0.99$ verification threshold and leaving substantial room across every task. Three observations stand out. \textbf{Absolute scores remain low}: even top reasoning models score below 50\% on every task; the strongest open-source VLM (Qwen2.5-VL-72B, 23.5\% Avg) trails the best proprietary system by 23\,pt; CAD-specialised text/point-cloud models (CAD-Coder-7B, CAD-Recode-1.5B) sit between mid-tier proprietary and top-tier open-source on their applicable tasks despite matching the latter on the original DeepCAD benchmark. \textbf{Scaling is not enough}: InternVL3 1B$\to$78B raises Avg by only 14.5\,pt over a 78$\times$ parameter expansion; Qwen2.5-VL 7B$\to$72B by only 7.5\,pt. \textbf{Geometry-program decoupling}: several mid-tier models (Gemini 3.1 Pro, GPT-4o) achieve respectable IoU on \texttt{img2cq} but mid-tier scores on \texttt{qa\_img}, indicating they recover the outer shape but cannot answer dimensional questions about it.
 
-\input{tables/tab_main_eval}
+% tab_main_eval moved to Appendix~\ref{app:full_results}
 
 \begin{figure*}[t]
   \centering
@@ -29,7 +29,7 @@ A per-model capability profile across six axes (surface similarity, local featur
 
 Table~\ref{tab:family_cliff} stratifies \texttt{img2cq} pass rate by family difficulty tier. The strongest model collapses by 48\,pt from easy (68\%) to hard (20\%), exhibiting a \textbf{Family Cliff} attributable to two interacting factors: hard-tier families exercise advanced operations (helical sweeps, twist-extrusion, lofted Booleans) that scarcely appear in any prior CAD training corpus, and they enforce non-trivial parametric constraints (gear module--tooth--pitch consistency, spring free-length--turn-count coupling) that no model evaluated reliably preserves. The cliff persists across architectures: closed-source post-training quality dominates the easy-tier gap (Qwen2.5-VL-72B trails GPT-5.3 by 30\,pt on easy) but converges on hard (15\,pt gap) because both models hover near the floor.
 
-\input{tables/tab_family_cliff}
+% tab_family_cliff moved to Appendix~\ref{app:full_results}
 
 \subsection{The Edit Task: Verified Parametric Editing}
 \label{sec:exp_edit}

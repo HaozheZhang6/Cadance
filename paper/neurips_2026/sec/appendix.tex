@@ -36,6 +36,35 @@ The CAD-Recode/cadrille/CADEvolve lineage~\citep{Rukhovich2025,Kolodiazhnyi2026,
 
 \input{tables/tab_standards}
 
+\section{Full Per-Model Per-Task Results}
+\label{app:full_results}
+
+Table~\ref{tab:dataset} reports the dataset composition; Table~\ref{tab:capability} maps each task to its sub-capability subset; Table~\ref{tab:main_eval} reports the full per-model per-task leaderboard; Table~\ref{tab:family_cliff} stratifies \texttt{img2cq} by family difficulty.
+
+\input{tables/tab_dataset}
+
+\input{tables/tab_capability}
+
+\input{tables/tab_main_eval}
+
+\input{tables/tab_family_cliff}
+
+\section{Op Vocabulary Gap: Full Tables and Training Curves}
+\label{app:op_gap_full}
+
+\input{tables/tab_op_gap}
+
+\input{tables/tab_transfer}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.85\linewidth]{figures/fig_7.png}
+  \caption{\textbf{The generalisation gap on BenchCAD remains substantial after 25k SFT steps.} Qwen2-VL-2B trained on three data mixtures under matched 9 GPU-hour budgets, evaluated on the BenchCAD validation set throughout 0--25k steps.
+    \emph{(a) OOD IoU vs.\ training step.} The IID-trained run (green) climbs to IoU $\sim$0.65; the OOD run (red, trained without the target family slice) plateaus near 0.30 by 10k steps; the HQ-only baseline (grey, no BenchCAD-Synth) never exceeds 0.10. \emph{(b) OOD essential-op pass rate.} IID reaches $\sim$0.85, OOD plateaus at $\sim$0.35, HQ-only stays at $\sim$0\% --- the \textbf{Op Vocabulary Gap}.
+    The deficit is not optimisation budget (curves saturate by 15--20k), not backbone capacity (same Qwen2-VL-2B reaches IID IoU 0.65), and not training-corpus operation coverage alone (the OOD run \emph{has} BenchCAD-Synth data and still plateaus 35--50\,pt below IID). It is the fundamental difficulty of training large models to construct industry-grade parametric CAD code on \emph{unseen} family distributions.}
+  \label{fig:generalisation_gap}
+\end{figure*}
+
 \section{Extended Capability Analysis}
 \label{app:capability_profile}
 
