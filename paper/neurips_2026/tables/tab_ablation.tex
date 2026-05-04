@@ -1,13 +1,13 @@
 \begin{table}[t]
 \centering
 \small
-\caption{\textbf{Scoring-protocol and inference-strategy ablations.} Reported on GPT-5 (think) on BenchCAD-Lite. Removing scale invariance (allowing absolute mm hints in prompts) inflates \texttt{qa\_img} by 4.6\,pt --- the systematic optimism baked into prior CAD-eval protocols. Best-of-5 sampling and multi-turn refinement with execution feedback offer diminishing-returns improvements. Doubling view count from 4 to 8 closes only $\leq$1.5\,pt of the Vision Bottleneck, far below what a perception bottleneck would predict.}
+\caption{\textbf{Scoring-protocol and inference-strategy ablations.} Reported on GPT-5.3 (think) on BenchCAD-Lite. Removing scale invariance (allowing absolute mm hints in prompts) inflates \texttt{qa\_img} by 4.6\,pt --- the systematic optimism baked into prior CAD-eval protocols. Best-of-5 sampling and multi-turn refinement with execution feedback offer diminishing-returns improvements. Doubling view count from 4 to 8 closes only $\leq$1.5\,pt of the Vision Bottleneck, far below what a perception bottleneck would predict.}
 \label{tab:ablation}
 \begin{tabular}{lrr}
 \toprule
 Variant & Avg & $\Delta$ \\
 \midrule
-GPT-5 full (4-view img + scale-invariant prompts) & 46.8 & -- \\
+GPT-5.3 full (4-view img + scale-invariant prompts) & 46.8 & -- \\
 $-$ single front view only                        & 38.5 & $-$8.3 \\
 $+$ 8-view grid (vs.\ 4-view)                     & 47.6 & $+$0.8 \\
 $-$ scale-invariant prompts (mm hints leak)       & 51.4 & $+$4.6 (inflated) \\

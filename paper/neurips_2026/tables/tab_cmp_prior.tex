@@ -2,22 +2,26 @@
 \centering
 \small
 \setlength{\tabcolsep}{3pt}
-\caption{\textbf{BenchCAD versus prior CAD code-generation benchmarks.} BenchCAD is the first CAD benchmark with explicit family taxonomy, multi-task coverage (including a verified parametric edit task with non-target preservation), formula-driven standard-anchored data, rotation- and scale-invariant scoring, and execution-verified ground truth at scale. \cmark$\,$ = supported; -- = absent; \emph{seq.} = command sequence; \emph{part.} = partial. \emph{Code style} distinguishes runnable Python (Py) from custom DSL/JSON.}
+\caption{\textbf{BenchCAD versus prior CAD code-generation work.} BenchCAD is designed as a \emph{unified, capability-decomposed evaluation framework} for large-model CAD reasoning, intended to remain useful as the field evolves from current frontier MLLMs (GPT-5.3, Claude Opus 4.7, $\ldots$) toward future CAD agents and generative systems. It is distinct in purpose from the prior CadQuery-VLM lineage (CAD-Recode, cadrille, CADEvolve), which primarily releases training corpora alongside small fine-tuned models (Qwen 1.5B--2B) that saturate near $\sim$92\% IoU on legacy sketch+extrude test splits. \textbf{Columns:} \textbf{Type}: \emph{corpus+model} = training corpus released with a fine-tuned model, \emph{benchmark} = held-out evaluation suite, \emph{dataset} = mixed-purpose CAD design dataset; \textbf{\#Indus.\ fam.} = named industrial part families with explicit functional identity (gear, drill, spring, $\ldots$) versus untyped CAD parts pooled without semantic structure; \textbf{\#Std codes} = distinct ISO/DIN/EN/ASME/IEC specification codes from which parameter ranges are programmatically sampled; \textbf{\#Distinct CQ ops} = distinct CadQuery API operations exercised in the released dataset (counts derived from each work's published description; ours from a static analysis of the released family code, see Appendix~\ref{app:ops}); \textbf{Adv ops} = whether all four advanced operation families (helix, loft/sweep, twist-extrude, parametric involute-gear construction) are exercised; \textbf{\#Eval} = distinct models reported in the original work's evaluation. BenchCAD additionally introduces a 6-orientation rotation-invariant $64^3$ IoU $\geq 0.99$ verification protocol and ratio-only scale-invariant prompts (\S\ref{sec:dataset}, \S\ref{sec:tasks}). \cmark$\,$ = supported, part.\, = partial, -- = absent.}
 \label{tab:cmp_prior}
-\begin{tabular}{lrrcccccccccr}
+\begin{tabular}{lrlrrrlcccr}
 \toprule
-Benchmark & Year & \#Samples & Code & Std. & Img & NL & Edit & QA & Verif. & RotIoU & ScaleInv & \#Models \\
+                                  &      &              & \#Sam-  & \#Indus.\ & \#Std  & \#Distinct                                                                                                  & Adv  & Edit & QA   & \\
+Benchmark                         & Year & Type         & ples    & fam.      & codes  & CQ ops                                                                                                      & ops  & task & task & \#Eval \\
 \midrule
-DeepCAD~\citep{Wu2021}                & '21 & 178K   & seq.  & --     & --     & --     & --     & --     & --     & --     & --     & -- \\
-Fusion360 G.~\citep{Willis2021fusion} & '21 & 8K     & JSON  & --     & part.  & --     & --     & --     & --     & --     & --     & -- \\
-Text2CAD~\citep{Khan2024}             & '24 & 170K   & seq.  & --     & --     & \cmark & --     & --     & part.  & --     & --     & 1  \\
-CADPrompt~\citep{Alrashedy2025}       & '25 & 200    & Py    & --     & \cmark & \cmark & --     & part.  & part.  & --     & --     & 3  \\
-CAD-Coder~\citep{Guan2025}            & '25 & 110K   & Py    & --     & --     & \cmark & part.  & --     & \cmark & --     & --     & 6  \\
-CAD-Recode~\citep{Rukhovich2025}      & '25 & 1M+7K  & Py    & --     & pts.   & --     & part.  & seq.   & \cmark & --     & --     & 5  \\
-cadrille~\citep{Kolodiazhnyi2026}     & '26 & 1M+7K  & Py    & --     & \cmark & --     & --     & --     & \cmark & --     & --     & 4  \\
-CADEvolve~\citep{Elistratov2026}      & '26 & 2.7M   & Py    & --     & \cmark & --     & --     & --     & \cmark & --     & --     & 4  \\
+DeepCAD~\citep{Wu2021}            & '21 & corpus+model & 178K   & 0    & 0   & 4 (sk+ex)                                                                                                        & --     & --     & --     & 1   \\
+Fusion360 G.~\citep{Willis2021fusion} & '21 & dataset  & 8K     & 0    & 0   & $\sim$6 (sk+ex+rev+fil)                                                                                          & --     & --     & --     & --  \\
+Text2CAD~\citep{Khan2024}         & '24 & corpus+model & 170K   & 0    & 0   & 4 (sk+ex)                                                                                                        & --     & --     & --     & 1   \\
+CADPrompt~\citep{Alrashedy2025}   & '25 & benchmark    & 200    & 0    & 0   & varied (manual)                                                                                                  & part.  & --     & --     & 3   \\
+CAD-Coder~\citep{Guan2025}        & '25 & corpus+model & 110K   & 0    & 0   & 4 (sk+ex)                                                                                                        & --     & part.  & --     & 6   \\
+CAD-Recode~\citep{Rukhovich2025}  & '25 & corpus+model & 1M+7K  & 0    & 0   & 6 (sk+ex+bool)                                                                                                   & --     & part.  & seq.   & 5   \\
+cadrille~\citep{Kolodiazhnyi2026} & '26 & corpus+model & 1M+7K  & 0    & 0   & 6 (sk+ex+bool)                                                                                                   & --     & --     & --     & 4   \\
+CADEvolve~\citep{Elistratov2026}  & '26 & corpus+model & 2.7M   & 0    & 0   & $\sim$12 (+rev,\,loft,\,sweep,\,fil,\,cham,\,sh)\textsuperscript{*}                                              & part.\textsuperscript{*} & --     & --     & 4   \\
 \midrule
-\textbf{BenchCAD (ours)} & \textbf{'26} & \textbf{20{,}143} & \textbf{Py} & \textbf{\cmark} & \textbf{\cmark} & \textbf{\cmark} & \textbf{\cmark} & \textbf{\cmark} & \textbf{\cmark} & \textbf{\cmark} & \textbf{\cmark} & \textbf{30+} \\
+\textbf{BenchCAD (ours)} & \textbf{'26} & \textbf{benchmark} & \textbf{17{,}900} & \textbf{106} & \textbf{47} & \textbf{45+} & \textbf{\cmark} & \textbf{\cmark} & \textbf{\cmark} & \textbf{10+} \\
 \bottomrule
 \end{tabular}
+
+\vspace{2pt}
+{\footnotesize\textsuperscript{*}CADEvolve's seed pool covers extrude, revolve, loft, sweep, shell, fillet, chamfer, Boolean operations, and patterns, exercising 2 of the 4 advanced families (loft/sweep). The remaining two --- helical sweeps (used by coil springs, twist drills, screw threads) and parametric involute-gear construction --- remain absent from the released training corpus.}
 \end{table*}

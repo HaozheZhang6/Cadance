@@ -7,6 +7,11 @@ tmp/
 *.png
 *.svg
 .DS_Store
+
+# Exception: paper figures must be tracked so .tex compiles in others' clones
+!paper/**/figures/*.png
+!paper/**/figures/*.pdf
+!paper/**/figures/*.svg
 *.step
 *.stl
 *.iges
