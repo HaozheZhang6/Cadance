@@ -79,8 +79,10 @@ def call_vlm_qa(
         return [], None
     adapter = get_adapter(model)
     user_text = build_qa_user_text(questions)
+    # 8192 leaves room for thinking models (gemini-2.5, gpt-5.x, deepseek-v4)
+    # to spend tokens on chain-of-thought before emitting the JSON array.
     raw, err = adapter.generate(
-        QA_IMG_SYSTEM_PROMPT, user_text, images=[_to_pil(pil_img)], max_tokens=512
+        QA_IMG_SYSTEM_PROMPT, user_text, images=[_to_pil(pil_img)], max_tokens=8192
     )
     if raw is None:
         return None, err
@@ -98,7 +100,9 @@ def call_llm_qa_code(
         return [], None
     adapter = get_adapter(model)
     user_text = build_qa_user_text(questions, code=code)
-    raw, err = adapter.generate(QA_CODE_SYSTEM_PROMPT, user_text, max_tokens=512)
+    # 8192 leaves room for reasoning models (deepseek-v4-pro, gpt-5.3-thinking, etc.)
+    # to spend tokens on chain-of-thought before emitting the JSON array.
+    raw, err = adapter.generate(QA_CODE_SYSTEM_PROMPT, user_text, max_tokens=8192)
     if raw is None:
         return None, err
     arr = parse_qa_answers(raw, len(questions))

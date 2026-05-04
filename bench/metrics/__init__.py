@@ -227,16 +227,36 @@ def compute_rotation_invariant_iou(
 def qa_score_single(pred: float, qa: dict) -> float:
     """Score one QA answer against ground truth.
 
-    All types use ratio accuracy: min(pred, gt) / max(pred, gt)
-    - pred=24, gt=26 → 24/26 = 0.923
-    - pred=26, gt=24 → 24/26 = 0.923  (symmetric)
+    Binary case (gt and pred both in {0, 1}): exact match → 1.0 else 0.0.
+    This makes "correctly predicting NO" worth full credit (yes/no questions
+    where gt=0 used to always score 0 because of the divide-by-zero guard).
+
+    Otherwise ratio accuracy: min(pred, gt) / max(pred, gt)
+    - pred=24, gt=26 → 24/26 = 0.923  (symmetric)
     - pred=26, gt=26 → 1.000  (exact)
-    Returns 0.0 if either value is non-positive.
+    Returns 0.0 if either value is non-positive (and not the binary case).
     """
     gt = qa["answer"]
-    pred = float(pred)
+    try:
+        pred = float(pred)
+    except (TypeError, ValueError):
+        return 0.0
+    # Binary yes/no scoring (gt in {0, 1}): linear soft match.
+    # 1 - |pred - gt|, clamped to [0, 1].
+    # gt=1, pred=1   → 1.0
+    # gt=1, pred=0.4 → 0.4   (partial credit)
+    # gt=1, pred=0   → 0.0
+    # gt=0, pred=0.3 → 0.7
+    # gt=1, pred=5   → max(0, -3) = 0.0
+    if gt in (0, 1):
+        return max(0.0, round(1.0 - abs(pred - gt), 4))
     if gt <= 0 or pred <= 0:
         return 0.0
+    # 5% tolerance for decimal-valued answers (ratios / dims): if pred is within
+    # 5% relative error of gt, count as full credit. Avoids penalizing
+    # near-correct answers like 3.5 vs 3.75 (which previously capped at 0.933).
+    if abs(gt - round(gt)) > 1e-3 and abs(pred - gt) / abs(gt) < 0.05:
+        return 1.0
     return round(min(pred, gt) / max(pred, gt), 4)
 
 

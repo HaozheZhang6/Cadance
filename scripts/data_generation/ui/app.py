@@ -2265,6 +2265,695 @@ def page_bench_curator():
 # ── navigation ────────────────────────────────────────────────────────────────
 
 
+def page_qa_img_review():
+    """QA Review · cad_bench_200 — per-question scores across all qa_img + qa_code models.
+
+    Source dataset: qixiaoqi/cad_bench_200 (200 stems × 12 QA each).
+    Auto-discovers any model under results/qa_img/* and results/qa_code/*.
+    """
+    import io
+    import json as _json
+
+    import pandas as pd
+    from datasets import load_dataset
+    from PIL import Image as _PIL
+
+    st.title("QA Review · cad_bench_200")
+    st.caption(
+        "Per-question pred + score for every model across qa_img + qa_code. "
+        "Auto-loads `results/qa_img/<model>/results.jsonl` and `results/qa_code/<model>/results.jsonl`. "
+        "🟢=score≥0.95  🟠=≥0.6  🔴=<0.6"
+    )
+
+    @st.cache_resource(show_spinner="Loading qixiaoqi/cad_bench_200 ...")
+    def _load_bench():
+        ds = load_dataset(
+            "qixiaoqi/cad_bench_200", download_mode="reuse_dataset_if_exists"
+        )
+        sp = list(ds.keys())[0]
+        return ds[sp]
+
+    def _discover_models(task: str) -> list[str]:
+        d = ROOT / f"results/{task}"
+        if not d.exists():
+            return []
+        return sorted(
+            p.name for p in d.iterdir()
+            if p.is_dir() and (p / "results.jsonl").exists()
+        )
+
+    @st.cache_data(show_spinner=False)
+    def _load_task_results(task: str, model: str) -> dict:
+        p = ROOT / f"results/{task}/{model}/results.jsonl"
+        rows = [_json.loads(l) for l in p.read_text().splitlines() if l.strip()]
+        return {r["stem"]: r for r in rows}
+
+    bench = _load_bench()
+    img_models = _discover_models("qa_img")
+    code_models = _discover_models("qa_code")
+    img_results = {m: _load_task_results("qa_img", m) for m in img_models}
+    code_results = {m: _load_task_results("qa_code", m) for m in code_models}
+
+    st.caption(
+        f"discovered: **{len(img_models)} img** models · **{len(code_models)} code** models"
+    )
+
+    # ── filters ──
+    fc1, fc2, fc3, fc4 = st.columns([1, 1, 2, 1])
+    with fc1:
+        diff = st.selectbox("Difficulty", ["all", "easy", "medium", "hard"], key="qaall_diff")
+    with fc2:
+        type_f = st.selectbox("Q-type", ["all", "ratio", "integer", "dim"], key="qaall_type")
+    with fc3:
+        fam_f = st.text_input("Family contains", "", key="qaall_fam")
+    with fc4:
+        page_size = int(st.selectbox("Per page", [10, 25, 50], index=1, key="qaall_psize"))
+
+    rows = []
+    for r in bench:
+        if diff != "all" and r["difficulty"] != diff:
+            continue
+        if fam_f and fam_f.lower() not in r["family"].lower():
+            continue
+        rows.append(r)
+    n_total = len(rows)
+    n_pages = max(1, (n_total + page_size - 1) // page_size)
+
+    if "qaall_page" not in st.session_state:
+        st.session_state["qaall_page"] = 1
+    if st.session_state["qaall_page"] > n_pages:
+        st.session_state["qaall_page"] = 1
+
+    np_prev, np_lbl, np_next, np_jump, np_stat = st.columns([0.6, 0.6, 0.6, 1, 4])
+    with np_prev:
+        if st.button("⬅ Prev", use_container_width=True,
+                     disabled=st.session_state["qaall_page"] <= 1, key="qaall_prev"):
+            st.session_state["qaall_page"] -= 1
+            st.rerun()
+    with np_lbl:
+        st.markdown(
+            f"<div style='text-align:center; padding-top:6px'>"
+            f"**{st.session_state['qaall_page']} / {n_pages}**</div>",
+            unsafe_allow_html=True,
+        )
+    with np_next:
+        if st.button("Next ➡", use_container_width=True,
+                     disabled=st.session_state["qaall_page"] >= n_pages, key="qaall_next"):
+            st.session_state["qaall_page"] += 1
+            st.rerun()
+    with np_jump:
+        page = st.number_input(
+            "Jump", min_value=1, max_value=n_pages,
+            value=st.session_state["qaall_page"], step=1,
+            key="qaall_jump", label_visibility="collapsed",
+        )
+        if page != st.session_state["qaall_page"]:
+            st.session_state["qaall_page"] = page
+            st.rerun()
+    with np_stat:
+        # overall avg per model on the filtered set
+        sample_stems = {r["stem"] for r in rows}
+        sums = []
+        for task, results in [("img", img_results), ("code", code_results)]:
+            for m in results:
+                scs = [
+                    res["qa_score"] for s, res in results[m].items()
+                    if s in sample_stems and res.get("error") is None
+                ]
+                if scs:
+                    sums.append(f"{m}/{task}={sum(scs)/len(scs):.2f}")
+        st.markdown(f"**{n_total}** stems · " + " · ".join(sums[:8]))
+        if len(sums) > 8:
+            st.caption(" · ".join(sums[8:]))
+
+    page = st.session_state["qaall_page"]
+    start = (page - 1) * page_size
+    end = min(start + page_size, n_total)
+    page_rows = rows[start:end]
+    st.caption(f"Showing {start + 1}–{end} of {n_total}")
+    st.divider()
+
+    def _resolve_png(png):
+        if png is None:
+            return None
+        if isinstance(png, dict) and "bytes" in png:
+            png = png["bytes"]
+        if isinstance(png, bytes):
+            return _PIL.open(io.BytesIO(png))
+        return png
+
+    def _fmt_pred(p, t):
+        if p is None:
+            return "—"
+        if isinstance(p, list):
+            return ", ".join(map(str, p))
+        if isinstance(p, str):
+            return p
+        if t == "integer":
+            return f"{int(round(p))}"
+        if t == "ratio":
+            return f"{p:.3f}"
+        return f"{p:.2f}"
+
+    def _color(sc):
+        return "🟢" if sc >= 0.95 else ("🟠" if sc >= 0.6 else "🔴")
+
+    def _fmt_gt(ans, t):
+        if isinstance(ans, list):
+            return f"[{', '.join(map(str, ans))}]"
+        if isinstance(ans, str):
+            return ans
+        if t == "integer":
+            return f"{int(round(ans))}"
+        if t == "ratio":
+            return f"{ans:.3f}"
+        return f"{ans:.2f}"
+
+    for r in page_rows:
+        stem = r["stem"]
+        qa = _json.loads(r["qa"]) if isinstance(r["qa"], str) else r["qa"]
+        if type_f != "all":
+            qa = [q for q in qa if q.get("type") == type_f]
+        if not qa:
+            continue
+
+        # ── stem header: image + per-model overall qa_score badges ──
+        c_img, c_meta = st.columns([1, 5])
+        with c_img:
+            img = _resolve_png(r.get("composite_png"))
+            if img is not None:
+                st.image(img, width=130)
+            st.caption(f"`{stem[:24]}`\n{r['family']} · {r['difficulty']}")
+            with st.expander("gt code"):
+                st.code((r.get("gt_code") or "")[:1500], language="python")
+
+        with c_meta:
+            badges_img, badges_code = [], []
+            for m in img_models:
+                res = img_results[m].get(stem, {})
+                sc = res.get("qa_score", None) if res else None
+                badges_img.append(
+                    f"`{m[:18]}`={sc:.2f}" if sc is not None else f"`{m[:18]}`=—"
+                )
+            for m in code_models:
+                res = code_results[m].get(stem, {})
+                sc = res.get("qa_score", None) if res else None
+                badges_code.append(
+                    f"`{m[:18]}`={sc:.2f}" if sc is not None else f"`{m[:18]}`=—"
+                )
+            if badges_img:
+                st.markdown("**img stem-score:** " + " · ".join(badges_img))
+            if badges_code:
+                st.markdown("**code stem-score:** " + " · ".join(badges_code))
+
+            # ── per-question dataframe ──
+            col_names = ["#", "Q", "type", "gt"]
+            # Use full model names; truncation is unsafe because some pairs
+            # (e.g. moonshot-v1-128k-vp vs moonshot-v1-8k-vp) only differ
+            # in middle chars. st.dataframe handles wide tables.
+            col_names += [f"{m}/img" for m in img_models]
+            col_names += [f"{m}/code" for m in code_models]
+
+            data_rows = []
+            for i, q in enumerate(qa, 1):
+                row = [i, q["question"][:75], q.get("type", ""),
+                       _fmt_gt(q["answer"], q.get("type", ""))]
+                for m in img_models:
+                    res = img_results[m].get(stem, {})
+                    pers = res.get("per_qa", []) if res else []
+                    p_q = next((p for p in pers if p["q"] == q["question"]), None)
+                    if p_q and p_q.get("pred") is not None:
+                        row.append(
+                            f"{_color(p_q['score'])} "
+                            f"{_fmt_pred(p_q['pred'], q.get('type',''))} "
+                            f"({p_q['score']:.2f})"
+                        )
+                    else:
+                        row.append("—")
+                for m in code_models:
+                    res = code_results[m].get(stem, {})
+                    pers = res.get("per_qa", []) if res else []
+                    p_q = next((p for p in pers if p["q"] == q["question"]), None)
+                    if p_q and p_q.get("pred") is not None:
+                        row.append(
+                            f"{_color(p_q['score'])} "
+                            f"{_fmt_pred(p_q['pred'], q.get('type',''))} "
+                            f"({p_q['score']:.2f})"
+                        )
+                    else:
+                        row.append("—")
+                data_rows.append(row)
+
+            df = pd.DataFrame(data_rows, columns=col_names)
+            st.dataframe(
+                df, use_container_width=True, hide_index=True,
+                height=min(450, 50 + 35 * len(qa)),
+            )
+
+        st.divider()
+
+
+
+def page_orientation_errors():
+    """gpt-4o cases where 24-axis IoU >> 1-axis IoU = 'shape OK but plane wrong'."""
+    import csv as _csv
+    import io as _io
+    from pathlib import Path as _P
+
+    import pyarrow.parquet as _pq
+    from PIL import Image as _PILImage
+
+    st.title("Orientation Errors · gpt-4o on cad_bench_200")
+    st.caption(
+        "Cases where 24-axis IoU >> 1-axis IoU. Model generated the right shape "
+        "but oriented it on the wrong plane (likely defaulted to XY because most "
+        "training data is XY-based). 51% of YZ + 56% of XZ exec_ok rows fall here."
+    )
+
+    ROOT_LOCAL = _P(__file__).resolve().parents[3]
+    csv_path = ROOT_LOCAL / "data" / "data_generation" / "bench" / "from_hf" / "orientation_errors_gpt4o.csv"
+    if not csv_path.exists():
+        st.error(f"CSV 不存在: {csv_path.relative_to(ROOT_LOCAL)}")
+        return
+
+    @st.cache_data(show_spinner="loading 56 candidates")
+    def _load_csv(path: str):
+        rows = list(_csv.DictReader(open(path)))
+        for r in rows:
+            r["iou_1axis_f"] = float(r["iou_1axis"])
+            r["iou_24axis_f"] = float(r["iou_24axis"])
+            r["gain_f"] = float(r["gain"])
+        return rows
+
+    @st.cache_data(show_spinner="loading GT images")
+    def _load_gt():
+        pq_paths = sorted(ROOT_LOCAL.glob(
+            "data/hf_cache/hub/datasets--BenchCAD--cad_bench_200/snapshots/*/data/*.parquet"
+        ))
+        if not pq_paths:
+            return {}
+        t = _pq.read_table(pq_paths[-1], columns=["stem", "composite_png"])
+        return dict(zip(t["stem"].to_pylist(), t["composite_png"].to_pylist()))
+
+    rows = _load_csv(str(csv_path))
+    gt_lookup = _load_gt()
+
+    with st.sidebar:
+        st.subheader("Filters")
+        planes = st.multiselect(
+            "GT base_plane", options=["XY", "YZ", "XZ"], default=["XY", "YZ", "XZ"]
+        )
+        min_gain = st.slider("Min gain (iou_rot − iou_1axis)", 0.0, 0.8, 0.15, 0.05)
+        sort_dir = st.radio("Sort by gain", ["desc (worst first)", "asc"], horizontal=True)
+        page_size = st.slider("Rows per page", 5, 50, 15, step=5)
+        cell_px = st.slider("Image size (px)", 96, 384, 256, step=32)
+
+    filtered = [
+        r for r in rows
+        if r["gt_base_plane"] in planes and r["gain_f"] >= min_gain
+    ]
+    filtered.sort(key=lambda r: r["gain_f"], reverse=sort_dir.startswith("desc"))
+
+    n_total = len(filtered)
+    st.write(
+        f"**{n_total} stems** · gpt-4o render available for all (171/200 in 200-set)."
+    )
+
+    n_pages = max(1, (n_total + page_size - 1) // page_size)
+    page = st.number_input(f"Page (1–{n_pages})", min_value=1, max_value=n_pages, value=1)
+    chunk = filtered[(page - 1) * page_size: page * page_size]
+
+    def _decode(b):
+        if isinstance(b, dict):
+            b = b.get("bytes")
+        try:
+            return _PILImage.open(_io.BytesIO(b)).convert("RGB")
+        except Exception:
+            return None
+
+    for r in chunk:
+        plane = r["gt_base_plane"]
+        plane_color = "🟦" if plane == "XY" else ("🟩" if plane == "YZ" else "🟥")
+        st.markdown(
+            f"#### {plane_color} `{r['stem']}` · `{r['family']}` · {r['difficulty']} · "
+            f"GT plane=**{plane}**"
+        )
+        st.markdown(
+            f"**IoU 1-axis = {r['iou_1axis_f']:.3f}** → **IoU 24-axis = {r['iou_24axis_f']:.3f}** "
+            f" (gain = **+{r['gain_f']:.3f}**, best rotation idx = {r['rot_idx']})"
+        )
+
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("**GT (4-view composite)**")
+            gt = _decode(gt_lookup.get(r["stem"]))
+            if gt:
+                st.image(gt, width=cell_px)
+            else:
+                st.write("(no GT image)")
+        with c2:
+            st.markdown("**gpt-4o render** (note plane mismatch)")
+            rd = ROOT_LOCAL / "results" / "img2cq" / "gpt-4o" / "renders" / f"{r['stem']}.png"
+            if rd.exists():
+                st.image(str(rd), width=cell_px)
+            else:
+                st.warning("(no render — should not happen, all 56 have renders)")
+
+        st.divider()
+
+
+def page_shape_ok_imperfect():
+    """Show "shape OK but missing details / wrong ops" cases (Case A + B)."""
+    import csv as _csv
+    import io as _io
+    from pathlib import Path as _P
+
+    import pyarrow.parquet as _pq
+    from PIL import Image as _PILImage
+
+    st.title("Shape-OK but Imperfect · Case A & B")
+    st.caption("IoU≥0.30 cases where geometry matches but details (chamfer/hole/fillet) "
+               "are missing OR essential ops are wrong.")
+
+    ROOT_LOCAL = _P(__file__).resolve().parents[3]
+    csv_path = ROOT_LOCAL / "data" / "data_generation" / "bench" / "from_hf" / "shape_ok_but_imperfect.csv"
+    if not csv_path.exists():
+        st.error(f"CSV 不存在: {csv_path.relative_to(ROOT_LOCAL)}")
+        st.code("uv run python3 -c '...'  # re-generate via shape-ok-imperfect script")
+        return
+
+    LBL = {
+        "gpt-4o": "gpt-4o",
+        "5.3-chat": "gpt-5.3-chat-latest",
+        "5.3-think": "gpt-5.3-thinking",
+        "5.3-thinking": "gpt-5.3-thinking",
+        "gemini-2.5": "gemini-2.5-pro",
+        "kimi 8k": "moonshot-v1-8k-vision-preview",
+        "kimi 128k": "moonshot-v1-128k-vision-preview",
+    }
+
+    @st.cache_data(show_spinner="loading candidates")
+    def _load_csv(path: str):
+        rows = list(_csv.DictReader(open(path)))
+        for r in rows:
+            r["model_dir"] = LBL.get(r["model"], r["model"])
+            try:
+                r["IoU_f"] = float(r["IoU"])
+            except Exception:
+                r["IoU_f"] = 0.0
+        return rows
+
+    @st.cache_data(show_spinner="loading 200-set GT images")
+    def _load_gt():
+        pq_paths = sorted(ROOT_LOCAL.glob(
+            "data/hf_cache/hub/datasets--BenchCAD--cad_bench_200/snapshots/*/data/*.parquet"
+        ))
+        if not pq_paths:
+            return {}
+        t = _pq.read_table(pq_paths[-1], columns=["stem", "composite_png"])
+        out = {}
+        for s, p in zip(t["stem"].to_pylist(), t["composite_png"].to_pylist()):
+            out[s] = p
+        return out
+
+    rows = _load_csv(str(csv_path))
+    gt_lookup = _load_gt()
+
+    # Sidebar filters
+    with st.sidebar:
+        st.subheader("Filters")
+        cases = st.multiselect(
+            "Case",
+            options=["A_shape_ok_missing_detail", "B_shape_ok_wrong_ops"],
+            default=["A_shape_ok_missing_detail", "B_shape_ok_wrong_ops"],
+            format_func=lambda x: "A: missing detail" if "missing" in x else "B: wrong ops",
+        )
+        models_avail = sorted({r["model"] for r in rows})
+        sel_models = st.multiselect("Models", options=models_avail, default=models_avail)
+        sort_dir = st.radio("Sort by IoU", ["desc", "asc"], horizontal=True)
+        page_size = st.slider("Rows per page", 5, 50, 15, step=5)
+        cell_px = st.slider("Image size (px)", 96, 384, 256, step=32)
+        only_with_render = st.checkbox(
+            "Only show rows where render exists", value=False
+        )
+
+    # Apply filters
+    filtered = [r for r in rows if r["case"] in cases and r["model"] in sel_models]
+    if only_with_render:
+        filtered = [
+            r for r in filtered
+            if (ROOT_LOCAL / "results" / "img2cq" / r["model_dir"] / "renders" / f'{r["stem"]}.png').exists()
+        ]
+    filtered.sort(key=lambda r: r["IoU_f"], reverse=(sort_dir == "desc"))
+
+    n_total = len(filtered)
+    rendered_n = sum(
+        1 for r in filtered
+        if (ROOT_LOCAL / "results" / "img2cq" / r["model_dir"] / "renders" / f'{r["stem"]}.png').exists()
+    )
+    st.write(f"**{n_total} candidates** matching filters · {rendered_n} have render PNG ({100 * rendered_n // max(1, n_total)}%)")
+
+    n_pages = max(1, (n_total + page_size - 1) // page_size)
+    page = st.number_input(f"Page (1–{n_pages})", min_value=1, max_value=n_pages, value=1)
+    chunk = filtered[(page - 1) * page_size: page * page_size]
+
+    def _decode(b):
+        if isinstance(b, dict):
+            b = b.get("bytes")
+        try:
+            return _PILImage.open(_io.BytesIO(b)).convert("RGB")
+        except Exception:
+            return None
+
+    for r in chunk:
+        case_short = "A" if "missing" in r["case"] else "B"
+        case_emoji = "🔍" if case_short == "A" else "⚙️"
+        st.markdown(
+            f"#### {case_emoji} **{case_short}** · `{r['model']}` · `{r['stem']}` · "
+            f"`{r['family']}` · {r['difficulty']} · IoU=**{r['IoU_f']:.3f}**"
+        )
+        miss_txt = r["missing_features_or_essOp_used"]
+        if miss_txt:
+            label = "缺细节 (GT 有,gen 没)" if case_short == "A" else "实际用的 ops (vs essential 要求)"
+            st.markdown(f"**{label}**: `{miss_txt}`")
+
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("**GT (4-view composite)**")
+            gt = _decode(gt_lookup.get(r["stem"]))
+            if gt:
+                st.image(gt, width=cell_px)
+            else:
+                st.write("(no GT image)")
+        with c2:
+            st.markdown(f"**{r['model']} render**")
+            rd = ROOT_LOCAL / "results" / "img2cq" / r["model_dir"] / "renders" / f"{r['stem']}.png"
+            if rd.exists():
+                st.image(str(rd), width=cell_px)
+            else:
+                st.warning("(no render PNG yet — backfill in progress or exec_fail)")
+
+        st.divider()
+
+
+def page_img2cq_compare():
+    """img2cq results: GT + each model's render + metric table per stem (200-set)."""
+    import glob as _glob
+    import io as _io
+    from collections import defaultdict as _dd
+    from pathlib import Path as _P
+
+    import pyarrow.parquet as _pq
+    from PIL import Image as _PILImage
+
+    st.title("img2cq Compare · cad_bench_200")
+    st.caption("Per-stem GT vs each model's CadQuery render, with metric scores.")
+
+    ROOT_LOCAL = _P(__file__).resolve().parents[3]
+    pq_paths = sorted(ROOT_LOCAL.glob(
+        "data/hf_cache/hub/datasets--BenchCAD--cad_bench_200/snapshots/*/data/*.parquet"
+    ))
+    if not pq_paths:
+        st.error("cad_bench_200 parquet 不在 hf_cache. 先 load_dataset 一次.")
+        return
+
+    @st.cache_data(show_spinner="loading 200 stems + metadata")
+    def _load_200(path: str):
+        t = _pq.read_table(path, columns=[
+            "stem", "family", "difficulty", "base_plane", "composite_png",
+        ])
+        return t.to_pylist()
+
+    rows_200 = _load_200(str(pq_paths[-1]))
+    rows_200.sort(key=lambda r: r["stem"])
+    stems_200_set = {r["stem"] for r in rows_200}
+
+    img2cq_dir = ROOT_LOCAL / "results" / "img2cq"
+    all_models = sorted([d.name for d in img2cq_dir.iterdir() if d.is_dir()])
+
+    @st.cache_data(show_spinner="loading model results")
+    def _load_model(m: str):
+        p = img2cq_dir / m / "results.jsonl"
+        if not p.exists():
+            return {}
+        seen: dict[str, dict] = {}
+        for line in p.open():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                r = _json.loads(line)
+            except Exception:
+                continue
+            if r["stem"] in stems_200_set and r["stem"] not in seen:
+                seen[r["stem"]] = r
+        return seen
+
+    # Detect which models have ≥1 row in 200-set; default-enable models with ≥150
+    model_data: dict[str, dict] = {m: _load_model(m) for m in all_models}
+    full_models = [m for m, d in model_data.items() if len(d) >= 150]
+    partial_models = [m for m, d in model_data.items() if 0 < len(d) < 150]
+
+    # Essential ops scorer (best-effort import)
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT_LOCAL / "bench" / "research"))
+        from canonical_ops import essential_pass as _ess_pass, find_ops as _find_ops
+    except Exception:
+        _ess_pass = None
+        _find_ops = None
+
+    # ── sidebar filters ──
+    with st.sidebar:
+        st.subheader("Filters")
+        sel_models = st.multiselect(
+            "Models to show",
+            options=all_models,
+            default=full_models,
+            help="Default: models with ≥150 rows on cad_bench_200.",
+        )
+        diffs = st.multiselect(
+            "Difficulty",
+            options=["easy", "medium", "hard"],
+            default=["easy", "medium", "hard"],
+        )
+        fams_avail = sorted({r["family"] for r in rows_200})
+        fam_filter = st.text_input("Family contains (substring)", "")
+        sort_metric = st.selectbox(
+            "Sort by",
+            options=["stem", "best Score (desc)", "best IoU (desc)",
+                     "lowest Score (asc)", "lowest IoU (asc)"],
+            index=0,
+        )
+        page_size = st.slider("Rows per page", 5, 50, 15, step=5)
+        cell_px = st.slider("Image size (px)", 96, 320, 192, step=16)
+
+    # ── apply filters ──
+    visible = [
+        r for r in rows_200
+        if r["difficulty"] in diffs
+        and (fam_filter.lower() in r["family"].lower() if fam_filter else True)
+    ]
+
+    # Compute summary per row (best metric across visible models for sorting)
+    def _row_best(r, key):
+        vals = []
+        for m in sel_models:
+            mr = model_data.get(m, {}).get(r["stem"])
+            if mr and mr.get("exec_ok"):
+                vals.append(mr.get(key, 0))
+        return max(vals) if vals else 0
+
+    if "best Score" in sort_metric:
+        visible.sort(key=lambda r: -_row_best(r, "score"))
+    elif "best IoU" in sort_metric:
+        visible.sort(key=lambda r: -_row_best(r, "iou"))
+    elif "lowest Score" in sort_metric:
+        visible.sort(key=lambda r: _row_best(r, "score"))
+    elif "lowest IoU" in sort_metric:
+        visible.sort(key=lambda r: _row_best(r, "iou"))
+
+    n_total = len(visible)
+    st.write(
+        f"**Showing {n_total} stems** (of 200) · {len(sel_models)} models selected"
+        + (f" · partial-N models hidden by default: {', '.join(partial_models)}" if partial_models else "")
+    )
+
+    # Pagination
+    n_pages = max(1, (n_total + page_size - 1) // page_size)
+    page = st.number_input(f"Page (1–{n_pages})", min_value=1, max_value=n_pages, value=1)
+    chunk = visible[(page - 1) * page_size: page * page_size]
+
+    def _decode(b):
+        if isinstance(b, dict):
+            b = b.get("bytes")
+        try:
+            return _PILImage.open(_io.BytesIO(b)).convert("RGB")
+        except Exception:
+            return None
+
+    # ── render each stem row ──
+    headers = ["GT"] + sel_models
+    for r in chunk:
+        st.markdown(f"### `{r['stem']}` · `{r['family']}` · {r['difficulty']} · plane={r['base_plane']}")
+
+        cols = st.columns(len(headers))
+        # GT
+        gt = _decode(r.get("composite_png"))
+        with cols[0]:
+            st.markdown(f"**GT**")
+            if gt:
+                st.image(gt, width=cell_px)
+            else:
+                st.write("(no GT png)")
+        # Each model render
+        for ci, m in enumerate(sel_models, start=1):
+            with cols[ci]:
+                st.markdown(f"**{m}**")
+                rd = img2cq_dir / m / "renders" / f"{r['stem']}.png"
+                if rd.exists():
+                    st.image(str(rd), width=cell_px)
+                else:
+                    mr = model_data.get(m, {}).get(r["stem"])
+                    if mr is None:
+                        st.write("(not in results)")
+                    elif not mr.get("exec_ok"):
+                        st.write(":red[exec_fail]")
+                    else:
+                        st.write("(no render)")
+
+        # Metric table
+        metric_keys = [
+            ("Exec", lambda mr: "✓" if mr.get("exec_ok") else "✗"),
+            ("IoU↑", lambda mr: f"{mr.get('iou', 0):.3f}"),
+            ("CD↓", lambda mr: f"{mr['chamfer']:.3f}" if mr.get('chamfer', float('inf')) != float('inf') else "—"),
+            ("HD↓", lambda mr: f"{mr['hausdorff']:.3f}" if mr.get('hausdorff', float('inf')) != float('inf') else "—"),
+            ("F1↑", lambda mr: f"{mr.get('feature_f1', 0):.3f}"),
+            ("Score↑", lambda mr: f"{mr.get('score', 0):.3f}"),
+            ("Lat(s)", lambda mr: f"{mr.get('vlm_latency_s', 0):.1f}"),
+        ]
+        if _ess_pass and _find_ops:
+            def _ess_for(mr, fam):
+                code = mr.get("gen_code", "") or ""
+                ops = _find_ops(code)
+                v = _ess_pass(fam, ops)
+                return "—" if v is None else ("PASS" if v else "FAIL")
+            metric_keys.insert(5, ("EssOp", lambda mr, fam=r["family"]: _ess_for(mr, fam)))
+
+        table_rows = []
+        for m in sel_models:
+            mr = model_data.get(m, {}).get(r["stem"])
+            if mr is None:
+                table_rows.append({"Model": m, **{k: "—" for k, _ in metric_keys}})
+            else:
+                row_d = {"Model": m}
+                for k, fn in metric_keys:
+                    row_d[k] = fn(mr)
+                table_rows.append(row_d)
+        st.dataframe(table_rows, hide_index=True, use_container_width=True)
+        st.divider()
+
+
 def main():
     pages = [
         "Overview",
@@ -2272,6 +2961,10 @@ def main():
         "Stem Viewer",
         "Synth Monitor",
         "Bench Curator",
+        "QA-img Review",
+        "img2cq Compare",
+        "Shape-OK Imperfect",
+        "Orientation Errors",
         "编辑 Bench",
         "CQ Playground",
     ]
@@ -2296,6 +2989,14 @@ def main():
         page_stem_list()
     elif page == "Bench Curator":
         page_bench_curator()
+    elif page == "QA-img Review":
+        page_qa_img_review()
+    elif page == "img2cq Compare":
+        page_img2cq_compare()
+    elif page == "Shape-OK Imperfect":
+        page_shape_ok_imperfect()
+    elif page == "Orientation Errors":
+        page_orientation_errors()
     elif page == "编辑 Bench":
         page_edit_bench()
     elif page == "CQ Playground":

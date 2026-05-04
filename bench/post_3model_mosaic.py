@@ -26,12 +26,15 @@ load_dotenv(ROOT / ".env")
 
 import pyarrow.parquet as pq  # noqa: E402
 
-PARQUET_GLOB = "data/hf_cache/hub/datasets--BenchCAD--cad_bench_200/snapshots/*/data/*.parquet"
+PARQUET_GLOB = (
+    "data/hf_cache/hub/datasets--BenchCAD--cad_bench_200/snapshots/*/data/*.parquet"
+)
 OUT_DIR = ROOT / "data" / "data_generation" / "bench" / "from_hf" / "3model_mosaic"
 MODELS = [
     ("gpt-4o", "4o"),
     ("gpt-5.3-thinking", "5.3-thinking"),
     ("gpt-5.3-chat-latest", "5.3-chat-latest"),
+    ("moonshot-v1-8k-vision-preview", "kimi"),
 ]
 CELL = 256
 LABEL_W = 240
@@ -66,35 +69,63 @@ def _find_parquet() -> Path:
     return snaps[-1]
 
 
-def _post_discord(out_path: Path, caption: str) -> None:
+def _post_discord(out_path: Path, caption: str, max_retries: int = 3) -> None:
+    """POST file to Discord webhook with rate-limit-aware retry."""
+    import time as _t
+
     url = os.environ.get("DISCORD_WEBHOOK_URL")
     if not url:
         print("[skip] DISCORD_WEBHOOK_URL not set", flush=True)
         return
-    r = subprocess.run(
-        [
-            "curl", "-sS", "-X", "POST",
-            "-F", f"file=@{out_path}",
-            "-F", f'payload_json={{"content":{json.dumps(caption)}}}',
-            url,
-        ],
-        capture_output=True, text=True,
-    )
-    try:
-        resp = json.loads(r.stdout)
+    for attempt in range(max_retries):
+        r = subprocess.run(
+            [
+                "curl",
+                "-sS",
+                "-X",
+                "POST",
+                "-F",
+                f"file=@{out_path}",
+                "-F",
+                f'payload_json={{"content":{json.dumps(caption)}}}',
+                url,
+            ],
+            capture_output=True,
+            text=True,
+        )
+        try:
+            resp = json.loads(r.stdout)
+        except json.JSONDecodeError:
+            print(
+                f"  discord error (attempt {attempt + 1}): {r.stdout[:200]}", flush=True
+            )
+            _t.sleep(3)
+            continue
+        if resp.get("id"):
+            print(
+                f"  discord: id={resp.get('id')} | "
+                f"attached {[a.get('filename') for a in resp.get('attachments', [])]}",
+                flush=True,
+            )
+            _t.sleep(2)  # Be polite, avoid burst rate-limit
+            return
+        # 429 rate-limited or other error
+        retry_after = resp.get("retry_after", 5)
         print(
-            f"  discord: id={resp.get('id')} | "
-            f"attached {[a.get('filename') for a in resp.get('attachments', [])]}",
+            f"  discord rate-limit/err (attempt {attempt + 1}): {str(resp)[:200]} "
+            f"(sleeping {retry_after}s)",
             flush=True,
         )
-    except json.JSONDecodeError:
-        print(f"  discord error: {r.stdout[:200]}", flush=True)
+        _t.sleep(retry_after)
+    print(f"  discord GAVE UP after {max_retries} attempts", flush=True)
 
 
 def main() -> int:
     pq_path = _find_parquet()
     print(f"[in]  {pq_path.relative_to(ROOT)}", flush=True)
-    t = pq.read_table(pq_path, columns=["stem", "family", "difficulty", "composite_png"])
+    t = pq.read_table(
+        pq_path, columns=["stem", "family", "difficulty", "composite_png"]
+    )
     rows = sorted(t.to_pylist(), key=lambda r: r["stem"])
     print(f"[in]  {len(rows)} stems", flush=True)
 
@@ -104,7 +135,7 @@ def main() -> int:
         gen_renders[model] = {p.stem: p for p in rd.glob("*.png")}
         print(f"[render] {model}: {len(gen_renders[model])} PNG", flush=True)
 
-    n_cols = 4
+    n_cols = 1 + len(MODELS)  # GT + each model
     W = LABEL_W + n_cols * (CELL + PAD) + PAD
     row_h = CELL + PAD
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -115,7 +146,7 @@ def main() -> int:
     f_h = _font(15)
     f_l = _font(11)
     f_s = _font(8)
-    headers = ["GT", "4o", "5.3-thinking", "5.3-chat-latest"]
+    headers = ["GT"] + [label for _, label in MODELS]
 
     for ci in range(n_chunks):
         start = ci * CHUNK_ROWS
@@ -144,11 +175,18 @@ def main() -> int:
                 x = LABEL_W + (mi + 1) * (CELL + PAD)
                 p = gen_renders[model].get(stem)
                 if p and p.exists():
-                    img = Image.open(p).convert("RGB").resize((CELL, CELL), Image.LANCZOS)
+                    img = (
+                        Image.open(p).convert("RGB").resize((CELL, CELL), Image.LANCZOS)
+                    )
                 else:
                     img = Image.new("RGB", (CELL, CELL), "#eee")
                     dl = ImageDraw.Draw(img)
-                    dl.text((CELL // 2 - 32, CELL // 2 - 6), "(no render)", fill="#999", font=f_s)
+                    dl.text(
+                        (CELL // 2 - 32, CELL // 2 - 6),
+                        "(no render)",
+                        fill="#999",
+                        font=f_s,
+                    )
                 canvas.paste(img, (x, y))
 
         out_path = OUT_DIR / f"chunk_{ci + 1:02d}_of_{n_chunks:02d}.png"
@@ -161,7 +199,8 @@ def main() -> int:
         )
         cap = (
             f"cad_bench_200 mosaic chunk {ci + 1}/{n_chunks} "
-            f"(rows {start + 1}-{end} of {len(rows)}) — col: GT | 4o | 5.3-thinking | 5.3-chat-latest"
+            f"rows {start + 1}-{end} of {len(rows)} - col: "
+            + " | ".join(headers)
         )
         _post_discord(out_path, cap)
     return 0

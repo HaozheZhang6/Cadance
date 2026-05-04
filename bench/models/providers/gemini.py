@@ -30,6 +30,16 @@ from bench.models.registry import ModelAdapter, register
     "gemini-1.5-flash",
     "gemini-1.5-flash-latest",
     "gemini-1.5-flash-8b",
+    # Gemini 3.x — thinking variants. Real API model = name with "-thinking"
+    # /"-nonthinking" suffix stripped. Thinking budget set per-suffix.
+    "gemini-3-pro-preview",
+    "gemini-3-pro-preview-thinking",
+    "gemini-3-pro-preview-nonthinking",
+    "gemini-3-flash-preview",
+    "gemini-3.1-pro-preview",
+    "gemini-3.1-pro-preview-thinking",
+    "gemini-3.1-pro-preview-nonthinking",
+    "gemini-3.1-flash-lite-preview",
 )
 class GeminiAdapter(ModelAdapter):
     def __init__(self, name: str):
@@ -67,14 +77,32 @@ class GeminiAdapter(ModelAdapter):
                     gtypes.Part.from_bytes(data=buf.getvalue(), mime_type="image/png")
                 )
             parts.append(gtypes.Part.from_text(text=user_text))
+            # Resolve real API model name + thinking strategy from suffix
+            api_name = self.name
+            thinking_budget: int | None = None
+            if api_name.endswith("-nonthinking"):
+                api_name = api_name[: -len("-nonthinking")]
+                # Gemini 2.5 accepts 0 to fully disable; 3.x rejects 0 → use 128 min
+                thinking_budget = 0 if "2.5" in api_name else 128
+            elif api_name.endswith("-thinking"):
+                api_name = api_name[: -len("-thinking")]
+                thinking_budget = 2048
+            elif "2.5" in api_name or "3" in api_name:
+                thinking_budget = 512
+
+            cfg_kwargs: dict = dict(
+                system_instruction=system,
+                max_output_tokens=max_tokens,
+                temperature=0.0,
+            )
+            if thinking_budget is not None:
+                cfg_kwargs["thinking_config"] = gtypes.ThinkingConfig(
+                    thinking_budget=thinking_budget
+                )
             resp = client.models.generate_content(
-                model=self.name,
+                model=api_name,
                 contents=[gtypes.Content(role="user", parts=parts)],
-                config=gtypes.GenerateContentConfig(
-                    system_instruction=system,
-                    max_output_tokens=max_tokens,
-                    temperature=0.0,
-                ),
+                config=gtypes.GenerateContentConfig(**cfg_kwargs),
             )
             return resp.text or "", None
         except Exception as e:

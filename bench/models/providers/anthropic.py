@@ -26,6 +26,8 @@ def _img_to_b64(pil_img) -> str:
     "claude-opus-4-5",
     "claude-opus-4-6",
     "claude-opus-4-7",
+    "claude-opus-4-7-thinking",
+    "claude-opus-4-7-nonthinking",
     "claude-sonnet-4",
     "claude-sonnet-4-0",
     "claude-sonnet-4-5",
@@ -83,11 +85,38 @@ class AnthropicAdapter(ModelAdapter):
                     }
                 )
             content.append({"type": "text", "text": user_text})
+
+            # Resolve real API model + extended-thinking flag from suffix
+            api_name = self.name
+            thinking_kwargs: dict = {}
+            if api_name.endswith("-nonthinking"):
+                api_name = api_name[: -len("-nonthinking")]
+                # explicitly leave thinking off (default)
+            elif api_name.endswith("-thinking"):
+                api_name = api_name[: -len("-thinking")]
+                # Newer Claude 4.x models use adaptive thinking + effort knob;
+                # legacy models use the enabled/budget_tokens form.
+                if max_tokens < 4096:
+                    max_tokens = 8192
+                if api_name in ("claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"):
+                    thinking_kwargs = {
+                        "thinking": {"type": "adaptive"},
+                        "extra_body": {"output_config": {"effort": "high"}},
+                        "temperature": 1.0,
+                    }
+                else:
+                    thinking_kwargs = {
+                        "thinking": {"type": "enabled",
+                                     "budget_tokens": max_tokens // 2},
+                        "temperature": 1.0,
+                    }
+
             resp = client.messages.create(
-                model=self.name,
+                model=api_name,
                 max_tokens=max_tokens,
                 system=system,
                 messages=[{"role": "user", "content": content}],
+                **thinking_kwargs,
             )
             # resp.content is a list of blocks; concatenate text blocks.
             text = "".join(

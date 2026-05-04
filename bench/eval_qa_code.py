@@ -17,8 +17,10 @@ import argparse
 import json
 import os
 import sys
+import threading
 import time
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -33,7 +35,8 @@ except ImportError:
 
 
 def _load_qa_pairs(row: dict) -> list[dict]:
-    raw = row.get("qa_pairs", "[]")
+    # cad_bench has `qa_pairs`, cad_bench_200/722 has `qa` — accept both
+    raw = row.get("qa_pairs") or row.get("qa") or "[]"
     if isinstance(raw, list):
         return raw
     try:
@@ -122,6 +125,9 @@ def main():
     ap.add_argument("--split", default="test")
     ap.add_argument("--limit", type=int, default=0, help="0=all; >200 stratified")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--workers", type=int, default=1, help="concurrent samples")
+    ap.add_argument("--stems-file", default=None,
+                    help="txt (one stem/line) — overrides --limit/--seed")
     args = ap.parse_args()
 
     token = (
@@ -135,7 +141,14 @@ def main():
 
     print(f"Loading {args.repo}[{args.split}] ...")
     rows = load_hf(args.repo, args.split, token=token)
-    sampled = sample_rows(rows, args.limit, args.seed)
+    if args.stems_file:
+        from pathlib import Path
+        wanted = {ln.strip() for ln in Path(args.stems_file).read_text().splitlines()
+                  if ln.strip()}
+        sampled = [r for r in rows if r["stem"] in wanted]
+        print(f"stems-file: {len(wanted)} requested, {len(sampled)} matched")
+    else:
+        sampled = sample_rows(rows, args.limit, args.seed)
 
     rd = ResultsDir(task="qa_code", model=args.model)
     done = rd.done_keys("stem")
@@ -147,15 +160,30 @@ def main():
     )
     print(f"Results dir: {rd.root}")
 
-    with rd:
-        for i, row in enumerate(todo):
-            print(f"  [{i + 1}/{len(todo)}] {row['stem']}  ", end="", flush=True)
-            res = eval_sample(row, args.model, api_key)
+    write_lock = threading.Lock()
+
+    def _process(row: dict) -> dict:
+        res = eval_sample(row, args.model, api_key)
+        with write_lock:
             rd.append(res)
+        return res
+
+    with rd, ThreadPoolExecutor(max_workers=max(1, args.workers)) as ex:
+        futs = {ex.submit(_process, row): row for row in todo}
+        for i, fut in enumerate(as_completed(futs)):
+            row = futs[fut]
+            res = fut.result()
             if res["error"]:
-                print(f"ERR {res['error'][:80]}")
+                print(
+                    f"  [{i + 1}/{len(todo)}] {row['stem']} ERR {res['error'][:80]}",
+                    flush=True,
+                )
             else:
-                print(f"qa={res['qa_score']:.3f}  n={res['n_qa']}")
+                print(
+                    f"  [{i + 1}/{len(todo)}] {row['stem']} "
+                    f"qa={res['qa_score']:.3f} n={res['n_qa']}",
+                    flush=True,
+                )
 
     with open(rd.results_path) as f:
         results = [json.loads(line) for line in f if line.strip()]

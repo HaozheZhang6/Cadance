@@ -15,6 +15,8 @@ from ._openai_compat import OpenAICompatAdapter
     "deepseek-chat",
     "deepseek-reasoner",
     "deepseek-coder",
+    "deepseek-v4-pro",
+    "deepseek-v4-flash",
 )
 class DeepSeekAdapter(OpenAICompatAdapter):
     base_url = "https://api.deepseek.com/v1"
