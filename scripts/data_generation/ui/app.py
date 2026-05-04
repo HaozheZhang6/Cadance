@@ -783,7 +783,11 @@ def _hf_stem_index() -> dict:
             if "composite_png" not in cols or "stem" not in cols:
                 continue
             stems = ds[split]["stem"]
-            alt_cols = [c for c in ("substitute_bench_stem", "original_diverse_stem") if c in cols]
+            alt_cols = [
+                c
+                for c in ("substitute_bench_stem", "original_diverse_stem")
+                if c in cols
+            ]
             alt_data = {c: ds[split][c] for c in alt_cols}
             for i, stem in enumerate(stems):
                 idx.setdefault(stem, (repo, i))
@@ -1181,19 +1185,28 @@ def page_synth():
 # ── code edit bench page (interactive review) ────────────────────────────────
 
 BENCH_EDIT = ROOT / "data" / "data_generation" / "bench_edit"
-EDIT_SOURCES = {
-    "pairs_curated": (BENCH_EDIT / "pairs_curated.jsonl", BENCH_EDIT),
-    "topup_final": (
-        BENCH_EDIT / "topup_final" / "records.jsonl",
-        BENCH_EDIT / "topup_final",
-    ),
-    # `from_hf` 由 `bench/fetch_data.py` 解包,fresh clone 跑一次即可直读
-    "from_hf": (
-        BENCH_EDIT / "from_hf" / "records.jsonl",
-        BENCH_EDIT / "from_hf",
-    ),
-}
 EDIT_CACHE = ROOT / "bench" / "ui" / "edit_cache"
+# Files skipped during scan (incomplete schema or backups).
+_EB_SKIP_STEMS = {"prompt_only"}
+
+
+def _eb_discover_sources() -> dict[str, tuple[Path, Path]]:
+    """{key: (jsonl_path, base_dir)}; topup_final/*.jsonl discovered dynamically."""
+    sources: dict[str, tuple[Path, Path]] = {}
+    pc = BENCH_EDIT / "pairs_curated.jsonl"
+    if pc.exists():
+        sources["pairs_curated"] = (pc, BENCH_EDIT)
+    tf_dir = BENCH_EDIT / "topup_final"
+    if tf_dir.is_dir():
+        for p in sorted(tf_dir.glob("*.jsonl")):
+            if p.stem in _EB_SKIP_STEMS or ".bak_" in p.name:
+                continue
+            sources[f"topup_final/{p.stem}"] = (p, tf_dir)
+    # `from_hf` is unpacked by `bench/fetch_data.py`; readable directly after fresh clone.
+    hf = BENCH_EDIT / "from_hf" / "records.jsonl"
+    if hf.exists():
+        sources["from_hf"] = (hf, BENCH_EDIT / "from_hf")
+    return sources
 
 
 def _eb_load_jsonl(p: Path):
@@ -1392,19 +1405,53 @@ def _eb_save_gt_code(
 
     recs[rec_idx]["gt_code_path"] = str(final_code.relative_to(base_dir))
     recs[rec_idx]["gt_step_path"] = str(final_step.relative_to(base_dir))
+    # Stale baseline once GT changes; clear up front so a recompute failure
+    # cannot leave the previous iou attached to the new GT.
+    recs[rec_idx].pop("iou", None)
+    recs[rec_idx].pop("iou_orig_gt", None)
+
+    # Recompute baseline iou_orig_gt against the new GT, keeping scoring honest
+    # without requiring the user to remember to click the recompute button.
+    iou_msg = ""
+    orig_rel = rec.get("orig_step_path")
+    if orig_rel:
+        orig_abs = base_dir / orig_rel
+        if orig_abs.exists():
+            if str(ROOT) not in sys.path:
+                sys.path.insert(0, str(ROOT))
+            try:
+                from bench.metrics import compute_iou
+
+                new_iou, iou_err = compute_iou(str(orig_abs), str(final_step))
+                if iou_err is None:
+                    recs[rec_idx]["iou"] = round(float(new_iou), 6)
+                    iou_msg = f"IoU={new_iou:.4f}"
+                else:
+                    iou_msg = f"IoU recompute failed: {iou_err}"
+            except Exception as e:
+                iou_msg = f"IoU recompute exception: {str(e)[:80]}"
+
     _eb_write_jsonl(jsonl_path, recs)
     msg = []
     msg.append(f"{'解除共用，' if code_shared else ''}代码 → {final_code.name}")
     msg.append(f"{'解除共用，' if step_shared else ''}STEP → {final_step.name}")
+    if iou_msg:
+        msg.append(iou_msg)
     return True, "  ·  ".join(msg)
 
 
 def page_edit_bench():
     st.title("代码编辑 Bench — 交互式审查")
 
+    sources = _eb_discover_sources()
+    if not sources:
+        st.error(
+            "未发现任何数据源 (pairs_curated.jsonl / topup_final/*.jsonl 都不存在)"
+        )
+        return
     with st.sidebar:
-        src_key = st.selectbox("数据源", list(EDIT_SOURCES.keys()), key="eb_source")
-    jsonl_path, base_dir = EDIT_SOURCES[src_key]
+        src_key = st.selectbox("数据源", list(sources.keys()), key="eb_source")
+    jsonl_path, base_dir = sources[src_key]
 
     recs = _eb_load_jsonl(jsonl_path)
     if not recs:
@@ -1505,13 +1552,75 @@ def page_edit_bench():
         st.markdown(f"### `{rec['record_id']}`")
         iou_val = _eb_iou(rec)
         iou_s = f"{iou_val:.3f}" if isinstance(iou_val, (float, int)) else "?"
-        st.markdown(
-            f"**Family**: `{rec.get('family','?')}`  ·  "
-            f"**类型**: `{rec.get('edit_type','?')}`"
+        ic1, ic2 = st.columns([3, 1])
+        ic1.markdown(f"**Family**: `{rec.get('family','?')}`  ·  **IoU**: `{iou_s}`")
+        orig_rel = rec.get("orig_step_path") or ""
+        gt_rel = rec.get("gt_step_path") or ""
+        orig_step_abs = base_dir / orig_rel if orig_rel else None
+        gt_step_abs = base_dir / gt_rel if gt_rel else None
+        can_recompute = bool(
+            orig_step_abs
+            and gt_step_abs
+            and orig_step_abs.exists()
+            and gt_step_abs.exists()
         )
-        st.markdown(
-            f"**难度**: `{rec.get('difficulty','?')}`  ·  " f"**IoU**: `{iou_s}`"
+        if ic2.button(
+            "🔄 重算 IoU",
+            key=f"eb_recompute_iou_{wid}",
+            disabled=not can_recompute,
+            use_container_width=True,
+            help=None if can_recompute else "orig_step_path / gt_step_path 文件缺失",
+        ):
+            if str(ROOT) not in sys.path:
+                sys.path.insert(0, str(ROOT))
+            from bench.metrics import compute_iou
+
+            with st.spinner("重算 ORI vs GT IoU…"):
+                new_iou, err = compute_iou(str(orig_step_abs), str(gt_step_abs))
+            if err:
+                st.error(f"IoU 计算失败: {err}")
+            else:
+                recs[rec_idx]["iou"] = round(float(new_iou), 6)
+                _eb_write_jsonl(jsonl_path, recs)
+                st.success(f"IoU 已更新: {new_iou:.4f}")
+                st.rerun()
+
+        # Type: dropdown + accept_new_options. Auto-save only when user changes
+        # away from a valid current value; if the on-disk value is missing or
+        # not in opts, render with index=None so first paint never persists.
+        all_types = sorted({r.get("edit_type", "") for r in recs if r.get("edit_type")})
+        cur_type = rec.get("edit_type", "") or ""
+        type_opts = list(all_types)
+        if cur_type and cur_type not in type_opts:
+            type_opts.append(cur_type)
+            type_opts.sort()
+        type_idx = type_opts.index(cur_type) if cur_type in type_opts else None
+        new_type = st.selectbox(
+            "类型",
+            type_opts,
+            index=type_idx,
+            accept_new_options=True,
+            key=f"eb_type_edit_{wid}",
         )
+        if new_type and new_type != cur_type:
+            recs[rec_idx]["edit_type"] = new_type
+            _eb_write_jsonl(jsonl_path, recs)
+            st.rerun()
+
+        # Difficulty: fixed 3-way; same first-paint guard as above.
+        _DIFF_OPTS = ["easy", "medium", "hard"]
+        cur_diff = rec.get("difficulty") or ""
+        diff_idx = _DIFF_OPTS.index(cur_diff) if cur_diff in _DIFF_OPTS else None
+        new_diff = st.selectbox(
+            "难度",
+            _DIFF_OPTS,
+            index=diff_idx,
+            key=f"eb_diff_edit_{wid}",
+        )
+        if new_diff and new_diff != cur_diff:
+            recs[rec_idx]["difficulty"] = new_diff
+            _eb_write_jsonl(jsonl_path, recs)
+            st.rerun()
         extras = []
         for k in (
             "level",
