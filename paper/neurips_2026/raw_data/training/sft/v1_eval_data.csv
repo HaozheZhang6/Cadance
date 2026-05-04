@@ -1,0 +1,962 @@
+config,step,bucket,metric,value,source
+iid_v3,2000,BC val OOD,iou,0.0,retro
+iid_v3,4000,BC val OOD,iou,0.30225799999999997,retro
+iid_v3,6000,BC val OOD,iou,0.280172,retro
+iid_v3,8000,BC val OOD,iou,0.36413399999999996,retro
+iid_v3,10000,BC val OOD,iou,0.478932,retro
+iid_v3,12000,BC val OOD,iou,0.518412,retro
+iid_v3,14000,BC val OOD,iou,0.5999519999999999,retro
+iid_v3,16000,BC val OOD,iou,0.53505,retro
+iid_v3,18000,BC val OOD,iou,0.562488,retro
+iid_v3,20000,BC val OOD,iou,0.5002580000000001,retro
+iid_v3,22000,BC val OOD,iou,0.532838,retro
+iid_v3,24000,BC val OOD,iou,0.6538219999999998,retro
+iid_v3,26000,BC val OOD,iou,0.6235020000000001,retro
+iid_v3,28000,BC val OOD,iou,0.697094,retro
+iid_v3,30000,BC val OOD,iou,0.67193,retro
+iid_v3,32000,BC val OOD,iou,0.644692,retro
+iid_v3,34000,BC val OOD,iou,0.689126,retro
+iid_v3,36000,BC val OOD,iou,0.724026,retro
+iid_v3,38000,BC val OOD,iou,0.7103439999999999,retro
+iid_v3,40000,BC val OOD,iou,0.738112,retro
+iid_v3,42000,BC val OOD,iou,0.754298,retro
+iid_v3,44000,BC val OOD,iou,0.7425780000000001,retro
+iid_v3,46000,BC val OOD,iou,0.740784,retro
+iid_v3,4000,BC val OOD,ess_pass,0.8,retro
+iid_v3,6000,BC val OOD,ess_pass,0.72,retro
+iid_v3,8000,BC val OOD,ess_pass,0.88,retro
+iid_v3,10000,BC val OOD,ess_pass,0.9,retro
+iid_v3,12000,BC val OOD,ess_pass,0.92,retro
+iid_v3,14000,BC val OOD,ess_pass,0.88,retro
+iid_v3,16000,BC val OOD,ess_pass,0.88,retro
+iid_v3,18000,BC val OOD,ess_pass,0.9,retro
+iid_v3,20000,BC val OOD,ess_pass,0.9,retro
+iid_v3,22000,BC val OOD,ess_pass,0.8,retro
+iid_v3,24000,BC val OOD,ess_pass,0.92,retro
+iid_v3,26000,BC val OOD,ess_pass,0.84,retro
+iid_v3,28000,BC val OOD,ess_pass,0.92,retro
+iid_v3,30000,BC val OOD,ess_pass,0.92,retro
+iid_v3,32000,BC val OOD,ess_pass,0.9,retro
+iid_v3,34000,BC val OOD,ess_pass,0.92,retro
+iid_v3,36000,BC val OOD,ess_pass,0.94,retro
+iid_v3,38000,BC val OOD,ess_pass,0.94,retro
+iid_v3,40000,BC val OOD,ess_pass,0.94,retro
+iid_v3,42000,BC val OOD,ess_pass,0.94,retro
+iid_v3,44000,BC val OOD,ess_pass,0.94,retro
+iid_v3,46000,BC val OOD,ess_pass,0.94,retro
+iid_v3,2000,BC val OOD,exec,0.0,retro
+iid_v3,4000,BC val OOD,exec,1.0,retro
+iid_v3,6000,BC val OOD,exec,0.98,retro
+iid_v3,8000,BC val OOD,exec,0.98,retro
+iid_v3,10000,BC val OOD,exec,1.0,retro
+iid_v3,12000,BC val OOD,exec,0.98,retro
+iid_v3,14000,BC val OOD,exec,1.0,retro
+iid_v3,16000,BC val OOD,exec,1.0,retro
+iid_v3,18000,BC val OOD,exec,1.0,retro
+iid_v3,20000,BC val OOD,exec,0.98,retro
+iid_v3,22000,BC val OOD,exec,0.98,retro
+iid_v3,24000,BC val OOD,exec,1.0,retro
+iid_v3,26000,BC val OOD,exec,1.0,retro
+iid_v3,28000,BC val OOD,exec,1.0,retro
+iid_v3,30000,BC val OOD,exec,1.0,retro
+iid_v3,32000,BC val OOD,exec,1.0,retro
+iid_v3,34000,BC val OOD,exec,1.0,retro
+iid_v3,36000,BC val OOD,exec,1.0,retro
+iid_v3,38000,BC val OOD,exec,0.98,retro
+iid_v3,40000,BC val OOD,exec,1.0,retro
+iid_v3,42000,BC val OOD,exec,1.0,retro
+iid_v3,44000,BC val OOD,exec,1.0,retro
+iid_v3,46000,BC val OOD,exec,1.0,retro
+iid_v3,1000,BC val IID,iou,0.12304955713966932,jsonl
+iid_v3,2000,BC val IID,iou,0.13712405417361923,jsonl
+iid_v3,3000,BC val IID,iou,0.198596662576594,jsonl
+iid_v3,4000,BC val IID,iou,0.24057611836556372,jsonl
+iid_v3,5000,BC val IID,iou,0.3221160785345934,jsonl
+iid_v3,6000,BC val IID,iou,0.3622686692298713,jsonl
+iid_v3,7000,BC val IID,iou,0.3405416979851602,jsonl
+iid_v3,8000,BC val IID,iou,0.37825800934350784,jsonl
+iid_v3,9000,BC val IID,iou,0.39733693897733097,jsonl
+iid_v3,10000,BC val IID,iou,0.3457000811210573,jsonl
+iid_v3,11000,BC val IID,iou,0.39584243208512365,jsonl
+iid_v3,12000,BC val IID,iou,0.4040575014141505,jsonl
+iid_v3,13000,BC val IID,iou,0.44516397689336207,jsonl
+iid_v3,14000,BC val IID,iou,0.43896904303225803,jsonl
+iid_v3,15000,BC val IID,iou,0.4459298368509189,jsonl
+iid_v3,16000,BC val IID,iou,0.46536623410418376,jsonl
+iid_v3,17000,BC val IID,iou,0.46370848360014333,jsonl
+iid_v3,18000,BC val IID,iou,0.467672021945689,jsonl
+iid_v3,19000,BC val IID,iou,0.46784837815859615,jsonl
+iid_v3,20000,BC val IID,iou,0.4672184125650074,jsonl
+iid_v3,21000,BC val IID,iou,0.4723620590407334,jsonl
+iid_v3,22000,BC val IID,iou,0.48114586924087543,jsonl
+iid_v3,23000,BC val IID,iou,0.4773649306885628,jsonl
+iid_v3,24000,BC val IID,iou,0.5186983189829353,jsonl
+iid_v3,25000,BC val IID,iou,0.48898485242387923,jsonl
+iid_v3,26000,BC val IID,iou,0.5479851936656998,jsonl
+iid_v3,27000,BC val IID,iou,0.5325891950207051,jsonl
+iid_v3,28000,BC val IID,iou,0.5444329340131363,jsonl
+iid_v3,29000,BC val IID,iou,0.5172310621166493,jsonl
+iid_v3,30000,BC val IID,iou,0.533878568736102,jsonl
+iid_v3,31000,BC val IID,iou,0.5435436264383384,jsonl
+iid_v3,32000,BC val IID,iou,0.5504964325240286,jsonl
+iid_v3,33000,BC val IID,iou,0.5317385947375505,jsonl
+iid_v3,34000,BC val IID,iou,0.5386807976438835,jsonl
+iid_v3,35000,BC val IID,iou,0.5148465926386643,jsonl
+iid_v3,36000,BC val IID,iou,0.5697304185433634,jsonl
+iid_v3,37000,BC val IID,iou,0.5617227330925256,jsonl
+iid_v3,38000,BC val IID,iou,0.5556925576852491,jsonl
+iid_v3,39000,BC val IID,iou,0.5623788136776187,jsonl
+iid_v3,40000,BC val IID,iou,0.5683628098890419,jsonl
+iid_v3,41000,BC val IID,iou,0.5506535289870751,jsonl
+iid_v3,42000,BC val IID,iou,0.5787595274122345,jsonl
+iid_v3,43000,BC val IID,iou,0.5537730381971046,jsonl
+iid_v3,44000,BC val IID,iou,0.5515337897695769,jsonl
+iid_v3,45000,BC val IID,iou,0.5438773283198308,jsonl
+iid_v3,46000,BC val IID,iou,0.5698161997701607,jsonl
+iid_v3,47000,BC val IID,iou,0.5540127133554356,jsonl
+iid_v3,1000,BC val IID,ess_pass,0.5,jsonl
+iid_v3,2000,BC val IID,ess_pass,0.631578947368421,jsonl
+iid_v3,3000,BC val IID,ess_pass,0.7368421052631579,jsonl
+iid_v3,4000,BC val IID,ess_pass,0.8157894736842105,jsonl
+iid_v3,5000,BC val IID,ess_pass,0.8421052631578947,jsonl
+iid_v3,6000,BC val IID,ess_pass,0.7105263157894737,jsonl
+iid_v3,7000,BC val IID,ess_pass,0.8157894736842105,jsonl
+iid_v3,8000,BC val IID,ess_pass,0.7894736842105263,jsonl
+iid_v3,9000,BC val IID,ess_pass,0.7105263157894737,jsonl
+iid_v3,10000,BC val IID,ess_pass,0.8157894736842105,jsonl
+iid_v3,11000,BC val IID,ess_pass,0.7631578947368421,jsonl
+iid_v3,12000,BC val IID,ess_pass,0.7631578947368421,jsonl
+iid_v3,13000,BC val IID,ess_pass,0.8157894736842105,jsonl
+iid_v3,14000,BC val IID,ess_pass,0.8157894736842105,jsonl
+iid_v3,15000,BC val IID,ess_pass,0.7631578947368421,jsonl
+iid_v3,16000,BC val IID,ess_pass,0.8421052631578947,jsonl
+iid_v3,17000,BC val IID,ess_pass,0.7894736842105263,jsonl
+iid_v3,18000,BC val IID,ess_pass,0.7894736842105263,jsonl
+iid_v3,19000,BC val IID,ess_pass,0.7631578947368421,jsonl
+iid_v3,20000,BC val IID,ess_pass,0.7105263157894737,jsonl
+iid_v3,21000,BC val IID,ess_pass,0.8157894736842105,jsonl
+iid_v3,22000,BC val IID,ess_pass,0.8157894736842105,jsonl
+iid_v3,23000,BC val IID,ess_pass,0.868421052631579,jsonl
+iid_v3,24000,BC val IID,ess_pass,0.8421052631578947,jsonl
+iid_v3,25000,BC val IID,ess_pass,0.7894736842105263,jsonl
+iid_v3,26000,BC val IID,ess_pass,0.8157894736842105,jsonl
+iid_v3,27000,BC val IID,ess_pass,0.8157894736842105,jsonl
+iid_v3,28000,BC val IID,ess_pass,0.8157894736842105,jsonl
+iid_v3,29000,BC val IID,ess_pass,0.8157894736842105,jsonl
+iid_v3,30000,BC val IID,ess_pass,0.8157894736842105,jsonl
+iid_v3,31000,BC val IID,ess_pass,0.8157894736842105,jsonl
+iid_v3,32000,BC val IID,ess_pass,0.8421052631578947,jsonl
+iid_v3,33000,BC val IID,ess_pass,0.8421052631578947,jsonl
+iid_v3,34000,BC val IID,ess_pass,0.868421052631579,jsonl
+iid_v3,35000,BC val IID,ess_pass,0.8157894736842105,jsonl
+iid_v3,36000,BC val IID,ess_pass,0.7894736842105263,jsonl
+iid_v3,37000,BC val IID,ess_pass,0.8421052631578947,jsonl
+iid_v3,38000,BC val IID,ess_pass,0.8421052631578947,jsonl
+iid_v3,39000,BC val IID,ess_pass,0.8421052631578947,jsonl
+iid_v3,40000,BC val IID,ess_pass,0.8421052631578947,jsonl
+iid_v3,41000,BC val IID,ess_pass,0.8421052631578947,jsonl
+iid_v3,42000,BC val IID,ess_pass,0.8421052631578947,jsonl
+iid_v3,43000,BC val IID,ess_pass,0.8157894736842105,jsonl
+iid_v3,44000,BC val IID,ess_pass,0.8421052631578947,jsonl
+iid_v3,45000,BC val IID,ess_pass,0.868421052631579,jsonl
+iid_v3,46000,BC val IID,ess_pass,0.8421052631578947,jsonl
+iid_v3,47000,BC val IID,ess_pass,0.8421052631578947,jsonl
+iid_v3,1000,BC val IID,exec,0.8292682926829268,jsonl
+iid_v3,2000,BC val IID,exec,0.8780487804878049,jsonl
+iid_v3,3000,BC val IID,exec,0.926829268292683,jsonl
+iid_v3,4000,BC val IID,exec,0.926829268292683,jsonl
+iid_v3,5000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,6000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,7000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,8000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,9000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,10000,BC val IID,exec,0.9024390243902439,jsonl
+iid_v3,11000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,12000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,13000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,14000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,15000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,16000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,17000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,18000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,19000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,20000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,21000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,22000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,23000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,24000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,25000,BC val IID,exec,0.926829268292683,jsonl
+iid_v3,26000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,27000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,28000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,29000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,30000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,31000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,32000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,33000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,34000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,35000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,36000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,37000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,38000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,39000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,40000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,41000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,42000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,43000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,44000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,45000,BC val IID,exec,0.9512195121951219,jsonl
+iid_v3,46000,BC val IID,exec,0.975609756097561,jsonl
+iid_v3,47000,BC val IID,exec,0.926829268292683,jsonl
+iid_v3,1000,DeepCAD test,iou,0.26009659073663854,jsonl
+iid_v3,2000,DeepCAD test,iou,0.32198955238166255,jsonl
+iid_v3,3000,DeepCAD test,iou,0.36564564734849375,jsonl
+iid_v3,4000,DeepCAD test,iou,0.39973854903719364,jsonl
+iid_v3,5000,DeepCAD test,iou,0.49592987579620224,jsonl
+iid_v3,6000,DeepCAD test,iou,0.45759642823423746,jsonl
+iid_v3,7000,DeepCAD test,iou,0.47186770414011187,jsonl
+iid_v3,8000,DeepCAD test,iou,0.48960611538870424,jsonl
+iid_v3,9000,DeepCAD test,iou,0.5017389076715868,jsonl
+iid_v3,10000,DeepCAD test,iou,0.5373448190350348,jsonl
+iid_v3,11000,DeepCAD test,iou,0.5905021743818009,jsonl
+iid_v3,12000,DeepCAD test,iou,0.5525977963253106,jsonl
+iid_v3,13000,DeepCAD test,iou,0.5208749588299684,jsonl
+iid_v3,14000,DeepCAD test,iou,0.5672373816319703,jsonl
+iid_v3,15000,DeepCAD test,iou,0.5020689432372006,jsonl
+iid_v3,16000,DeepCAD test,iou,0.5936571083618618,jsonl
+iid_v3,17000,DeepCAD test,iou,0.5971266630880567,jsonl
+iid_v3,18000,DeepCAD test,iou,0.6335170599310803,jsonl
+iid_v3,19000,DeepCAD test,iou,0.5666177434796622,jsonl
+iid_v3,20000,DeepCAD test,iou,0.6318375287209475,jsonl
+iid_v3,21000,DeepCAD test,iou,0.6034837359994089,jsonl
+iid_v3,22000,DeepCAD test,iou,0.6023140787820938,jsonl
+iid_v3,23000,DeepCAD test,iou,0.6243807647911411,jsonl
+iid_v3,24000,DeepCAD test,iou,0.6224781727882099,jsonl
+iid_v3,25000,DeepCAD test,iou,0.6109180342430797,jsonl
+iid_v3,26000,DeepCAD test,iou,0.6037276616148821,jsonl
+iid_v3,27000,DeepCAD test,iou,0.6626121364133443,jsonl
+iid_v3,28000,DeepCAD test,iou,0.6743335936585353,jsonl
+iid_v3,29000,DeepCAD test,iou,0.6958140589610297,jsonl
+iid_v3,30000,DeepCAD test,iou,0.6892617945607991,jsonl
+iid_v3,31000,DeepCAD test,iou,0.6677954601222096,jsonl
+iid_v3,32000,DeepCAD test,iou,0.6720899254236374,jsonl
+iid_v3,33000,DeepCAD test,iou,0.6389970076221219,jsonl
+iid_v3,34000,DeepCAD test,iou,0.7122362997590278,jsonl
+iid_v3,35000,DeepCAD test,iou,0.6729922716442583,jsonl
+iid_v3,36000,DeepCAD test,iou,0.6642573972499113,jsonl
+iid_v3,37000,DeepCAD test,iou,0.6963835949373918,jsonl
+iid_v3,38000,DeepCAD test,iou,0.6732265403237256,jsonl
+iid_v3,39000,DeepCAD test,iou,0.6914579528809688,jsonl
+iid_v3,40000,DeepCAD test,iou,0.6908962427507995,jsonl
+iid_v3,41000,DeepCAD test,iou,0.6778206530128987,jsonl
+iid_v3,42000,DeepCAD test,iou,0.6857057129161851,jsonl
+iid_v3,43000,DeepCAD test,iou,0.6781723900191682,jsonl
+iid_v3,44000,DeepCAD test,iou,0.6927284644047466,jsonl
+iid_v3,45000,DeepCAD test,iou,0.697982357706489,jsonl
+iid_v3,46000,DeepCAD test,iou,0.6765986931428462,jsonl
+iid_v3,47000,DeepCAD test,iou,0.687550366601823,jsonl
+iid_v3,1000,DeepCAD test,exec,0.94,jsonl
+iid_v3,2000,DeepCAD test,exec,0.94,jsonl
+iid_v3,3000,DeepCAD test,exec,0.98,jsonl
+iid_v3,4000,DeepCAD test,exec,0.92,jsonl
+iid_v3,5000,DeepCAD test,exec,0.94,jsonl
+iid_v3,6000,DeepCAD test,exec,0.96,jsonl
+iid_v3,7000,DeepCAD test,exec,0.94,jsonl
+iid_v3,8000,DeepCAD test,exec,0.94,jsonl
+iid_v3,9000,DeepCAD test,exec,0.96,jsonl
+iid_v3,10000,DeepCAD test,exec,1.0,jsonl
+iid_v3,11000,DeepCAD test,exec,1.0,jsonl
+iid_v3,12000,DeepCAD test,exec,0.98,jsonl
+iid_v3,13000,DeepCAD test,exec,0.98,jsonl
+iid_v3,14000,DeepCAD test,exec,0.98,jsonl
+iid_v3,15000,DeepCAD test,exec,0.92,jsonl
+iid_v3,16000,DeepCAD test,exec,0.96,jsonl
+iid_v3,17000,DeepCAD test,exec,0.9,jsonl
+iid_v3,18000,DeepCAD test,exec,1.0,jsonl
+iid_v3,19000,DeepCAD test,exec,0.96,jsonl
+iid_v3,20000,DeepCAD test,exec,0.98,jsonl
+iid_v3,21000,DeepCAD test,exec,0.94,jsonl
+iid_v3,22000,DeepCAD test,exec,1.0,jsonl
+iid_v3,23000,DeepCAD test,exec,0.98,jsonl
+iid_v3,24000,DeepCAD test,exec,0.96,jsonl
+iid_v3,25000,DeepCAD test,exec,0.92,jsonl
+iid_v3,26000,DeepCAD test,exec,0.94,jsonl
+iid_v3,27000,DeepCAD test,exec,1.0,jsonl
+iid_v3,28000,DeepCAD test,exec,1.0,jsonl
+iid_v3,29000,DeepCAD test,exec,0.98,jsonl
+iid_v3,30000,DeepCAD test,exec,1.0,jsonl
+iid_v3,31000,DeepCAD test,exec,0.98,jsonl
+iid_v3,32000,DeepCAD test,exec,0.98,jsonl
+iid_v3,33000,DeepCAD test,exec,0.92,jsonl
+iid_v3,34000,DeepCAD test,exec,1.0,jsonl
+iid_v3,35000,DeepCAD test,exec,0.96,jsonl
+iid_v3,36000,DeepCAD test,exec,1.0,jsonl
+iid_v3,37000,DeepCAD test,exec,1.0,jsonl
+iid_v3,38000,DeepCAD test,exec,0.98,jsonl
+iid_v3,39000,DeepCAD test,exec,0.98,jsonl
+iid_v3,40000,DeepCAD test,exec,0.98,jsonl
+iid_v3,41000,DeepCAD test,exec,0.98,jsonl
+iid_v3,42000,DeepCAD test,exec,0.96,jsonl
+iid_v3,43000,DeepCAD test,exec,0.96,jsonl
+iid_v3,44000,DeepCAD test,exec,0.96,jsonl
+iid_v3,45000,DeepCAD test,exec,0.98,jsonl
+iid_v3,46000,DeepCAD test,exec,0.94,jsonl
+iid_v3,47000,DeepCAD test,exec,0.96,jsonl
+iid_v3,1000,Fusion360 test,iou,0.22810260268218488,jsonl
+iid_v3,2000,Fusion360 test,iou,0.23298231119646126,jsonl
+iid_v3,3000,Fusion360 test,iou,0.42006387960396724,jsonl
+iid_v3,4000,Fusion360 test,iou,0.4293090871045515,jsonl
+iid_v3,5000,Fusion360 test,iou,0.4780979825653683,jsonl
+iid_v3,6000,Fusion360 test,iou,0.48305628905329057,jsonl
+iid_v3,7000,Fusion360 test,iou,0.47417904263899985,jsonl
+iid_v3,8000,Fusion360 test,iou,0.47404769645736133,jsonl
+iid_v3,9000,Fusion360 test,iou,0.5350281959913792,jsonl
+iid_v3,10000,Fusion360 test,iou,0.5146266202736176,jsonl
+iid_v3,11000,Fusion360 test,iou,0.5036319980907246,jsonl
+iid_v3,12000,Fusion360 test,iou,0.5774320508595271,jsonl
+iid_v3,13000,Fusion360 test,iou,0.5390079146978244,jsonl
+iid_v3,14000,Fusion360 test,iou,0.5985848980739421,jsonl
+iid_v3,15000,Fusion360 test,iou,0.5534653823845682,jsonl
+iid_v3,16000,Fusion360 test,iou,0.6074372039886071,jsonl
+iid_v3,17000,Fusion360 test,iou,0.6087667490903557,jsonl
+iid_v3,18000,Fusion360 test,iou,0.6295118051305819,jsonl
+iid_v3,19000,Fusion360 test,iou,0.6303381852693325,jsonl
+iid_v3,20000,Fusion360 test,iou,0.5333449402756254,jsonl
+iid_v3,21000,Fusion360 test,iou,0.5808910813155435,jsonl
+iid_v3,22000,Fusion360 test,iou,0.6114088112255476,jsonl
+iid_v3,23000,Fusion360 test,iou,0.6186753928293226,jsonl
+iid_v3,24000,Fusion360 test,iou,0.6190933525345984,jsonl
+iid_v3,25000,Fusion360 test,iou,0.6443006811864127,jsonl
+iid_v3,26000,Fusion360 test,iou,0.6123485530933537,jsonl
+iid_v3,27000,Fusion360 test,iou,0.6155508476605597,jsonl
+iid_v3,28000,Fusion360 test,iou,0.6366775217683533,jsonl
+iid_v3,29000,Fusion360 test,iou,0.6309063373295913,jsonl
+iid_v3,30000,Fusion360 test,iou,0.6603816912620998,jsonl
+iid_v3,31000,Fusion360 test,iou,0.6726057797608945,jsonl
+iid_v3,32000,Fusion360 test,iou,0.6680570764089658,jsonl
+iid_v3,33000,Fusion360 test,iou,0.6671401093666899,jsonl
+iid_v3,34000,Fusion360 test,iou,0.6325966870696877,jsonl
+iid_v3,35000,Fusion360 test,iou,0.6312462004013638,jsonl
+iid_v3,36000,Fusion360 test,iou,0.6609354974438496,jsonl
+iid_v3,37000,Fusion360 test,iou,0.688123620623485,jsonl
+iid_v3,38000,Fusion360 test,iou,0.6728830786489145,jsonl
+iid_v3,39000,Fusion360 test,iou,0.6738649589108021,jsonl
+iid_v3,40000,Fusion360 test,iou,0.6591167454455668,jsonl
+iid_v3,41000,Fusion360 test,iou,0.6691685253194142,jsonl
+iid_v3,42000,Fusion360 test,iou,0.6690382233447631,jsonl
+iid_v3,43000,Fusion360 test,iou,0.6464727357410014,jsonl
+iid_v3,44000,Fusion360 test,iou,0.6715834728742598,jsonl
+iid_v3,45000,Fusion360 test,iou,0.6737036687025657,jsonl
+iid_v3,46000,Fusion360 test,iou,0.6641462208175263,jsonl
+iid_v3,47000,Fusion360 test,iou,0.6660050272392098,jsonl
+iid_v3,1000,Fusion360 test,exec,0.92,jsonl
+iid_v3,2000,Fusion360 test,exec,0.8,jsonl
+iid_v3,3000,Fusion360 test,exec,0.96,jsonl
+iid_v3,4000,Fusion360 test,exec,0.94,jsonl
+iid_v3,5000,Fusion360 test,exec,0.84,jsonl
+iid_v3,6000,Fusion360 test,exec,0.98,jsonl
+iid_v3,7000,Fusion360 test,exec,0.88,jsonl
+iid_v3,8000,Fusion360 test,exec,0.92,jsonl
+iid_v3,9000,Fusion360 test,exec,1.0,jsonl
+iid_v3,10000,Fusion360 test,exec,1.0,jsonl
+iid_v3,11000,Fusion360 test,exec,0.92,jsonl
+iid_v3,12000,Fusion360 test,exec,1.0,jsonl
+iid_v3,13000,Fusion360 test,exec,0.98,jsonl
+iid_v3,14000,Fusion360 test,exec,1.0,jsonl
+iid_v3,15000,Fusion360 test,exec,0.98,jsonl
+iid_v3,16000,Fusion360 test,exec,0.98,jsonl
+iid_v3,17000,Fusion360 test,exec,0.94,jsonl
+iid_v3,18000,Fusion360 test,exec,0.98,jsonl
+iid_v3,19000,Fusion360 test,exec,1.0,jsonl
+iid_v3,20000,Fusion360 test,exec,0.92,jsonl
+iid_v3,21000,Fusion360 test,exec,0.96,jsonl
+iid_v3,22000,Fusion360 test,exec,0.98,jsonl
+iid_v3,23000,Fusion360 test,exec,0.98,jsonl
+iid_v3,24000,Fusion360 test,exec,0.98,jsonl
+iid_v3,25000,Fusion360 test,exec,0.98,jsonl
+iid_v3,26000,Fusion360 test,exec,0.9,jsonl
+iid_v3,27000,Fusion360 test,exec,0.96,jsonl
+iid_v3,28000,Fusion360 test,exec,0.96,jsonl
+iid_v3,29000,Fusion360 test,exec,0.96,jsonl
+iid_v3,30000,Fusion360 test,exec,0.98,jsonl
+iid_v3,31000,Fusion360 test,exec,0.98,jsonl
+iid_v3,32000,Fusion360 test,exec,1.0,jsonl
+iid_v3,33000,Fusion360 test,exec,0.96,jsonl
+iid_v3,34000,Fusion360 test,exec,0.94,jsonl
+iid_v3,35000,Fusion360 test,exec,0.96,jsonl
+iid_v3,36000,Fusion360 test,exec,0.96,jsonl
+iid_v3,37000,Fusion360 test,exec,0.98,jsonl
+iid_v3,38000,Fusion360 test,exec,1.0,jsonl
+iid_v3,39000,Fusion360 test,exec,0.98,jsonl
+iid_v3,40000,Fusion360 test,exec,0.96,jsonl
+iid_v3,41000,Fusion360 test,exec,0.98,jsonl
+iid_v3,42000,Fusion360 test,exec,1.0,jsonl
+iid_v3,43000,Fusion360 test,exec,0.94,jsonl
+iid_v3,44000,Fusion360 test,exec,0.98,jsonl
+iid_v3,45000,Fusion360 test,exec,1.0,jsonl
+iid_v3,46000,Fusion360 test,exec,0.98,jsonl
+iid_v3,47000,Fusion360 test,exec,0.96,jsonl
+ood_enhance,2000,BC val OOD,iou,0.102242,retro
+ood_enhance,4000,BC val OOD,iou,0.20487199999999997,retro
+ood_enhance,6000,BC val OOD,iou,0.219854,retro
+ood_enhance,8000,BC val OOD,iou,0.25025000000000003,retro
+ood_enhance,10000,BC val OOD,iou,0.28165,retro
+ood_enhance,12000,BC val OOD,iou,0.294884,retro
+ood_enhance,14000,BC val OOD,iou,0.287836,retro
+ood_enhance,16000,BC val OOD,iou,0.286192,retro
+ood_enhance,18000,BC val OOD,iou,0.298622,retro
+ood_enhance,20000,BC val OOD,iou,0.31801599999999997,retro
+ood_enhance,22000,BC val OOD,iou,0.33013999999999993,retro
+ood_enhance,24000,BC val OOD,iou,0.343592,retro
+ood_enhance,2000,BC val OOD,ess_pass,0.08,retro
+ood_enhance,4000,BC val OOD,ess_pass,0.22,retro
+ood_enhance,6000,BC val OOD,ess_pass,0.08,retro
+ood_enhance,8000,BC val OOD,ess_pass,0.26,retro
+ood_enhance,10000,BC val OOD,ess_pass,0.22,retro
+ood_enhance,12000,BC val OOD,ess_pass,0.16,retro
+ood_enhance,14000,BC val OOD,ess_pass,0.24,retro
+ood_enhance,16000,BC val OOD,ess_pass,0.2,retro
+ood_enhance,18000,BC val OOD,ess_pass,0.24,retro
+ood_enhance,20000,BC val OOD,ess_pass,0.12,retro
+ood_enhance,22000,BC val OOD,ess_pass,0.28,retro
+ood_enhance,24000,BC val OOD,ess_pass,0.18,retro
+ood_enhance,2000,BC val OOD,exec,0.98,retro
+ood_enhance,4000,BC val OOD,exec,0.92,retro
+ood_enhance,6000,BC val OOD,exec,0.9,retro
+ood_enhance,8000,BC val OOD,exec,0.9,retro
+ood_enhance,10000,BC val OOD,exec,0.88,retro
+ood_enhance,12000,BC val OOD,exec,0.98,retro
+ood_enhance,14000,BC val OOD,exec,0.98,retro
+ood_enhance,16000,BC val OOD,exec,0.92,retro
+ood_enhance,18000,BC val OOD,exec,0.86,retro
+ood_enhance,20000,BC val OOD,exec,0.98,retro
+ood_enhance,22000,BC val OOD,exec,1.0,retro
+ood_enhance,24000,BC val OOD,exec,0.94,retro
+ood_enhance,1000,BC val IID,iou,0.11502035234727569,jsonl
+ood_enhance,2000,BC val IID,iou,0.1489754809720186,jsonl
+ood_enhance,3000,BC val IID,iou,0.2920351779555794,jsonl
+ood_enhance,4000,BC val IID,iou,0.2595213573022543,jsonl
+ood_enhance,5000,BC val IID,iou,0.262155471139035,jsonl
+ood_enhance,6000,BC val IID,iou,0.3067860198248134,jsonl
+ood_enhance,7000,BC val IID,iou,0.34682577389188285,jsonl
+ood_enhance,8000,BC val IID,iou,0.36550209922905874,jsonl
+ood_enhance,9000,BC val IID,iou,0.440065951892631,jsonl
+ood_enhance,10000,BC val IID,iou,0.4042509637175468,jsonl
+ood_enhance,11000,BC val IID,iou,0.3796331792578995,jsonl
+ood_enhance,12000,BC val IID,iou,0.4267226353200748,jsonl
+ood_enhance,13000,BC val IID,iou,0.4361726980956275,jsonl
+ood_enhance,14000,BC val IID,iou,0.43633639234394744,jsonl
+ood_enhance,15000,BC val IID,iou,0.4582520199842511,jsonl
+ood_enhance,16000,BC val IID,iou,0.4856280806166101,jsonl
+ood_enhance,17000,BC val IID,iou,0.5120422387938957,jsonl
+ood_enhance,18000,BC val IID,iou,0.4935075686673328,jsonl
+ood_enhance,19000,BC val IID,iou,0.510965040549331,jsonl
+ood_enhance,20000,BC val IID,iou,0.4997102682363788,jsonl
+ood_enhance,21000,BC val IID,iou,0.5267950887570695,jsonl
+ood_enhance,22000,BC val IID,iou,0.45547053326189285,jsonl
+ood_enhance,23000,BC val IID,iou,0.49280404899980457,jsonl
+ood_enhance,24000,BC val IID,iou,0.5010545809410427,jsonl
+ood_enhance,1000,BC val IID,ess_pass,0.5526315789473685,jsonl
+ood_enhance,2000,BC val IID,ess_pass,0.5789473684210527,jsonl
+ood_enhance,3000,BC val IID,ess_pass,0.631578947368421,jsonl
+ood_enhance,4000,BC val IID,ess_pass,0.7368421052631579,jsonl
+ood_enhance,5000,BC val IID,ess_pass,0.7368421052631579,jsonl
+ood_enhance,6000,BC val IID,ess_pass,0.5789473684210527,jsonl
+ood_enhance,7000,BC val IID,ess_pass,0.7631578947368421,jsonl
+ood_enhance,8000,BC val IID,ess_pass,0.7368421052631579,jsonl
+ood_enhance,9000,BC val IID,ess_pass,0.7894736842105263,jsonl
+ood_enhance,10000,BC val IID,ess_pass,0.7894736842105263,jsonl
+ood_enhance,11000,BC val IID,ess_pass,0.7368421052631579,jsonl
+ood_enhance,12000,BC val IID,ess_pass,0.7368421052631579,jsonl
+ood_enhance,13000,BC val IID,ess_pass,0.8157894736842105,jsonl
+ood_enhance,14000,BC val IID,ess_pass,0.7105263157894737,jsonl
+ood_enhance,15000,BC val IID,ess_pass,0.7368421052631579,jsonl
+ood_enhance,16000,BC val IID,ess_pass,0.7894736842105263,jsonl
+ood_enhance,17000,BC val IID,ess_pass,0.7894736842105263,jsonl
+ood_enhance,18000,BC val IID,ess_pass,0.7631578947368421,jsonl
+ood_enhance,19000,BC val IID,ess_pass,0.8157894736842105,jsonl
+ood_enhance,20000,BC val IID,ess_pass,0.8421052631578947,jsonl
+ood_enhance,21000,BC val IID,ess_pass,0.8421052631578947,jsonl
+ood_enhance,22000,BC val IID,ess_pass,0.8157894736842105,jsonl
+ood_enhance,23000,BC val IID,ess_pass,0.7894736842105263,jsonl
+ood_enhance,24000,BC val IID,ess_pass,0.7894736842105263,jsonl
+ood_enhance,1000,BC val IID,exec,0.9024390243902439,jsonl
+ood_enhance,2000,BC val IID,exec,0.926829268292683,jsonl
+ood_enhance,3000,BC val IID,exec,0.9024390243902439,jsonl
+ood_enhance,4000,BC val IID,exec,0.926829268292683,jsonl
+ood_enhance,5000,BC val IID,exec,0.8780487804878049,jsonl
+ood_enhance,6000,BC val IID,exec,0.975609756097561,jsonl
+ood_enhance,7000,BC val IID,exec,0.975609756097561,jsonl
+ood_enhance,8000,BC val IID,exec,0.9512195121951219,jsonl
+ood_enhance,9000,BC val IID,exec,0.975609756097561,jsonl
+ood_enhance,10000,BC val IID,exec,0.926829268292683,jsonl
+ood_enhance,11000,BC val IID,exec,0.975609756097561,jsonl
+ood_enhance,12000,BC val IID,exec,0.9512195121951219,jsonl
+ood_enhance,13000,BC val IID,exec,0.975609756097561,jsonl
+ood_enhance,14000,BC val IID,exec,0.975609756097561,jsonl
+ood_enhance,15000,BC val IID,exec,0.975609756097561,jsonl
+ood_enhance,16000,BC val IID,exec,0.9512195121951219,jsonl
+ood_enhance,17000,BC val IID,exec,0.9512195121951219,jsonl
+ood_enhance,18000,BC val IID,exec,0.975609756097561,jsonl
+ood_enhance,19000,BC val IID,exec,0.926829268292683,jsonl
+ood_enhance,20000,BC val IID,exec,0.975609756097561,jsonl
+ood_enhance,21000,BC val IID,exec,0.9512195121951219,jsonl
+ood_enhance,22000,BC val IID,exec,0.8536585365853658,jsonl
+ood_enhance,23000,BC val IID,exec,0.975609756097561,jsonl
+ood_enhance,24000,BC val IID,exec,0.975609756097561,jsonl
+ood_enhance,1000,DeepCAD test,iou,0.26568246653488026,jsonl
+ood_enhance,2000,DeepCAD test,iou,0.24300273835931524,jsonl
+ood_enhance,3000,DeepCAD test,iou,0.40428817609188356,jsonl
+ood_enhance,4000,DeepCAD test,iou,0.4224460530892077,jsonl
+ood_enhance,5000,DeepCAD test,iou,0.4524241434543058,jsonl
+ood_enhance,6000,DeepCAD test,iou,0.4484412148462933,jsonl
+ood_enhance,7000,DeepCAD test,iou,0.4755877319009722,jsonl
+ood_enhance,8000,DeepCAD test,iou,0.5010686093274087,jsonl
+ood_enhance,9000,DeepCAD test,iou,0.5087802619026566,jsonl
+ood_enhance,10000,DeepCAD test,iou,0.5238703599239999,jsonl
+ood_enhance,11000,DeepCAD test,iou,0.5666925221427291,jsonl
+ood_enhance,12000,DeepCAD test,iou,0.5336367964854108,jsonl
+ood_enhance,13000,DeepCAD test,iou,0.569759449341084,jsonl
+ood_enhance,14000,DeepCAD test,iou,0.5718620462731663,jsonl
+ood_enhance,15000,DeepCAD test,iou,0.5592377894360956,jsonl
+ood_enhance,16000,DeepCAD test,iou,0.5938799761207069,jsonl
+ood_enhance,17000,DeepCAD test,iou,0.6219941620357721,jsonl
+ood_enhance,18000,DeepCAD test,iou,0.6253528502869615,jsonl
+ood_enhance,19000,DeepCAD test,iou,0.6189751624485195,jsonl
+ood_enhance,20000,DeepCAD test,iou,0.5877726109231616,jsonl
+ood_enhance,21000,DeepCAD test,iou,0.5892434061918549,jsonl
+ood_enhance,22000,DeepCAD test,iou,0.6073214957613898,jsonl
+ood_enhance,23000,DeepCAD test,iou,0.5818446832751889,jsonl
+ood_enhance,24000,DeepCAD test,iou,0.6359818585276789,jsonl
+ood_enhance,1000,DeepCAD test,exec,0.92,jsonl
+ood_enhance,2000,DeepCAD test,exec,0.86,jsonl
+ood_enhance,3000,DeepCAD test,exec,1.0,jsonl
+ood_enhance,4000,DeepCAD test,exec,0.92,jsonl
+ood_enhance,5000,DeepCAD test,exec,0.9,jsonl
+ood_enhance,6000,DeepCAD test,exec,0.96,jsonl
+ood_enhance,7000,DeepCAD test,exec,0.92,jsonl
+ood_enhance,8000,DeepCAD test,exec,0.94,jsonl
+ood_enhance,9000,DeepCAD test,exec,0.96,jsonl
+ood_enhance,10000,DeepCAD test,exec,1.0,jsonl
+ood_enhance,11000,DeepCAD test,exec,0.96,jsonl
+ood_enhance,12000,DeepCAD test,exec,0.94,jsonl
+ood_enhance,13000,DeepCAD test,exec,0.98,jsonl
+ood_enhance,14000,DeepCAD test,exec,0.94,jsonl
+ood_enhance,15000,DeepCAD test,exec,1.0,jsonl
+ood_enhance,16000,DeepCAD test,exec,0.98,jsonl
+ood_enhance,17000,DeepCAD test,exec,0.98,jsonl
+ood_enhance,18000,DeepCAD test,exec,1.0,jsonl
+ood_enhance,19000,DeepCAD test,exec,0.98,jsonl
+ood_enhance,20000,DeepCAD test,exec,0.92,jsonl
+ood_enhance,21000,DeepCAD test,exec,0.98,jsonl
+ood_enhance,22000,DeepCAD test,exec,1.0,jsonl
+ood_enhance,23000,DeepCAD test,exec,0.94,jsonl
+ood_enhance,24000,DeepCAD test,exec,0.94,jsonl
+ood_enhance,1000,Fusion360 test,iou,0.22629193625414834,jsonl
+ood_enhance,2000,Fusion360 test,iou,0.2692356479692171,jsonl
+ood_enhance,3000,Fusion360 test,iou,0.3841578007334081,jsonl
+ood_enhance,4000,Fusion360 test,iou,0.42408532597866533,jsonl
+ood_enhance,5000,Fusion360 test,iou,0.47437374030668517,jsonl
+ood_enhance,6000,Fusion360 test,iou,0.47698284534128166,jsonl
+ood_enhance,7000,Fusion360 test,iou,0.511322202568284,jsonl
+ood_enhance,8000,Fusion360 test,iou,0.5236397820032097,jsonl
+ood_enhance,9000,Fusion360 test,iou,0.5663705801440212,jsonl
+ood_enhance,10000,Fusion360 test,iou,0.5488951309739286,jsonl
+ood_enhance,11000,Fusion360 test,iou,0.5581491082271507,jsonl
+ood_enhance,12000,Fusion360 test,iou,0.5894597205249221,jsonl
+ood_enhance,13000,Fusion360 test,iou,0.5834715509974985,jsonl
+ood_enhance,14000,Fusion360 test,iou,0.5593675345486948,jsonl
+ood_enhance,15000,Fusion360 test,iou,0.576628242326919,jsonl
+ood_enhance,16000,Fusion360 test,iou,0.5911151036137213,jsonl
+ood_enhance,17000,Fusion360 test,iou,0.6052258097568489,jsonl
+ood_enhance,18000,Fusion360 test,iou,0.5941626125461633,jsonl
+ood_enhance,19000,Fusion360 test,iou,0.6403625734950846,jsonl
+ood_enhance,20000,Fusion360 test,iou,0.6170578933048697,jsonl
+ood_enhance,21000,Fusion360 test,iou,0.6169106190348683,jsonl
+ood_enhance,22000,Fusion360 test,iou,0.6331274800635953,jsonl
+ood_enhance,23000,Fusion360 test,iou,0.6343543281689472,jsonl
+ood_enhance,24000,Fusion360 test,iou,0.6026858882084863,jsonl
+ood_enhance,1000,Fusion360 test,exec,0.94,jsonl
+ood_enhance,2000,Fusion360 test,exec,0.94,jsonl
+ood_enhance,3000,Fusion360 test,exec,0.98,jsonl
+ood_enhance,4000,Fusion360 test,exec,1.0,jsonl
+ood_enhance,5000,Fusion360 test,exec,0.94,jsonl
+ood_enhance,6000,Fusion360 test,exec,0.96,jsonl
+ood_enhance,7000,Fusion360 test,exec,0.98,jsonl
+ood_enhance,8000,Fusion360 test,exec,1.0,jsonl
+ood_enhance,9000,Fusion360 test,exec,0.96,jsonl
+ood_enhance,10000,Fusion360 test,exec,1.0,jsonl
+ood_enhance,11000,Fusion360 test,exec,0.94,jsonl
+ood_enhance,12000,Fusion360 test,exec,0.98,jsonl
+ood_enhance,13000,Fusion360 test,exec,0.96,jsonl
+ood_enhance,14000,Fusion360 test,exec,0.94,jsonl
+ood_enhance,15000,Fusion360 test,exec,0.96,jsonl
+ood_enhance,16000,Fusion360 test,exec,1.0,jsonl
+ood_enhance,17000,Fusion360 test,exec,0.98,jsonl
+ood_enhance,18000,Fusion360 test,exec,1.0,jsonl
+ood_enhance,19000,Fusion360 test,exec,1.0,jsonl
+ood_enhance,20000,Fusion360 test,exec,0.96,jsonl
+ood_enhance,21000,Fusion360 test,exec,0.94,jsonl
+ood_enhance,22000,Fusion360 test,exec,1.0,jsonl
+ood_enhance,23000,Fusion360 test,exec,0.96,jsonl
+ood_enhance,24000,Fusion360 test,exec,0.96,jsonl
+baseline,1000,BC val OOD,iou,0.05941207509172694,jsonl
+baseline,2000,BC val OOD,iou,0.07491063489797073,jsonl
+baseline,3000,BC val OOD,iou,0.06622616451674054,jsonl
+baseline,4000,BC val OOD,iou,0.08027180566717691,jsonl
+baseline,5000,BC val OOD,iou,0.10324279952582038,jsonl
+baseline,6000,BC val OOD,iou,0.07297918153878075,jsonl
+baseline,7000,BC val OOD,iou,0.0986053068441435,jsonl
+baseline,8000,BC val OOD,iou,0.1007924252237228,jsonl
+baseline,9000,BC val OOD,iou,0.06915944002033747,jsonl
+baseline,10000,BC val OOD,iou,0.09377624995838582,jsonl
+baseline,11000,BC val OOD,iou,0.1042523713868186,jsonl
+baseline,1000,BC val OOD,ess_pass,0.0,jsonl
+baseline,2000,BC val OOD,ess_pass,0.0,jsonl
+baseline,3000,BC val OOD,ess_pass,0.0,jsonl
+baseline,4000,BC val OOD,ess_pass,0.0,jsonl
+baseline,5000,BC val OOD,ess_pass,0.0,jsonl
+baseline,6000,BC val OOD,ess_pass,0.0,jsonl
+baseline,7000,BC val OOD,ess_pass,0.0,jsonl
+baseline,8000,BC val OOD,ess_pass,0.0,jsonl
+baseline,9000,BC val OOD,ess_pass,0.0,jsonl
+baseline,10000,BC val OOD,ess_pass,0.0,jsonl
+baseline,11000,BC val OOD,ess_pass,0.0,jsonl
+baseline,1000,BC val OOD,exec,0.86,jsonl
+baseline,2000,BC val OOD,exec,1.0,jsonl
+baseline,3000,BC val OOD,exec,0.96,jsonl
+baseline,4000,BC val OOD,exec,0.98,jsonl
+baseline,5000,BC val OOD,exec,0.98,jsonl
+baseline,6000,BC val OOD,exec,0.98,jsonl
+baseline,7000,BC val OOD,exec,0.94,jsonl
+baseline,8000,BC val OOD,exec,1.0,jsonl
+baseline,9000,BC val OOD,exec,0.92,jsonl
+baseline,10000,BC val OOD,exec,0.94,jsonl
+baseline,11000,BC val OOD,exec,0.98,jsonl
+baseline,1000,BC val IID,iou,0.059371058740151306,jsonl
+baseline,2000,BC val IID,iou,0.06407212469732461,jsonl
+baseline,3000,BC val IID,iou,0.04931585192217852,jsonl
+baseline,4000,BC val IID,iou,0.07269901772379442,jsonl
+baseline,5000,BC val IID,iou,0.07416589760763907,jsonl
+baseline,6000,BC val IID,iou,0.04395839463777258,jsonl
+baseline,7000,BC val IID,iou,0.06507694584830345,jsonl
+baseline,8000,BC val IID,iou,0.07693180387466059,jsonl
+baseline,9000,BC val IID,iou,0.06035861093537991,jsonl
+baseline,10000,BC val IID,iou,0.060762375421835074,jsonl
+baseline,11000,BC val IID,iou,0.0627694309463904,jsonl
+baseline,1000,BC val IID,ess_pass,0.3170731707317073,jsonl
+baseline,2000,BC val IID,ess_pass,0.3170731707317073,jsonl
+baseline,3000,BC val IID,ess_pass,0.3902439024390244,jsonl
+baseline,4000,BC val IID,ess_pass,0.36585365853658536,jsonl
+baseline,5000,BC val IID,ess_pass,0.3170731707317073,jsonl
+baseline,6000,BC val IID,ess_pass,0.4146341463414634,jsonl
+baseline,7000,BC val IID,ess_pass,0.3902439024390244,jsonl
+baseline,8000,BC val IID,ess_pass,0.4634146341463415,jsonl
+baseline,9000,BC val IID,ess_pass,0.3170731707317073,jsonl
+baseline,10000,BC val IID,ess_pass,0.3902439024390244,jsonl
+baseline,11000,BC val IID,ess_pass,0.4146341463414634,jsonl
+baseline,1000,BC val IID,exec,0.88,jsonl
+baseline,2000,BC val IID,exec,0.94,jsonl
+baseline,3000,BC val IID,exec,0.92,jsonl
+baseline,4000,BC val IID,exec,0.96,jsonl
+baseline,5000,BC val IID,exec,0.9,jsonl
+baseline,6000,BC val IID,exec,0.96,jsonl
+baseline,7000,BC val IID,exec,0.88,jsonl
+baseline,8000,BC val IID,exec,0.94,jsonl
+baseline,9000,BC val IID,exec,0.92,jsonl
+baseline,10000,BC val IID,exec,0.88,jsonl
+baseline,11000,BC val IID,exec,0.98,jsonl
+baseline,1000,DeepCAD test,iou,0.2875540871396063,jsonl
+baseline,2000,DeepCAD test,iou,0.39314866402852644,jsonl
+baseline,3000,DeepCAD test,iou,0.4177199907902919,jsonl
+baseline,4000,DeepCAD test,iou,0.565915856824441,jsonl
+baseline,5000,DeepCAD test,iou,0.555437654599154,jsonl
+baseline,6000,DeepCAD test,iou,0.5749257815445277,jsonl
+baseline,7000,DeepCAD test,iou,0.6078751664769103,jsonl
+baseline,8000,DeepCAD test,iou,0.5950582727522324,jsonl
+baseline,9000,DeepCAD test,iou,0.6299254757904749,jsonl
+baseline,10000,DeepCAD test,iou,0.6244719451065237,jsonl
+baseline,11000,DeepCAD test,iou,0.6531685886173103,jsonl
+baseline,1000,DeepCAD test,exec,0.9,jsonl
+baseline,2000,DeepCAD test,exec,0.96,jsonl
+baseline,3000,DeepCAD test,exec,0.96,jsonl
+baseline,4000,DeepCAD test,exec,0.98,jsonl
+baseline,5000,DeepCAD test,exec,0.98,jsonl
+baseline,6000,DeepCAD test,exec,0.96,jsonl
+baseline,7000,DeepCAD test,exec,1.0,jsonl
+baseline,8000,DeepCAD test,exec,0.98,jsonl
+baseline,9000,DeepCAD test,exec,1.0,jsonl
+baseline,10000,DeepCAD test,exec,0.9,jsonl
+baseline,11000,DeepCAD test,exec,0.98,jsonl
+baseline,1000,Fusion360 test,iou,0.3209175956330276,jsonl
+baseline,2000,Fusion360 test,iou,0.3768224755261676,jsonl
+baseline,3000,Fusion360 test,iou,0.46986476318860865,jsonl
+baseline,4000,Fusion360 test,iou,0.5562452716477422,jsonl
+baseline,5000,Fusion360 test,iou,0.5382889174399087,jsonl
+baseline,6000,Fusion360 test,iou,0.5314656490752996,jsonl
+baseline,7000,Fusion360 test,iou,0.5699238676670753,jsonl
+baseline,8000,Fusion360 test,iou,0.582301258906168,jsonl
+baseline,9000,Fusion360 test,iou,0.6027939794924977,jsonl
+baseline,10000,Fusion360 test,iou,0.6559013596829992,jsonl
+baseline,11000,Fusion360 test,iou,0.6519165021546791,jsonl
+baseline,1000,Fusion360 test,exec,0.94,jsonl
+baseline,2000,Fusion360 test,exec,0.96,jsonl
+baseline,3000,Fusion360 test,exec,0.94,jsonl
+baseline,4000,Fusion360 test,exec,0.96,jsonl
+baseline,5000,Fusion360 test,exec,0.96,jsonl
+baseline,6000,Fusion360 test,exec,0.94,jsonl
+baseline,7000,Fusion360 test,exec,0.92,jsonl
+baseline,8000,Fusion360 test,exec,0.96,jsonl
+baseline,9000,Fusion360 test,exec,0.98,jsonl
+baseline,10000,Fusion360 test,exec,0.96,jsonl
+baseline,11000,Fusion360 test,exec,0.98,jsonl
+ood,1000,BC val OOD,iou,0.15989879005833957,jsonl
+ood,2000,BC val OOD,iou,0.15887037834871984,jsonl
+ood,3000,BC val OOD,iou,0.14741743806547838,jsonl
+ood,4000,BC val OOD,iou,0.19444000911072318,jsonl
+ood,5000,BC val OOD,iou,0.24008746530466382,jsonl
+ood,6000,BC val OOD,iou,0.30406824429385126,jsonl
+ood,7000,BC val OOD,iou,0.2849538817629276,jsonl
+ood,8000,BC val OOD,iou,0.2321416470137245,jsonl
+ood,9000,BC val OOD,iou,0.27462282634118446,jsonl
+ood,10000,BC val OOD,iou,0.2751956225050465,jsonl
+ood,11000,BC val OOD,iou,0.2397574801206607,jsonl
+ood,12000,BC val OOD,iou,0.24745501897459984,jsonl
+ood,13000,BC val OOD,iou,0.2668710306200924,jsonl
+ood,14000,BC val OOD,iou,0.2111269061481202,jsonl
+ood,15000,BC val OOD,iou,0.31610358286784407,jsonl
+ood,16000,BC val OOD,iou,0.2634971348653286,jsonl
+ood,17000,BC val OOD,iou,0.26818468553533187,jsonl
+ood,18000,BC val OOD,iou,0.2988413708935889,jsonl
+ood,19000,BC val OOD,iou,0.2916329003619413,jsonl
+ood,20000,BC val OOD,iou,0.29016755393696425,jsonl
+ood,21000,BC val OOD,iou,0.2921203874845326,jsonl
+ood,22000,BC val OOD,iou,0.3162211437132493,jsonl
+ood,23000,BC val OOD,iou,0.30856072917157057,jsonl
+ood,24000,BC val OOD,iou,0.2727692580222724,jsonl
+ood,25000,BC val OOD,iou,0.28061154502870767,jsonl
+ood,1000,BC val OOD,ess_pass,0.12,jsonl
+ood,2000,BC val OOD,ess_pass,0.06,jsonl
+ood,3000,BC val OOD,ess_pass,0.14,jsonl
+ood,4000,BC val OOD,ess_pass,0.12,jsonl
+ood,5000,BC val OOD,ess_pass,0.28,jsonl
+ood,6000,BC val OOD,ess_pass,0.1,jsonl
+ood,7000,BC val OOD,ess_pass,0.28,jsonl
+ood,8000,BC val OOD,ess_pass,0.34,jsonl
+ood,9000,BC val OOD,ess_pass,0.24,jsonl
+ood,10000,BC val OOD,ess_pass,0.38,jsonl
+ood,11000,BC val OOD,ess_pass,0.22,jsonl
+ood,12000,BC val OOD,ess_pass,0.18,jsonl
+ood,13000,BC val OOD,ess_pass,0.24,jsonl
+ood,14000,BC val OOD,ess_pass,0.38,jsonl
+ood,15000,BC val OOD,ess_pass,0.28,jsonl
+ood,16000,BC val OOD,ess_pass,0.38,jsonl
+ood,17000,BC val OOD,ess_pass,0.4,jsonl
+ood,18000,BC val OOD,ess_pass,0.48,jsonl
+ood,19000,BC val OOD,ess_pass,0.34,jsonl
+ood,20000,BC val OOD,ess_pass,0.32,jsonl
+ood,21000,BC val OOD,ess_pass,0.36,jsonl
+ood,22000,BC val OOD,ess_pass,0.36,jsonl
+ood,23000,BC val OOD,ess_pass,0.38,jsonl
+ood,24000,BC val OOD,ess_pass,0.3,jsonl
+ood,25000,BC val OOD,ess_pass,0.36,jsonl
+ood,1000,BC val OOD,exec,0.94,jsonl
+ood,2000,BC val OOD,exec,1.0,jsonl
+ood,3000,BC val OOD,exec,0.98,jsonl
+ood,4000,BC val OOD,exec,0.96,jsonl
+ood,5000,BC val OOD,exec,0.84,jsonl
+ood,6000,BC val OOD,exec,0.92,jsonl
+ood,7000,BC val OOD,exec,0.86,jsonl
+ood,8000,BC val OOD,exec,0.9,jsonl
+ood,9000,BC val OOD,exec,0.88,jsonl
+ood,10000,BC val OOD,exec,0.9,jsonl
+ood,11000,BC val OOD,exec,0.88,jsonl
+ood,12000,BC val OOD,exec,0.88,jsonl
+ood,13000,BC val OOD,exec,0.86,jsonl
+ood,14000,BC val OOD,exec,0.84,jsonl
+ood,15000,BC val OOD,exec,0.92,jsonl
+ood,16000,BC val OOD,exec,0.84,jsonl
+ood,17000,BC val OOD,exec,0.9,jsonl
+ood,18000,BC val OOD,exec,0.9,jsonl
+ood,19000,BC val OOD,exec,0.94,jsonl
+ood,20000,BC val OOD,exec,0.84,jsonl
+ood,21000,BC val OOD,exec,0.8,jsonl
+ood,22000,BC val OOD,exec,0.9,jsonl
+ood,23000,BC val OOD,exec,0.86,jsonl
+ood,24000,BC val OOD,exec,0.84,jsonl
+ood,25000,BC val OOD,exec,0.84,jsonl
+ood,1000,BC val IID,iou,0.10494953767296314,jsonl
+ood,2000,BC val IID,iou,0.12106652654329361,jsonl
+ood,3000,BC val IID,iou,0.15113703305320386,jsonl
+ood,4000,BC val IID,iou,0.30425402217689074,jsonl
+ood,5000,BC val IID,iou,0.31351872299067646,jsonl
+ood,6000,BC val IID,iou,0.38216115446557547,jsonl
+ood,7000,BC val IID,iou,0.3473005915470216,jsonl
+ood,8000,BC val IID,iou,0.4099611872280314,jsonl
+ood,9000,BC val IID,iou,0.3744266089347629,jsonl
+ood,10000,BC val IID,iou,0.40318697666425185,jsonl
+ood,11000,BC val IID,iou,0.42773724859775286,jsonl
+ood,12000,BC val IID,iou,0.4185010122832756,jsonl
+ood,13000,BC val IID,iou,0.37801151301112945,jsonl
+ood,14000,BC val IID,iou,0.44045701208191596,jsonl
+ood,15000,BC val IID,iou,0.4607203331388762,jsonl
+ood,16000,BC val IID,iou,0.5192860682375187,jsonl
+ood,17000,BC val IID,iou,0.5381587425813086,jsonl
+ood,18000,BC val IID,iou,0.4957423482014429,jsonl
+ood,19000,BC val IID,iou,0.5622625959011484,jsonl
+ood,20000,BC val IID,iou,0.5515501948553614,jsonl
+ood,21000,BC val IID,iou,0.5408987757676657,jsonl
+ood,22000,BC val IID,iou,0.5525902411371595,jsonl
+ood,23000,BC val IID,iou,0.5874417993832453,jsonl
+ood,24000,BC val IID,iou,0.5675426298388303,jsonl
+ood,25000,BC val IID,iou,0.6032969990112393,jsonl
+ood,1000,BC val IID,ess_pass,0.4878048780487805,jsonl
+ood,2000,BC val IID,ess_pass,0.3902439024390244,jsonl
+ood,3000,BC val IID,ess_pass,0.7317073170731707,jsonl
+ood,4000,BC val IID,ess_pass,0.7073170731707317,jsonl
+ood,5000,BC val IID,ess_pass,0.5609756097560976,jsonl
+ood,6000,BC val IID,ess_pass,0.6341463414634146,jsonl
+ood,7000,BC val IID,ess_pass,0.5853658536585366,jsonl
+ood,8000,BC val IID,ess_pass,0.7317073170731707,jsonl
+ood,9000,BC val IID,ess_pass,0.6585365853658537,jsonl
+ood,10000,BC val IID,ess_pass,0.6829268292682927,jsonl
+ood,11000,BC val IID,ess_pass,0.6585365853658537,jsonl
+ood,12000,BC val IID,ess_pass,0.7073170731707317,jsonl
+ood,13000,BC val IID,ess_pass,0.6829268292682927,jsonl
+ood,14000,BC val IID,ess_pass,0.7317073170731707,jsonl
+ood,15000,BC val IID,ess_pass,0.7073170731707317,jsonl
+ood,16000,BC val IID,ess_pass,0.7317073170731707,jsonl
+ood,17000,BC val IID,ess_pass,0.7804878048780488,jsonl
+ood,18000,BC val IID,ess_pass,0.7560975609756098,jsonl
+ood,19000,BC val IID,ess_pass,0.8048780487804879,jsonl
+ood,20000,BC val IID,ess_pass,0.7804878048780488,jsonl
+ood,21000,BC val IID,ess_pass,0.7560975609756098,jsonl
+ood,22000,BC val IID,ess_pass,0.7804878048780488,jsonl
+ood,23000,BC val IID,ess_pass,0.7804878048780488,jsonl
+ood,24000,BC val IID,ess_pass,0.8048780487804879,jsonl
+ood,25000,BC val IID,ess_pass,0.8048780487804879,jsonl
+ood,1000,BC val IID,exec,0.86,jsonl
+ood,2000,BC val IID,exec,0.9,jsonl
+ood,3000,BC val IID,exec,0.96,jsonl
+ood,4000,BC val IID,exec,0.94,jsonl
+ood,5000,BC val IID,exec,0.96,jsonl
+ood,6000,BC val IID,exec,1.0,jsonl
+ood,7000,BC val IID,exec,0.94,jsonl
+ood,8000,BC val IID,exec,0.98,jsonl
+ood,9000,BC val IID,exec,1.0,jsonl
+ood,10000,BC val IID,exec,0.96,jsonl
+ood,11000,BC val IID,exec,0.9,jsonl
+ood,12000,BC val IID,exec,0.94,jsonl
+ood,13000,BC val IID,exec,0.88,jsonl
+ood,14000,BC val IID,exec,0.94,jsonl
+ood,15000,BC val IID,exec,0.98,jsonl
+ood,16000,BC val IID,exec,0.98,jsonl
+ood,17000,BC val IID,exec,0.96,jsonl
+ood,18000,BC val IID,exec,0.94,jsonl
+ood,19000,BC val IID,exec,0.94,jsonl
+ood,20000,BC val IID,exec,0.96,jsonl
+ood,21000,BC val IID,exec,0.98,jsonl
+ood,22000,BC val IID,exec,0.92,jsonl
+ood,23000,BC val IID,exec,0.96,jsonl
+ood,24000,BC val IID,exec,0.94,jsonl
+ood,25000,BC val IID,exec,0.94,jsonl
+ood,1000,DeepCAD test,iou,0.2470718021427335,jsonl
+ood,2000,DeepCAD test,iou,0.25507405192189114,jsonl
+ood,3000,DeepCAD test,iou,0.3775336357765227,jsonl
+ood,4000,DeepCAD test,iou,0.45463654947322213,jsonl
+ood,5000,DeepCAD test,iou,0.4227598616065948,jsonl
+ood,6000,DeepCAD test,iou,0.4747749318203555,jsonl
+ood,7000,DeepCAD test,iou,0.49883364506452393,jsonl
+ood,8000,DeepCAD test,iou,0.5096478776664125,jsonl
+ood,9000,DeepCAD test,iou,0.47699970449761453,jsonl
+ood,10000,DeepCAD test,iou,0.5504476797872999,jsonl
+ood,11000,DeepCAD test,iou,0.5481419571466496,jsonl
+ood,12000,DeepCAD test,iou,0.5614302352235587,jsonl
+ood,13000,DeepCAD test,iou,0.5865531353952526,jsonl
+ood,14000,DeepCAD test,iou,0.6060557749365642,jsonl
+ood,15000,DeepCAD test,iou,0.5946370407585908,jsonl
+ood,16000,DeepCAD test,iou,0.5910568479285323,jsonl
+ood,17000,DeepCAD test,iou,0.591737102023302,jsonl
+ood,18000,DeepCAD test,iou,0.593607194108985,jsonl
+ood,19000,DeepCAD test,iou,0.6081235051856746,jsonl
+ood,20000,DeepCAD test,iou,0.6160327117667476,jsonl
+ood,21000,DeepCAD test,iou,0.5975339401144669,jsonl
+ood,22000,DeepCAD test,iou,0.6287789524997643,jsonl
+ood,23000,DeepCAD test,iou,0.6467284119240397,jsonl
+ood,24000,DeepCAD test,iou,0.6420378779938639,jsonl
+ood,25000,DeepCAD test,iou,0.6480282188417604,jsonl
+ood,1000,DeepCAD test,exec,0.84,jsonl
+ood,2000,DeepCAD test,exec,0.88,jsonl
+ood,3000,DeepCAD test,exec,0.96,jsonl
+ood,4000,DeepCAD test,exec,0.92,jsonl
+ood,5000,DeepCAD test,exec,0.94,jsonl
+ood,6000,DeepCAD test,exec,0.98,jsonl
+ood,7000,DeepCAD test,exec,0.94,jsonl
+ood,8000,DeepCAD test,exec,0.98,jsonl
+ood,9000,DeepCAD test,exec,0.94,jsonl
+ood,10000,DeepCAD test,exec,1.0,jsonl
+ood,11000,DeepCAD test,exec,0.98,jsonl
+ood,12000,DeepCAD test,exec,0.92,jsonl
+ood,13000,DeepCAD test,exec,0.94,jsonl
+ood,14000,DeepCAD test,exec,0.94,jsonl
+ood,15000,DeepCAD test,exec,0.94,jsonl
+ood,16000,DeepCAD test,exec,0.96,jsonl
+ood,17000,DeepCAD test,exec,0.96,jsonl
+ood,18000,DeepCAD test,exec,0.94,jsonl
+ood,19000,DeepCAD test,exec,0.92,jsonl
+ood,20000,DeepCAD test,exec,1.0,jsonl
+ood,21000,DeepCAD test,exec,0.92,jsonl
+ood,22000,DeepCAD test,exec,0.98,jsonl
+ood,23000,DeepCAD test,exec,1.0,jsonl
+ood,24000,DeepCAD test,exec,0.98,jsonl
+ood,25000,DeepCAD test,exec,1.0,jsonl
+ood,1000,Fusion360 test,iou,0.19938462571553842,jsonl
+ood,2000,Fusion360 test,iou,0.23326309093864953,jsonl
+ood,3000,Fusion360 test,iou,0.38037260580914783,jsonl
+ood,4000,Fusion360 test,iou,0.4787311846371161,jsonl
+ood,5000,Fusion360 test,iou,0.41127054759386544,jsonl
+ood,6000,Fusion360 test,iou,0.47402223082146944,jsonl
+ood,7000,Fusion360 test,iou,0.5202342934015634,jsonl
+ood,8000,Fusion360 test,iou,0.5526313990102928,jsonl
+ood,9000,Fusion360 test,iou,0.5089264424967973,jsonl
+ood,10000,Fusion360 test,iou,0.5651843294595886,jsonl
+ood,11000,Fusion360 test,iou,0.6174400991545794,jsonl
+ood,12000,Fusion360 test,iou,0.5612323592132257,jsonl
+ood,13000,Fusion360 test,iou,0.5767361354798322,jsonl
+ood,14000,Fusion360 test,iou,0.5545263607950559,jsonl
+ood,15000,Fusion360 test,iou,0.5871033301896685,jsonl
+ood,16000,Fusion360 test,iou,0.5998856826893604,jsonl
+ood,17000,Fusion360 test,iou,0.610372707614091,jsonl
+ood,18000,Fusion360 test,iou,0.6217280018700491,jsonl
+ood,19000,Fusion360 test,iou,0.6358959498211995,jsonl
+ood,20000,Fusion360 test,iou,0.6088483616852259,jsonl
+ood,21000,Fusion360 test,iou,0.6128658713571047,jsonl
+ood,22000,Fusion360 test,iou,0.6035296590857399,jsonl
+ood,23000,Fusion360 test,iou,0.6443272075327987,jsonl
+ood,24000,Fusion360 test,iou,0.6328028719773814,jsonl
+ood,25000,Fusion360 test,iou,0.6327601743369463,jsonl
+ood,1000,Fusion360 test,exec,0.92,jsonl
+ood,2000,Fusion360 test,exec,0.94,jsonl
+ood,3000,Fusion360 test,exec,0.92,jsonl
+ood,4000,Fusion360 test,exec,0.92,jsonl
+ood,5000,Fusion360 test,exec,0.86,jsonl
+ood,6000,Fusion360 test,exec,0.92,jsonl
+ood,7000,Fusion360 test,exec,0.96,jsonl
+ood,8000,Fusion360 test,exec,1.0,jsonl
+ood,9000,Fusion360 test,exec,0.96,jsonl
+ood,10000,Fusion360 test,exec,0.96,jsonl
+ood,11000,Fusion360 test,exec,1.0,jsonl
+ood,12000,Fusion360 test,exec,0.96,jsonl
+ood,13000,Fusion360 test,exec,0.98,jsonl
+ood,14000,Fusion360 test,exec,0.92,jsonl
+ood,15000,Fusion360 test,exec,0.94,jsonl
+ood,16000,Fusion360 test,exec,0.98,jsonl
+ood,17000,Fusion360 test,exec,0.96,jsonl
+ood,18000,Fusion360 test,exec,1.0,jsonl
+ood,19000,Fusion360 test,exec,0.94,jsonl
+ood,20000,Fusion360 test,exec,0.94,jsonl
+ood,21000,Fusion360 test,exec,0.96,jsonl
+ood,22000,Fusion360 test,exec,0.94,jsonl
+ood,23000,Fusion360 test,exec,0.94,jsonl
+ood,24000,Fusion360 test,exec,0.96,jsonl
+ood,25000,Fusion360 test,exec,0.96,jsonl

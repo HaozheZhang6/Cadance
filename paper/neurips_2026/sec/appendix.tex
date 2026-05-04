@@ -1,5 +1,92 @@
 \appendix
 
+\section{Extended Discussion}
+\label{app:discussion}
+
+\paragraph{Three blocked escape routes.} BenchCAD measurements close three routes that one might hope would reduce the absolute-score gap without fundamental change. (i) \emph{Scaling within open-source families} (\S\ref{sec:exp_main}) yields under 15\,pt across 78$\times$ parameter expansion --- still far below the IoU $\geq 0.99$ verification threshold. (ii) \emph{Chain-of-thought reasoning} (\S\ref{sec:exp_capability}) does not close the Vision Bottleneck; it amplifies it. (iii) \emph{View-count augmentation} (\S\ref{app:ablation}) recovers $\leq$1.5\,pt from 4 to 8 views, ruling out simple visual-context starvation as the explanation. Together these results suggest the path forward lies in training procedures explicitly aware of the parametric-symbolic structure of CAD geometry.
+
+\paragraph{Why edit, not generation, is the load-bearing test.} A model that can reconstruct a part from images is impressive, but a model that can \emph{modify} an existing part is industrially useful. The Edit Leakage finding (\S\ref{sec:exp_edit}) shows that the strongest reasoning model corrupts unrelated features in 64\% of nominally successful edits, and multi-step edits requiring parameter-dependency reasoning collapse below 15\% across every model. This is the single quantitative gap that most clearly separates current models from a useful CAD copilot.
+
+\paragraph{The CAD-specialised lineage transfers poorly.} cadrille-RL and CADEvolve, which match published $\sim$92\% IoU on DeepCAD under our scoring infrastructure, lose 28--32 points on BenchCAD-Lite (\S\ref{sec:transfer}). The drops concentrate on standard-anchored hard families (helical gears, twist drills, coil springs) and on operations absent from their sketch+extrude training corpora. SOTA improvements on existing CAD benchmarks are increasingly within-distribution; BenchCAD reopens the out-of-distribution evaluation surface.
+
+\section{Limitations}
+\label{app:limitations}
+
+\paragraph{Procedural data is not industrial CAD.} BenchCAD parts are sampled from parametric templates, not extracted from real engineering repositories. We mitigate this by (i) anchoring 49\% of families to published ISO/DIN/EN/ASME/IEC specification tables and (ii) including verified Fusion360 Gallery and DeepCAD subsets for OOD comparison, but our parts do not capture the full diversity of proprietary industrial design (e.g.\ hand-drawn manufacturing tolerances, undocumented design intent).
+
+\paragraph{Standard-anchored does not mean standard-compliant.} A family declared as \texttt{standard = "ISO 23509"} samples within ISO parameter ranges and enforces inter-parameter relations from the standard, but does not validate against the full set of manufacturing tolerances or material specifications mandated by that standard.
+
+\paragraph{Reference baseline is intentionally weak.} Our open BenchCAD-trained baseline (\S\ref{app:baseline}) is a community lower bound, not an attempt at SOTA. We do not apply RL, do not perform multi-task pretraining, and do not exhaust the training corpus.
+
+\paragraph{Edit Leakage measurement.} Our non-target preservation metric uses voxel IoU on the spatial complement of the targeted feature; this captures most leakage modes but can miss small parametric shifts whose voxel footprint is subthreshold. \S\ref{app:edit_protocol} discusses the protocol, including a complementary code-AST diff metric we report alongside.
+
+\section{Transfer Baseline Detail: cadrille vs.\ CADEvolve}
+\label{app:transfer_detail}
+
+The CAD-Recode/cadrille/CADEvolve lineage~\citep{Rukhovich2025,Kolodiazhnyi2026,Elistratov2026} represents the current state of the art on existing CAD code-generation benchmarks (DeepCAD image IoU 92.2 for cadrille, 92.6 for CADEvolve; Fusion360 image IoU 84.6 and 87.2 respectively). All three release inference-only checkpoints sharing the Qwen2-VL-2B backbone with multi-view image input compatible with BenchCAD's render protocol.
+
+\paragraph{cadrille vs.\ CADEvolve --- training data.} cadrille fine-tunes on a 1M-script procedural corpus restricted to sketch+extrude+Boolean. CADEvolve extends the corpus to 2.7M scripts via an LLM-driven evolutionary loop whose seed pool covers extrude, revolve, loft, sweep, shell, fillet, chamfer, Boolean operations, and patterns --- a meaningful broadening of the operation distribution but still without helical sweeps or parametric involute-gear construction.
+
+\paragraph{cadrille vs.\ CADEvolve --- BenchCAD transfer.} We evaluate \texttt{maksimko123/cadrille-rl} and \texttt{kulibinai/cadevolve-rl1} on BenchCAD's \texttt{img2cq} task. cadrille loses 32 points on BenchCAD-Lite (92.2 $\to$ 60.5); CADEvolve loses 28 points (92.6 $\to$ 64.1). The 4-point CADEvolve advantage concentrates on families that exercise the additional operations CADEvolve introduced (revolve, loft, sweep, fillet, chamfer, shell, patterns) but not on the standard-anchored hard families (helical gears, twist drills, coil springs) where both models drop equally because both lack the operations these families require. CADEvolve's broader operation coverage helps where it overlaps with BenchCAD's operation set, but does not close the Op Vocabulary Gap on the operations BenchCAD includes that CADEvolve still omits.
+
+\paragraph{Why the gap is honest, not artefactual.} We replicate the lineage's render protocol (8-view 238$\times$238 grid; cube normalisation to $[-100, 100]^3$) for the transfer evaluation, eliminating mismatches in viewing geometry as a confound. We further verify that both checkpoints reach published IoU values on a held-out 200-sample DeepCAD slice within $\pm$0.5\,pt under our scoring infrastructure. The remaining gap on BenchCAD is therefore a true generalisation deficit: training corpora restricted to sketch+extrude (cadrille) or to sketch+extrude+revolve+fillet (CADEvolve) do not transfer to families requiring helical sweeps, parametric gear teeth, or DIN-anchored standard parts.
+
+\section{Full Comparison Against Prior CAD Code-Generation Work}
+\label{app:cmp_prior}
+
+Table~\ref{tab:cmp_prior} provides the full per-axis comparison referenced in \S\ref{sec:related}, including all evaluation-side properties (\#Industrial families, \#Std codes, \#Distinct CQ ops, Adv ops, Edit / QA tasks, \#Eval models) across DeepCAD, Fusion360 Gallery, Text2CAD, CADPrompt, CAD-Coder, CAD-Recode, cadrille, and CADEvolve.
+
+\input{tables/tab_cmp_prior}
+
+\section{Standard Codes Covered}
+\label{app:standards}
+
+\input{tables/tab_standards}
+
+\section{Full Per-Model Per-Task Results}
+\label{app:full_results}
+
+Table~\ref{tab:dataset} reports the dataset composition; Table~\ref{tab:capability} maps each task to its sub-capability subset; Table~\ref{tab:main_eval} reports the full per-model per-task leaderboard; Table~\ref{tab:family_cliff} stratifies \texttt{img2cq} by family difficulty.
+
+\input{tables/tab_dataset}
+
+\input{tables/tab_capability}
+
+\input{tables/tab_main_eval}
+
+\input{tables/tab_family_cliff}
+
+\section{Op Vocabulary Gap: Full Tables and Training Curves}
+\label{app:op_gap_full}
+
+\input{tables/tab_op_gap}
+
+\input{tables/tab_transfer}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.85\linewidth]{figures/fig_7.png}
+  \caption{\textbf{The generalisation gap on BenchCAD remains substantial after 25k SFT steps.} Qwen2-VL-2B trained on three data mixtures under matched 9 GPU-hour budgets, evaluated on the BenchCAD validation set throughout 0--25k steps.
+    \emph{(a) OOD IoU vs.\ training step.} The IID-trained run (green) climbs to IoU $\sim$0.65; the OOD run (red, trained without the target family slice) plateaus near 0.30 by 10k steps; the HQ-only baseline (grey, no BenchCAD-Synth) never exceeds 0.10. \emph{(b) OOD essential-op pass rate.} IID reaches $\sim$0.85, OOD plateaus at $\sim$0.35, HQ-only stays at $\sim$0\% --- the \textbf{Op Vocabulary Gap}.
+    The deficit is not optimisation budget (curves saturate by 15--20k), not backbone capacity (same Qwen2-VL-2B reaches IID IoU 0.65), and not training-corpus operation coverage alone (the OOD run \emph{has} BenchCAD-Synth data and still plateaus 35--50\,pt below IID). It is the fundamental difficulty of training large models to construct industry-grade parametric CAD code on \emph{unseen} family distributions.}
+  \label{fig:generalisation_gap}
+\end{figure*}
+
+\section{Extended Capability Analysis}
+\label{app:capability_profile}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.92\linewidth]{figures/fig_4.png}
+  \caption{\textbf{Capability profile and qualitative failure modes} (frontier proprietary subset). \emph{Left:} per-model capability radar across six axes (surface similarity, local feature accuracy, global geometry, CAD understanding, CAD code robustness, synthesis). \emph{Right:} four representative failure modes elicited by BenchCAD's hard tier on the strongest reasoning models: \emph{(i) no industry understanding} --- a coil spring rendered as stacked disks because the model never produced a helical sweep; \emph{(ii) wrong plane} --- correct features on the wrong base workplane; \emph{(iii) wrong ops} --- a bracket needing chamfer + Boolean cut rendered as a single extrude; \emph{(iv) no detail} --- a bolt omitting thread, fillet, and head detail expected by DIN/ISO standards.}
+  \label{fig:capability_profile}
+\end{figure*}
+
+\section{Open BenchCAD-Trained Baseline}
+\label{app:baseline}
+
+To bound the difficulty of BenchCAD with publicly reproducible numbers, we release a baseline model trained directly on the dataset. We fine-tune Qwen2-VL-2B on a mixture of the 162K-pair BenchCAD-GenCAD corpus and the 17{,}900-record BenchCAD-Synth split (image$\to$code), training for 2 epochs at learning rate $1\times10^{-5}$ on 8$\times$A800-80GB GPUs ($\approx$9 GPU-hours total). We do not apply reinforcement learning; this baseline targets reproducibility, not state of the art. Training script, data manifest, and checkpoint are released under MIT licence. The baseline reaches an aggregate score of 18.4\% on BenchCAD-Lite --- comparable to mid-tier proprietary models and substantially below the same-architecture cadrille-RL release. Its purpose is to provide a community lower bound and to make the transfer-baseline gaps interpretable: any improvement attributable to procedural data scaling, multi-task pre-training, or RL fine-tuning appears as a contrast against this open baseline rather than against an opaque private model.
+
 \section{Datasheet for BenchCAD}
 \label{app:datasheet}
 

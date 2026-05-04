@@ -1,0 +1,20 @@
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{6pt}
+\caption{\textbf{BenchCAD as an evaluation framework.} BenchCAD complements existing CAD-LM training corpora by providing the evaluation-side properties they do not: an industrial-family taxonomy with explicit functional identity, parameter anchoring against ISO/DIN/EN/ASME/IEC standard tables, verified before/after edit pairs with a non-target preservation metric, a paired numeric-QA bank, and a capability-decomposed scoring protocol. The rightmost column shows the strongest open CadQuery training corpus (CADEvolve, 2.7M scripts, DeepCAD image IoU 92.6) for reference; full per-axis comparison against all prior CAD code-generation work appears in Appendix~\ref{app:cmp_prior}.}
+\label{tab:advantages}
+\begin{tabular}{lcc}
+\toprule
+                                              & \textbf{BenchCAD (ours)} & CADEvolve~\citep{Elistratov2026} \\
+\midrule
+Primary purpose                               & evaluation benchmark    & training corpus + model \\
+Named industrial families                     & \textbf{106}            & 0 (untyped) \\
+ISO/DIN/EN/ASME/IEC standard codes            & \textbf{47}             & 0 \\
+Verified before/after edit pairs              & \textbf{748}            & --  \\
+Paired numeric QA questions                   & \textbf{2{,}400}        & --  \\
+Capability-decomposed task suite              & \textbf{\cmark}         & --  \\
+Rotation-invariant + scale-invariant scoring  & \textbf{\cmark}         & --  \\
+\bottomrule
+\end{tabular}
+\end{table}
