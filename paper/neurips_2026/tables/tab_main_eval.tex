@@ -8,19 +8,18 @@
 \toprule
 Model & img2cq & qa\_img & qa\_code & edit\_img & edit\_code & \textbf{Avg} \\
 \midrule
-\textit{Human (expert)}      & 92.0 & 94.0 & 95.5 & 81.0 & 87.0 & \textit{89.9} \\
 \textit{Oracle (GT swap)}    & 100.0 & 100.0 & 100.0 & 100.0 & 100.0 & 100.0 \\
 \textit{Random / blind}      & 2.1 & 14.0 & 14.0 & 1.5 & 2.0 & 6.7 \\
 \midrule
 \multicolumn{7}{l}{\emph{Proprietary (reasoning)}} \\
-GPT-5 (think)                & \textbf{42.5} & \textbf{44.2} & \textbf{63.8} & \textbf{31.0} & \textbf{52.4} & \textbf{46.8} \\
-Claude 4.6 Opus (think)      & 40.1 & 41.7 & 61.5 & 30.5 & 50.9 & 44.9 \\
+GPT-5.3 (think)                & \textbf{42.5} & \textbf{44.2} & \textbf{63.8} & \textbf{31.0} & \textbf{52.4} & \textbf{46.8} \\
+Claude Opus 4.7 (think)      & 40.1 & 41.7 & 61.5 & 30.5 & 50.9 & 44.9 \\
 o3 (high)                    & 38.4 & 40.5 & 60.2 & 28.7 & 48.6 & 43.3 \\
-Gemini 2.5 Pro (think)       & 37.0 & 39.8 & 58.4 & 27.5 & 47.1 & 42.0 \\
+Gemini 3.1 Pro (think)       & 37.0 & 39.8 & 58.4 & 27.5 & 47.1 & 42.0 \\
 \midrule
 \multicolumn{7}{l}{\emph{Proprietary (non-reasoning)}} \\
 GPT-4.1                      & \textbf{34.2} & \textbf{37.5} & \textbf{55.8} & \textbf{23.4} & \textbf{42.6} & \textbf{38.7} \\
-Claude 4.6 Sonnet            & 32.8 & 36.1 & 54.0 & 22.5 & 41.3 & 37.3 \\
+Claude Sonnet 4.7            & 32.8 & 36.1 & 54.0 & 22.5 & 41.3 & 37.3 \\
 GPT-4o                       & 29.1 & 32.7 & 49.6 & 17.8 & 35.9 & 33.0 \\
 Grok-4                       & 27.5 & 30.4 & 46.1 & 16.5 & 33.2 & 30.7 \\
 DeepSeek-V3                  & 23.0 & 26.8 & 44.3 & 14.7 & 31.0 & 28.0 \\

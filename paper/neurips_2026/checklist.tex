@@ -10,7 +10,7 @@
 \item {\bf Limitations}
     \item[] Question: Does the paper discuss the limitations of the work performed by the authors?
     \item[] Answer: \answerYes{}
-    \item[] Justification: \S\ref{sec:limitations} is a dedicated Limitations section discussing procedural-vs-industrial data gap, the standard-anchored-vs-compliant distinction, the intentionally weak reference baseline, the bounded scope of the Edit Leakage measurement, and the small expert pool used for the human upper bound.
+    \item[] Justification: \S\ref{sec:limitations} is a dedicated Limitations section discussing procedural-vs-industrial data gap, the standard-anchored-vs-compliant distinction, the intentionally weak reference baseline, and the bounded scope of the Edit Leakage measurement.
 
 \item {\bf Theory assumptions and proofs}
     \item[] Question: For each theoretical result, does the paper provide the full set of assumptions and a complete (and correct) proof?
@@ -47,7 +47,7 @@
 \item {\bf Code of ethics}
     \item[] Question: Does the research conducted in the paper conform, in every respect, with the NeurIPS Code of Ethics?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The dataset is procedurally generated, contains no PII or proprietary designs, and references public engineering standards by code only. No human-subjects data is collected beyond expert evaluators paid at standard professional rates.
+    \item[] Justification: The dataset is procedurally generated, contains no PII or proprietary designs, and references public engineering standards by code only. No human-subjects data is collected.
 
 
 \item {\bf Broader impacts}
@@ -73,7 +73,7 @@
 \item {\bf Crowdsourcing and research with human subjects}
     \item[] Question: For crowdsourcing experiments and research with human subjects, does the paper include the full text of instructions given to participants and screenshots, if applicable, as well as details about compensation (if any)?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The only human-in-the-loop component is the human upper-bound study (three professional CadQuery engineers scoring 50 samples per task). They were compensated at standard professional consulting rates. Instructions, screenshots, and adjudication protocol appear in the released human-eval bundle.
+    \item[] Justification: BenchCAD does not involve human-subjects evaluation; the dataset is procedurally generated and all reported metrics are computed by automated execution and verification pipelines.
 
 \item {\bf Institutional review board (IRB) approvals or equivalent for research with human subjects}
     \item[] Question: Does the paper describe potential risks incurred by study participants, whether such risks were disclosed to the subjects, and whether Institutional Review Board (IRB) approvals (or an equivalent approval/review based on the requirements of your country or institution) were obtained?
