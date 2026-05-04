@@ -31,6 +31,13 @@ The CAD-Recode/cadrille/CADEvolve lineage~\citep{Rukhovich2025,Kolodiazhnyi2026,
 
 \paragraph{Why the gap is honest, not artefactual.} We replicate the lineage's render protocol (8-view 238$\times$238 grid; cube normalisation to $[-100, 100]^3$) for the transfer evaluation, eliminating mismatches in viewing geometry as a confound. We further verify that both checkpoints reach published IoU values on a held-out 200-sample DeepCAD slice within $\pm$0.5\,pt under our scoring infrastructure. The remaining gap on BenchCAD is therefore a true generalisation deficit: training corpora restricted to sketch+extrude (cadrille) or to sketch+extrude+revolve+fillet (CADEvolve) do not transfer to families requiring helical sweeps, parametric gear teeth, or DIN-anchored standard parts.
 
+\section{Full Comparison Against Prior CAD Code-Generation Work}
+\label{app:cmp_prior}
+
+Table~\ref{tab:cmp_prior} provides the full per-axis comparison referenced in \S\ref{sec:related}, including all evaluation-side properties (\#Industrial families, \#Std codes, \#Distinct CQ ops, Adv ops, Edit / QA tasks, \#Eval models) across DeepCAD, Fusion360 Gallery, Text2CAD, CADPrompt, CAD-Coder, CAD-Recode, cadrille, and CADEvolve.
+
+\input{tables/tab_cmp_prior}
+
 \section{Standard Codes Covered}
 \label{app:standards}
 
