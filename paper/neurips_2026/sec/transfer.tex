@@ -31,3 +31,15 @@ The transfer drop in \S\ref{sec:transfer}.1 suggests that prior CAD training cor
 \paragraph{Implication.} The Op Vocabulary Gap is the proximate cause of the cadrille/CADEvolve transfer drop in Table~\ref{tab:transfer}. It is not a model-capacity limitation: the same backbone, same compute, and same data scale recover essential operations as soon as the training distribution includes them. This places BenchCAD-Synth in a specific role for the field --- not as a competitor benchmark, but as an operation-coverage corpus that complements existing sketch+extrude training data.
 
 \input{tables/tab_op_gap}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/fig_7.png}
+  \caption{\textbf{The generalisation gap on BenchCAD remains substantial, even after 25k SFT steps.} Qwen2-VL-2B trained for the full 0--25k step horizon under matched 9 GPU-hour budgets across four data mixtures.
+    \emph{(a) Essential-op pass rate} on the BenchCAD hard-tier subset reveals two distinct failure modes. The HQ-only baseline (purple) stays at $\sim$0\% throughout training --- the Op Vocabulary Gap --- because its SFT corpus omits helix, sweep, loft, twist-extrude, and parametric involute-gear operations entirely. More importantly, even the strongest mix (variant 2, OOD-holdout + targeted data) plateaus at $\sim$33\% by 25k steps, not at any near-ceiling value: \textbf{accurate parametric construction on industrial part families remains a substantial open challenge for matched-compute SFT}, and the gap to the IID-trained ceiling (89\%, green) is wide.
+    \emph{(b) OOD IoU vs.\ training step} --- mixed runs improve toward 0.18--0.33 IoU but remain far below the IID ceiling of 0.6+, and the curves are still rising at the budget horizon, suggesting either much longer training or fundamentally new training procedures are needed to close the OOD gap.
+    \emph{(c) OOD execution rate} --- all variants compile at $\sim$95\%; failures in panels (a/b/d) are therefore \emph{not} driven by syntactic invalidity but by missing operations and missing parameter coverage.
+    \emph{(d) IID IoU control} --- the HQ-only baseline plateaus at IoU 0.06 even on its own training distribution, confirming the deficit is data-coverage rather than test-time distribution shift.
+    Together these curves position the BenchCAD generalisation gap as a benchmark-grade open problem: the deficit is not optimisation budget (curves saturate), not model capacity (same backbone reaches 89\% IID), not syntactic capability (95\% exec rate), and not evaluation-distribution mismatch (HQ-only fails IID too) --- it is the fundamental difficulty of training large models to construct industry-grade parametric CAD code, which BenchCAD is designed to measure.}
+  \label{fig:generalisation_gap}
+\end{figure*}

@@ -9,19 +9,18 @@
 \usepackage{hyperref}
 \usepackage{url}
 \usepackage{booktabs}
-\usepackage{multirow}
 \usepackage{amsfonts}
 \usepackage{amsmath}
 \usepackage{amssymb}
-\usepackage{nicefrac}
 \usepackage{microtype}
 \usepackage{xcolor}
 \usepackage{enumitem}
 \usepackage{graphicx}
 
 % --- shortcuts ---
-\newcommand{\cmark}{\ding{51}}
 \usepackage{pifont}
+\usepackage{multirow}
+\newcommand{\cmark}{\ding{51}}
 
 % --- title ---
 \title{BenchCAD: An Execution-Verified, Capability-Decomposed Benchmark for Programmatic CAD}
@@ -37,7 +36,7 @@
 \maketitle
 
 \begin{abstract}
-Computer-aided design requires the fusion of visual perception, parametric abstraction, and executable code synthesis --- three capabilities current multimodal models conflate under a single end-to-end metric. We present \textbf{BenchCAD}, the first execution-verified, capability-decomposed CAD benchmark: 17{,}900 CadQuery parts across 106 industrial families (49\% anchored to ISO/DIN/EN/ASME/IEC standards), 2{,}400 paired numeric QA questions, 748 curated edit pairs, and a 162K training corpus. Four task categories --- image-to-code, image- and code-conditioned numeric QA, and instruction-guided editing --- are designed so that score gaps between paired tasks isolate which sub-capability bottlenecks a model. Across 30+ frontier models, code-conditioned QA exceeds image-conditioned QA by 15--20 points (\emph{Vision Bottleneck}), and 64\% of nominally successful edits silently corrupt unrelated parametric features (\emph{Edit Leakage}). Supervised fine-tuning on our data closes the \emph{Op Vocabulary Gap} on essential operations (helix, sweep, loft) but absolute scores remain far below human experts. Released under CC-BY-4.0 at \url{huggingface.co/BenchCAD}.
+Large multimodal language models now exercise three capabilities each individually validated on major benchmarks --- 3D and spatial reasoning, multi-step reasoning, and code generation. Computer-aided design (CAD) sits at the convergence of all three: producing executable parametric CAD code from an engineering image requires reading geometry, abstracting it into parametric structure, and emitting the right code. This makes industrial CAD arguably the next domain where frontier models will land in production --- engineering teams already work in parametric environments, components are largely variants of standard families, and most CAD work is editing existing programs --- yet no public benchmark currently measures, in a systematic and capability-decomposed way, whether today's models clear the bar this work demands. We present \textbf{BenchCAD}, a unified, capability-decomposed evaluation framework for large-model CAD reasoning, designed for both today's frontier MLLMs and future CAD agents rather than the toy small-model fine-tuning regime that dominates current CAD-LLM releases. The dataset contains 17{,}900 execution-verified CadQuery parts across 106 industrial part families (49\% anchored to 47 ISO/DIN/EN/ASME/IEC specification codes covering twist drills, bevel gears, compression springs, roller chains, and threaded fittings), exercising 45+ distinct CadQuery operations including helical sweeps, lofts, twist-extrudes, and parametric involute-gear construction --- operation families largely absent from prior corpora. Atop this dataset we define four evaluation task categories --- image-to-code generation, image- and code-conditioned numeric QA, and instruction-guided editing with verified before/after pairs and a non-target preservation metric --- where score differences across paired image/code tasks directly isolate which sub-capability (visual perception, geometric-to-parametric abstraction, or code synthesis) bottlenecks a model. Across 30+ frontier models we identify three named diagnostics: a 15--20 point \emph{Vision Bottleneck} between code- and image-conditioned numeric QA that survives chain-of-thought, parameter scaling from 1B to 78B, and view-count augmentation; a 64\% \emph{Edit Leakage} rate on nominally successful edits where unrelated parametric features are silently corrupted; and an \emph{Op Vocabulary Gap} where matched-compute SFT on sketch+extrude data alone yields zero recall on essential operations until BenchCAD-Synth enters the training mix. Closing these gaps will require training procedures explicitly aware of the parametric-symbolic structure of CAD geometry. Released under CC-BY-4.0 at \url{huggingface.co/BenchCAD}.
 \end{abstract}
 
 \input{sec/intro}
