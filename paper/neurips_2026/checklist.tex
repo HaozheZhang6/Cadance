@@ -32,7 +32,7 @@
 \item {\bf Experimental setting/details}
     \item[] Question: Does the paper specify all the training and test details (e.g., data splits, hyperparameters, how they were chosen, type of optimizer) necessary to understand the results?
     \item[] Answer: \answerYes{}
-    \item[] Justification: \S\ref{sec:exp_main} specifies all evaluation settings (decoding temperature, wall-clock budget, hardware); \S\ref{sec:transfer} specifies the open BenchCAD-trained baseline's training recipe (Qwen2-VL-2B, 2 epochs, lr $1\times10^{-5}$, 8$\times$A800-80GB, $\sim$9 GPU-hours). Appendix~\ref{app:reproduce} provides the full configs.
+    \item[] Justification: \S\ref{sec:exp_main} specifies all evaluation settings (decoding temperature, wall-clock budget, hardware); \S\ref{sec:exp_training} specifies the open BenchCAD-trained baseline's training recipe (Qwen2-VL-2B, 2 epochs, lr $1\times10^{-5}$, 8$\times$A800-80GB, $\sim$9 GPU-hours). Appendix~\ref{app:reproduce} provides the full configs.
 
 \item {\bf Experiment statistical significance}
     \item[] Question: Does the paper report error bars suitably and correctly defined or other appropriate information about the statistical significance of the experiments?
@@ -42,7 +42,7 @@
 \item {\bf Experiments compute resources}
     \item[] Question: For each experiment, does the paper provide sufficient information on the computer resources (type of compute workers, memory, time of execution) needed to reproduce the experiments?
     \item[] Answer: \answerYes{}
-    \item[] Justification: \S\ref{sec:exp_main} states the inference cluster (8$\times$A800-80GB nodes); \S\ref{sec:transfer} states baseline training compute ($\approx$9 GPU-hours on the same hardware); Appendix~\ref{app:reproduce} states that BenchCAD-Lite evaluation runs in under two hours per model on a single A100.
+    \item[] Justification: \S\ref{sec:exp_main} states the inference cluster (8$\times$A800-80GB nodes); \S\ref{sec:exp_training} states baseline training compute ($\approx$9 GPU-hours on the same hardware); Appendix~\ref{app:reproduce} states that BenchCAD-Lite evaluation runs in under two hours per model on a single A100.
 
 \item {\bf Code of ethics}
     \item[] Question: Does the research conducted in the paper conform, in every respect, with the NeurIPS Code of Ethics?
@@ -83,6 +83,6 @@
 \item {\bf Declaration of LLM usage}
     \item[] Question: Does the paper describe the usage of LLMs if it is an important, original, or non-standard component of the core methods in this research?
     \item[] Answer: \answerYes{}
-    \item[] Justification: LLMs are the evaluated subjects, not core method components. Where LLMs assist in dataset construction (e.g., GPT-5-mini in CADEvolve's evolutionary expansion, used here only as a transfer baseline), this is described in \S\ref{sec:transfer}. The CadGen procedural pipeline contains no LLM in the loop. LLM use in writing assistance is incidental.
+    \item[] Justification: LLMs are the evaluated subjects, not core method components. Where LLMs assist in dataset construction (e.g., GPT-5-mini in CADEvolve's evolutionary expansion, used here only as a transfer baseline), this is described in \S\ref{sec:exp_training}. The CadGen procedural pipeline contains no LLM in the loop. LLM use in writing assistance is incidental.
 
 \end{enumerate}

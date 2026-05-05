@@ -2,12 +2,18 @@
 \label{sec:dataset}
 
 \paragraph{Design principles.} BenchCAD rests on four principles.
-\emph{(P1) Execution as ground truth}: every record's CadQuery source is run inside a sandboxed environment, the resulting STEP voxelised at $64^3$, and matched against a reference solid by a 6-orientation rotation-invariant 3D IoU $\geq 0.99$~\citep{rot_iou} --- ruling out the silent-failure mode of corpora that merely parse code without re-execution.
+\emph{(P1) Expert-generated geometry}: every family is hand-crafted by domain experts directly from industrial standards, who solve the standard-mandated geometric equations to produce parameterised CAD models that strictly respect engineering conventions and inter-parameter constraints.
 \emph{(P2) Standard-table anchoring}: where a part has an industrial counterpart, parameters sample from real specification tables (ISO 22 V-belt cross-sections, DIN 338 twist-drill diameters, ISO 23509 bevel-gear pitch--module relations); 49\% of BenchCAD families (52/106) are standard-anchored, drawing from 47 unique ISO/DIN/EN/ASME/IEC codes (full code list in Appendix~\ref{app:standards}).
-\emph{(P3) Family-level taxonomy}: records are grouped into 106 named families (\texttt{coil\_spring}, \texttt{helical\_gear}, \texttt{twisted\_drill}, $\ldots$), each implemented by a small Python module exposing a typed parameter schema, sampler, validator, and deterministic builder --- making coverage measurable and per-family analysis trivial. \emph{(P4) Operation breadth}: the dataset exercises 45+ distinct CadQuery operations spanning sketch primitives, contour drawing, workplane manipulation, sketch arrays, 3D operations (extrude, twist-extrude, revolve, loft, sweep), Booleans, hole variants, and edge finishing (Appendix~\ref{app:ops}).
+\emph{(P3) Family-level taxonomy}: records are grouped into 106 named families (\texttt{coil\_spring}, \texttt{helical\_gear}, \texttt{twisted\_drill}, $\ldots$), each implemented by a small Python module exposing a typed parameter schema, sampler, validator, and deterministic builder --- making coverage measurable and per-family analysis trivial.
+\emph{(P4) Operation breadth}: the dataset exercises 45+ distinct CadQuery operations spanning sketch primitives, contour drawing, workplane manipulation, sketch arrays, 3D operations (extrude, twist-extrude, revolve, loft, sweep), Booleans (union, cut), hole variants, and edge finishing (Appendix~\ref{app:ops}).
 
-\paragraph{CadGen pipeline.} The data construction pipeline, \textbf{CadGen}, runs four stages per family $\times$ difficulty bucket: (1) deterministic parameter sampling from the JSON schema under standard-table constraints; (2) program emission, where the family's \texttt{make\_program} returns an op sequence consumed by a builder that produces both Python CadQuery source and a CadQuery \texttt{Workplane} object aligned by construction; (3) sandboxed execution and verification (re-execute code, export STEP, voxelise, compute rotation-invariant IoU against the builder's direct output, quarantine on IoU $<0.99$, execution failure, $>$30\,s timeout, or zero/inverted volume); and (4) rendering to four canonical views (front/right/top/iso) at $512^2$ with VTK.
-From a 17{,}968-sample April 2026 batch, 17{,}900 records (99.6\%) passed all checks.
+\paragraph{CadGen pipeline.} The data construction pipeline, \textbf{CadGen}, processes each family$\times$difficulty bucket through three stages:
+\begin{itemize}
+    \item \textbf{Parameter Sampling:} deterministic sampling under standard-table constraints from the JSON schema.
+    \item \textbf{Program Emission:} the family's \texttt{make\_program} returns an op sequence consumed by a builder that produces both Python CadQuery source and a CadQuery \texttt{Workplane} object aligned by construction.
+    \item \textbf{Execution \& Verification:} sandboxed re-execution; quarantine on parse error, $>30$\,s timeout, zero/inverted volume, or rotation-invariant voxel IoU $< 0.99$ against the builder's direct output.
+\end{itemize}
+As of May 2026, 17{,}900 records have passed all verification checks.
 
 \paragraph{BenchCAD-Edit.} BenchCAD-Edit is a paired-edit subset built directly on top of BenchCAD-Synth: each record is a verified $(\text{original program}, \text{NL instruction}, \text{target program}, \text{target STEP})$ quadruple. Pairs are constructed by (i) selecting a verified BenchCAD-Synth part, (ii) applying a single parametric or op-list edit to obtain a target part, (iii) re-verifying the target through the same rotation-invariant IoU $\geq 0.99$ pipeline, (iv) writing a templated NL instruction reviewed for unambiguity by a second author, and (v) cross-validating with two strong models to surface ambiguous cases. The 748 released pairs are balanced across all 106 families and stratified into five task types (T1 \emph{literal\_replace}, T2 \emph{chain\_transform}, T3 \emph{relative\_compute}, T4 \emph{feature\_edit}, T5 \emph{geometry\_rebuild}; Appendix~\ref{app:edit_protocol}, Table~\ref{tab:task_taxonomy}), and orthogonally categorised as dimensional, additive, subtractive, or multi-step. Unlike prior CAD edit datasets that grade by code-string overlap or single-image renders, every BenchCAD-Edit prediction is graded by the rotation-invariant voxel-IoU pipeline on rebuilt STEP, with a separate non-target-preservation check that detects \emph{Industrial Common Sense Gap} failures (\S\ref{sec:exp_edit}).
 
@@ -18,9 +24,9 @@ Full datasheet (Appendix~\ref{app:datasheet}) and per-family schemas accompany t
 
 % tab_dataset moved to Appendix~\ref{app:datasheet}
 
-\begin{figure}[t]
+\begin{figure*}[t]
   \centering
-  \includegraphics[width=0.75\linewidth]{figures/fig_2.png}
+  \includegraphics[width=\linewidth]{figures/fig_2.png}
   \caption{\textbf{BenchCAD dataset composition.} \emph{Left:} representative renders across the 106 families, spanning fasteners, transmission components, structural elements, fluid fittings, panels, hardware, and enclosures. \emph{Right:} 7-category functional taxonomy; 52/106 families (49\%) are anchored to a named ISO/DIN/EN/ASME/IEC standard.}
   \label{fig:dataset_overview}
-\end{figure}
+\end{figure*}

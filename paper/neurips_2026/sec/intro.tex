@@ -1,12 +1,12 @@
 \section{Introduction}
 \label{sec:intro}
 
-\begin{figure}[t]
+\begin{figure*}[t]
   \centering
-  \includegraphics[width=0.78\linewidth]{figures/fig_1.png}
+  \includegraphics[width=\linewidth]{figures/fig_1.png}
   \caption{\textbf{BenchCAD overview.} \emph{Top:} Parts originate from industry-standard engineering designs (e.g.,\ DIN~338 twist drill cross-section), are realised as parameterised 3D geometry that respects standard parameter relations, and are emitted as executable CadQuery code. \emph{Bottom:} The four BenchCAD evaluation task categories: \texttt{img2cq}, \texttt{edit\_code}, \texttt{qa\_img}, and \texttt{qa\_code}.}
   \label{fig:teaser}
-\end{figure}
+\end{figure*}
 
 Large multimodal language models now demonstrate three core capabilities, each individually validated on major benchmarks: \textbf{3D and spatial reasoning from images and code}, \textbf{multi-step CAD operations reasoning}, and \textbf{code generation}.
 Programmatic computer-aided design---writing parametric scripts in CadQuery~\citep{CadQuerySoftware} or similar APIs that compile to manufacturable solid geometry---sits at the convergence of all three: producing executable CAD code from an engineering image requires reading geometry, abstracting it into parametric structure, and emitting the precise code.
@@ -33,7 +33,7 @@ The dataset exercises 45+ distinct CAD operations (e.g., helical sweeps, lofts) 
 We evaluate models across four tasks: \texttt{img2cq} (image-to-code), \texttt{qa\_img}/\texttt{qa\_code} (numeric QA), and \texttt{edit\_img}/\texttt{edit\_code} (instruction-guided editing). 
 To ensure evaluation rigor, \textbf{all QA pairs and editing instructions are manually annotated by experts}. Analyzing paired image/code contrasts isolates the specific sub-capabilities bottlenecking a model's performance.
 
-Across 10+ frontier models, we identify three diagnostic phenomena precluding industry-grade CAD generation: (1) a \emph{Holistic Spatial and Detailing Deficit}, marked by a persistent gap between code- and image-conditioned QA; (2) an \emph{Industrial Common Sense Gap}, where unwritten engineering conventions are absent from synthesized code; and (3) a \emph{CAD Operational Blindspot}, where models fail on essential operations without targeted SFT data.
+Across 10+ frontier models, we identify three diagnostic phenomena precluding industry-grade CAD generation: (1) a \emph{Holistic Spatial and Detailing Deficit}, marked by a persistent gap between code- and image-conditioned QA; (2) a \emph{CAD Operational Blindspot}, where models fail on essential operations without targeted SFT data; and (3) an \emph{Industrial Common Sense and Parametric Abstraction Gap}, where unwritten engineering conventions and parameter dependencies are absent from synthesized code.
 \paragraph{Contributions.} 
 (i) The \textbf{BenchCAD dataset and CadGen pipeline}: 17{,}900 verified parametric CAD parts spanning 106 families (following 47 ISO/DIN/EN/ASME/IEC industrial standard), 2{,}400 paired multi-aspect image and code QA questions covering from basic CAD operations and spatial understanding to parametric reasoning, 748 curated edit pairs, and a 162{,}000-pair training corpus. 
 All data and code are released under \texttt{BenchCAD/cad\_bench} on Hugging Face under CC-BY-4.0. 
