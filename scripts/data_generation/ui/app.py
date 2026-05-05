@@ -1,6 +1,8 @@
 """CAD Data Pipeline — Overview + Stem Viewer."""
 
 import io
+import json
+import re
 import sys
 from pathlib import Path
 
@@ -2371,6 +2373,231 @@ def page_bench_curator():
     return  # end render
 
 
+# ── QA Eval page ──────────────────────────────────────────────────────────────
+
+QA_RESULTS_ROOT = ROOT / "results"
+_LEVEL_RE = re.compile(r"^\s*\[L(\d+)\]")
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_qa_results(modality: str) -> pd.DataFrame:
+    """Load all qa_<modality>/<model>/results.jsonl into long-form DataFrame.
+
+    One row per (model, stem, qa_index). Extracts L-level from question prefix.
+    """
+    base = QA_RESULTS_ROOT / f"qa_{modality}"
+    rows: list[dict] = []
+    if not base.exists():
+        return pd.DataFrame(rows)
+    for model_dir in sorted(p for p in base.iterdir() if p.is_dir()):
+        f = model_dir / "results.jsonl"
+        if not f.exists():
+            continue
+        with f.open() as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                stem = rec.get("stem", "")
+                family = rec.get("family", "")
+                difficulty = rec.get("difficulty", "")
+                model = rec.get("model", model_dir.name)
+                for qa in rec.get("per_qa", []):
+                    q = qa.get("q", "")
+                    m = _LEVEL_RE.match(q)
+                    level = int(m.group(1)) if m else 0
+                    rows.append(
+                        {
+                            "model": model,
+                            "stem": stem,
+                            "family": family,
+                            "difficulty": difficulty,
+                            "level": level,
+                            "score": float(qa.get("score", 0.0) or 0.0),
+                            "q": q,
+                            "type": qa.get("type", ""),
+                            "gt": qa.get("gt"),
+                            "pred": qa.get("pred"),
+                        }
+                    )
+    return pd.DataFrame(rows)
+
+
+def _qa_leaderboard(df: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate per-model L1..L6 means + Total + n_samples."""
+    if df.empty:
+        return df
+    levels = sorted(int(x) for x in df["level"].unique() if x > 0)
+    pv = df[df["level"].isin(levels)].pivot_table(
+        index="model", columns="level", values="score", aggfunc="mean"
+    )
+    pv.columns = [f"L{int(c)}" for c in pv.columns]
+    pv["Total"] = df.groupby("model")["score"].mean()
+    pv["n_stems"] = df.groupby("model")["stem"].nunique()
+    pv["n_qa"] = df.groupby("model").size()
+    cols = [c for c in pv.columns if c.startswith("L")] + [
+        "Total",
+        "n_stems",
+        "n_qa",
+    ]
+    return pv[cols].sort_values("Total", ascending=False).round(3)
+
+
+def page_qa_eval():
+    st.title("QA Eval — Vision QA / Code QA Results")
+
+    with st.sidebar:
+        st.subheader("QA Eval")
+        modality = st.radio(
+            "Modality",
+            ["qa_img", "qa_code"],
+            format_func=lambda s: {"qa_img": "Vision QA", "qa_code": "Code QA"}[s],
+            key="qa_eval_modality",
+        )
+
+    label = {"qa_img": "Vision QA", "qa_code": "Code QA"}[modality]
+    df = _load_qa_results(modality.split("_", 1)[1])  # "img" or "code"
+
+    if df.empty:
+        st.warning(
+            f"No results found under `results/{modality}/<model>/results.jsonl`."
+        )
+        return
+
+    n_models = df["model"].nunique()
+    n_stems = df["stem"].nunique()
+    n_qa = len(df)
+    st.caption(f"**{label}** — {n_models} models · {n_stems} stems · {n_qa:,} QA items")
+
+    tab_lb, tab_heat, tab_stem = st.tabs(
+        ["Leaderboard", "Per-family heatmap", "Per-stem drill-down"]
+    )
+
+    # ── Leaderboard ──
+    with tab_lb:
+        lb = _qa_leaderboard(df)
+        if lb.empty:
+            st.info("No leaderboard data.")
+        else:
+            level_cols = [c for c in lb.columns if c.startswith("L")]
+            score_cols = level_cols + ["Total"]
+            styled = (
+                lb.style.format(dict.fromkeys(score_cols, "{:.3f}"))
+                .background_gradient(subset=score_cols, cmap="RdYlGn", vmin=0, vmax=1)
+                .highlight_max(subset=score_cols, color="#fff3a0", axis=0)
+            )
+            st.dataframe(styled, use_container_width=True)
+            st.caption(
+                "Per-cell colour = score (red→green). Yellow highlight = column max. "
+                "Total = mean across all QA items (not mean of L1..L6)."
+            )
+
+    # ── Per-family heatmap ──
+    with tab_heat:
+        col_a, col_b = st.columns([1, 1])
+        with col_a:
+            level_filter = st.selectbox(
+                "Level",
+                ["All"] + [f"L{i}" for i in sorted(df["level"].unique()) if i > 0],
+                key="qa_eval_level_filter",
+            )
+        with col_b:
+            diffs = ["All"] + sorted(d for d in df["difficulty"].unique() if d)
+            diff_filter = st.selectbox("Difficulty", diffs, key="qa_eval_diff_filter")
+
+        sub = df.copy()
+        if level_filter != "All":
+            sub = sub[sub["level"] == int(level_filter[1:])]
+        if diff_filter != "All":
+            sub = sub[sub["difficulty"] == diff_filter]
+
+        if sub.empty:
+            st.info("No rows match the filter.")
+        else:
+            heat = (
+                sub.pivot_table(
+                    index="family", columns="model", values="score", aggfunc="mean"
+                )
+                .round(3)
+                .sort_index()
+            )
+            n_per_family = sub.groupby("family")["stem"].nunique()
+            heat.insert(0, "n_stems", n_per_family)
+            score_cols = [c for c in heat.columns if c != "n_stems"]
+            styled = heat.style.format(
+                dict.fromkeys(score_cols, "{:.2f}"), na_rep="—"
+            ).background_gradient(
+                subset=score_cols, cmap="RdYlGn", vmin=0, vmax=1, axis=None
+            )
+            st.dataframe(styled, use_container_width=True)
+            st.caption(
+                f"{len(heat)} families × {len(score_cols)} models · cell = mean score "
+                f"(filter: level={level_filter}, difficulty={diff_filter})."
+            )
+
+    # ── Per-stem drill-down ──
+    with tab_stem:
+        stems = sorted(df["stem"].unique())
+        # Search box
+        q = st.text_input(
+            "Search stem",
+            key="qa_eval_stem_search",
+            placeholder="filter by substring…",
+        )
+        if q:
+            stems = [s for s in stems if q.lower() in s.lower()]
+        if not stems:
+            st.info("No stems match the search.")
+        else:
+            sel = st.selectbox(
+                f"Stem ({len(stems)} match)", stems, key="qa_eval_stem_sel"
+            )
+            sub = df[df["stem"] == sel].copy()
+            meta = sub.iloc[0]
+            cols = st.columns(4)
+            cols[0].metric("Family", meta["family"])
+            cols[1].metric("Difficulty", meta["difficulty"])
+            cols[2].metric("Models", sub["model"].nunique())
+            cols[3].metric("QA items / model", sub.groupby("model").size().iloc[0])
+
+            # GT 4-view if available
+            gt_dir = ROOT / "data/data_generation/views" / sel
+            if gt_dir.exists():
+                with st.expander("GT 4-view", expanded=False):
+                    img_cols = st.columns(4)
+                    for i, name in enumerate(["front", "right", "top", "iso"]):
+                        p = gt_dir / f"{name}.png"
+                        if p.exists():
+                            img_cols[i].image(str(p), caption=name)
+
+            # Per-model summary on this stem
+            st.subheader("Per-model score on this stem")
+            per_model = (
+                sub.groupby("model")["score"]
+                .mean()
+                .round(3)
+                .sort_values(ascending=False)
+                .reset_index()
+                .rename(columns={"score": "mean_score"})
+            )
+            st.dataframe(per_model, use_container_width=True, hide_index=True)
+
+            # Question-level table for a selected model
+            sel_model = st.selectbox(
+                "Inspect model",
+                sorted(sub["model"].unique()),
+                key="qa_eval_drill_model",
+            )
+            qsub = sub[sub["model"] == sel_model][
+                ["level", "type", "q", "gt", "pred", "score"]
+            ].sort_values(["level", "q"])
+            st.dataframe(qsub, use_container_width=True, hide_index=True)
+
+
 # ── navigation ────────────────────────────────────────────────────────────────
 
 
@@ -2380,6 +2607,7 @@ def main():
         "Stem List",
         "Stem Viewer",
         "Synth Monitor",
+        "QA Eval",
         "Bench Curator",
         "编辑 Bench",
         "CQ Playground",
@@ -2401,6 +2629,8 @@ def main():
         page_overview()
     elif page == "Synth Monitor":
         page_synth()
+    elif page == "QA Eval":
+        page_qa_eval()
     elif page == "Stem List":
         page_stem_list()
     elif page == "Bench Curator":
