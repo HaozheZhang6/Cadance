@@ -87,7 +87,7 @@ We follow the datasheet template of Gebru et al.\ (2021); responses below are co
 \textbf{Were any ethical review processes conducted?} Not applicable; no human-subjects data.
 
 \paragraph{Preprocessing/cleaning/labeling.}
-\textbf{Was preprocessing/cleaning done?} Verification (IoU $\geq 0.99$ rotation-invariant against the builder solid; non-degenerate volume; 30\,s timeout) is the sole filter applied to BenchCAD.
+\textbf{Was preprocessing/cleaning done?} Verification (sandbox execution + non-degenerate volume + 30\,s timeout, followed by domain-expert visual sign-off) is the sole filter applied to BenchCAD.
 The Fusion360 and DeepCAD subsets undergo additional curation: parsing failures and parts whose reconstruction yields invalid geometry are excluded.
 \textbf{Was the raw data saved?} Yes; the unverified pre-filter output is retained for analysis and is available on request.
 
@@ -127,11 +127,10 @@ Source: \texttt{bench/metrics/rot\_iou.py} in the released harness.
 \label{app:edit_protocol}
 
 \paragraph{Pair construction.} The 748 BenchCAD-Edit pairs are drawn balanced across 106 families and four edit categories (balanced across dimensional, additive, subtractive, and multi-step categories).
-For each pair, we (i) start from a verified BenchCAD record, (ii) apply a parameter or op-list edit yielding a target part, (iii) verify the target satisfies the same IoU $\geq 0.99$ verification as the original, (iv) write a natural-language instruction by template (\emph{``increase the bore diameter to 12\,mm''}) reviewed for unambiguity by a second author, and (v) cross-validate by running two strong models and inspecting any unexpected failure modes.
+For each pair, we (i) start from a verified BenchCAD record, (ii) apply a parameter or op-list edit yielding a target part, (iii) verify the target satisfies the same verification pipeline, (iv) write a natural-language instruction by template (\emph{``increase the bore diameter to 12\,mm''}) reviewed for unambiguity by a second author, and (v) cross-validate by running two strong models and inspecting any unexpected failure modes.
 Pairs where models systematically disagree on instruction interpretation are revised or removed.
 
-\paragraph{Pass@1 metric.} A model's edit is scored as a pass iff both (a) target success: $\mathrm{IoU}_{\mathrm{rot}}(\text{model edit}, \text{target}) \geq 0.99$; and (b) non-target preservation: on the spatial complement of the bounding region of the targeted feature, $\mathrm{IoU}_{\mathrm{rot}}(\text{model edit}, \text{original}) \geq 0.99$.
-The targeted-feature region is provided as a precomputed bounding-box annotation per pair.
+\paragraph{Scoring.} See \S\ref{sec:exp_edit} for metric definitions (\texttt{exec\_pct}, \texttt{mean\_iou}, \texttt{mean\_cd}, \texttt{ess\_score}, \texttt{total}). The non-target preservation check is computed on the spatial complement of the bounding region of the targeted feature (precomputed bounding-box annotation per pair).
 
 \paragraph{Industrial Common Sense Gap rate.} Defined as the fraction of model edits that achieve target success but fail non-target preservation: $|\{i: \text{Targ}_i \wedge \neg\text{Pres}_i\}| / |\{i: \text{Targ}_i\}|$.
 We additionally report a code-AST diff metric (lines changed, identifiers renamed) as a secondary measure of locality.
@@ -144,19 +143,19 @@ We additionally report a code-AST diff metric (lines changed, identifiers rename
 
 \input{tables/tab_error_codes}
 
-\paragraph{Supplementary results.} Figure~\ref{fig:edit_iou_only} reports mean rotation-invariant IoU per task type for all ten models, which separates the \emph{geometric closeness} signal (mean IoU) from the \emph{parametric exactness} signal (strict $\geq 0.99$ pass rate, Fig.~\ref{fig:edit_task}); the gap between the two on the same model is the parametric-exactness deficit. Figure~\ref{fig:edit_error_pies} disaggregates per-model failures into the E001--E004 buckets, exposing how the dominant failure mode shifts across model generations: \texttt{gpt-4o} and \texttt{gpt-oss-120b} are dominated by \emph{wrong\_operation} (E002), \texttt{nemotron} and the no-thinking \texttt{gemini-3.1} variant by \emph{invalid\_op\_or\_param} (E004), while the reasoning-tier \texttt{claude-opus-4-7} trades hallucinations for a 10.9\% \emph{no\_op} rate (E003) where the agent echoes the input file unchanged.
+\paragraph{Supplementary results.} Figure~\ref{fig:edit_iou_only} reports mean voxel IoU per task type. Figure~\ref{fig:edit_error_pies} disaggregates per-model failures into the E001--E004 buckets defined in Table~\ref{tab:error_codes}.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.95\linewidth]{figures/fig_edit_iou_only.png}
-  \caption{\textbf{BenchCAD-Edit mean IoU per task type.} Mean rotation-invariant voxel IoU(generated, target) for all ten models (same identifiers as Fig.~\ref{fig:edit_task}) on T1--T5. Mean IoU stays well above the strict $\geq 0.99$ pass rate for every model; the gap is the parametric-exactness deficit invisible to mean-IoU-only evaluations.}
+  \caption{\textbf{BenchCAD-Edit mean IoU per task type.} Mean voxel IoU(generated, target) on T1--T5.}
   \label{fig:edit_iou_only}
 \end{figure}
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=0.95\linewidth]{figures/fig_edit_error_pies.png}
-  \caption{\textbf{Per-model failure mode distribution on BenchCAD-Edit.} Each pie disaggregates one model's 192--193 predictions into \texttt{ok} and the four failure buckets E001--E004 defined in Table~\ref{tab:error_codes}. The dominant failure shifts across model generations: weak / older models fail by \emph{wrong\_operation} (E002, real API + wrong selector or argument); open-weights frontier models (\texttt{nemotron}, \texttt{gpt-oss-120b}) fail predominantly by \emph{invalid\_op\_or\_param} (E004, undefined symbols or non-Python prose); reasoning-tier closed models (\texttt{claude-opus-4-7}, \texttt{gpt-5.3-chat-latest}) eliminate hallucinations but introduce \emph{no\_op} edits (E003) in which the agent rewrites the original file byte-for-byte.}
+  \caption{\textbf{Per-model failure mode distribution on BenchCAD-Edit.} Each pie disaggregates one model's predictions into \texttt{ok} and the four failure buckets E001--E004 defined in Table~\ref{tab:error_codes}. The dominant failure shifts across model generations: weak / older models fail by \emph{wrong\_operation} (E002); open-weights frontier models tend toward \emph{invalid\_op\_or\_param} (E004); reasoning-tier closed models eliminate hallucinations but introduce \emph{no\_op} edits (E003) in which the agent rewrites the original file byte-for-byte.}
   \label{fig:edit_error_pies}
 \end{figure}
 
