@@ -1,0 +1,30 @@
+\begin{table*}[t]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{\textbf{Main evaluation on BenchCAD-Codegen (\texttt{img2cq} modality), by metric.} Per-model performance on the image-to-code task across the five codegen metrics introduced in \S\ref{sec:tasks}: rotation-invariant \emph{IoU} (primary), \emph{Detailed Feature Score} (Feature-F1 over holes, fillets, chamfers, threads, etc.), \emph{Essential op recall} (fraction of ground-truth operations recovered, probing the Op Vocabulary Gap, \S\ref{sec:op_gap}), and \emph{Execution rate} (fraction of emitted programs that run without error). \textbf{Total score} is the weighted aggregate across columns. Bold marks the best per column. Rows with empty entries indicate models not yet evaluated.}
+\label{tab:main_eval_codegen}
+\begin{tabular}{l c c c c c}
+\toprule
+Model
+ & IoU
+ & \shortstack{Detailed Feature\\Score}
+ & \shortstack{Essential op\\recall}
+ & \shortstack{Execution\\Rate}
+ & \shortstack{Total\\score} \\
+\midrule
+gpt-4o                              & 0.188 & 0.042 & 0.468 & 0.870 & 0.255 \\
+gpt-5.3-non-thinking                & 0.195 & \textbf{0.126} & 0.494 & 0.695 & 0.261 \\
+gpt-5.3-thinking                    & 0.207 & 0.119 & 0.455 & 0.675 & 0.261 \\
+claude-sonnet-4.6-nonthinking       & 0.238 & 0.051 & 0.506 & 0.854 & 0.289 \\
+claude-sonnet-4.6-thinking-high     & 0.242 & 0.080 & 0.520 & 0.900 & 0.303 \\
+claude-opus-4.7-nonthinking         & 0.274 & 0.033 & 0.477 & \textbf{0.940} & 0.313 \\
+claude-opus-4.7-thinking            & 0.267 & 0.040 & 0.471 & 0.904 & 0.306 \\
+gemini-3.1-pro-nonthinking          & 0.256 & 0.087 & 0.378 & 0.740 & 0.283 \\
+gemini-3.1-pro-thinking             & \textbf{0.279} & 0.068 & \textbf{0.567} & 0.798 & \textbf{0.318} \\
+kimi-k2.6                           & --    & --    & --    & --    & --    \\
+moonshot-v1-128k-vision-preview     & --    & --    & --    & --    & --    \\
+\bottomrule
+\end{tabular}
+\end{table*}

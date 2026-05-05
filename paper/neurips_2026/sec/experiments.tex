@@ -1,40 +1,73 @@
 \section{Experiments}
 \label{sec:experiments}
 
-\paragraph{Setup.} We evaluate 10+ models with non-uniform per-task coverage; the headline figures (Fig.~\ref{fig:main_results}, \ref{fig:capability_profile}) report seven frontier proprietary systems with full four-task coverage --- \textbf{GPT-4o}, \textbf{GPT-5.3} (think / non-think), \textbf{Claude Opus 4.7} (think / non-think), \textbf{Gemini 3.1 Pro} (think / non-think) --- with open-source baselines (Qwen2.5-VL, InternVL3) and CAD-specialised cadrille-RL on subsets.
-Inference at temperature 0 with a 60\,s per-sample budget; open models on 8$\times$A800-80GB, proprietary via API.
-We include a \emph{blind baseline} and an \emph{Oracle} reference (GT-code parameter substitution; trivially 100\%).
-Headline numbers use BenchCAD-Lite (530 stratified samples); per-model per-task coverage and the full 17{,}900-set scores for the top systems are in Appendix~\ref{app:full_results}.
+\subsection{Setup} 
+\label{sec:exp_setup}
+We evaluate 10+ models with non-uniform per-task coverage; the headline figures (Fig.~\ref{fig:main_results}, \ref{fig:capability_profile}) report seven frontier proprietary systems with full four-task coverage --- \textbf{GPT-4o}, \textbf{GPT-5.3} (think / non-think), \textbf{Claude Opus 4.7} (think / non-think), \textbf{Gemini 3.1 Pro} (think / non-think) --- with open-source baselines (Qwen2.5-VL, InternVL3) and CAD-specialised cadrille-RL on subsets.
+For each task, we include a \emph{blind baseline} and evaluate model capabilities by quantifying the performance gains of each model over the baseline across all relevant metrics.
+%Inference at temperature 0 with a 60\,s per-sample budget; open models on 8$\times$A800-80GB, proprietary via API.
+%We include a \emph{blind baseline} and an \emph{Oracle} reference (GT-code parameter substitution; trivially 100\%).
+%Headline numbers use BenchCAD-Lite (530 stratified samples); per-model per-task coverage and the full 17{,}900-set scores for the top systems are in Appendix~\ref{app:full_results}.
 
 \subsection{Main Results}
 \label{sec:exp_main}
 
-Table~\ref{tab:main_eval} reports per-task accuracy and the macro-mean.
-The strongest model overall is GPT-5.3 (think) at 46.8\% Avg --- well below the IoU $\geq 0.99$ verification threshold and leaving substantial room across every task.
-Three observations stand out.
-\textbf{Absolute scores remain low}: even top reasoning models score below 50\% on every task; the strongest open-source VLM (Qwen2.5-VL-72B, 23.5\% Avg) trails the best proprietary system by 23\,pt; CAD-specialised text/point-cloud models (CAD-Coder-7B, CAD-Recode-1.5B) sit between mid-tier proprietary and top-tier open-source on their applicable tasks despite matching the latter on the original DeepCAD benchmark.
-\textbf{Scaling is not enough}: InternVL3 1B$\to$78B raises Avg by only 14.5\,pt over a 78$\times$ parameter expansion; Qwen2.5-VL 7B$\to$72B by only 7.5\,pt.
-\textbf{Geometry-program decoupling}: several mid-tier models (Gemini 3.1 Pro, GPT-4o) achieve respectable IoU on \texttt{img2cq} but mid-tier scores on \texttt{qa\_img}, indicating they recover the outer shape but cannot answer dimensional questions about it.
+Table~\ref{tab:main_eval_qa_img} indicates that Vision QA remains challenging for current frontier MLLMs. Performance is relatively stronger on Holistic Visual Recognition and Spatial / Code Reasoning, but consistently weaker on CAD Operation Understanding and Industrial Parametric Abstraction, suggesting that models can often recognize global shapes while still struggling to infer CAD operations and parametric design intent. 
+Moreover, thinking mode does not consistently improve performance, because extended reasoning can amplify hallucinations about geometric structures, dimensions, or CAD operations. These results suggest that CAD QA requires more than generic reasoning ability; it demands precise visual grounding, CAD-specific knowledge, and robust parametric abstraction.
+
+
+Table~\ref{tab:main_eval_qa_code} shows that direct access to CadQuery code substantially improves QA performance compared with the vision-conditioned setting in Table~\ref{tab:main_eval_qa_img}.
+The best models achieve total scores around 0.84, far above the best visual-conditioned score of 0.587. 
+This large modality gap suggests that current MLLMs are considerably better at extracting geometric and parametric information from explicit CAD programs than from rendered images. 
+However, performance on Spatial / Code Reasoning remains comparatively lower, indicating that code access alone does not fully resolve the need for precise spatial and operational reasoning.
+
+Table~\ref{tab:main_eval_codegen} reports the Vision2Code task, where two qualitative patterns stand out. 
+First, thinking mode is non-monotonic on \texttt{Vision2Code} task. 
+Combined with uniformly low Detailed Feature scores, this is consistent with extended reasoning amplifying hallucinations on fine geometric features while the global shape is recovered. 
+Second, execution rate decouples from total score: the model with the highest execution rate is not the strongest overall, and a model with notably lower execution rate can still match its total. Frontier models have largely learned to emit syntactically valid CadQuery, so the residual deficit is geometric rather than syntactic, and codegen progress should be tracked through IoU and Essential Op Recall rather than execution rate.
+
+% Table~\ref{tab:main_eval} reports per-task accuracy and the macro-mean.
+% The strongest model overall is GPT-5.3 (think) at 46.8\% Avg --- well below the IoU $\geq 0.99$ verification threshold and leaving substantial room across every task.
+% Three observations stand out.
+% \textbf{Absolute scores remain low}: even top reasoning models score below 50\% on every task; the strongest open-source VLM (Qwen2.5-VL-72B, 23.5\% Avg) trails the best proprietary system by 23\,pt; CAD-specialised text/point-cloud models (CAD-Coder-7B, CAD-Recode-1.5B) sit between mid-tier proprietary and top-tier open-source on their applicable tasks despite matching the latter on the original DeepCAD benchmark.
+% \textbf{Scaling is not enough}: InternVL3 1B$\to$78B raises Avg by only 14.5\,pt over a 78$\times$ parameter expansion; Qwen2.5-VL 7B$\to$72B by only 7.5\,pt.
+% \textbf{Geometry-program decoupling}: several mid-tier models (Gemini 3.1 Pro, GPT-4o) achieve respectable IoU on \texttt{img2cq} but mid-tier scores on \texttt{qa\_img}, indicating they recover the outer shape but cannot answer dimensional questions about it.
 
 % tab_main_eval moved to Appendix~\ref{app:full_results}
 
 \begin{figure*}[t]
   \centering
   \includegraphics[width=0.65\linewidth]{figures/fig_3.png}
-  \caption{\textbf{Per-model performance across the four BenchCAD task categories} (frontier proprietary subset; open-source baselines in Table~\ref{tab:main_eval}). Bar style encodes task; colour encodes model family; within-family variants distinguish thinking vs.\ non-thinking. Two patterns motivate the diagnostics that follow: (i) QA-img is consistently lower than QA-code (\emph{Holistic Spatial and Detailing Deficit}, \S\ref{sec:exp_capability}), and (ii) CodeEdit trails CodeGen on every model, reflecting \emph{Industrial Common Sense Gap} (\S\ref{sec:exp_edit}).}
+  \caption{\textbf{Per-model performance across the four BenchCAD task categories} (frontier proprietary subset; open-source baselines in Table~\ref{tab:main_eval_qa_img}). Bar style encodes task; colour encodes model family; within-family variants distinguish thinking vs.\ non-thinking. Two patterns motivate the diagnostics that follow: (i) QA-img is consistently lower than QA-code (\emph{Holistic Spatial and Detailing Deficit}, \S\ref{sec:exp_capability}), and (ii) CodeEdit trails CodeGen on every model, reflecting \emph{Industrial Common Sense Gap} (\S\ref{sec:exp_edit}).}
   \label{fig:main_results}
 \end{figure*}
 
-\subsection{Holistic Spatial and Detailing Deficit and Capability Profile}
-\label{sec:exp_capability}
 
-The framework of \S\ref{sec:capability} predicts that the gap between \texttt{qa\_img} and \texttt{qa\_code} on matched prompts isolates $L_1$ (Holistic Visual Recognition) from $L_2$ (CAD Operations Understanding).
-Table~\ref{tab:main_eval} shows this gap is large and remarkably consistent: 19.6\,pt for GPT-5.3, 19.8\,pt for Claude Opus 4.7, 16.9\,pt for GPT-4o, 12.9\,pt for Qwen2.5-VL-72B.
-We name this the \textbf{Holistic Spatial and Detailing Deficit}.
-It is robust along three axes: it survives chain-of-thought (reasoning variants show the largest absolute gap), survives view-count augmentation (4$\to$8 views recovers $\leq$1.5\,pt; Appendix~\ref{app:ablation}), and survives parameter scaling within open-source families (the relative gap is preserved as absolute scores collapse).
-These properties suggest the Holistic Spatial and Detailing Deficit is a property of the \emph{representation interface} between vision encoders and language decoders, not of any single model's capacity.
+\subsection{Failure Analysis}
+\label{sec:exp_failure_analysis}
 
-A per-model capability profile across six axes (surface similarity, local feature accuracy, global geometry, CAD understanding, CAD code robustness, synthesis) and four recurring failure modes (\emph{no industry understanding}, \emph{wrong plane}, \emph{wrong ops}, \emph{no detail}) appear in Appendix~\ref{app:capability_profile} (Figure~\ref{fig:capability_profile}); frontier models occupy structurally different capability shapes (GPT-5.3 leads on CAD understanding and code robustness, Claude Opus 4.7 on local feature accuracy and synthesis, Gemini 3.1 Pro on global geometry), confirming that no single model dominates all axes.
+Building on the layered evaluation introduced in \S\ref{sec:capability}, we examine four representative \textsc{Vision2Code} failures elicited from frontier reasoning models on hard-tier families, each diagnostic of a different level in the capability hierarchy (visualised in Fig.~\ref{fig:capability_profile}).
+
+\textbf{$L_1$ --- holistic feature recognition.} A hex-head bolt is reproduced with the correct overall body but with its threaded shank and DIN-standard head detail omitted. The vision encoder integrates the global silhouette while failing to register the high-information local features that distinguish a manufacturable bolt from a smooth pin --- a deficit at the perception layer rather than at code generation.
+
+\textbf{$L_1$ --- spatial understanding.} On a bearing retainer cap, the 24-axis rotation-invariant IoU is substantially higher than the single-axis IoU --- a diagnostic signature that the generated geometry is approximately correct but oriented on the wrong base workplane. Inspecting the emitted code confirms it: the model defaults to the XY plane that dominates its training distribution and fails to recognise that the part is naturally extruded along XZ. This is a perception failure at the spatial-anchoring layer rather than a geometric or symbolic one, and one that no amount of code-side reasoning can recover.
+
+\textbf{$L_2$ --- operation understanding.} A twisted bracket is generated as a flat plate with mounting holes; the requisite twist-extrusion is absent from the emitted program entirely. The model recognises the part outline at $L_1$ but fails to map the visible torsion to the corresponding CAD operation, exposing an Op Vocabulary Gap (\S\ref{sec:op_gap}) at the operation-understanding layer.
+
+\textbf{$L_3$ --- parametric abstraction.} A coil spring with non-uniform pitch is reproduced as a uniform helix. The model recognises the spring family at $L_1$ and emits a helical sweep at $L_2$, yet flattens the pitch profile from variable to constant --- losing the parametric structure that an engineer would have written explicitly. This is an $L_3$ failure invisible to either $L_1$ or $L_2$ metrics, and it is precisely the class of failure that motivates anchoring BenchCAD families to ISO/DIN/EN/ASME/IEC standards.
+
+These cases illustrate how the layered framework converts \textsc{Vision2Code} failures from a single opaque ``wrong code'' category into level-attributable diagnostics: a model can succeed at $L_1$ yet fail at $L_2$ (the bracket), or succeed at $L_1$ and $L_2$ yet fail at $L_3$ (the spring). Without per-level attribution these distinctions collapse into a single low IoU score, and the corresponding training signal --- which level to strengthen --- is lost.
+
+% \subsection{Holistic Spatial and Detailing Deficit and Capability Profile}
+% \label{sec:exp_capability}
+
+% The framework of \S\ref{sec:capability} predicts that the gap between \texttt{qa\_img} and \texttt{qa\_code} on matched prompts isolates $L_1$ (Holistic Visual Recognition) from $L_2$ (CAD Operations Understanding).
+% Table~\ref{tab:main_eval_qa_img} shows this gap is large and remarkably consistent: 19.6\,pt for GPT-5.3, 19.8\,pt for Claude Opus 4.7, 16.9\,pt for GPT-4o, 12.9\,pt for Qwen2.5-VL-72B.
+% We name this the \textbf{Holistic Spatial and Detailing Deficit}.
+% It is robust along three axes: it survives chain-of-thought (reasoning variants show the largest absolute gap), survives view-count augmentation (4$\to$8 views recovers $\leq$1.5\,pt; Appendix~\ref{app:ablation}), and survives parameter scaling within open-source families (the relative gap is preserved as absolute scores collapse).
+% These properties suggest the Holistic Spatial and Detailing Deficit is a property of the \emph{representation interface} between vision encoders and language decoders, not of any single model's capacity.
+
+% A per-model capability profile across six axes (surface similarity, local feature accuracy, global geometry, CAD understanding, CAD code robustness, synthesis) and four recurring failure modes (\emph{no industry understanding}, \emph{wrong plane}, \emph{wrong ops}, \emph{no detail}) appear in Appendix~\ref{app:capability_profile} (Figure~\ref{fig:capability_profile}); frontier models occupy structurally different capability shapes (GPT-5.3 leads on CAD understanding and code robustness, Claude Opus 4.7 on local feature accuracy and synthesis, Gemini 3.1 Pro on global geometry), confirming that no single model dominates all axes.
 
 \subsection{The Family Cliff}
 \label{sec:exp_cliff}

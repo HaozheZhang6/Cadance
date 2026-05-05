@@ -23,7 +23,7 @@ We organise the QA bank along a four-level capability hierarchy (Figure~\ref{fig
 \begin{figure*}[t]
   \centering
   \includegraphics[width=0.75\linewidth]{figures/fig_6.png}
-  \caption{\textbf{BenchCAD-QA capability hierarchy.} Four levels (L1 Holistic Visual Recognition $\to$ L4 Spatial/Code Reasoning) with paired \textsc{Vision QA} / \textsc{Code QA} examples per level (\S\ref{sec:capability}).}
+  \caption{\textbf{BenchCAD-QA capability hierarchy.} Four-level capabilities (L1 Holistic Visual Recognition $\to$ L4 Spatial/Code Reasoning) with paired \textsc{Vision QA} / \textsc{Code QA} examples per level (\S\ref{sec:capability}).}
 
   \label{fig:capability_hierarchy}
 \end{figure*}
@@ -32,8 +32,9 @@ We organise the QA bank along a four-level capability hierarchy (Figure~\ref{fig
 
 Each item supplies an original CadQuery program, a natural-language edit instruction, and a target STEP, drawn from four categories (dimensional, additive, subtractive, multi-step). Pass@1 $= \mathbb{1}[\mathrm{IoU}(\text{edited},\text{target}) \geq 0.99 \wedge \mathrm{Preserve}(\text{edited},\text{orig}) \geq 0.99]$ requires both target-feature success \emph{and} non-target preservation. Disaggregating Pass@1 into the two component rates exposes the \textbf{Industrial Common Sense Gap} (\S\ref{sec:exp_edit}): a model can apply the requested change while silently corrupting unrelated parametric features.
 
-\subsection{Image-to-Code Generation: \textsc{Code QA}}
+\subsection{Image-to-Code Generation: \textsc{Vision2Code}}
 
-Four canonical orthographic views $\to$ executable CadQuery code. The codegen evaluation set comprises \textbf{350 stratified items spanning all 106 BenchCAD families} (full-family coverage, no family omitted). We report five metrics: \emph{(i)} \textbf{rotation-invariant IoU} between generated and ground-truth occupancy grids under the cube symmetry group, with $\mathrm{Pass}_{\mathrm{IoU}\geq 0.5}$ as the headline pass rate; \emph{(ii)} mean \textbf{Chamfer distance} between meshes after rigid alignment; \emph{(iii)} \textbf{Feature-F1}, precision/recall over detected geometric features (holes, fillets, chamfers, threads, $\ldots$); \emph{(iv)} \textbf{essential-op recall}, the fraction of items whose ground-truth program calls operation $o$ for which the model's emitted code also calls $o$ at least once (probing the Op Vocabulary Gap, \S\ref{sec:op_gap}); \emph{(v)} \textbf{execution rate}, the fraction of emitted programs that run without error. IoU is the primary metric; the other four disambiguate IoU ties and identify whether failures are geometric, structural, vocabulary-level, or syntactic.
+Vision2Code generates executable CadQuery code from four canonical orthographic views $\to$. The Vision2Code evaluation set comprises \textbf{350 stratified items spanning all 106 BenchCAD families} (full-family coverage, no family omitted). 
+We report five metrics: \emph{(i)} \textbf{IoU} between generated and ground-truth occupancy grids under the cube symmetry group; \emph{(ii)} mean \textbf{Chamfer distance} between meshes after rigid alignment; \emph{(iii)} \textbf{Feature-F1}, precision/recall over detected geometric features (holes, fillets, chamfers, threads, $\ldots$); \emph{(iv)} \textbf{essential-op recall}, the fraction of items whose ground-truth program calls operation $o$ for which the model's emitted code also calls $o$ at least once; \emph{(v)} \textbf{execution rate}, the fraction of emitted programs that can run without error. IoU is the primary metric; the other four disambiguate IoU ties and identify whether failures are geometric, structural, vocabulary-level, or syntactic.
 
-The headline aggregate is the macro-mean across the four tasks. Question bank construction, edit-pair protocol, rotation-invariant IoU, and a scale-invariance ablation appear in Appendices~\ref{app:qbank}, \ref{app:edit_protocol}, \ref{app:iou}, and \ref{app:ablation} respectively.
+The headline aggregate is the macro-mean across the four metrics. Question bank construction, edit-pair protocol, rotation-invariant IoU, and a scale-invariance ablation appear in Appendices~\ref{app:qbank}, \ref{app:edit_protocol}, \ref{app:iou}, and \ref{app:ablation} respectively.
