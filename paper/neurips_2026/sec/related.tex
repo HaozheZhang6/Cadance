@@ -27,4 +27,11 @@ Within CAD code generation specifically, BenchCAD takes a position distinct from
 Concretely, BenchCAD is the first public CAD benchmark to combine four properties simultaneously: (i) \emph{execution-verified at scale} (17{,}900 parts at IoU $\geq 0.99$), (ii) \emph{standard-anchored} (49\% of families bound to ISO/DIN/EN/ASME/IEC specification tables, supporting industry-grade rather than toy-shape evaluation), (iii) \emph{operation-rich} (45+ CadQuery operations including helical sweeps and parametric involute-gear construction that prior corpora omit), and (iv) \emph{capability-decomposed} (five tasks with two image/code matched-contrast pairs that isolate visual reconstruction, parametric abstraction, and code synthesis, including the first verified parametric edit task).
 Table~\ref{tab:advantages} summarises the evaluation-side properties BenchCAD adds; the full per-axis comparison against all prior CAD code-generation work appears in Appendix~\ref{app:cmp_prior}.
 
-\input{tables/tab_advantages}
+\begin{wraptable}{r}{0.42\linewidth}
+  \vspace{-\baselineskip}
+  \centering
+  \caption{\textbf{BenchCAD positioning.} Properties added on top of existing CAD-LM training corpora.}
+  \label{tab:advantages}
+  \input{tables/tab_advantages}
+  \vspace{-0.5\baselineskip}
+\end{wraptable}

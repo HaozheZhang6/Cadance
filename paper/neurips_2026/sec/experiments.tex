@@ -76,3 +76,11 @@ where $\mathcal{N} = \{i : \mathrm{IoU}_{\mathrm{rot}}(S_o^i, S_t^i) \leq 0.99\}
 A failure-code breakdown (E001--E004 defined in Table~\ref{tab:error_codes}; per-model distribution in Fig.~\ref{fig:edit_error_pies}) shows the dominant failure shifts with model class: \texttt{gpt-4o} and \texttt{gpt-oss-120b} are bottlenecked by \emph{wrong\_operation} (real API, wrong selector or argument), while reasoning-tier models trade hallucinations for \emph{no\_op} edits in which the agent rewrites the original byte-for-byte.
 
 \input{tables/tab_main_results}
+
+\subsection{Training: Open BenchCAD Baseline + RL Fine-Tuning}
+\label{sec:exp_training}
+
+We train Qwen3-VL-2B baselines under matched 32 GPU-hour budgets on A800-80GB.
+\textbf{SFT}: 1 epoch, lr $1{\times}10^{-5}$, 300K mixture (BenchCAD-Synth + 162K GenCAD + CAD-Recode/text2cad); three splits --- \emph{IID} (all 106 families), \emph{baseline} (no BenchCAD), \emph{OOD} (10 mech.-transmission families held out).
+\textbf{RL}: on-policy GRPO from the OOD-SFT checkpoint, reward $r{=}0.2\,\mathrm{ess}{+}0.8\,\mathrm{IoU}$ ($r{=}-1$ on parse error / timeout / zero-volume); RL data excludes OOD families; no warm-start.
+End-of-training metrics (Table~\ref{tab:training_compact}, Appendix~\ref{app:op_gap_full}): IID converges to IoU $\sim$0.65, ess $\sim$0.95; the baseline plateaus at IoU 0.10 with \textbf{0\% essential-op pass}; RL on OOD-SFT lifts OOD IoU 0.18$\to$0.35 and ess 0.20$\to$0.45 but the residual gap to IID is the empirical \emph{generalisation cliff}.
