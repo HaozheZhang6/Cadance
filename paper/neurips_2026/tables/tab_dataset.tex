@@ -1,20 +1,15 @@
 \begin{table}[t]
 \centering
 \small
-\caption{\textbf{BenchCAD dataset composition.} The verified evaluation core consists of 17{,}900 procedurally generated parts spanning 106 families, with each record carrying parametric source code, executable STEP, four canonical-view renders, and a parameter JSON. The QA bank contains 2{,}400 paired questions evaluated under both visual and code conditioning. We additionally release an Edit subset, a stratified Lite split, two OOD subsets, and a 162K-pair training corpus.}
+\caption{\textbf{BenchCAD dataset composition.} Three released datasets: the verified CadQuery code core (17{,}900 parts spanning 106 families, each with parametric source, executable STEP, four canonical-view renders, parameter JSON, and op list), the paired QA bank (2{,}400 questions evaluated under both visual and code conditioning), and the Edit subset (748 before/after pairs).}
 \label{tab:dataset}
 \begin{tabular}{lrrl}
 \toprule
-Split & \#Records & \#Families & GT artefacts \\
+Dataset & \#Records & \#Families & GT artefacts \\
 \midrule
-BenchCAD (verified)    & 17{,}900 & 106 & code $\cdot$ STEP $\cdot$ 4 views $\cdot$ params $\cdot$ ops \\
-BenchCAD-QA (paired img/code)& 2{,}400 $\times 2$ & 106 & question $+$ gold answer \\
-BenchCAD-Edit                & 748      & 106 & before/after $+$ NL instruction \\
-BenchCAD-Lite (stratified)   & 530      & 106 & same as Synth \\
-BenchCAD-Fusion360 (verif.)  & 726      & 52  & + raw STEP \\
-BenchCAD-DeepCAD (verif.)    & 920      & --  & code $\cdot$ STEP $\cdot$ views \\
-\midrule
-BenchCAD-GenCAD (training)   & 162{,}000 & -- & image $\cdot$ code (SFT pairs) \\
+BenchCAD                     & 17{,}900             & 106 & code $\cdot$ STEP $\cdot$ 4 views $\cdot$ params $\cdot$ ops \\
+BenchCAD-QA (paired img/code)& 2{,}400 $\times 2$   & 106 & question $+$ gold answer \\
+BenchCAD-Edit                & 748                  & 106 & before/after $+$ NL instruction \\
 \bottomrule
 \end{tabular}
 \end{table}

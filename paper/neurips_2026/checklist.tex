@@ -37,12 +37,12 @@
 \item {\bf Experiment statistical significance}
     \item[] Question: Does the paper report error bars suitably and correctly defined or other appropriate information about the statistical significance of the experiments?
     \item[] Answer: \answerNo{}
-    \item[] Justification: All reported numbers are single-seed evaluations on BenchCAD-Lite (530 samples) due to the cost of running 30+ models including proprietary APIs. We discuss this limitation and report per-family stratification (Table~\ref{tab:family_cliff}) so that variance can be assessed across difficulty tiers. Future releases will include multi-seed error bars for the open BenchCAD-trained baseline.
+    \item[] Justification: All reported numbers are single-seed evaluations on BenchCAD (530 samples) due to the cost of running 30+ models including proprietary APIs. We discuss this limitation and report per-family stratification (Table~\ref{tab:family_cliff}) so that variance can be assessed across difficulty tiers. Future releases will include multi-seed error bars for the open BenchCAD-trained baseline.
 
 \item {\bf Experiments compute resources}
     \item[] Question: For each experiment, does the paper provide sufficient information on the computer resources (type of compute workers, memory, time of execution) needed to reproduce the experiments?
     \item[] Answer: \answerYes{}
-    \item[] Justification: \S\ref{sec:exp_main} states the inference cluster (8$\times$A800-80GB nodes); \S\ref{sec:exp_training} states baseline training compute ($\approx$9 GPU-hours on the same hardware); Appendix~\ref{app:reproduce} states that BenchCAD-Lite evaluation runs in under two hours per model on a single A100.
+    \item[] Justification: \S\ref{sec:exp_main} states the inference cluster (8$\times$A800-80GB nodes); \S\ref{sec:exp_training} states baseline training compute ($\approx$9 GPU-hours on the same hardware); Appendix~\ref{app:reproduce} states that BenchCAD evaluation runs in under two hours per model on a single A100.
 
 \item {\bf Code of ethics}
     \item[] Question: Does the research conducted in the paper conform, in every respect, with the NeurIPS Code of Ethics?

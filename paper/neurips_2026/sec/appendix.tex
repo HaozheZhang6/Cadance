@@ -62,7 +62,7 @@ Table~\ref{tab:dataset} reports the dataset composition; Table~\ref{tab:capabili
     The deficit is not optimisation budget (curves saturate by 15--20k), not backbone capacity (same Qwen2-VL-2B reaches IID IoU 0.65), and not training-corpus operation coverage alone (the OOD run \emph{has} BenchCAD data and still plateaus 35--50\,pt below IID). It is the fundamental difficulty of training large models to construct industry-grade parametric CAD code on \emph{unseen} family distributions.}
   \label{fig:generalisation_gap}
 \end{figure*}
-The baseline reaches an aggregate score of 18.4\% on BenchCAD-Lite --- comparable to mid-tier proprietary models and substantially below the same-architecture cadrille-RL release.
+The baseline reaches an aggregate score of 18.4\% on BenchCAD --- comparable to mid-tier proprietary models and substantially below the same-architecture cadrille-RL release.
 Its purpose is to provide a community lower bound and to make the transfer-baseline gaps interpretable: any improvement attributable to procedural data scaling, multi-task pre-training, or RL fine-tuning appears as a contrast against this open baseline rather than against an opaque private model.
 
 \section{Datasheet for BenchCAD}
@@ -120,7 +120,7 @@ The composition is approximately 60\% ratio, 35\% integer count, and 5\% ordinal
 We compute IoU as the maximum over the 6-element face-up cube symmetry group (or the full 24-element rotation group; configurable).
 Voxelisation is at $64^3$ on the cube-normalised STEP $[-1, 1]^3$; cube normalisation centres the part at the origin and scales by the largest semi-axis.
 For each candidate orientation $g \in G$, we apply $g$ to the predicted voxel grid and compute IoU against the reference; the reported score is $\max_{g} \mathrm{IoU}(g \cdot \hat{V}, V)$.
-Implementation runs in $\approx$120\,ms per pair on a single CPU thread; the full 530-sample BenchCAD-Lite scoring completes in under one minute per model output.
+Implementation runs in $\approx$120\,ms per pair on a single CPU thread; the full 530-sample BenchCAD scoring completes in under one minute per model output.
 Source: \texttt{bench/metrics/rot\_iou.py} in the released harness.
 
 \section{Edit Protocol}
@@ -165,7 +165,7 @@ We additionally report a code-AST diff metric (lines changed, identifiers rename
 
 \input{tables/tab_ablation}
 
-Table~\ref{tab:ablation} reports four scoring-protocol and inference-strategy ablations on GPT-5.3 (think) on BenchCAD-Lite.
+Table~\ref{tab:ablation} reports four scoring-protocol and inference-strategy ablations on GPT-5.3 (think) on BenchCAD.
 Removing scale invariance (allowing absolute mm hints in prompts) inflates \texttt{qa\_img} by 4.6\,pt --- the systematic optimism baked into prior CAD-eval protocols.
 Doubling view count from 4 to 8 closes only $\leq$1.5\,pt of the Holistic Spatial and Detailing Deficit.
 Best-of-5 sampling and 3-turn refinement with execution feedback offer larger but ultimately bounded gains; neither approach closes more than half of the remaining gap to BenchCAD's verification threshold.
@@ -184,13 +184,13 @@ Each ``\cmark'' indicates that the operation is exercised in at least one family
 \paragraph{Hard-tier families and their dependency graphs.} The hard tier concentrates families with dense parameter dependencies: involute gears (module $\times$ tooth count $=$ pitch diameter; addendum and dedendum derived from module), helical springs (free length determined by turn count $\times$ pitch), roller chains (link count constrains pitch diameter), bevel gears (ISO 23509 cone-angle relations), and twist drills (DIN 338 helix angle and point angle dependencies).
 These families collectively account for 89\% of the multi-step edit failures (\S\ref{sec:exp_edit}).
 
-\paragraph{Per-family table.} A full per-family breakdown of \texttt{img2cq} pass rate, mean Chamfer distance, and Industrial Common Sense Gap rate for the top eight models is included with the released harness as \texttt{results/per\_family\_lite.csv}; we omit the table from the appendix for space and to avoid implying single-cell statistical significance on small per-family sample sizes (typically 5 records per family in BenchCAD-Lite).
+\paragraph{Per-family table.} A full per-family breakdown of \texttt{img2cq} pass rate, mean Chamfer distance, and Industrial Common Sense Gap rate for the top eight models is included with the released harness as \texttt{results/per\_family\_lite.csv}; we omit the table from the appendix for space and to avoid implying single-cell statistical significance on small per-family sample sizes (typically 5 records per family in BenchCAD).
 
 \section{Reproduction Recipe}
 \label{app:reproduce}
 
-The complete BenchCAD evaluation runs on a single A100 GPU in under two hours per model for BenchCAD-Lite (530 samples).
-Reproduction uses the released \texttt{bench/fetch\_data.py} (one-line Hugging Face fetch), the \texttt{bench.eval} runner (\texttt{--model maksimko123/cadrille-rl --task img2cq --split BenchCAD-Lite --seed 42}), and the released model's documented inference entry-point.
+The complete BenchCAD evaluation runs on a single A100 GPU in under two hours per model for BenchCAD (530 samples).
+Reproduction uses the released \texttt{bench/fetch\_data.py} (one-line Hugging Face fetch), the \texttt{bench.eval} runner (\texttt{--model maksimko123/cadrille-rl --task img2cq --split BenchCAD --seed 42}), and the released model's documented inference entry-point.
 We provide adapter wrappers under \texttt{bench/models/providers/} for cadrille and CADEvolve so that the existing runner accepts these models without modification.
 Per-task IoU, Chamfer distance, invalidity ratio, and per-family breakdowns are exported to \texttt{results/<task>/<model>/}.
 
