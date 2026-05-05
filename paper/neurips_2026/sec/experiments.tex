@@ -32,10 +32,12 @@ The best models achieve total scores around 0.84, far above the best visual-cond
 This large modality gap suggests that current MLLMs are considerably better at extracting geometric and parametric information from explicit CAD programs than from rendered images. 
 However, performance on Spatial / Code Reasoning remains comparatively lower, indicating that code access alone does not fully resolve the need for precise spatial and operational reasoning.
 
-The Vision2Code leaderboard (Table~\ref{tab:codegen_unified}, Appendix~\ref{app:full_results}) shows three patterns:
+The Vision2Code leaderboard (Table~\ref{tab:codegen_unified}) shows three patterns:
 (i) the specialist CAD lineage transferred from DeepCAD scores poorly on BenchCAD (Cadrille-RL total 0.338, CADEvolve v3 0.601);
 (ii) frontier MLLMs cap mid-range (gemini-3.1-pro-thinking total 0.318) and exhibit non-monotonic thinking-mode behaviour;
 (iii) our open Qwen3-VL-2B trained on BenchCAD reaches total 0.628 (iid-sft) and 0.723 (ood-sft$+$RL, best overall) --- showing the dataset is learnable on a small backbone and that RL meaningfully closes the generalisation gap.
+
+\input{tables/tab_codegen_unified}
 
 % Table~\ref{tab:main_eval} reports per-task accuracy and the macro-mean.
 % The strongest model overall is GPT-5.3 (think) at 46.8\% Avg --- well below the IoU $\geq 0.99$ verification threshold and leaving substantial room across every task.
