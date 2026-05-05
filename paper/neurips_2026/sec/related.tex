@@ -1,13 +1,6 @@
 \section{Related Work}
 \label{sec:related}
 
-\paragraph{CAD code-generation models.}
-Recent work establishes a common SFT$+$RL post-training pipeline on procedural sketch-and-extrude corpora.
-DeepCAD~\citep{Wu2021} and Text2CAD~\citep{Khan2024} introduced command-sequence corpora; CAD-Coder~\citep{Guan2025} reformulated the data as CadQuery and added GRPO with a Chamfer reward; the CAD-Recode~\citep{Rukhovich2025}/cadrille~\citep{Kolodiazhnyi2026}/CADEvolve~\citep{Elistratov2026} lineage drove DeepCAD IoU to $\sim$92\% via multi-modal SFT and online RL on 1M--2.7M-script corpora.
-Together they establish CadQuery code as a promising generation target for VLMs.
-Two structural gaps remain: (i) training is dominated by sketch+extrude --- helical sweeps and parametric involute-gear construction are absent from every released corpus; and (ii) evaluation lacks family-level taxonomy and standard-table grounding, conflating visual perception, parametric abstraction, and code synthesis into a single end-to-end IoU score.
-
-\paragraph{CAD evaluation benchmarks.}
 \begin{wraptable}{r}{0.42\linewidth}
   \vspace{-\baselineskip}
   \centering
@@ -16,6 +9,14 @@ Two structural gaps remain: (i) training is dominated by sketch+extrude --- heli
   \input{tables/tab_advantages}
   \vspace{-0.5\baselineskip}
 \end{wraptable}
+
+\paragraph{CAD code-generation models.}
+Recent work establishes a common SFT$+$RL post-training pipeline on procedural sketch-and-extrude corpora.
+DeepCAD~\citep{Wu2021} and Text2CAD~\citep{Khan2024} introduced command-sequence corpora; CAD-Coder~\citep{Guan2025} reformulated the data as CadQuery and added GRPO with a Chamfer reward; the CAD-Recode~\citep{Rukhovich2025}/cadrille~\citep{Kolodiazhnyi2026}/CADEvolve~\citep{Elistratov2026} lineage drove DeepCAD IoU to $\sim$92\% via multi-modal SFT and online RL on 1M--2.7M-script corpora.
+Together they establish CadQuery code as a promising generation target for VLMs.
+Two structural gaps remain: (i) training is dominated by sketch+extrude --- helical sweeps and parametric involute-gear construction are absent from every released corpus; and (ii) evaluation lacks family-level taxonomy and standard-table grounding, conflating visual perception, parametric abstraction, and code synthesis into a single end-to-end IoU score.
+
+\paragraph{CAD evaluation benchmarks.}
 The closest prior CAD code/edit benchmarks --- CADPrompt~\citep{Alrashedy2025}, CAD-Editor~\citep{CADEditor2025}, CADialogue~\citep{CADialogue2025}, and HistCAD~\citep{Dong2026} --- each cover a slice but none combines (i) execution-verified parametric edit pairs, (ii) a non-target preservation metric, and (iii) capability-decomposed sub-tasks. Detailed protocol comparison is in Appendix~\ref{app:related_extended}.
 
 \paragraph{Position of BenchCAD.}
