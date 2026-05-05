@@ -3,11 +3,11 @@
 \section{Extended Discussion}
 \label{app:discussion}
 
-\paragraph{Three blocked escape routes.} BenchCAD measurements close three routes that one might hope would reduce the absolute-score gap without fundamental change. (i) \emph{Scaling within open-source families} (\S\ref{sec:exp_main}) yields under 15\,pt across 78$\times$ parameter expansion --- still far below the IoU $\geq 0.99$ verification threshold. (ii) \emph{Chain-of-thought reasoning} (\S\ref{sec:exp_capability}) does not close the Vision Bottleneck; it amplifies it. (iii) \emph{View-count augmentation} (\S\ref{app:ablation}) recovers $\leq$1.5\,pt from 4 to 8 views, ruling out simple visual-context starvation as the explanation.
+\paragraph{Three blocked escape routes.} BenchCAD measurements close three routes that one might hope would reduce the absolute-score gap without fundamental change. (i) \emph{Scaling within open-source families} (\S\ref{sec:exp_main}) yields under 15\,pt across 78$\times$ parameter expansion --- still far below the IoU $\geq 0.99$ verification threshold. (ii) \emph{Chain-of-thought reasoning} (\S\ref{sec:exp_capability}) does not close the Holistic Spatial and Detailing Deficit; it amplifies it. (iii) \emph{View-count augmentation} (\S\ref{app:ablation}) recovers $\leq$1.5\,pt from 4 to 8 views, ruling out simple visual-context starvation as the explanation.
 Together these results suggest the path forward lies in training procedures explicitly aware of the parametric-symbolic structure of CAD geometry.
 
 \paragraph{Why edit, not generation, is the load-bearing test.} A model that can reconstruct a part from images is impressive, but a model that can \emph{modify} an existing part is industrially useful.
-The Edit Leakage finding (\S\ref{sec:exp_edit}) shows that the strongest reasoning model corrupts unrelated features in 64\% of nominally successful edits, and multi-step edits requiring parameter-dependency reasoning collapse below 15\% across every model.
+The Industrial Common Sense Gap finding (\S\ref{sec:exp_edit}) shows that the strongest reasoning model corrupts unrelated features in 64\% of nominally successful edits, and multi-step edits requiring parameter-dependency reasoning collapse below 15\% across every model.
 This is the single quantitative gap that most clearly separates current models from a useful CAD copilot.
 
 \paragraph{The CAD-specialised lineage transfers poorly.} cadrille-RL and CADEvolve, which match published $\sim$92\% IoU on DeepCAD under our scoring infrastructure, lose 28--32 points on BenchCAD-Lite (\S\ref{sec:transfer}).
@@ -25,7 +25,7 @@ We mitigate this by (i) anchoring 49\% of families to published ISO/DIN/EN/ASME/
 \paragraph{Reference baseline is intentionally weak.} Our open BenchCAD-trained baseline (\S\ref{app:baseline}) is a community lower bound, not an attempt at SOTA.
 We do not apply RL, do not perform multi-task pretraining, and do not exhaust the training corpus.
 
-\paragraph{Edit Leakage measurement.} Our non-target preservation metric uses voxel IoU on the spatial complement of the targeted feature; this captures most leakage modes but can miss small parametric shifts whose voxel footprint is subthreshold.
+\paragraph{Industrial Common Sense Gap measurement.} Our non-target preservation metric uses voxel IoU on the spatial complement of the targeted feature; this captures most leakage modes but can miss small parametric shifts whose voxel footprint is subthreshold.
 \S\ref{app:edit_protocol} discusses the protocol, including a complementary code-AST diff metric we report alongside.
 
 \section{Transfer Baseline Detail: cadrille vs.\ CADEvolve}
@@ -39,7 +39,7 @@ CADEvolve extends the corpus to 2.7M scripts via an LLM-driven evolutionary loop
 
 \paragraph{cadrille vs.\ CADEvolve --- BenchCAD transfer.} We evaluate \texttt{maksimko123/cadrille-rl} and \texttt{kulibinai/cadevolve-rl1} on BenchCAD's \texttt{img2cq} task. cadrille loses 32 points on BenchCAD-Lite (92.2 $\to$ 60.5); CADEvolve loses 28 points (92.6 $\to$ 64.1).
 The 4-point CADEvolve advantage concentrates on families that exercise the additional operations CADEvolve introduced (revolve, loft, sweep, fillet, chamfer, shell, patterns) but not on the standard-anchored hard families (helical gears, twist drills, coil springs) where both models drop equally because both lack the operations these families require.
-CADEvolve's broader operation coverage helps where it overlaps with BenchCAD's operation set, but does not close the Op Vocabulary Gap on the operations BenchCAD includes that CADEvolve still omits.
+CADEvolve's broader operation coverage helps where it overlaps with BenchCAD's operation set, but does not close the CAD Operational Blindspot on the operations BenchCAD includes that CADEvolve still omits.
 
 \paragraph{Why the gap is honest, not artefactual.} We replicate the lineage's render protocol (8-view 238$\times$238 grid; cube normalisation to $[-100, 100]^3$) for the transfer evaluation, eliminating mismatches in viewing geometry as a confound.
 We further verify that both checkpoints reach published IoU values on a held-out 200-sample DeepCAD slice within $\pm$0.5\,pt under our scoring infrastructure.
@@ -70,7 +70,7 @@ Table~\ref{tab:dataset} reports the dataset composition; Table~\ref{tab:capabili
 
 \input{tables/tab_family_cliff}
 
-\section{Op Vocabulary Gap: Full Tables and Training Curves}
+\section{CAD Operational Blindspot: Full Tables and Training Curves}
 \label{app:op_gap_full}
 
 \input{tables/tab_op_gap}
@@ -81,7 +81,7 @@ Table~\ref{tab:dataset} reports the dataset composition; Table~\ref{tab:capabili
   \centering
   \includegraphics[width=0.85\linewidth]{figures/fig_7.png}
   \caption{\textbf{The generalisation gap on BenchCAD remains substantial after 25k SFT steps.} Qwen2-VL-2B trained on three data mixtures under matched 9 GPU-hour budgets, evaluated on the BenchCAD validation set throughout 0--25k steps.
-    \emph{(a) OOD IoU vs.\ training step.} The IID-trained run (green) climbs to IoU $\sim$0.65; the OOD run (red, trained without the target family slice) plateaus near 0.30 by 10k steps; the HQ-only baseline (grey, no BenchCAD-Synth) never exceeds 0.10. \emph{(b) OOD essential-op pass rate.} IID reaches $\sim$0.85, OOD plateaus at $\sim$0.35, HQ-only stays at $\sim$0\% --- the \textbf{Op Vocabulary Gap}.
+    \emph{(a) OOD IoU vs.\ training step.} The IID-trained run (green) climbs to IoU $\sim$0.65; the OOD run (red, trained without the target family slice) plateaus near 0.30 by 10k steps; the HQ-only baseline (grey, no BenchCAD-Synth) never exceeds 0.10. \emph{(b) OOD essential-op pass rate.} IID reaches $\sim$0.85, OOD plateaus at $\sim$0.35, HQ-only stays at $\sim$0\% --- the \textbf{CAD Operational Blindspot}.
     The deficit is not optimisation budget (curves saturate by 15--20k), not backbone capacity (same Qwen2-VL-2B reaches IID IoU 0.65), and not training-corpus operation coverage alone (the OOD run \emph{has} BenchCAD-Synth data and still plateaus 35--50\,pt below IID). It is the fundamental difficulty of training large models to construct industry-grade parametric CAD code on \emph{unseen} family distributions.}
   \label{fig:generalisation_gap}
 \end{figure*}
@@ -174,7 +174,7 @@ Pairs where models systematically disagree on instruction interpretation are rev
 \paragraph{Pass@1 metric.} A model's edit is scored as a pass iff both (a) target success: $\mathrm{IoU}_{\mathrm{rot}}(\text{model edit}, \text{target}) \geq 0.99$; and (b) non-target preservation: on the spatial complement of the bounding region of the targeted feature, $\mathrm{IoU}_{\mathrm{rot}}(\text{model edit}, \text{original}) \geq 0.99$.
 The targeted-feature region is provided as a precomputed bounding-box annotation per pair.
 
-\paragraph{Edit Leakage rate.} Defined as the fraction of model edits that achieve target success but fail non-target preservation: $|\{i: \text{Targ}_i \wedge \neg\text{Pres}_i\}| / |\{i: \text{Targ}_i\}|$.
+\paragraph{Industrial Common Sense Gap rate.} Defined as the fraction of model edits that achieve target success but fail non-target preservation: $|\{i: \text{Targ}_i \wedge \neg\text{Pres}_i\}| / |\{i: \text{Targ}_i\}|$.
 We additionally report a code-AST diff metric (lines changed, identifiers renamed) as a secondary measure of locality.
 
 \section{Inference Strategy and Scoring Ablations}
@@ -184,7 +184,7 @@ We additionally report a code-AST diff metric (lines changed, identifiers rename
 
 Table~\ref{tab:ablation} reports four scoring-protocol and inference-strategy ablations on GPT-5.3 (think) on BenchCAD-Lite.
 Removing scale invariance (allowing absolute mm hints in prompts) inflates \texttt{qa\_img} by 4.6\,pt --- the systematic optimism baked into prior CAD-eval protocols.
-Doubling view count from 4 to 8 closes only $\leq$1.5\,pt of the Vision Bottleneck.
+Doubling view count from 4 to 8 closes only $\leq$1.5\,pt of the Holistic Spatial and Detailing Deficit.
 Best-of-5 sampling and 3-turn refinement with execution feedback offer larger but ultimately bounded gains; neither approach closes more than half of the remaining gap to BenchCAD's verification threshold.
 
 \section{CadQuery Operation Coverage}
@@ -201,7 +201,7 @@ Each ``\cmark'' indicates that the operation is exercised in at least one family
 \paragraph{Hard-tier families and their dependency graphs.} The hard tier concentrates families with dense parameter dependencies: involute gears (module $\times$ tooth count $=$ pitch diameter; addendum and dedendum derived from module), helical springs (free length determined by turn count $\times$ pitch), roller chains (link count constrains pitch diameter), bevel gears (ISO 23509 cone-angle relations), and twist drills (DIN 338 helix angle and point angle dependencies).
 These families collectively account for 89\% of the multi-step edit failures (\S\ref{sec:exp_edit}).
 
-\paragraph{Per-family table.} A full per-family breakdown of \texttt{img2cq} pass rate, mean Chamfer distance, and Edit Leakage rate for the top eight models is included with the released harness as \texttt{results/per\_family\_lite.csv}; we omit the table from the appendix for space and to avoid implying single-cell statistical significance on small per-family sample sizes (typically 5 records per family in BenchCAD-Lite).
+\paragraph{Per-family table.} A full per-family breakdown of \texttt{img2cq} pass rate, mean Chamfer distance, and Industrial Common Sense Gap rate for the top eight models is included with the released harness as \texttt{results/per\_family\_lite.csv}; we omit the table from the appendix for space and to avoid implying single-cell statistical significance on small per-family sample sizes (typically 5 records per family in BenchCAD-Lite).
 
 \section{Reproduction Recipe}
 \label{app:reproduce}

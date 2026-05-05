@@ -1,10 +1,10 @@
-\section{The Op Vocabulary Gap}
+\section{The CAD Operational Blindspot}
 \label{sec:transfer}
 \label{sec:op_gap}
 
 We test whether the gaps we measure reduce to training-data coverage with a matched-compute SFT ablation on a Qwen2-VL-2B backbone (9 GPU-hour budget, 162K samples per variant): (\textbf{A}) sketch+extrude only, mirroring CAD-Recode; (\textbf{B}) 50/50 mixture of A and BenchCAD-Synth; (\textbf{C}) BenchCAD-Synth + GenCAD only.
 Table~\ref{tab:op_gap} shows variant A scores \textbf{0\% recall on every essential operation} (helix, sweep, loft, twist-extrude, parametric involute-gear construction) --- not because the underlying Qwen2-VL lacks the API vocabulary, but because its SFT distribution never demonstrates these operations.
-We name this systematic deficit the \textbf{Op Vocabulary Gap}.
+We name this systematic deficit the \textbf{CAD Operational Blindspot}.
 Variant B recovers 22--35 points of essential-op recall while losing only 5\,pt on DeepCAD IoU; variant C recovers further (35--48\%) at 45\,pt cost on legacy IID.
 A complementary transfer of the released CAD-Recode/cadrille/CADEvolve checkpoints~\citep{Rukhovich2025,Kolodiazhnyi2026,Elistratov2026} loses 28--32\,pt on BenchCAD-Lite despite $>$90\% IoU on their own benchmarks (Table~\ref{tab:transfer}; full cadrille-vs-CADEvolve breakdown in Appendix~\ref{app:transfer_detail}).
 

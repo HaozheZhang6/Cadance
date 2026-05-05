@@ -21,18 +21,18 @@ Three observations stand out.
 \begin{figure*}[t]
   \centering
   \includegraphics[width=0.65\linewidth]{figures/fig_3.png}
-  \caption{\textbf{Per-model performance across the four BenchCAD task categories} (frontier proprietary subset; open-source baselines in Table~\ref{tab:main_eval}). Bar style encodes task; colour encodes model family; within-family variants distinguish thinking vs.\ non-thinking. Two patterns motivate the diagnostics that follow: (i) QA-img is consistently lower than QA-code (\emph{Vision Bottleneck}, \S\ref{sec:exp_capability}), and (ii) CodeEdit trails CodeGen on every model, reflecting \emph{Edit Leakage} (\S\ref{sec:exp_edit}).}
+  \caption{\textbf{Per-model performance across the four BenchCAD task categories} (frontier proprietary subset; open-source baselines in Table~\ref{tab:main_eval}). Bar style encodes task; colour encodes model family; within-family variants distinguish thinking vs.\ non-thinking. Two patterns motivate the diagnostics that follow: (i) QA-img is consistently lower than QA-code (\emph{Holistic Spatial and Detailing Deficit}, \S\ref{sec:exp_capability}), and (ii) CodeEdit trails CodeGen on every model, reflecting \emph{Industrial Common Sense Gap} (\S\ref{sec:exp_edit}).}
   \label{fig:main_results}
 \end{figure*}
 
-\subsection{Vision Bottleneck and Capability Profile}
+\subsection{Holistic Spatial and Detailing Deficit and Capability Profile}
 \label{sec:exp_capability}
 
-The framework of \S\ref{sec:capability} predicts that the gap between \texttt{qa\_img} and \texttt{qa\_code} on matched prompts isolates $C_1$ (visual perception) from $C_2$ (parametric abstraction).
+The framework of \S\ref{sec:capability} predicts that the gap between \texttt{qa\_img} and \texttt{qa\_code} on matched prompts isolates $L_1$ (Holistic Visual Recognition) from $L_2$ (CAD Operations Understanding).
 Table~\ref{tab:main_eval} shows this gap is large and remarkably consistent: 19.6\,pt for GPT-5.3, 19.8\,pt for Claude Opus 4.7, 16.9\,pt for GPT-4o, 12.9\,pt for Qwen2.5-VL-72B.
-We name this the \textbf{Vision Bottleneck}.
+We name this the \textbf{Holistic Spatial and Detailing Deficit}.
 It is robust along three axes: it survives chain-of-thought (reasoning variants show the largest absolute gap), survives view-count augmentation (4$\to$8 views recovers $\leq$1.5\,pt; Appendix~\ref{app:ablation}), and survives parameter scaling within open-source families (the relative gap is preserved as absolute scores collapse).
-These properties suggest the Vision Bottleneck is a property of the \emph{representation interface} between vision encoders and language decoders, not of any single model's capacity.
+These properties suggest the Holistic Spatial and Detailing Deficit is a property of the \emph{representation interface} between vision encoders and language decoders, not of any single model's capacity.
 
 A per-model capability profile across six axes (surface similarity, local feature accuracy, global geometry, CAD understanding, CAD code robustness, synthesis) and four recurring failure modes (\emph{no industry understanding}, \emph{wrong plane}, \emph{wrong ops}, \emph{no detail}) appear in Appendix~\ref{app:capability_profile} (Figure~\ref{fig:capability_profile}); frontier models occupy structurally different capability shapes (GPT-5.3 leads on CAD understanding and code robustness, Claude Opus 4.7 on local feature accuracy and synthesis, Gemini 3.1 Pro on global geometry), confirming that no single model dominates all axes.
 
@@ -49,10 +49,10 @@ The cliff persists across architectures: closed-source post-training quality dom
 \label{sec:exp_edit}
 
 BenchCAD-Edit closes a long-standing gap with 748 curated edit pairs balanced across 106 families and four edit categories (Table~\ref{tab:edit_leakage}, top).
-\textbf{Edit Leakage} is the failure mode where a model applies the requested change correctly but silently corrupts an unrelated parametric feature (enlarging a gear bore while accidentally changing the tooth count, adding a chamfer while shifting a hole's centre).
-Disaggregating Pass@1 reveals that even the strongest reasoning model achieves target success on 84\% of edits but full Pass@1 on only 31\%: \textbf{64\% of nominally successful edits exhibit Edit Leakage} --- a locality failure invisible to any prior CAD eval that scores only output IoU.
+\textbf{Industrial Common Sense Gap} is the failure mode where a model applies the requested change correctly but silently corrupts an unrelated parametric feature (enlarging a gear bore while accidentally changing the tooth count, adding a chamfer while shifting a hole's centre).
+Disaggregating Pass@1 reveals that even the strongest reasoning model achieves target success on 84\% of edits but full Pass@1 on only 31\%: \textbf{64\% of nominally successful edits exhibit Industrial Common Sense Gap} --- a locality failure invisible to any prior CAD eval that scores only output IoU.
 \textbf{Multi-step collapse}: edit categories show a sharp difficulty gradient (dimensional $\sim$70\%, additive $\sim$40\%, subtractive $\sim$30\%); multi-step edits requiring parameter-dependency reasoning (\emph{``increase tooth count to 30 while preserving the pitch diameter''}) collapse to \textbf{under 15\% across every model}, including GPT-5.3 and Claude Opus 4.7.
-\textbf{Vision Bottleneck on edit}: the \texttt{edit\_img}/\texttt{edit\_code} contrast reproduces the Vision Bottleneck pattern (GPT-5.3: 52.4\% text-only vs.\ 31.0\% image-conditioned, a 21.4\,pt gap).
+\textbf{Holistic Spatial Deficit on edit}: the \texttt{edit\_img}/\texttt{edit\_code} contrast reproduces the Holistic Spatial and Detailing Deficit pattern (GPT-5.3: 52.4\% text-only vs.\ 31.0\% image-conditioned, a 21.4\,pt gap).
 \textbf{Diff bloat}: even on dimensional edits where the minimal correct diff is one line, GPT-5.3 averages 7.8 changed lines, frequently re-emitting the entire program rather than patching the target line --- models edit by rewriting, not by patching.
 
 Figure~\ref{fig:edit_task} compactly summarises the edit task: scoring pipeline (top), four representative original/edited pairs and a concrete instance with parametric coupling code (middle), and the per-model leaderboard across five metrics (execution rate, strict pass at IoU $\geq 0.99$, mean IoU, norm, norm$_W$) including open-source code LLMs (gpt-oss, falconmamba) alongside the GPT-5 family (bottom).

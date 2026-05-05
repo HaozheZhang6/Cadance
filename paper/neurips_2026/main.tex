@@ -55,9 +55,8 @@ Across 10+ frontier models, we identify three diagnostic phenomena that currentl
 (2) an \emph{Industrial Common Sense Gap}, where unwritten engineering conventions are completely absent from the synthesized code; 
 and (3) a \emph{CAD Operational Blindspot}, where models overfit to rudimentary sketch-and-extrude data, lacking the domain knowledge to emit essential operations such as helical sweeps and parametric involute-gear construction.
 Today's frontier models recover the outer envelope of an industrial part but not the parametric structure underlying it.
-Supervised fine-tuning on BenchCAD-Synth raises in-distribution essential-op pass rate
-from $\sim$0\% to $\sim$85\% (Figure~\ref{fig:generalisation_gap}),
-yet the gap to unseen-family generalisation remains substantial ---
+Supervised fine-tuning and reinforcement learning on BenchCAD-Synth raises in-distribution scores, and show some generalization capability on unseen-family parts,
+yet the gap to generalisation remains substantial ---
 confirming that industrial CAD code generation is a difficult open challenge.
 Released under CC-BY-4.0 at \url{huggingface.co/BenchCAD}.
 \end{abstract}
