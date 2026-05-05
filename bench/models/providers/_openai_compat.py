@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import io
 import os
+import time
 
 from bench.models.registry import ModelAdapter
 
@@ -82,7 +83,18 @@ class OpenAICompatAdapter(ModelAdapter):
             }
             if self.temperature_value is not None:
                 kwargs["temperature"] = self.temperature_value
-            resp = client.chat.completions.create(**kwargs)
-            return resp.choices[0].message.content or "", None
+            # Retry on 429 with exponential backoff (mostly for free-tier OR models)
+            last_err = None
+            for attempt, delay in enumerate([0, 6, 18, 45]):
+                if delay:
+                    time.sleep(delay)
+                try:
+                    resp = client.chat.completions.create(**kwargs)
+                    return resp.choices[0].message.content or "", None
+                except Exception as e:
+                    last_err = e
+                    if "429" not in str(e):
+                        break
+            return None, str(last_err)[:200]
         except Exception as e:
             return None, str(e)[:200]

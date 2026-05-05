@@ -13,6 +13,7 @@ from . import (  # noqa: F401
     local_hf,
     mistral,
     openai,
+    openrouter,
     xai,
     zhipu,
 )

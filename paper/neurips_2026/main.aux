@@ -1,0 +1,231 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{CadQuerySoftware}
+\citation{Khan2024,Guan2025,Rukhovich2025,Alrashedy2025,Kolodiazhnyi2026}
+\citation{Khan2024}
+\citation{Wu2021}
+\citation{Guan2025}
+\citation{Rukhovich2025,Kolodiazhnyi2026,Elistratov2026}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces \textbf  {BenchCAD overview.} \emph  {Top:} BenchCAD parts originate from industry-standard engineering designs (e.g.\ DIN~338 twist drill cross-section), are realised as parameterised 3D geometry that respects the standard's parameter relations, and are emitted as executable CadQuery code. \emph  {Bottom:} the four BenchCAD evaluation task categories: \texttt  {img2cq} (image to CadQuery), \texttt  {edit\_code} (instruction-guided code editing), \texttt  {qa\_img} (visual numeric QA), and \texttt  {qa\_code} (code-conditioned numeric QA).}}{2}{figure.1}\protected@file@percent }
+\newlabel{fig:teaser}{{1}{2}{\textbf {BenchCAD overview.} \emph {Top:} BenchCAD parts originate from industry-standard engineering designs (e.g.\ DIN~338 twist drill cross-section), are realised as parameterised 3D geometry that respects the standard's parameter relations, and are emitted as executable CadQuery code. \emph {Bottom:} the four BenchCAD evaluation task categories: \texttt {img2cq} (image to CadQuery), \texttt {edit\_code} (instruction-guided code editing), \texttt {qa\_img} (visual numeric QA), and \texttt {qa\_code} (code-conditioned numeric QA)}{figure.1}{}}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{2}{section.1}\protected@file@percent }
+\newlabel{sec:intro}{{1}{2}{Introduction}{section.1}{}}
+\citation{Willis2021fusion}
+\citation{Alrashedy2025}
+\def\@LN@column{1}
+\citation{GenCAD2025}
+\citation{Croissant2024}
+\citation{Wu2021}
+\citation{Khan2024}
+\citation{Guan2025}
+\citation{Rukhovich2025}
+\citation{Kolodiazhnyi2026}
+\citation{Elistratov2026}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {paragraph}{Our contributions are threefold.}{4}{section*.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{4}{section.2}\protected@file@percent }
+\newlabel{sec:related}{{2}{4}{Related Work}{section.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{Command-sequence CAD generation.}{4}{section*.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The CadQuery-VLM lineage.}{4}{section*.3}\protected@file@percent }
+\citation{Alrashedy2025}
+\citation{CADEditor2025}
+\citation{CADialogue2025}
+\citation{Dong2026}
+\citation{MMSIBench2026}
+\citation{Chou2026}
+\citation{Hivemind2025}
+\citation{Wu2021}
+\citation{Willis2021fusion}
+\citation{Khan2024}
+\citation{Alrashedy2025}
+\citation{Guan2025}
+\citation{Rukhovich2025}
+\citation{Kolodiazhnyi2026}
+\citation{Elistratov2026}
+\citation{rot_iou}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {paragraph}{CAD code-generation and editing benchmarks.}{5}{section*.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Position of BenchCAD.}{5}{section*.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}The BenchCAD Dataset}{5}{section.3}\protected@file@percent }
+\newlabel{sec:dataset}{{3}{5}{The BenchCAD Dataset}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Design Principles}{5}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{P1 --- Execution as ground truth.}{5}{section*.6}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces \textbf  {BenchCAD versus prior CAD code-generation work.} BenchCAD is designed as a \emph  {unified, capability-decomposed evaluation framework} for large-model CAD reasoning, intended to remain useful as the field evolves from current frontier MLLMs (GPT-5.3, Claude Opus 4.7, $\ldots  $) toward future CAD agents and generative systems. It is distinct in purpose from the prior CadQuery-VLM lineage (CAD-Recode, cadrille, CADEvolve), which primarily releases training corpora alongside small fine-tuned models (Qwen 1.5B--2B) that saturate near $\sim $92\% IoU on legacy sketch+extrude test splits. \textbf  {Columns:} \textbf  {Type}: \emph  {corpus+model} = training corpus released with a fine-tuned model, \emph  {benchmark} = held-out evaluation suite, \emph  {dataset} = mixed-purpose CAD design dataset; \textbf  {\#Indus.\ fam.} = named industrial part families with explicit functional identity (gear, drill, spring, $\ldots  $) versus untyped CAD parts pooled without semantic structure; \textbf  {\#Std codes} = distinct ISO/DIN/EN/ASME/IEC specification codes from which parameter ranges are programmatically sampled; \textbf  {\#Distinct CQ ops} = distinct CadQuery API operations exercised in the released dataset (counts derived from each work's published description; ours from a static analysis of the released family code, see Appendix~\ref {app:ops}); \textbf  {Adv ops} = whether all four advanced operation families (helix, loft/sweep, twist-extrude, parametric involute-gear construction) are exercised; \textbf  {\#Eval} = distinct models reported in the original work's evaluation. BenchCAD additionally introduces a 6-orientation rotation-invariant $64^3$ IoU $\geq 0.99$ verification protocol and ratio-only scale-invariant prompts (\S  \ref {sec:dataset}, \S  \ref {sec:tasks}). {\fontfamily  {pzd}\fontencoding  {U}\fontseries  {m}\fontshape  {n}\selectfont  \char 51}$\,$ = supported, part.\, = partial, -- = absent.}}{6}{table.1}\protected@file@percent }
+\newlabel{tab:cmp_prior}{{1}{6}{\textbf {BenchCAD versus prior CAD code-generation work.} BenchCAD is designed as a \emph {unified, capability-decomposed evaluation framework} for large-model CAD reasoning, intended to remain useful as the field evolves from current frontier MLLMs (GPT-5.3, Claude Opus 4.7, $\ldots $) toward future CAD agents and generative systems. It is distinct in purpose from the prior CadQuery-VLM lineage (CAD-Recode, cadrille, CADEvolve), which primarily releases training corpora alongside small fine-tuned models (Qwen 1.5B--2B) that saturate near $\sim $92\% IoU on legacy sketch+extrude test splits. \textbf {Columns:} \textbf {Type}: \emph {corpus+model} = training corpus released with a fine-tuned model, \emph {benchmark} = held-out evaluation suite, \emph {dataset} = mixed-purpose CAD design dataset; \textbf {\#Indus.\ fam.} = named industrial part families with explicit functional identity (gear, drill, spring, $\ldots $) versus untyped CAD parts pooled without semantic structure; \textbf {\#Std codes} = distinct ISO/DIN/EN/ASME/IEC specification codes from which parameter ranges are programmatically sampled; \textbf {\#Distinct CQ ops} = distinct CadQuery API operations exercised in the released dataset (counts derived from each work's published description; ours from a static analysis of the released family code, see Appendix~\ref {app:ops}); \textbf {Adv ops} = whether all four advanced operation families (helix, loft/sweep, twist-extrude, parametric involute-gear construction) are exercised; \textbf {\#Eval} = distinct models reported in the original work's evaluation. BenchCAD additionally introduces a 6-orientation rotation-invariant $64^3$ IoU $\geq 0.99$ verification protocol and ratio-only scale-invariant prompts (\S \ref {sec:dataset}, \S \ref {sec:tasks}). \cmark $\,$ = supported, part.\, = partial, -- = absent}{table.1}{}}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {paragraph}{P2 --- Standard-table anchoring.}{6}{section*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{P3 --- Family-level taxonomy.}{6}{section*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{P4 --- Operation breadth.}{6}{section*.9}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces \textbf  {Standard-anchored families.} 49\% of BenchCAD families (52/106) bind their parameters to ISO/DIN/EN/ASME/IEC specification tables, sampling at values drawn from real engineering ranges rather than arbitrary geometry. The bottom row counts the 54 custom families covering bespoke industrial parts (twisted brackets, lobed knobs, etc.) governed by analogous proportional rules without formal standards.}}{7}{table.2}\protected@file@percent }
+\newlabel{tab:standards}{{2}{7}{\textbf {Standard-anchored families.} 49\% of BenchCAD families (52/106) bind their parameters to ISO/DIN/EN/ASME/IEC specification tables, sampling at values drawn from real engineering ranges rather than arbitrary geometry. The bottom row counts the 54 custom families covering bespoke industrial parts (twisted brackets, lobed knobs, etc.) governed by analogous proportional rules without formal standards}{table.2}{}}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Family Registry and Standard Compliance}{7}{subsection.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}The CadGen Pipeline}{7}{subsection.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Stage 1 --- Parameter sampling.}{7}{section*.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Stage 2 --- Program emission.}{7}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Stage 3 --- Execution and verification.}{7}{section*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Stage 4 --- Render and package.}{7}{section*.13}\protected@file@percent }
+\citation{GenCAD2025}
+\citation{Croissant2024}
+\citation{rot_iou}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces \textbf  {BenchCAD dataset composition.} The verified evaluation core consists of 17{,}900 procedurally generated parts spanning 106 families, with each record carrying parametric source code, executable STEP, four canonical-view renders, and a parameter JSON. The QA bank contains 2{,}400 paired questions evaluated under both visual and code conditioning. We additionally release an Edit subset, a stratified Lite split, two OOD subsets, and a 162K-pair training corpus.}}{8}{table.3}\protected@file@percent }
+\newlabel{tab:dataset}{{3}{8}{\textbf {BenchCAD dataset composition.} The verified evaluation core consists of 17{,}900 procedurally generated parts spanning 106 families, with each record carrying parametric source code, executable STEP, four canonical-view renders, and a parameter JSON. The QA bank contains 2{,}400 paired questions evaluated under both visual and code conditioning. We additionally release an Edit subset, a stratified Lite split, two OOD subsets, and a 162K-pair training corpus}{table.3}{}}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {paragraph}{Yield.}{8}{section*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Splits, Documentation, and Hosting}{8}{subsection.3.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Splits.}{8}{section*.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Documentation, hosting, licence.}{8}{section*.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Benchmark Tasks and Capability Decomposition}{8}{section.4}\protected@file@percent }
+\newlabel{sec:tasks}{{4}{8}{Benchmark Tasks and Capability Decomposition}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}The Image$\to $Code Capability Chain}{8}{subsection.4.1}\protected@file@percent }
+\newlabel{sec:capability}{{4.1}{8}{The Image$\to $Code Capability Chain}{subsection.4.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces \textbf  {BenchCAD dataset composition.} \emph  {Left:} representative renders sampled across the 106 families, spanning fasteners (bolts, eye bolts, wing nuts), transmission components (spur gears, propellers, sprockets), structural elements (brackets, slotted plates, I-/U-channels), fluid fittings (pipe elbows, flanges), panels, hardware, and enclosures. \emph  {Right:} the 106 families organised by seven functional categories (Fasteners / Hardware / Transmission / Structural / Fluid / Panels / Enclosures); 52 of the 106 families (49\%) are anchored to a named ISO / DIN / EN / ASME / IEC standard.}}{9}{figure.2}\protected@file@percent }
+\newlabel{fig:dataset_overview}{{2}{9}{\textbf {BenchCAD dataset composition.} \emph {Left:} representative renders sampled across the 106 families, spanning fasteners (bolts, eye bolts, wing nuts), transmission components (spur gears, propellers, sprockets), structural elements (brackets, slotted plates, I-/U-channels), fluid fittings (pipe elbows, flanges), panels, hardware, and enclosures. \emph {Right:} the 106 families organised by seven functional categories (Fasteners / Hardware / Transmission / Structural / Fluid / Panels / Enclosures); 52 of the 106 families (49\%) are anchored to a named ISO / DIN / EN / ASME / IEC standard}{figure.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces \textbf  {Capability decomposition.} BenchCAD's five tasks isolate the three sub-capabilities along the image$\to $code causal chain: $C_1$ visual + 3D reconstruction, $C_2$ geometric$\to $parametric abstraction, and $C_3$ parametric$\to $code synthesis. Score differences across paired tasks (e.g.\ \texttt  {qa\_img}$-$\texttt  {qa\_code}) directly diagnose which capability is the bottleneck. ``part.'' indicates partial coverage (the original code constrains, but does not eliminate, the corresponding sub-capability).}}{9}{table.4}\protected@file@percent }
+\newlabel{tab:capability}{{4}{9}{\textbf {Capability decomposition.} BenchCAD's five tasks isolate the three sub-capabilities along the image$\to $code causal chain: $C_1$ visual + 3D reconstruction, $C_2$ geometric$\to $parametric abstraction, and $C_3$ parametric$\to $code synthesis. Score differences across paired tasks (e.g.\ \texttt {qa\_img}$-$\texttt {qa\_code}) directly diagnose which capability is the bottleneck. ``part.'' indicates partial coverage (the original code constrains, but does not eliminate, the corresponding sub-capability)}{table.4}{}}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {paragraph}{Diagnostic differentials.}{9}{section*.17}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Task Definitions and Scoring}{9}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Task 1 --- \texttt  {img2cq} (image-to-code).}{9}{section*.18}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces \textbf  {BenchCAD-QA capability hierarchy and representative items.} \emph  {Left:} the 4-level capability ladder underlying the BenchCAD-QA bank, arranged from low-level visual recognition at the base to high-level synthesis at the apex --- \emph  {(L1) Feature Recognition} (does the part belong to a known family?), \emph  {(L2) Code \& Operation} (which CadQuery operation produces a given feature?), \emph  {(L3) Inference \& Transformation} (numerical reasoning over parameters and operations), and \emph  {(L4) Synthesis \& Creativity} (geometric changes and reconstruction of unseen entities). \emph  {Right:} representative \texttt  {qa\_img} (visual) and \texttt  {qa\_code} (code-conditioned) items at each level. The hierarchy is complementary to the three-rung pyramid of \S  \ref {sec:capability}: the pyramid decomposes the image$\to $code \emph  {pipeline} into stages, while this hierarchy stratifies QA \emph  {difficulty} for the same set of parts.}}{10}{figure.3}\protected@file@percent }
+\newlabel{fig:capability_hierarchy}{{3}{10}{\textbf {BenchCAD-QA capability hierarchy and representative items.} \emph {Left:} the 4-level capability ladder underlying the BenchCAD-QA bank, arranged from low-level visual recognition at the base to high-level synthesis at the apex --- \emph {(L1) Feature Recognition} (does the part belong to a known family?), \emph {(L2) Code \& Operation} (which CadQuery operation produces a given feature?), \emph {(L3) Inference \& Transformation} (numerical reasoning over parameters and operations), and \emph {(L4) Synthesis \& Creativity} (geometric changes and reconstruction of unseen entities). \emph {Right:} representative \texttt {qa\_img} (visual) and \texttt {qa\_code} (code-conditioned) items at each level. The hierarchy is complementary to the three-rung pyramid of \S \ref {sec:capability}: the pyramid decomposes the image$\to $code \emph {pipeline} into stages, while this hierarchy stratifies QA \emph {difficulty} for the same set of parts}{figure.3}{}}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {paragraph}{Task 2 --- \texttt  {qa\_img} (visual numeric QA).}{10}{section*.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Task 3 --- \texttt  {qa\_code} (code-only numeric QA).}{10}{section*.20}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Task 4 --- \texttt  {edit\_img} (image-conditioned edit).}{10}{section*.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Task 5 --- \texttt  {edit\_code} (text-only edit).}{10}{section*.22}\protected@file@percent }
+\citation{Alrashedy2025}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {paragraph}{Aggregate.}{11}{section*.23}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Invariance and Honesty in Scoring}{11}{subsection.4.3}\protected@file@percent }
+\newlabel{sec:scoring}{{4.3}{11}{Invariance and Honesty in Scoring}{subsection.4.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Rotation invariance.}{11}{section*.24}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Scale invariance.}{11}{section*.25}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Experiments}{11}{section.5}\protected@file@percent }
+\newlabel{sec:experiments}{{5}{11}{Experiments}{section.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Setup}{11}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Main Results}{11}{subsection.5.2}\protected@file@percent }
+\newlabel{sec:exp_main}{{5.2}{11}{Main Results}{subsection.5.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{Absolute scores remain low.}{11}{section*.26}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces \textbf  {Main evaluation on BenchCAD-QA, by capability axis.} Per-model accuracy across the four BenchCAD-QA capability axes: \emph  {Holistic Visual Recognition}, \emph  {CAD Operation Understanding}, \emph  {Industrial Parametric Abstraction}, and \emph  {Spatial / Code Reasoning} (\S  \ref {sec:capability}). \textbf  {Total score} is the weighted mean across axes. Rows with empty entries indicate models not yet evaluated.}}{12}{table.5}\protected@file@percent }
+\newlabel{tab:main_eval}{{5}{12}{\textbf {Main evaluation on BenchCAD-QA, by capability axis.} Per-model accuracy across the four BenchCAD-QA capability axes: \emph {Holistic Visual Recognition}, \emph {CAD Operation Understanding}, \emph {Industrial Parametric Abstraction}, and \emph {Spatial / Code Reasoning} (\S \ref {sec:capability}). \textbf {Total score} is the weighted mean across axes. Rows with empty entries indicate models not yet evaluated}{table.5}{}}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {paragraph}{Scaling is not enough.}{12}{section*.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The geometry-program decoupling.}{12}{section*.28}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}The Vision Bottleneck and Capability Profile}{12}{subsection.5.3}\protected@file@percent }
+\newlabel{sec:exp_capability}{{5.3}{12}{The Vision Bottleneck and Capability Profile}{subsection.5.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Per-model capability profile.}{12}{section*.29}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces \textbf  {Per-model performance across the four BenchCAD task categories} (frontier proprietary subset; open-source baselines reported in Table~\ref {tab:main_eval}). Bar style encodes the task (CodeGen IoU, CodeEdit, QA-img, QA-code); colour encodes model family (GPT in green, Claude in orange, Gemini in purple); within-family variants distinguish thinking vs.\ non-thinking modes. Two patterns stand out and motivate the diagnostics that follow: (i) the QA-img bar is consistently lower than QA-code for every model (the \emph  {Vision Bottleneck}, \S  \ref {sec:exp_capability}), and (ii) the CodeEdit bar trails CodeGen on every model despite editing being intuitively easier than greenfield generation, reflecting the \emph  {Edit Leakage} effect (\S  \ref {sec:exp_edit}).}}{13}{figure.4}\protected@file@percent }
+\newlabel{fig:main_results}{{4}{13}{\textbf {Per-model performance across the four BenchCAD task categories} (frontier proprietary subset; open-source baselines reported in Table~\ref {tab:main_eval}). Bar style encodes the task (CodeGen IoU, CodeEdit, QA-img, QA-code); colour encodes model family (GPT in green, Claude in orange, Gemini in purple); within-family variants distinguish thinking vs.\ non-thinking modes. Two patterns stand out and motivate the diagnostics that follow: (i) the QA-img bar is consistently lower than QA-code for every model (the \emph {Vision Bottleneck}, \S \ref {sec:exp_capability}), and (ii) the CodeEdit bar trails CodeGen on every model despite editing being intuitively easier than greenfield generation, reflecting the \emph {Edit Leakage} effect (\S \ref {sec:exp_edit})}{figure.4}{}}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {paragraph}{Qualitative failure modes.}{13}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}The Family Cliff}{13}{subsection.5.4}\protected@file@percent }
+\newlabel{sec:exp_cliff}{{5.4}{13}{The Family Cliff}{subsection.5.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces \textbf  {Capability profile and qualitative failure modes} (frontier proprietary subset). \emph  {Left:} per-model capability radar across six axes --- surface similarity, local feature accuracy, global geometry, CAD understanding, CAD code robustness, and a sixth synthesis axis --- showing that no model dominates on all dimensions and that strengthen-on-one often coincides with weaken-on-another. \emph  {Right:} four representative failure modes elicited by BenchCAD's hard tier on the strongest reasoning models, illustrating concrete capability deficits that the aggregate scores in Table~\ref {tab:main_eval} compress: \emph  {(i) no industry understanding} --- a coil spring that lacks the helical sweep entirely; \emph  {(ii) wrong plane} --- a part with the correct features placed on the wrong base workplane; \emph  {(iii) wrong ops} --- a bracket whose target was a chamfer + boolean cut but the model emitted only a single extrude; \emph  {(iv) no detail} --- a bolt that omits thread, fillet, and head detail expected by the standard.}}{14}{figure.5}\protected@file@percent }
+\newlabel{fig:capability_profile}{{5}{14}{\textbf {Capability profile and qualitative failure modes} (frontier proprietary subset). \emph {Left:} per-model capability radar across six axes --- surface similarity, local feature accuracy, global geometry, CAD understanding, CAD code robustness, and a sixth synthesis axis --- showing that no model dominates on all dimensions and that strengthen-on-one often coincides with weaken-on-another. \emph {Right:} four representative failure modes elicited by BenchCAD's hard tier on the strongest reasoning models, illustrating concrete capability deficits that the aggregate scores in Table~\ref {tab:main_eval} compress: \emph {(i) no industry understanding} --- a coil spring that lacks the helical sweep entirely; \emph {(ii) wrong plane} --- a part with the correct features placed on the wrong base workplane; \emph {(iii) wrong ops} --- a bracket whose target was a chamfer + boolean cut but the model emitted only a single extrude; \emph {(iv) no detail} --- a bolt that omits thread, fillet, and head detail expected by the standard}{figure.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces \textbf  {The Family Cliff.} \texttt  {img2cq} pass rate (\%) split by family difficulty tier. Even the strongest reasoning model collapses on the hard tier, exhibiting a $>$45-point gap from easy. The 26 hard-tier families exercise advanced operations (helical sweeps, twist-extrusion, lofted Booleans) and parametric constraints (gear module--tooth--pitch consistency, spring free-length--turn-count coupling) that no evaluated model reliably preserves. \textcolor {red}{Numbers are placeholders.}}}{14}{table.6}\protected@file@percent }
+\newlabel{tab:family_cliff}{{6}{14}{\textbf {The Family Cliff.} \texttt {img2cq} pass rate (\%) split by family difficulty tier. Even the strongest reasoning model collapses on the hard tier, exhibiting a $>$45-point gap from easy. The 26 hard-tier families exercise advanced operations (helical sweeps, twist-extrusion, lofted Booleans) and parametric constraints (gear module--tooth--pitch consistency, spring free-length--turn-count coupling) that no evaluated model reliably preserves. \textcolor {red}{Numbers are placeholders.}}{table.6}{}}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}The Edit Task: Verified Parametric Editing}{14}{subsection.5.5}\protected@file@percent }
+\newlabel{sec:exp_edit}{{5.5}{14}{The Edit Task: Verified Parametric Editing}{subsection.5.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces \textbf  {Edit task analysis.} \emph  {Top:} Pass@1 (\%) per edit category on BenchCAD-Edit (748 pairs). Multi-step edits requiring parameter-dependency reasoning collapse below 15\% across every model. \emph  {Bottom:} Disaggregating Pass@1 reveals \textbf  {Edit Leakage}: target-feature success is high, but program-wide preservation fails in the majority of nominally successful edits. \emph  {Diff bloat} = (lines model changed) / (minimal correct diff); even on dimensional edits where minimal diff is one line, top models average 7--10 changed lines. \textcolor {red}{Placeholders.}}}{15}{table.7}\protected@file@percent }
+\newlabel{tab:edit_leakage}{{7}{15}{\textbf {Edit task analysis.} \emph {Top:} Pass@1 (\%) per edit category on BenchCAD-Edit (748 pairs). Multi-step edits requiring parameter-dependency reasoning collapse below 15\% across every model. \emph {Bottom:} Disaggregating Pass@1 reveals \textbf {Edit Leakage}: target-feature success is high, but program-wide preservation fails in the majority of nominally successful edits. \emph {Diff bloat} = (lines model changed) / (minimal correct diff); even on dimensional edits where minimal diff is one line, top models average 7--10 changed lines. \textcolor {red}{Placeholders.}}{table.7}{}}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {paragraph}{Edit Leakage.}{15}{section*.31}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Multi-step collapse.}{15}{section*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Vision Bottleneck on edit.}{15}{section*.33}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Diff bloat.}{15}{section*.34}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Scoring methodology and edit examples.}{15}{section*.35}\protected@file@percent }
+\citation{Rukhovich2025,Kolodiazhnyi2026,Elistratov2026}
+\citation{Kolodiazhnyi2026}
+\citation{Elistratov2026}
+\citation{Qwen2VL}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces \textbf  {The edit task: scoring methodology and qualitative examples.} \emph  {Left:} the BenchCAD-Edit scoring pipeline --- given an original program, a natural-language instruction, and a model edit, we score \emph  {target success} (does the requested feature change?) and \emph  {non-target preservation} (do unrelated features remain unchanged?) independently, with full Pass@1 requiring both. \emph  {Right:} three representative edit pairs (dimensional, additive, subtractive, multi-step), each showing the original part, the instruction, the model edit, and the target --- with cases of clean success, target-success-only Edit Leakage (the requested change applied but unrelated features corrupted), and multi-step collapse where the parametric dependency is missed. \emph  {[Figure to be composed; placeholder.]}}}{16}{figure.6}\protected@file@percent }
+\newlabel{fig:edit_task}{{6}{16}{\textbf {The edit task: scoring methodology and qualitative examples.} \emph {Left:} the BenchCAD-Edit scoring pipeline --- given an original program, a natural-language instruction, and a model edit, we score \emph {target success} (does the requested feature change?) and \emph {non-target preservation} (do unrelated features remain unchanged?) independently, with full Pass@1 requiring both. \emph {Right:} three representative edit pairs (dimensional, additive, subtractive, multi-step), each showing the original part, the instruction, the model edit, and the target --- with cases of clean success, target-success-only Edit Leakage (the requested change applied but unrelated features corrupted), and multi-step collapse where the parametric dependency is missed. \emph {[Figure to be composed; placeholder.]}}{figure.6}{}}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Transfer Baselines and an Open BenchCAD-Trained Reference}{16}{section.6}\protected@file@percent }
+\newlabel{sec:transfer}{{6}{16}{Transfer Baselines and an Open BenchCAD-Trained Reference}{section.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Transfer of the CAD-Recode/cadrille/CADEvolve Lineage}{16}{subsection.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Headline transfer drop.}{16}{section*.36}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Why the gap is honest, not artefactual.}{16}{section*.37}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}An Open BenchCAD-Trained Baseline}{16}{subsection.6.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces \textbf  {Transfer of CAD-specialised SOTA models to BenchCAD-Lite.} Both cadrille-RL and CADEvolve match published numbers on the DeepCAD test split within $\pm $0.5\,pt under our scoring infrastructure but lose 28--32\,pt on BenchCAD's standard-anchored, operation-rich evaluation. Our open BenchCAD-trained baseline (Qwen2-VL-2B SFT-only) reproduces the lineage's training stack without RL and bounds dataset difficulty with a publicly auditable lower curve.}}{17}{table.8}\protected@file@percent }
+\newlabel{tab:transfer}{{8}{17}{\textbf {Transfer of CAD-specialised SOTA models to BenchCAD-Lite.} Both cadrille-RL and CADEvolve match published numbers on the DeepCAD test split within $\pm $0.5\,pt under our scoring infrastructure but lose 28--32\,pt on BenchCAD's standard-anchored, operation-rich evaluation. Our open BenchCAD-trained baseline (Qwen2-VL-2B SFT-only) reproduces the lineage's training stack without RL and bounds dataset difficulty with a publicly auditable lower curve}{table.8}{}}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {paragraph}{Implication for the field.}{17}{section*.38}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}The Op Vocabulary Gap}{17}{subsection.6.3}\protected@file@percent }
+\newlabel{sec:op_gap}{{6.3}{17}{The Op Vocabulary Gap}{subsection.6.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Setup.}{17}{section*.39}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Op Vocabulary Gap.}{17}{section*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Closing the gap.}{17}{section*.41}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces \textbf  {Op Vocabulary Gap.} Per-operation recall on BenchCAD-Lite hard-tier (\%) for three matched-compute SFT conditions on Qwen2-VL-2B (162K samples each, 9 GPU-hours). \textbf  {A:} CAD-Recode-style training data (sketch + extrude only). \textbf  {B:} 81K of A swapped for 81K BenchCAD-Synth, total still 162K. \textbf  {C:} 162K BenchCAD-Synth + GenCAD only. The bottom rows report aggregate metrics. ``recall'' is the fraction of records whose ground-truth program contains operation $o$ for which the model's emitted code also calls $o$ at least once. \textcolor {red}{Numbers are placeholders.}}}{18}{table.9}\protected@file@percent }
+\newlabel{tab:op_gap}{{9}{18}{\textbf {Op Vocabulary Gap.} Per-operation recall on BenchCAD-Lite hard-tier (\%) for three matched-compute SFT conditions on Qwen2-VL-2B (162K samples each, 9 GPU-hours). \textbf {A:} CAD-Recode-style training data (sketch + extrude only). \textbf {B:} 81K of A swapped for 81K BenchCAD-Synth, total still 162K. \textbf {C:} 162K BenchCAD-Synth + GenCAD only. The bottom rows report aggregate metrics. ``recall'' is the fraction of records whose ground-truth program contains operation $o$ for which the model's emitted code also calls $o$ at least once. \textcolor {red}{Numbers are placeholders.}}{table.9}{}}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {paragraph}{Implication.}{18}{section*.42}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Discussion}{18}{section.7}\protected@file@percent }
+\newlabel{sec:discussion}{{7}{18}{Discussion}{section.7}{}}
+\@writefile{toc}{\contentsline {paragraph}{Three blocked escape routes.}{18}{section*.43}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Why edit, not generation, is the load-bearing test.}{18}{section*.44}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The CAD-specialised lineage transfers poorly.}{18}{section*.45}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}Limitations}{18}{section.8}\protected@file@percent }
+\newlabel{sec:limitations}{{8}{18}{Limitations}{section.8}{}}
+\@writefile{toc}{\contentsline {paragraph}{Procedural data is not industrial CAD.}{18}{section*.46}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces \textbf  {The generalisation gap on BenchCAD remains substantial, even after 25k SFT steps.} Qwen2-VL-2B trained on three data mixtures under matched 9 GPU-hour budgets and evaluated throughout the 0--25k step horizon on the BenchCAD validation set. \emph  {(a) BenchCAD val OOD --- IoU vs.\ training step.} The IID-trained run (green) climbs steadily to IoU $\sim $0.65 on its own held-out distribution by 25k steps. The OOD run (red) --- trained on a mixture excluding the targeted family slice --- plateaus near IoU $\sim $0.30 by 10k steps and shows little further improvement, leaving a $\sim $35-point gap to the IID ceiling. The HQ-only baseline (grey), trained without any BenchCAD-Synth data, fails to rise above IoU $\sim $0.10 across the full horizon. \emph  {(b) BenchCAD val OOD --- Essential-op pass rate.} The IID run reaches $\sim $0.85 essential-op pass rate, demonstrating that the underlying backbone is fully capable of producing the required operations once it has seen them in training. The OOD run improves to $\sim $0.35 but plateaus, leaving a $\sim $50-point gap. The HQ-only baseline stays at $\sim $0\% throughout --- the \textbf  {Op Vocabulary Gap}: a model whose SFT corpus omits helix, sweep, loft, twist-extrude, and parametric involute-gear operations never emits them, regardless of training compute. Together these curves position the BenchCAD generalisation gap as a benchmark-grade open problem: the deficit is not optimisation budget (curves saturate by 15--20k steps), not backbone capacity (same Qwen2-VL-2B reaches IID IoU 0.65 and essential-op pass 0.85), and not training-corpus operation coverage alone (the OOD run \emph  {has} BenchCAD-Synth data and still plateaus 35--50 points below IID) --- it is the fundamental difficulty of training large models to construct industry-grade parametric CAD code on \emph  {unseen} family distributions, which BenchCAD is designed to measure.}}{19}{figure.7}\protected@file@percent }
+\newlabel{fig:generalisation_gap}{{7}{19}{\textbf {The generalisation gap on BenchCAD remains substantial, even after 25k SFT steps.} Qwen2-VL-2B trained on three data mixtures under matched 9 GPU-hour budgets and evaluated throughout the 0--25k step horizon on the BenchCAD validation set. \emph {(a) BenchCAD val OOD --- IoU vs.\ training step.} The IID-trained run (green) climbs steadily to IoU $\sim $0.65 on its own held-out distribution by 25k steps. The OOD run (red) --- trained on a mixture excluding the targeted family slice --- plateaus near IoU $\sim $0.30 by 10k steps and shows little further improvement, leaving a $\sim $35-point gap to the IID ceiling. The HQ-only baseline (grey), trained without any BenchCAD-Synth data, fails to rise above IoU $\sim $0.10 across the full horizon. \emph {(b) BenchCAD val OOD --- Essential-op pass rate.} The IID run reaches $\sim $0.85 essential-op pass rate, demonstrating that the underlying backbone is fully capable of producing the required operations once it has seen them in training. The OOD run improves to $\sim $0.35 but plateaus, leaving a $\sim $50-point gap. The HQ-only baseline stays at $\sim $0\% throughout --- the \textbf {Op Vocabulary Gap}: a model whose SFT corpus omits helix, sweep, loft, twist-extrude, and parametric involute-gear operations never emits them, regardless of training compute. Together these curves position the BenchCAD generalisation gap as a benchmark-grade open problem: the deficit is not optimisation budget (curves saturate by 15--20k steps), not backbone capacity (same Qwen2-VL-2B reaches IID IoU 0.65 and essential-op pass 0.85), and not training-corpus operation coverage alone (the OOD run \emph {has} BenchCAD-Synth data and still plateaus 35--50 points below IID) --- it is the fundamental difficulty of training large models to construct industry-grade parametric CAD code on \emph {unseen} family distributions, which BenchCAD is designed to measure}{figure.7}{}}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {paragraph}{Standard-anchored does not mean standard-compliant.}{19}{section*.47}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Reference baseline is intentionally weak.}{19}{section*.48}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Edit Leakage measurement.}{19}{section*.49}\protected@file@percent }
+\bibstyle{plainnat}
+\bibdata{refs}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {section}{\numberline {9}Conclusion}{20}{section.9}\protected@file@percent }
+\newlabel{sec:conclusion}{{9}{20}{Conclusion}{section.9}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {A}Datasheet for BenchCAD}{20}{appendix.A}\protected@file@percent }
+\newlabel{app:datasheet}{{A}{20}{Datasheet for BenchCAD}{appendix.A}{}}
+\@writefile{toc}{\contentsline {paragraph}{Motivation.}{20}{section*.50}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Composition.}{20}{section*.51}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Collection process.}{20}{section*.52}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Preprocessing/cleaning/labeling.}{20}{section*.53}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Uses.}{20}{section*.54}\protected@file@percent }
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {paragraph}{Distribution.}{21}{section*.55}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Maintenance.}{21}{section*.56}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {B}Question Bank Construction}{21}{appendix.B}\protected@file@percent }
+\newlabel{app:qbank}{{B}{21}{Question Bank Construction}{appendix.B}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {C}Rotation-Invariant IoU}{21}{appendix.C}\protected@file@percent }
+\newlabel{app:iou}{{C}{21}{Rotation-Invariant IoU}{appendix.C}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {D}Edit Protocol}{21}{appendix.D}\protected@file@percent }
+\newlabel{app:edit_protocol}{{D}{21}{Edit Protocol}{appendix.D}{}}
+\@writefile{toc}{\contentsline {paragraph}{Pair construction.}{21}{section*.57}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Pass@1 metric.}{21}{section*.58}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Edit Leakage rate.}{21}{section*.59}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces \textbf  {Scoring-protocol and inference-strategy ablations.} Reported on GPT-5.3 (think) on BenchCAD-Lite. Removing scale invariance (allowing absolute mm hints in prompts) inflates \texttt  {qa\_img} by 4.6\,pt --- the systematic optimism baked into prior CAD-eval protocols. Best-of-5 sampling and multi-turn refinement with execution feedback offer diminishing-returns improvements. Doubling view count from 4 to 8 closes only $\leq $1.5\,pt of the Vision Bottleneck, far below what a perception bottleneck would predict.}}{22}{table.10}\protected@file@percent }
+\newlabel{tab:ablation}{{10}{22}{\textbf {Scoring-protocol and inference-strategy ablations.} Reported on GPT-5.3 (think) on BenchCAD-Lite. Removing scale invariance (allowing absolute mm hints in prompts) inflates \texttt {qa\_img} by 4.6\,pt --- the systematic optimism baked into prior CAD-eval protocols. Best-of-5 sampling and multi-turn refinement with execution feedback offer diminishing-returns improvements. Doubling view count from 4 to 8 closes only $\leq $1.5\,pt of the Vision Bottleneck, far below what a perception bottleneck would predict}{table.10}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces \textbf  {CadQuery operation coverage versus prior corpora.} BenchCAD covers 45+ distinct operations spanning sketch primitives, contour drawing, workplanes, arrays, 3D extrusion (incl.\ twist-extrude, revolve, loft, sweep), Booleans, hole variants, edge finishing, and sketch composition. Prior CAD datasets are largely restricted to sketch + extrude.}}{22}{table.11}\protected@file@percent }
+\newlabel{tab:op_coverage}{{11}{22}{\textbf {CadQuery operation coverage versus prior corpora.} BenchCAD covers 45+ distinct operations spanning sketch primitives, contour drawing, workplanes, arrays, 3D extrusion (incl.\ twist-extrude, revolve, loft, sweep), Booleans, hole variants, edge finishing, and sketch composition. Prior CAD datasets are largely restricted to sketch + extrude}{table.11}{}}
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {section}{\numberline {E}Inference Strategy and Scoring Ablations}{22}{appendix.E}\protected@file@percent }
+\newlabel{app:ablation}{{E}{22}{Inference Strategy and Scoring Ablations}{appendix.E}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {F}CadQuery Operation Coverage}{22}{appendix.F}\protected@file@percent }
+\newlabel{app:ops}{{F}{22}{CadQuery Operation Coverage}{appendix.F}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {G}Per-Family Results}{22}{appendix.G}\protected@file@percent }
+\newlabel{app:full_results}{{G}{22}{Per-Family Results}{appendix.G}{}}
+\@writefile{toc}{\contentsline {paragraph}{Hard-tier families and their dependency graphs.}{22}{section*.60}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Per-family table.}{22}{section*.61}\protected@file@percent }
+\def\@LN@column{1}
+\@writefile{toc}{\contentsline {section}{\numberline {H}Reproduction Recipe}{23}{appendix.H}\protected@file@percent }
+\newlabel{app:reproduce}{{H}{23}{Reproduction Recipe}{appendix.H}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {I}Ethical Considerations and Broader Impact}{23}{appendix.I}\protected@file@percent }
+\newlabel{app:ethics}{{I}{23}{Ethical Considerations and Broader Impact}{appendix.I}{}}
+\def\@LN@column{1}
+\citation{Wu2021}
+\citation{Willis2021fusion}
+\citation{GenCAD2025}
+\citation{Qwen2VL}
+\def\@LN@column{1}
+\def\@LN@column{1}
+\gdef \@abspage@last{26}

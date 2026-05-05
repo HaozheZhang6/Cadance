@@ -33,7 +33,7 @@ except ImportError:
 
 
 def _load_qa_pairs(row: dict) -> list[dict]:
-    raw = row.get("qa_pairs", "[]")
+    raw = row.get("qa_pairs") or row.get("qa") or "[]"
     if isinstance(raw, list):
         return raw
     try:
@@ -141,7 +141,7 @@ def main() -> None:
         or os.environ.get("HUGGINGFACE_TOKEN")
     )
     api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY1")
-    if not api_key:
+    if not api_key and "/" not in args.model:
         sys.exit("OPENAI_API_KEY not set")
 
     print(f"Loading {args.repo}[{args.split}] ...")

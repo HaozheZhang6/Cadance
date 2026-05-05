@@ -1,3 +1,5 @@
+% ===== ORIGINAL VERSION (commented out) =====
+\iffalse
 \begin{table*}[t]
 \centering
 \small
@@ -40,6 +42,41 @@ CAD-Recode-1.5B~\citep{Rukhovich2025} & --  & --   & 44.1 & 9.7  & 22.4 & --  \\
 cadrille-RL~\citep{Kolodiazhnyi2026}  & 22.7 & 28.3 & 45.2 & 11.0 & 25.8 & 26.6 \\
 \midrule
 \textit{Best-of-pool (any model)} & \textit{51.3} & \textit{52.7} & \textit{71.4} & \textit{38.6} & \textit{60.2} & \textit{54.8} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+\fi
+
+% ===== NEW VERSION =====
+\begin{table*}[t]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{\textbf{Main evaluation on BenchCAD-QA, by capability axis.} Per-model accuracy across the four BenchCAD-QA capability axes: \emph{Holistic Visual Recognition}, \emph{CAD Operation Understanding}, \emph{Industrial Parametric Abstraction}, and \emph{Spatial / Code Reasoning} (\S\ref{sec:capability}). \textbf{Total score} is the weighted mean across axes. Rows with empty entries indicate models not yet evaluated.}
+\label{tab:main_eval}
+\begin{tabular}{l c c c c c}
+\toprule
+Model
+ & \shortstack{Holistic Visual\\Recognition}
+ & \shortstack{CAD Operation\\Understanding}
+ & \shortstack{Industrial Parametric\\Abstraction}
+ & \shortstack{Spatial / Code\\Reasoning}
+ & \shortstack{Total\\score} \\
+\midrule
+claude-opus-4.7-nonthinking         & 0.699 & 0.464 & 0.426 & 0.668 & 0.526 \\
+claude-opus-4.7-thinking            & 0.715 & 0.485 & 0.421 & 0.614 & 0.530 \\
+gemini-3.1-pro-preview-nonthinking  & 0.750 & 0.462 & 0.536 & 0.688 & \textbf{0.587} \\
+gemini-3.1-pro-preview-thinking     & 0.722 & 0.426 & 0.551 & 0.669 & 0.576 \\
+gpt-4o                              & 0.599 & 0.408 & 0.431 & 0.396 & 0.464 \\
+gpt-5.3-chat-latest                 & 0.636 & 0.423 & 0.488 & 0.548 & 0.513 \\
+gpt-5.3-thinking                    & 0.650 & 0.429 & 0.482 & 0.534 & 0.514 \\
+moonshot-v1-128k-vision-preview     & 0.556 & 0.387 & 0.427 & 0.334 & 0.442 \\
+moonshot-v1-8k-vision-preview       & --    & --    & --    & --    & --    \\
+openai-o3                           & --    & --    & --    & --    & --    \\
+google-gemma-4-31b-it (free)        & --    & --    & --    & --    & --    \\
+kimi-k2.6                           & --    & --    & --    & --    & --    \\
+\textit{blank image (baseline)}     & --    & --    & --    & --    & --    \\
 \bottomrule
 \end{tabular}
 \end{table*}

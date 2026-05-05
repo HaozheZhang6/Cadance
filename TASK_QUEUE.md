@@ -4,6 +4,49 @@
 
 ## ⚠️ USER-ASSIGNED — 进行中
 
+### UA-28 — L-tagged 50-stem bench (2026-05-04)
+
+**目标：** 从 `qixiaoqi/cad_bench_200`（200 stems × 12 [L1–L6] QA） family-stratified 抽 50，存 HF `qixiaoqi/cad_bench_50`。7 OR 模型跑 qa_img / qa_code / codegen，非 vision 模型 skip qa_img。结果推 HF `qixiaoqi/cad_bench_50_results`。
+
+**实施：**
+1. kill 旧 driver pid=82746（跑在错的 3-Q HF repo 上）
+2. sample 50 stems by family, seed=42 → push HF `qixiaoqi/cad_bench_50` (split=train, 字段保留 qa)
+3. patch `eval_qa_img.py` / `eval_qa_code.py` `_load_qa_pairs` 接受 `qa` 字段（main 分支只读 `qa_pairs`）
+4. driver `bench_or_7x3.sh`：`--repo qixiaoqi/cad_bench_50 --split train --limit 0`，每模型 per-task 列表（text-only 跳 qa_img）
+5. 用户已在 .env 换新 OPENROUTER_API_KEY
+6. 跑完 push results jsonl 到 HF
+
+### UA-27 — OpenRouter 接入 + 7 模型 × 3 任务 × 50 样本 bench (2026-05-04)
+
+**目标：** 经 OpenRouter 跑 7 个模型在 qa_img / qa_code / codegen 三个任务上各 50 样本（seed=42, sample_rows shuffle 后取前 50），结果落 `results/{task}/{slug}/`。
+
+**模型列表（OR slug）：**
+- `openai/o3` (付费, 视觉)
+- `google/gemma-4-31b-it:free` (30.7B 稠密, 视觉)
+- `google/gemma-4-26b-a4b-it:free` (25.2B MoE/3.8B active, 视觉+视频)
+- `nvidia/nemotron-nano-12b-v2-vl:free` (12B, 视觉)
+- `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free` (30B, 视觉+音视频)
+- `qwen/qwen2.5-vl-32b-instruct` (付费, 32B, 视觉, ctx 33K — codegen 注意上下文)
+- `qwen/qwen3.5-122b-a10b` (付费, 122B MoE/10B active)
+
+**任务：**
+- `bench/eval_qa_img.py` (qa_img) — 图 + 数值题 → JSON 数组
+- `bench/eval_qa_code.py` (qa_code) — code + 数值题 → JSON 数组
+- `bench/eval.py` (codegen / img2cq) — 图 → CadQuery 代码 → exec → IoU/Chamfer
+
+**实施：**
+1. 新 provider `bench/models/providers/openrouter.py` exact-register 上述 7 slugs（base_url=https://openrouter.ai/api/v1, env OPENROUTER_API_KEY, supports_images=True）
+2. `providers/__init__.py` 加 `openrouter` import
+3. `eval_qa_img.py` / `eval_qa_code.py` 把 OPENAI_API_KEY 强制检查改为：当 model 含 `/`（OR slug 风格）时跳过；否则保留原检查
+4. `.env` 加 `OPENROUTER_API_KEY=sk-or-...`
+5. 跑 `scripts/bench_or_7x3.sh`：7 model × 3 task = 21 组合，每组 `--limit 50 --seed 42`，continue-on-error
+
+**已知风险：**
+- free 档限速严，可能触 429。先小批试探，若大范围失败再加 retry/backoff
+- Nemotron Omni reasoning 输出格式可能含 `<thinking>`，QA parser 需验证
+- qwen2.5-vl-32b ctx 仅 33K，codegen system prompt + image patch tokens 可能撑爆
+- qwen3.5-122b-a10b 在 OR collection 列在 multimodal 但 VL 能力存疑，跑前先 smoke 1 张图
+
 ### UA-26 — 新增 180k 训练数据 (data-arg 扩展) 🔴 HIGH (2026-04-26)
 
 **目标：** 在现 BenchCAD/cad_bench 17.8k 基础上 +180k accepted 样本，推到新 dataset `BenchCAD/cad_bench_X`。
