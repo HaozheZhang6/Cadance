@@ -3,7 +3,7 @@
 \section{Extended Discussion}
 \label{app:discussion}
 
-\paragraph{Three blocked escape routes.} BenchCAD measurements close three routes that one might hope would reduce the absolute-score gap without fundamental change. (i) \emph{Scaling within open-source families} (\S\ref{sec:exp_main}) yields under 15\,pt across 78$\times$ parameter expansion --- still far below the IoU $\geq 0.99$ verification threshold. (ii) \emph{Chain-of-thought reasoning} (\S\ref{sec:exp_capability}) does not close the Holistic Spatial and Detailing Deficit; it amplifies it. (iii) \emph{View-count augmentation} (\S\ref{app:ablation}) recovers $\leq$1.5\,pt from 4 to 8 views, ruling out simple visual-context starvation as the explanation.
+\paragraph{Three blocked escape routes.} BenchCAD measurements close three routes that one might hope would reduce the absolute-score gap without fundamental change. (i) \emph{Scaling within open-source families} (\S\ref{sec:exp_main}) yields under 15\,pt across 78$\times$ parameter expansion --- still far below the IoU $\geq 0.99$ verification threshold. (ii) \emph{Chain-of-thought reasoning} (\S\ref{sec:exp_failure_analysis}) does not close the Holistic Spatial and Detailing Deficit; it amplifies it. (iii) \emph{View-count augmentation} (\S\ref{app:ablation}) recovers $\leq$1.5\,pt from 4 to 8 views, ruling out simple visual-context starvation as the explanation.
 Together these results suggest the path forward lies in training procedures explicitly aware of the parametric-symbolic structure of CAD geometry.
 
 \paragraph{Why edit, not generation, is the load-bearing test.} A model that can reconstruct a part from images is impressive, but a model that can \emph{modify} an existing part is industrially useful.
