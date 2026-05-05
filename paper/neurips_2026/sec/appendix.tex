@@ -179,6 +179,30 @@ The targeted-feature region is provided as a precomputed bounding-box annotation
 \paragraph{Industrial Common Sense Gap rate.} Defined as the fraction of model edits that achieve target success but fail non-target preservation: $|\{i: \text{Targ}_i \wedge \neg\text{Pres}_i\}| / |\{i: \text{Targ}_i\}|$.
 We additionally report a code-AST diff metric (lines changed, identifiers renamed) as a secondary measure of locality.
 
+\paragraph{Task taxonomy.} The five edit task types (T1--T5) are defined in Table~\ref{tab:task_taxonomy}. Difficulty rises monotonically with the structural complexity of the minimal correct diff, from a single literal swap (T1) to coordinated multi-block restructures (T5). The T1--T5 axis is orthogonal to the dimensional/additive/subtractive/multi-step categorisation used in the main paper: T1 and T3 are predominantly dimensional, T2 and T4 cover additive/subtractive, and T5 spans the multi-step regime.
+
+\input{tables/tab_task_taxonomy}
+
+\paragraph{Failure taxonomy.} Every prediction is bucketed into one of five outcomes (\texttt{ok}, E001--E004) by deterministic rules over execution status, generated--GT IoU, and a small set of fake-API regexes (Table~\ref{tab:error_codes}). The detection rules are author-curated but mechanical: no model output is judged by hand, and the rule set is fixed across all ten models reported.
+
+\input{tables/tab_error_codes}
+
+\paragraph{Supplementary results.} Figure~\ref{fig:edit_iou_only} reports mean rotation-invariant IoU per task type for all ten models, which separates the \emph{geometric closeness} signal (mean IoU) from the \emph{parametric exactness} signal (strict $\geq 0.99$ pass rate, Fig.~\ref{fig:edit_task}); the gap between the two on the same model is the parametric-exactness deficit. Figure~\ref{fig:edit_error_pies} disaggregates per-model failures into the E001--E004 buckets, exposing how the dominant failure mode shifts across model generations: \texttt{gpt-4o} and \texttt{gpt-oss-120b} are dominated by \emph{wrong\_operation} (E002), \texttt{nemotron} and the no-thinking \texttt{gemini-3.1} variant by \emph{invalid\_op\_or\_param} (E004), while the reasoning-tier \texttt{claude-opus-4-7} trades hallucinations for a 10.9\% \emph{no\_op} rate (E003) where the agent echoes the input file unchanged.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.95\linewidth]{figures/fig_edit_iou_only.png}
+  \caption{\textbf{BenchCAD-Edit mean IoU per task type.} Mean rotation-invariant voxel IoU(generated, target) for all ten models (same identifiers as Fig.~\ref{fig:edit_task}) on T1--T5. Mean IoU stays well above the strict $\geq 0.99$ pass rate for every model; the gap is the parametric-exactness deficit invisible to mean-IoU-only evaluations.}
+  \label{fig:edit_iou_only}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.95\linewidth]{figures/fig_edit_error_pies.png}
+  \caption{\textbf{Per-model failure mode distribution on BenchCAD-Edit.} Each pie disaggregates one model's 192--193 predictions into \texttt{ok} and the four failure buckets E001--E004 defined in Table~\ref{tab:error_codes}. The dominant failure shifts across model generations: weak / older models fail by \emph{wrong\_operation} (E002, real API + wrong selector or argument); open-weights frontier models (\texttt{nemotron}, \texttt{gpt-oss-120b}) fail predominantly by \emph{invalid\_op\_or\_param} (E004, undefined symbols or non-Python prose); reasoning-tier closed models (\texttt{claude-opus-4-7}, \texttt{gpt-5.3-chat-latest}) eliminate hallucinations but introduce \emph{no\_op} edits (E003) in which the agent rewrites the original file byte-for-byte.}
+  \label{fig:edit_error_pies}
+\end{figure}
+
 \section{Inference Strategy and Scoring Ablations}
 \label{app:ablation}
 

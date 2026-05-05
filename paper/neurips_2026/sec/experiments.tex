@@ -48,21 +48,31 @@ The cliff persists across architectures: closed-source post-training quality dom
 \subsection{The Edit Task: Verified Parametric Editing}
 \label{sec:exp_edit}
 
-BenchCAD-Edit closes a long-standing gap with 748 curated edit pairs balanced across 106 families and four edit categories (Table~\ref{tab:edit_leakage}, top).
-\textbf{Industrial Common Sense Gap} is the failure mode where a model applies the requested change correctly but silently corrupts an unrelated parametric feature (enlarging a gear bore while accidentally changing the tooth count, adding a chamfer while shifting a hole's centre).
-Disaggregating Pass@1 reveals that even the strongest reasoning model achieves target success on 84\% of edits but full Pass@1 on only 31\%: \textbf{64\% of nominally successful edits exhibit Industrial Common Sense Gap} --- a locality failure invisible to any prior CAD eval that scores only output IoU.
-\textbf{Multi-step collapse}: edit categories show a sharp difficulty gradient (dimensional $\sim$70\%, additive $\sim$40\%, subtractive $\sim$30\%); multi-step edits requiring parameter-dependency reasoning (\emph{``increase tooth count to 30 while preserving the pitch diameter''}) collapse to \textbf{under 15\% across every model}, including GPT-5.3 and Claude Opus 4.7.
-\textbf{Holistic Spatial Deficit on edit}: the \texttt{edit\_img}/\texttt{edit\_code} contrast reproduces the Holistic Spatial and Detailing Deficit pattern (GPT-5.3: 52.4\% text-only vs.\ 31.0\% image-conditioned, a 21.4\,pt gap).
-\textbf{Diff bloat}: even on dimensional edits where the minimal correct diff is one line, GPT-5.3 averages 7.8 changed lines, frequently re-emitting the entire program rather than patching the target line --- models edit by rewriting, not by patching.
-
-Figure~\ref{fig:edit_task} compactly summarises the edit task: scoring pipeline (top), four representative original/edited pairs and a concrete instance with parametric coupling code (middle), and the per-model leaderboard across five metrics (execution rate, strict pass at IoU $\geq 0.99$, mean IoU, norm, norm$_W$) including open-source code LLMs (gpt-oss, falconmamba) alongside the GPT-5 family (bottom).
-Two patterns recur: execution rate is uniformly high across models (syntactic invalidity is rarely the failure mode), and the strict $\geq 0.99$ pass rate trails the mean IoU substantially (models produce edits that are \emph{geometrically close} but fail parametric exactness).
-
-\input{tables/tab_edit_leakage}
-
-\begin{figure*}[t]
+\begin{figure}[t]
   \centering
-  \includegraphics[width=0.65\linewidth]{figures/fig_5.png}
-  \caption{\textbf{The edit task: scoring pipeline, examples, and per-model leaderboard.} \emph{Top:} scoring pipeline (input CAD program + NL instruction $\to$ code LLM $\to$ predicted code; render both predicted and GT, score by IoU). \emph{Middle:} four original/edited geometry pairs and a concrete instance with the CadQuery program including the parametric coupling \texttt{chamfer\_drop = chamfer\_length * math.tan(math.radians(chamfer\_angle))}. \emph{Bottom:} per-model leaderboard across five metrics, showing strict $\geq 0.99$ pass rate trails mean IoU substantially despite high execution rates.}
+  \includegraphics[width=0.95\linewidth]{figures/fig_5.png}
+  \caption{\textbf{BenchCAD-Edit strict pass@1 by task type.} Per-model strict pass rate ($\mathrm{IoU} \geq 0.99$) on T1--T5 (Table~\ref{tab:task_taxonomy}). Pass rate is monotone in task type, with T5 (geometry rebuild) at the floor for every model evaluated.}
   \label{fig:edit_task}
-\end{figure*}
+\end{figure}
+
+\paragraph{Setup.} BenchCAD-Edit comprises 748 verified $(\text{original}, \text{instruction}, \text{target})$ triples balanced across all 106 families and stratified into five task types: T1 \emph{literal\_replace}, T2 \emph{chain\_transform}, T3 \emph{relative\_compute}, T4 \emph{feature\_edit}, T5 \emph{geometry\_rebuild} (Table~\ref{tab:task_taxonomy}, Appendix~\ref{app:edit_protocol}). Each target STEP is rebuilt with the same rotation-invariant voxel IoU $\geq 0.99$ pipeline used for BenchCAD-Synth (\S\ref{sec:dataset}); a passing edit must reproduce the target solid exactly, not merely \emph{look} similar.
+
+\paragraph{Metrics.} For a model prediction with rendered solid $S_g$, original solid $S_o$, and target solid $S_t$, let $\mathrm{IoU}_{\mathrm{rot}}$ denote the 6-orientation rotation-invariant voxel IoU at $64^3$. Over $n$ records (failed executions count as zero IoU) we report four pass@1 metrics:
+\begin{align}
+\mathrm{exec\_rate} &= \tfrac{1}{n}\textstyle\sum_i \mathbf{1}[\,\text{prediction}_i\ \text{ran}\,], \label{eq:exec}\\
+\mathrm{strict\_rate} &= \tfrac{1}{n}\textstyle\sum_i \mathbf{1}[\mathrm{IoU}_{\mathrm{rot}}(S_g^i, S_t^i) \geq 0.99], \label{eq:strict}\\
+\mathrm{mean\_iou} &= \tfrac{1}{n}\textstyle\sum_i \mathrm{IoU}_{\mathrm{rot}}(S_g^i, S_t^i), \label{eq:miou}\\
+\mathrm{mean\_norm} &= \tfrac{1}{|\mathcal{N}|}\textstyle\sum_{i \in \mathcal{N}} \mathrm{clip}\!\left(\tfrac{\mathrm{IoU}_{\mathrm{rot}}(S_g^i, S_t^i) - \mathrm{IoU}_{\mathrm{rot}}(S_o^i, S_t^i)}{1 - \mathrm{IoU}_{\mathrm{rot}}(S_o^i, S_t^i)},\,0,\,1\right), \label{eq:norm}
+\end{align}
+where $\mathcal{N} = \{i : \mathrm{IoU}_{\mathrm{rot}}(S_o^i, S_t^i) \leq 0.99\}$ excludes degenerate records on which the original is already at the target. \texttt{mean\_norm} is a headroom-normalised improvement: $1$ means the model fully traversed the original-to-target gap, $0$ means it did not move at all. All metrics are pass@1: a single API call per (record, model) with no resampling.
+
+\paragraph{Models.} We score ten code LLMs spanning 2024--2026: \texttt{gpt-4o} (OpenAI, 2024), \texttt{o3} (OpenAI, 2025), \texttt{gpt-oss-120b} (OpenAI open-weights, 2025), \texttt{gpt-5.3-chat-latest} with and without \texttt{reasoning=medium} (OpenAI, 2025--26), \texttt{nemotron-3-super-120b-a12b} (NVIDIA, 2026), \texttt{gemini-3.1-pro-preview} with and without thinking (Google DeepMind, 2026), and \texttt{claude-opus-4-7} with and without \texttt{reasoning=high} (Anthropic, 2026). Closed models are queried through their official APIs; open-weights models via OpenRouter.
+
+\paragraph{Findings.} Table~\ref{tab:main_results} ranks the ten models on the four pass@1 metrics; Figure~\ref{fig:edit_task} disaggregates strict pass rate over the five task types. Three patterns hold across the leaderboard.
+\textbf{Difficulty stratification.} Strict pass rate is monotone in task type: T1 saturates near $1.0$ on every modern model, T2--T4 stratify by reasoning capability, and T5 (geometry rebuild) collapses to the floor for every model evaluated, including the reasoning-tier closed frontier.
+\textbf{Geometric closeness $\neq$ parametric exactness.} \texttt{mean\_iou} stays $0.05$--$0.25$ above \texttt{strict\_rate} on every model, so models routinely produce edits that are \emph{geometrically close} but fail the parametric exactness threshold. \texttt{mean\_norm} confirms this: even the strongest model recovers only $\sim 86\%$ of the original-to-target headroom.
+\textbf{Industrial Common Sense Gap.} Disaggregating strict pass into target success and non-target preservation reveals that \textbf{64\% of nominally successful edits silently corrupt a non-targeted feature} --- enlarging a bore while changing the tooth count, adding a chamfer while shifting a hole's centre. This locality failure is invisible to any prior CAD eval that scores only the rendered output. Multi-step edits requiring parameter-dependency reasoning (\emph{``increase tooth count to 30 while preserving the pitch diameter''}) collapse to under $15\%$ across every model, including \texttt{gpt-5.3-chat-latest} and \texttt{claude-opus-4-7}.
+
+A failure-code breakdown (E001--E004 defined in Table~\ref{tab:error_codes}; per-model distribution in Fig.~\ref{fig:edit_error_pies}) shows the dominant failure shifts with model class: \texttt{gpt-4o} and \texttt{gpt-oss-120b} are bottlenecked by \emph{wrong\_operation} (real API, wrong selector or argument), while reasoning-tier models trade hallucinations for \emph{no\_op} edits in which the agent rewrites the original byte-for-byte.
+
+\input{tables/tab_main_results}
