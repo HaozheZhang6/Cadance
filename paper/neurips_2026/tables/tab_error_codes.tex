@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{\textbf{Edit-failure taxonomy.} Every BenchCAD-Edit prediction is bucketed into one of five outcomes by deterministic rules over execution status, generated--GT IoU, and a small set of fake-API regexes. \texttt{ok} requires both successful execution and rotation-invariant voxel IoU $\geq 0.99$ against the target solid.}
+\label{tab:error_codes}
+\small
+\begin{tabular}{@{}p{0.07\linewidth}p{0.16\linewidth}p{0.30\linewidth}p{0.20\linewidth}p{0.18\linewidth}@{}}
+\toprule
+\textbf{Code} & \textbf{Name} & \textbf{Definition} & \textbf{Detection rule} & \textbf{Representative failure} \\
+\midrule
+\texttt{ok} & pass & Code runs and rendered geometry matches GT. & \texttt{status==ok} $\wedge$ $\mathrm{IoU}_{\text{gen}} \geq 0.99$ & --- \\
+E001 & hallucination & Model invents a non-existent CadQuery method or kwarg; raises \texttt{AttributeError}/\texttt{TypeError}. & \texttt{exec\_fail} $\wedge$ matches a fake-API pattern (\texttt{.slot()}, \texttt{cq.tan}, \texttt{extrude(dir=...)}, \ldots) & gpt-4o on slope: \texttt{cq.tan(cq.deg(30))} --- neither symbol exists. \\
+E002 & wrong\_operation & Real API but wrong selector / axis / argument order / literal. Code executes but geometry diverges. & \texttt{status==ok} $\wedge$ $0 < \mathrm{IoU}_{\text{gen}} < 0.99$ $\wedge$ $\mathrm{IoU}_{\text{gen}} \neq \mathrm{IoU}_{\text{orig}}$ & gpt-4o rotate: \texttt{rotate((axis), (origin), deg)} with first two args swapped. \\
+E003 & no\_op & Code executes but output is identical to original (comment-only edits, \texttt{X=X}, agent echoes file). & \texttt{status==ok} $\wedge$ $|\mathrm{IoU}_{\text{gen}} - \mathrm{IoU}_{\text{orig}}| < 0.005$ & claude-opus-4-7 (no-think, agentic): on 49\% of records the agent rewrites the original byte-for-byte. \\
+E004 & invalid\_op\_or\_param & Real API but the call is infeasible: empty selector, undefined variable, or non-Python prose returned. & \texttt{exec\_fail} $\wedge$ no fake-API pattern; also covers \texttt{SyntaxError} on truncated outputs. & nemotron returning English chain-of-thought; gpt-oss using \texttt{slot\_length} that was never defined. \\
+\bottomrule
+\end{tabular}
+\end{table}
