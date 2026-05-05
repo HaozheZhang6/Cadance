@@ -3,7 +3,7 @@
 
 \subsection{Setup} 
 \label{sec:exp_setup}
-We evaluate 10+ models with non-uniform per-task coverage; the headline figures (Fig.~\ref{fig:main_results}, \ref{fig:capability_profile}) report seven frontier proprietary systems with full four-task coverage --- \textbf{GPT-4o}, \textbf{GPT-5.3} (think / non-think), \textbf{Claude Opus 4.7} (think / non-think), \textbf{Gemini 3.1 Pro} (think / non-think) --- with open-source baselines (Qwen2.5-VL, InternVL3) and CAD-specialised cadrille-RL on subsets.
+We evaluate 10+ models with non-uniform per-task coverage; the headline figures (Fig.~\ref{fig:main_results}) report seven frontier proprietary systems with full four-task coverage --- \textbf{GPT-4o}, \textbf{GPT-5.3} (think / non-think), \textbf{Claude Opus 4.7} (think / non-think), \textbf{Gemini 3.1 Pro} (think / non-think) --- with open-source baselines (Qwen2.5-VL, InternVL3) and CAD-specialised cadrille-RL on subsets.
 For each task, we include a \emph{blind baseline} and evaluate model capabilities by quantifying the performance gains of each model over the baseline across all relevant metrics.
 %Inference at temperature 0 with a 60\,s per-sample budget; open models on 8$\times$A800-80GB, proprietary via API.
 %We include a \emph{blind baseline} and an \emph{Oracle} reference (GT-code parameter substitution; trivially 100\%).
@@ -12,7 +12,7 @@ For each task, we include a \emph{blind baseline} and evaluate model capabilitie
 \subsection{Main Results}
 \label{sec:exp_main}
 
-\begin{wrapfigure}{r}{0.5\linewidth} % r 表示图片靠右，宽度占行宽的 50%
+\begin{wrapfigure}{r}{0.5\linewidth} % r=right, width=50% of line
   \vspace{-20pt} % 可选：微调与上方文字的间距
   \centering
   \includegraphics[width=0.9\linewidth]{figures/fig_5.png}
@@ -35,7 +35,7 @@ However, performance on Spatial / Code Reasoning remains comparatively lower, in
 Table~\ref{tab:codegen_unified} unifies the Vision2Code leaderboard across three model classes: specialist CAD lineage (cadrille / CADEvolve, transferred from DeepCAD), frontier MLLMs (BenchCAD-Lite, OOD by definition), and our open Qwen3-VL-2B baseline (SFT-IID / SFT-OOD / $+$RL).
 Three patterns: (i) the specialist lineage drops from $\sim$92\% IoU on DeepCAD to $\leq$0.273 on BenchCAD --- a 28--32\,pt collapse driven by missing helical sweeps and parametric gear teeth;
 (ii) frontier MLLMs cap at IoU 0.279 (gemini-3.1-pro-thinking), with thinking mode non-monotonic and execution rate decoupled from quality (the residual deficit is geometric, not syntactic);
-(iii) our Qwen3-VL-2B reaches IoU 0.65 on the IID split (the dataset is learnable on a small backbone), yet collapses to 0.18 on 10 held-out mech.-transmission families, which RL on the OOD-SFT checkpoint partially recovers to 0.35 --- the empirical \emph{generalisation cliff}.
+(iii) our Qwen3-VL-2B reaches IoU 0.640 on the IID split (the dataset is learnable on a small backbone), yet ood-sft drops to OOD IoU 0.397 on 10 held-out mech.-transmission families, which RL on the OOD-SFT checkpoint partially recovers to 0.464 (composite score 0.588 $\to$ 0.723) --- the empirical \emph{generalisation cliff}.
 
 \input{tables/tab_codegen_unified}
 
@@ -59,7 +59,7 @@ Three patterns: (i) the specialist lineage drops from $\sim$92\% IoU on DeepCAD 
 \subsection{Failure Analysis}
 \label{sec:exp_failure_analysis}
 
-Building on the layered evaluation introduced in \S\ref{sec:capability}, we examine four representative \textsc{Vision2Code} failures elicited from frontier reasoning models on hard-tier families, each diagnostic of a different level in the capability hierarchy (visualised in Fig.~\ref{fig:capability_profile}).
+Building on the layered evaluation introduced in \S\ref{sec:capability}, we examine four representative \textsc{Vision2Code} failures elicited from frontier reasoning models on hard-tier families, each diagnostic of a different level in the capability hierarchy.
 
 \textbf{$L_1$ --- holistic feature recognition.} A hex-head bolt is reproduced with the correct overall body but with its threaded shank and DIN-standard head detail omitted. The vision encoder integrates the global silhouette while failing to register the high-information local features that distinguish a manufacturable bolt from a smooth pin --- a deficit at the perception layer rather than at code generation.
 
