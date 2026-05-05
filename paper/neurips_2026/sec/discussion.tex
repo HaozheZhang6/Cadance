@@ -4,5 +4,5 @@
 BenchCAD is a unified, capability-decomposed evaluation framework for large-model CAD reasoning, anchored in industrial-standard part families and operation-rich CadQuery code.
 Across 10+ frontier models, the benchmark reveals three systematic diagnostic phenomena --- the \emph{Holistic Spatial and Detailing Deficit} ($\sim$15--20\,pt code--image QA gap), \emph{Industrial Common Sense Gap} ($\sim$64\% of nominally successful edits silently corrupt unrelated features), and the \emph{CAD Operational Blindspot} (matched-compute SFT on sketch+extrude data alone yields zero recall on essential operations).
 Together, these findings map both the current state of frontier capability and the focused improvements needed to reach industry-grade CAD generation.
-Extended discussion, limitations, and the open BenchCAD-trained reference baseline are deferred to Appendix~\ref{app:discussion}, \ref{app:limitations}, and \ref{app:baseline}.
+Limitations, the open BenchCAD-trained baseline recipe, and full per-model results are in Appendix~\ref{app:limitations}, \S\ref{sec:exp_training}, and Appendix~\ref{app:full_results}.
 Dataset, evaluation harness, and Croissant 1.0 metadata are released under CC-BY-4.0 at \texttt{huggingface.co/BenchCAD}.

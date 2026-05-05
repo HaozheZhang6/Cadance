@@ -32,10 +32,12 @@ The best models achieve total scores around 0.84, far above the best visual-cond
 This large modality gap suggests that current MLLMs are considerably better at extracting geometric and parametric information from explicit CAD programs than from rendered images. 
 However, performance on Spatial / Code Reasoning remains comparatively lower, indicating that code access alone does not fully resolve the need for precise spatial and operational reasoning.
 
-Table~\ref{tab:main_eval_codegen} reports the Vision2Code task, where two qualitative patterns stand out. 
-First, thinking mode is non-monotonic on \texttt{Vision2Code} task. 
-Combined with uniformly low Detailed Feature scores, this is consistent with extended reasoning amplifying hallucinations on fine geometric features while the global shape is recovered. 
-Second, execution rate decouples from total score: the model with the highest execution rate is not the strongest overall, and a model with notably lower execution rate can still match its total. Frontier models have largely learned to emit syntactically valid CadQuery, so the residual deficit is geometric rather than syntactic, and codegen progress should be tracked through IoU and Essential Op Recall rather than execution rate.
+Table~\ref{tab:codegen_unified} unifies the Vision2Code leaderboard across three model classes: specialist CAD lineage (cadrille / CADEvolve, transferred from DeepCAD), frontier MLLMs (BenchCAD-Lite, OOD by definition), and our open Qwen3-VL-2B baseline (SFT-IID / SFT-OOD / $+$RL).
+Three patterns: (i) the specialist lineage drops from $\sim$92\% IoU on DeepCAD to $\leq$0.273 on BenchCAD --- a 28--32\,pt collapse driven by missing helical sweeps and parametric gear teeth;
+(ii) frontier MLLMs cap at IoU 0.279 (gemini-3.1-pro-thinking), with thinking mode non-monotonic and execution rate decoupled from quality (the residual deficit is geometric, not syntactic);
+(iii) our Qwen3-VL-2B reaches IoU 0.65 on the IID split (the dataset is learnable on a small backbone), yet collapses to 0.18 on 10 held-out mech.-transmission families, which RL on the OOD-SFT checkpoint partially recovers to 0.35 --- the empirical \emph{generalisation cliff}.
+
+\input{tables/tab_codegen_unified}
 
 % Table~\ref{tab:main_eval} reports per-task accuracy and the macro-mean.
 % The strongest model overall is GPT-5.3 (think) at 46.8\% Avg --- well below the IoU $\geq 0.99$ verification threshold and leaving substantial room across every task.
@@ -113,10 +115,9 @@ A failure-code breakdown (E001--E004 defined in Table~\ref{tab:error_codes}; per
 
 \input{tables/tab_main_results}
 
-\subsection{Training: Open BenchCAD Baseline + RL Fine-Tuning}
+\subsection{Open BenchCAD-Trained Baseline: Recipe}
 \label{sec:exp_training}
 
-We train Qwen3-VL-2B baselines under matched 32 GPU-hour budgets on A800-80GB.
-\textbf{SFT}: 1 epoch, lr $1{\times}10^{-5}$, 300K mixture (BenchCAD-Synth + 162K GenCAD + CAD-Recode/text2cad); three splits --- \emph{IID} (all 106 families), \emph{baseline} (no BenchCAD), \emph{OOD} (10 mech.-transmission families held out).
-\textbf{RL}: on-policy GRPO from the OOD-SFT checkpoint, reward $r{=}0.2\,\mathrm{ess}{+}0.8\,\mathrm{IoU}$ ($r{=}-1$ on parse error / timeout / zero-volume); RL data excludes OOD families; no warm-start.
-End-of-training metrics (Table~\ref{tab:training_compact}, Appendix~\ref{app:op_gap_full}): IID converges to IoU $\sim$0.65, ess $\sim$0.95; the baseline plateaus at IoU 0.10 with \textbf{0\% essential-op pass}; RL on OOD-SFT lifts OOD IoU 0.18$\to$0.35 and ess 0.20$\to$0.45 but the residual gap to IID is the empirical \emph{generalisation cliff}.
+For reproducibility we describe the open Qwen3-VL-2B baseline whose scores appear in the bottom block of Table~\ref{tab:codegen_unified}. Matched 32 GPU-hour budget on $8{\times}$A800-80GB.
+\textbf{SFT}: 1 epoch, lr $1{\times}10^{-5}$, 300K mixture (BenchCAD-Synth + 162K GenCAD + CAD-Recode / Text2CAD), three splits --- IID (106 families seen), OOD (10 mech.-transmission families held out), baseline (no BenchCAD).
+\textbf{RL}: on-policy GRPO from the OOD-SFT checkpoint, reward $r{=}0.2\,\mathrm{ess}{+}0.8\,\mathrm{IoU}$ ($r{=}-1$ on parse error / $>$30\,s timeout / zero-volume); RL data excludes OOD families; no warm-start. Training curves in Appendix~\ref{app:op_gap_full} (Fig.~\ref{fig:generalisation_gap}); per-operation recall ablation in Table~\ref{tab:op_gap}.

@@ -1,4 +1,4 @@
-\begin{thebibliography}{19}
+\begin{thebibliography}{17}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -57,15 +57,6 @@ Yandong Guan, Xilin Ge, Shihao Yang, Wenhao Yang, Zhipeng Wei, Can Cui, Cheng
 \newblock In \emph{Advances in Neural Information Processing Systems
   (NeurIPS)}, 2025.
 
-\bibitem[Jiang et~al.(2025)Jiang, Chai, Li, Liu, Fok, Dziri, Tsvetkov, Sap, and
-  Choi]{Hivemind2025}
-Liwei Jiang, Yuanjun Chai, Margaret Li, Mickel Liu, Raymond Fok, Nouha Dziri,
-  Yulia Tsvetkov, Maarten Sap, and Yejin Choi.
-\newblock Artificial hivemind: The open-ended homogeneity of language models
-  (and beyond).
-\newblock In \emph{Advances in Neural Information Processing Systems
-  (NeurIPS)}, 2025.
-
 \bibitem[Khan et~al.(2024)Khan, Sinha, Uddin, Stricker, Ali, and
   Afzal]{Khan2024}
 Mohammad~Sadil Khan, Sankalp Sinha, Talha A.~M. Uddin, Didier Stricker, Sk~Aziz
@@ -82,13 +73,6 @@ Kyrylo Kolodiazhnyi, Danila Rukhovich, and Djamila Aouada.
   reinforcement learning.
 \newblock In \emph{International Conference on Learning Representations
   (ICLR)}, 2026.
-
-\bibitem[{LG AI Research}(2025)]{PANORAMA2025}
-{LG AI Research}.
-\newblock {PANORAMA}: A dataset and benchmarks capturing decision trails and
-  rationales in patent examination.
-\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS)
-  Datasets and Benchmarks Track}, 2025.
 
 \bibitem[Rukhovich et~al.(2025)Rukhovich, Kolodiazhnyi, and
   Aouada]{Rukhovich2025}

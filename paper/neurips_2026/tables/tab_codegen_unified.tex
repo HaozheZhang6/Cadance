@@ -1,0 +1,28 @@
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.05}
+\caption{\textbf{Vision2Code unified leaderboard.} Specialist CAD lineage (cadrille / CADEvolve), frontier MLLMs, and our open Qwen3-VL-2B trained baseline. All BenchCAD scores on BenchCAD-Lite. \emph{(\,$\dagger$\,)} Ours-SFT-IID is evaluated on the IID split (all 106 families seen at train time); all other rows are OOD on BenchCAD by construction (specialist lineage and frontier MLLMs never saw BenchCAD; ours-SFT-OOD / +RL hold out 10 mech.-transmission families). Essential-op recall is the fraction of ground-truth essential operations (helix / sweep / loft / twist-extrude / parametric involute-gear) recovered by the prediction.}
+\label{tab:codegen_unified}
+\begin{tabular}{@{}lcccl@{}}
+\toprule
+Model                                                  & DeepCAD IoU      & BenchCAD IoU            & Ess.\ op recall  & Notes \\
+\midrule
+\multicolumn{5}{l}{\emph{Specialist CAD lineage ($\sim$2B, OOD on BenchCAD)}} \\
+cadrille-RL~\citep{Kolodiazhnyi2026}                   & 0.919            & 0.273                   & --               & sketch+ext, 1M \\
+CADEvolve~\citep{Elistratov2026}                       & 0.923            & 0.039                   & --               & extended, 2.7M \\
+\midrule
+\multicolumn{5}{l}{\emph{Frontier MLLMs (BenchCAD-Lite, by def.\ OOD)}} \\
+gpt-4o                                                 & --               & 0.188                   & 0.468            & \\
+gpt-5.3 (thinking)                                     & --               & 0.207                   & 0.455            & \\
+claude-opus-4.7 (thinking)                             & --               & 0.267                   & 0.471            & \\
+gemini-3.1-pro (thinking)                              & --               & \textbf{0.279}          & \textbf{0.567}   & strongest frontier \\
+\midrule
+\multicolumn{5}{l}{\emph{Ours --- Qwen3-VL-2B, 9 GPU-h on $8{\times}$A800-80GB}} \\
+SFT (IID, 106 fam.\ seen)$^{\dagger}$                  & --               & \textbf{0.650}          & \textbf{0.950}   & dataset learnable on 2B \\
+SFT (OOD, 10 fam.\ held out)                           & --               & 0.180                   & 0.200            & generalisation gap \\
+\quad $+$ RL ($r{=}0.2\,\mathrm{ess}{+}0.8\,\mathrm{IoU}$) & --             & 0.350                   & 0.450            & RL partial recovery \\
+\bottomrule
+\end{tabular}
+\end{table}
