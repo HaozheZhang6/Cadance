@@ -2,7 +2,7 @@
 \centering
 \small
 \setlength{\tabcolsep}{4pt}
-\caption{\textbf{CAD Operational Blindspot.} Per-operation recall on BenchCAD-Lite hard-tier (\%) for three matched-compute SFT conditions on Qwen2-VL-2B (162K samples each, 9 GPU-hours). \textbf{A:} CAD-Recode-style training data (sketch + extrude only). \textbf{B:} 81K of A swapped for 81K BenchCAD-Synth, total still 162K. \textbf{C:} 162K BenchCAD-Synth + GenCAD only. The bottom rows report aggregate metrics. ``recall'' is the fraction of records whose ground-truth program contains operation $o$ for which the model's emitted code also calls $o$ at least once. \textcolor{red}{Numbers are placeholders.}}
+\caption{\textbf{CAD Operational Blindspot.} Per-operation recall on BenchCAD-Lite hard-tier (\%) for three matched-compute SFT conditions on Qwen2-VL-2B (162K samples each, 9 GPU-hours). \textbf{A:} CAD-Recode-style training data (sketch + extrude only). \textbf{B:} 81K of A swapped for 81K BenchCAD, total still 162K. \textbf{C:} 162K BenchCAD + GenCAD only. The bottom rows report aggregate metrics. ``recall'' is the fraction of records whose ground-truth program contains operation $o$ for which the model's emitted code also calls $o$ at least once. \textcolor{red}{Numbers are placeholders.}}
 \label{tab:op_gap}
 \begin{tabular}{lrrr}
 \toprule

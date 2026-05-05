@@ -92,7 +92,7 @@ The cliff persists across architectures: closed-source post-training quality dom
 \subsection{The Edit Task: Verified Parametric Editing}
 \label{sec:exp_edit}
 
-\paragraph{Setup.} BenchCAD-Edit comprises 748 verified $(\text{original}, \text{instruction}, \text{target})$ triples balanced across all 106 families and stratified into five task types: T1 \emph{literal\_replace}, T2 \emph{chain\_transform}, T3 \emph{relative\_compute}, T4 \emph{feature\_edit}, T5 \emph{geometry\_rebuild} (Table~\ref{tab:task_taxonomy}, Appendix~\ref{app:edit_protocol}). Each target STEP is rebuilt with the same rotation-invariant voxel IoU $\geq 0.99$ pipeline used for BenchCAD-Synth (\S\ref{sec:dataset}); a passing edit must reproduce the target solid exactly, not merely \emph{look} similar.
+\paragraph{Setup.} BenchCAD-Edit comprises 748 verified $(\text{original}, \text{instruction}, \text{target})$ triples balanced across all 106 families and stratified into five task types: T1 \emph{literal\_replace}, T2 \emph{chain\_transform}, T3 \emph{relative\_compute}, T4 \emph{feature\_edit}, T5 \emph{geometry\_rebuild} (Table~\ref{tab:task_taxonomy}, Appendix~\ref{app:edit_protocol}). Each target STEP is rebuilt with the same rotation-invariant voxel IoU $\geq 0.99$ pipeline used for BenchCAD (\S\ref{sec:dataset}); a passing edit must reproduce the target solid exactly, not merely \emph{look} similar.
 
 \paragraph{Metrics.} For a model prediction with rendered solid $S_g$, original solid $S_o$, and target solid $S_t$, let $\mathrm{IoU}_{\mathrm{rot}}$ denote the 6-orientation rotation-invariant voxel IoU at $64^3$. Over $n$ records (failed executions count as zero IoU) we report four pass@1 metrics:
 \begin{align}
