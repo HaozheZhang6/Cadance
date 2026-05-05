@@ -10,7 +10,7 @@ Together these results suggest the path forward lies in training procedures expl
 The Industrial Common Sense Gap finding (\S\ref{sec:exp_edit}) shows that the strongest reasoning model corrupts unrelated features in 64\% of nominally successful edits, and multi-step edits requiring parameter-dependency reasoning collapse below 15\% across every model.
 This is the single quantitative gap that most clearly separates current models from a useful CAD copilot.
 
-\paragraph{The CAD-specialised lineage transfers poorly.} cadrille-RL and CADEvolve, which match published $\sim$92\% IoU on DeepCAD under our scoring infrastructure, lose 28--32 points on BenchCAD-Lite (\S\ref{sec:transfer}).
+\paragraph{The CAD-specialised lineage transfers poorly.} cadrille-RL and CADEvolve, which match published $\sim$92\% IoU on DeepCAD under our scoring infrastructure, lose 28--32 points on BenchCAD-Lite (\S\ref{app:transfer_detail}).
 The drops concentrate on standard-anchored hard families (helical gears, twist drills, coil springs) and on operations absent from their sketch+extrude training corpora.
 SOTA improvements on existing CAD benchmarks are increasingly within-distribution; BenchCAD reopens the out-of-distribution evaluation surface.
 
