@@ -1,6 +1,6 @@
 \begin{table}[t]
 \centering
-\caption{\textbf{BenchCAD-Edit pass@1 leaderboard.} Ten code LLMs evaluated on $n \approx 192$ pairs each under the four metrics defined in Eqs.~\eqref{eq:exec}--\eqref{eq:norm}. Models are ranked by \texttt{strict\_rate}. \emph{Thinking} indicates the reasoning-mode variant where applicable. Every prediction is a single pass@1 API call graded by the rotation-invariant IoU pipeline.}
+\caption{\textbf{BenchCAD-Edit pass@1 leaderboard.} Ten code LLMs evaluated on $n \approx 192$ pairs each under the four metrics defined in Eqs.~\eqref{eq:exec}--\eqref{eq:norm}. Models are ranked by \texttt{mean\_norm} (headroom-normalised improvement; see Eq.~\eqref{eq:norm}), which we treat as the primary metric since it controls for varying difficulty across pairs. \emph{Thinking} indicates the reasoning-mode variant where applicable. Every prediction is a single pass@1 API call graded by the rotation-invariant IoU pipeline.}
 \label{tab:main_results}
 \small
 \setlength{\tabcolsep}{4pt}
