@@ -36,7 +36,30 @@
 \maketitle
 
 \begin{abstract}
-Industrial computer-aided design (CAD) demands the fusion of complex spatial understanding, parametric computation, and program synthesis: producing executable code that satisfies industry tolerances, feature detail, and the unwritten engineering conventions that distinguish a manufacturable part from primitive geometry. Frontier multimodal language models show nascent capability along each of these axes individually --- 3D and spatial reasoning, multi-step reasoning, and code generation --- yet their joint alignment for industrial CAD remains under-evaluated. We present \textbf{BenchCAD}, a unified, capability-decomposed evaluation framework whose tasks correspond to stages of practising CAD-engineering work (read a drawing, interrogate a parametric program, modify it under instruction). The dataset contains 17{,}900 execution-verified CadQuery parts across 106 industrial part families anchored to 47 ISO/DIN/EN/ASME/IEC specification codes (twist drills, bevel gears, compression springs, roller chains, threaded fittings), exercising 45+ distinct CadQuery operations including helical sweeps, lofts, twist-extrudes, and parametric involute-gear construction. Four task categories --- image-to-code, image- and code-conditioned numeric QA, and instruction-guided editing with verified before/after pairs and a non-target preservation metric --- decompose the image$\to$code pipeline so that score differences between paired tasks isolate which sub-capability (visual perception, geometric-to-parametric abstraction, or code synthesis) drives a model's remaining gap. Across 10+ frontier models we identify three diagnostic phenomena: a 15--20 point \emph{Vision Bottleneck} between code- and image-conditioned QA that persists under chain-of-thought, parameter scaling from 1B to 78B, and view-count augmentation; a 64\% \emph{Edit Leakage} rate on nominally successful edits where unrelated parametric features are silently corrupted; and an \emph{Op Vocabulary Gap} where matched-compute SFT on sketch+extrude data alone yields zero recall on essential operations until BenchCAD-Synth enters the training mix. A consistent dichotomy emerges: today's frontier models recover the outer envelope of an industrial part but not the parametric structure underlying it. BenchCAD complements existing CAD-LM training corpora by providing the evaluation-side properties they do not --- industrial-family taxonomy, standard-table anchoring, verified edit pairs, paired-task capability decomposition, and rotation- and scale-invariant scoring. Released under CC-BY-4.0 at \url{huggingface.co/BenchCAD}.
+Industrial CAD code generation requires the fusion of spatial understanding, parametric reasoning, and program synthesis:
+producing executable code that satisfies industry tolerances, feature detail, and the unwritten engineering conventions
+that distinguish a manufacturable part from primitive geometry.
+Frontier multimodal language models exhibit nascent capability along each axis individually,
+yet their joint alignment for industrial CAD remains under-evaluated.
+We present \textbf{BenchCAD}, a unified, capability-decomposed evaluation framework whose four task categories
+correspond to stages of practising CAD-engineering work:
+image-to-code, image- and code-conditioned numeric QA, and instruction-guided editing with verified before/after pairs.
+The dataset contains 17{,}900 execution-verified CadQuery parts across 106 industrial part families anchored to
+47 ISO/DIN/EN/ASME/IEC specification codes (twist drills, bevel gears, compression springs, propeller, eyebolt),
+exercising 45+ distinct CadQuery operations including helical sweeps, lofts, twist-extrudes,
+and parametric involute-gear construction.
+Score differences between paired image/code tasks isolate which sub-capability
+(visual perception, geometric-to-parametric abstraction, or code synthesis) drives a model's remaining gap.
+Across 10+ frontier models, we identify three diagnostic phenomena that currently preclude reliable, harnessed CAD design in industry: 
+(1) a \emph{Holistic Spatial and Detailing Deficit}, where models fail to reconstruct overall 3D structures and consistently omit fine geometric details; 
+(2) an \emph{Industrial Common Sense Gap}, where unwritten engineering conventions are completely absent from the synthesized code; 
+and (3) a \emph{CAD Operational Blindspot}, where models overfit to rudimentary sketch-and-extrude data, lacking the domain knowledge to emit essential operations such as helical sweeps and parametric involute-gear construction.
+Today's frontier models recover the outer envelope of an industrial part but not the parametric structure underlying it.
+Supervised fine-tuning on BenchCAD-Synth raises in-distribution essential-op pass rate
+from $\sim$0\% to $\sim$85\% (Figure~\ref{fig:generalisation_gap}),
+yet the gap to unseen-family generalisation remains substantial ---
+confirming that industrial CAD code generation is a difficult open challenge.
+Released under CC-BY-4.0 at \url{huggingface.co/BenchCAD}.
 \end{abstract}
 
 \input{sec/intro}
