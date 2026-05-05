@@ -1,0 +1,33 @@
+\begin{table*}[t]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{\textbf{Main evaluation on BenchCAD-QA (\texttt{qa\_code} modality), by capability axis.} Per-model accuracy on the code-conditioned QA bank across the same four capability axes as Table~\ref{tab:main_eval}. The two tables share questions and capability-axis definitions; only the conditioning modality differs (rendered images vs.\ source CadQuery). Score differences across the matched pair isolate the cost of replacing direct code access with visual recognition --- the \textbf{Holistic Spatial and Detailing Deficit} (\S\ref{sec:exp_capability}).}
+\label{tab:main_eval_code}
+\begin{tabular}{l c c c c c}
+\toprule
+Model
+ & \shortstack{Holistic Visual\\Recognition}
+ & \shortstack{CAD Operation\\Understanding}
+ & \shortstack{Industrial Parametric\\Abstraction}
+ & \shortstack{Spatial / Code\\Reasoning}
+ & \shortstack{Total\\score} \\
+\midrule
+claude-opus-4.7-nonthinking         & 0.868 & 0.800 & 0.793 & 0.595 & 0.801 \\
+claude-opus-4.7-thinking            & 0.891 & 0.781 & 0.851 & 0.632 & 0.829 \\
+gemini-3.1-pro-preview-nonthinking  & \textbf{0.914} & 0.782 & 0.867 & 0.537 & 0.836 \\
+gemini-3.1-pro-preview-thinking     & 0.907 & 0.783 & \textbf{0.876} & 0.537 & \textbf{0.838} \\
+gpt-4o                              & 0.865 & 0.593 & 0.732 & 0.688 & 0.726 \\
+gpt-5.3-chat-latest                 & 0.879 & \textbf{0.805} & 0.815 & 0.731 & 0.823 \\
+gpt-5.3-thinking                    & 0.885 & 0.802 & 0.811 & 0.730 & 0.821 \\
+moonshot-v1-128k-vision-preview     & 0.842 & 0.551 & 0.692 & \textbf{0.792} & 0.700 \\
+moonshot-v1-8k-vision-preview       & --    & --    & --    & --    & --    \\
+openai-o3                           & --    & --    & --    & --    & --    \\
+google-gemma-4-31b-it (free)        & --    & --    & --    & --    & --    \\
+kimi-k2.6                           & --    & --    & --    & --    & --    \\
+\midrule
+\textit{blank image (baseline)}     & --    & --    & --    & --    & --    \\
+\bottomrule
+\end{tabular}
+\end{table*}

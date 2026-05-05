@@ -1,33 +1,29 @@
-\section{Benchmark Tasks and Capability Decomposition}
+\section{CAD Benchmark Tasks}
 \label{sec:tasks}
 
-\subsection{The Image$\to$Code Capability Chain}
+BenchCAD comprehensively evaluates MLLMs’ CAD-related knowledge and their capabilities in understanding geometric structures and applying CadQuery to generate parametric models.
+BenchCAD evaluates models on four tasks: \textsc{Vision QA}, \textsc{Code QA}, \textsc{Edit Code}, and \textsc{Vision2Code}.
+
+\subsection{\textsc{Vision QA} and \textsc{Code QA}}
 \label{sec:capability}
 
-BenchCAD's four task categories correspond to stages of practising CAD-engineering work: an engineer reads an existing drawing or part (\texttt{img2cq} reconstruction), interrogates dimensions and operations on either the rendered geometry or the source program (\texttt{qa\_img}/\texttt{qa\_code}), and modifies an existing parametric program in response to a request (\texttt{edit\_img}/\texttt{edit\_code}).
-A single end-to-end metric on an image-to-code task reports \emph{whether} a model succeeded but not \emph{which capability} failed.
-We decompose the image$\to$code task into a four-level capability hierarchy (Table~\ref{tab:capability}; visualised in Figure~\ref{fig:capability_hierarchy}):
-\emph{$L_1$ Holistic Visual Recognition} --- recognise the part family from images and integrate multi-view input into a coherent volumetric understanding;
-\emph{$L_2$ CAD Operations Understanding} --- read existing CadQuery and identify which operation creates which feature, in the right execution order;
-\emph{$L_3$ Industrial Parametric Abstraction} --- abstract observed geometry into the parametric structure underlying it, including the engineering conventions and standard-table relations a manufacturable part must respect;
-and \emph{$L_4$ Spatial/Code Reasoning} --- compose the lower levels into syntactically valid, executable parametric code.
-BenchCAD's tasks exercise known subsets of $\{L_1, L_2, L_3, L_4\}$, so score \emph{differences} across paired tasks isolate the bottleneck level.
-The central contrast is the gap between \texttt{qa\_img} (which exercises $L_1$+$L_3$) and \texttt{qa\_code} (which exercises $L_2$+$L_3$) on matched prompts: this gap measures the cost of replacing direct code access with visual recognition --- isolating $L_1$ failure --- and is named the \textbf{Holistic Spatial and Detailing Deficit} (\S\ref{sec:exp_capability}).
-Two further contrasts apply: \texttt{qa\_code} low absolute $\Rightarrow$ $L_2$ bottleneck (\textbf{CAD Operational Blindspot}); \texttt{edit\_*} non-target-preservation failures $\Rightarrow$ $L_3$ bottleneck (\textbf{Industrial Common Sense Gap}); \texttt{img2cq} and \texttt{edit\_*} compose all four levels into the $L_4$ synthesis output.
+A per-family question bank asks only ratios and integer counts (never absolute mm) for scale invariance, with each item evaluated under both modalities --- visual (rendered views) and code-conditioned (CadQuery source). Scoring: relative error $\leq 5\%$ for ratios, exact match for integers.
 
-% tab_capability moved to Appendix~\ref{app:capability_profile}
+We organise the QA bank along a four-level capability hierarchy (Figure~\ref{fig:capability_hierarchy}, left), from low-level perception at the base to high-level synthesis at the apex: \emph{(i) $L_1$ Holistic Visual Recognition} --- recognise the part family from multi-view renders and integrate views into a coherent volumetric understanding; \emph{(ii) $L_2$ CAD Operations Understanding} --- read CadQuery (or infer from geometry) and map operations to features in the right execution order; \emph{(iii) $L_3$ Industrial Parametric Abstraction} --- abstract observed geometry into the parametric structure an engineer would write, respecting standard-table relations and engineering conventions; \emph{(iv) $L_4$ Spatial/Code Reasoning} --- compose the lower three levels into syntactically valid, executable parametric code. The matched-pair design isolates the levels: a large $\texttt{qa\_img}-\texttt{qa\_code}$ gap on the same questions reveals the cost of replacing direct code access with visual recognition (the \textbf{Holistic Spatial and Detailing Deficit}, \S\ref{sec:exp_capability}); low absolute $\texttt{qa\_code}$ flags a \textbf{CAD Operational Blindspot} at $L_2$.
 
 \begin{figure*}[t]
   \centering
   \includegraphics[width=0.75\linewidth]{figures/fig_6.png}
-  \caption{\textbf{BenchCAD-QA capability hierarchy and representative items.} \emph{Left:} the four capability levels underlying the BenchCAD-QA bank --- (L1) \textbf{Holistic Visual Recognition}, (L2) \textbf{CAD Operations Understanding}, (L3) \textbf{Industrial Parametric Abstraction}, (L4) \textbf{Spatial/Code Reasoning}. \emph{Right:} representative \texttt{qa\_img} (visual) and \texttt{qa\_code} (code-conditioned) items at each level (e.g., L1 \emph{``Is this a gear-family element?''}; L2 \emph{``Along which axis does the primary extrusion occur?''}; L3 \emph{``What is the width ratio of the keyhole to the slot?''}; L4 \emph{``What's the minimum sweep and revolve ops needed?''}). The hierarchy is the canonical capability decomposition used throughout the paper (\S\ref{sec:capability}).}
+  \caption{\textbf{BenchCAD-QA capability hierarchy.} Four levels (L1 Holistic Visual Recognition $\to$ L4 Spatial/Code Reasoning) with paired \texttt{qa\_img} / \texttt{qa\_code} examples per level (\S\ref{sec:capability}).}
   \label{fig:capability_hierarchy}
 \end{figure*}
 
-\subsection{Task Definitions and Scoring}
+\subsection{Instruction-Guided Editing: \texttt{edit\_code}}
 
-\paragraph{Five tasks, four categories.} \texttt{img2cq} (image-to-code): four canonical orthographic views $\to$ CadQuery code; scored by $\mathrm{Pass}_{\mathrm{IoU}\geq 0.5}$ under the rotation-invariant cube symmetry group, with mean Chamfer distance, invalidity ratio, and Feature-F1 as auxiliary metrics.
-\texttt{qa\_img}/\texttt{qa\_code} (visual / code-conditioned numeric QA): a 2{,}400-question per-family bank asking only ratios and integer counts (never absolute mm) for scale invariance, scored by relative error $\leq 5\%$ for ratios and exact match for integers; the paired design (each question evaluated under both modalities) directly isolates $L_1$ visual recognition from $L_2$ code/op understanding.
-\texttt{edit\_img}/\texttt{edit\_code} (image-conditioned / text-only editing): a 748-pair instruction-guided edit set spanning dimensional/additive/subtractive/multi-step categories, scored as Pass@1 = $\mathbb{1}[\mathrm{IoU}(\text{edited},\text{target})\geq 0.99 \wedge \mathrm{Preserve}(\text{edited},\text{orig})\geq 0.99]$ requiring both target success and non-target preservation; we additionally report the disaggregated Industrial Common Sense Gap rate (\S\ref{sec:exp_edit}).
-The headline aggregate is the macro-mean across the five tasks.
-Question bank construction, edit-pair protocol, rotation-invariant IoU, and a scale-invariance ablation appear in Appendices~\ref{app:qbank}, \ref{app:edit_protocol}, \ref{app:iou}, and \ref{app:ablation} respectively.
+Each item supplies an original CadQuery program, a natural-language edit instruction, and a target STEP, drawn from four categories (dimensional, additive, subtractive, multi-step). Pass@1 $= \mathbb{1}[\mathrm{IoU}(\text{edited},\text{target}) \geq 0.99 \wedge \mathrm{Preserve}(\text{edited},\text{orig}) \geq 0.99]$ requires both target-feature success \emph{and} non-target preservation. Disaggregating Pass@1 into the two component rates exposes the \textbf{Industrial Common Sense Gap} (\S\ref{sec:exp_edit}): a model can apply the requested change while silently corrupting unrelated parametric features.
+
+\subsection{Image-to-Code Generation: \texttt{codegen}}
+
+Four canonical orthographic views $\to$ executable CadQuery code. The codegen evaluation set comprises \textbf{350 stratified items spanning all 106 BenchCAD families} (full-family coverage, no family omitted). We report five metrics: \emph{(i)} \textbf{rotation-invariant IoU} between generated and ground-truth occupancy grids under the cube symmetry group, with $\mathrm{Pass}_{\mathrm{IoU}\geq 0.5}$ as the headline pass rate; \emph{(ii)} mean \textbf{Chamfer distance} between meshes after rigid alignment; \emph{(iii)} \textbf{Feature-F1}, precision/recall over detected geometric features (holes, fillets, chamfers, threads, $\ldots$); \emph{(iv)} \textbf{essential-op recall}, the fraction of items whose ground-truth program calls operation $o$ for which the model's emitted code also calls $o$ at least once (probing the Op Vocabulary Gap, \S\ref{sec:op_gap}); \emph{(v)} \textbf{execution rate}, the fraction of emitted programs that run without error. IoU is the primary metric; the other four disambiguate IoU ties and identify whether failures are geometric, structural, vocabulary-level, or syntactic.
+
+The headline aggregate is the macro-mean across the four tasks. Question bank construction, edit-pair protocol, rotation-invariant IoU, and a scale-invariance ablation appear in Appendices~\ref{app:qbank}, \ref{app:edit_protocol}, \ref{app:iou}, and \ref{app:ablation} respectively.

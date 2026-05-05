@@ -53,7 +53,7 @@ cadrille-RL~\citep{Kolodiazhnyi2026}  & 22.7 & 28.3 & 45.2 & 11.0 & 25.8 & 26.6 
 \small
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.15}
-\caption{\textbf{Main evaluation on BenchCAD-QA, by capability axis.} Per-model accuracy across the four BenchCAD-QA capability axes: \emph{Holistic Visual Recognition}, \emph{CAD Operation Understanding}, \emph{Industrial Parametric Abstraction}, and \emph{Spatial / Code Reasoning} (\S\ref{sec:capability}). \textbf{Total score} is the weighted mean across axes. Rows with empty entries indicate models not yet evaluated.}
+\caption{\textbf{Main evaluation on BenchCAD-QA (\texttt{qa\_img} modality), by capability axis.} Per-model accuracy on the visual-conditioned QA bank across the four BenchCAD-QA capability axes: \emph{Holistic Visual Recognition}, \emph{CAD Operation Understanding}, \emph{Industrial Parametric Abstraction}, and \emph{Spatial / Code Reasoning} (\S\ref{sec:capability}). \textbf{Total score} is the weighted mean across axes. Rows with empty entries indicate models not yet evaluated. The matched code-conditioned modality is reported in Table~\ref{tab:main_eval_code}.}
 \label{tab:main_eval}
 \begin{tabular}{l c c c c c}
 \toprule
@@ -65,9 +65,9 @@ Model
  & \shortstack{Total\\score} \\
 \midrule
 claude-opus-4.7-nonthinking         & 0.699 & 0.464 & 0.426 & 0.668 & 0.526 \\
-claude-opus-4.7-thinking            & 0.715 & 0.485 & 0.421 & 0.614 & 0.530 \\
-gemini-3.1-pro-preview-nonthinking  & 0.750 & 0.462 & 0.536 & 0.688 & \textbf{0.587} \\
-gemini-3.1-pro-preview-thinking     & 0.722 & 0.426 & 0.551 & 0.669 & 0.576 \\
+claude-opus-4.7-thinking            & 0.715 & \textbf{0.485} & 0.421 & 0.614 & 0.530 \\
+gemini-3.1-pro-preview-nonthinking  & \textbf{0.750} & 0.462 & 0.536 & \textbf{0.688} & \textbf{0.587} \\
+gemini-3.1-pro-preview-thinking     & 0.722 & 0.426 & \textbf{0.551} & 0.669 & 0.576 \\
 gpt-4o                              & 0.599 & 0.408 & 0.431 & 0.396 & 0.464 \\
 gpt-5.3-chat-latest                 & 0.636 & 0.423 & 0.488 & 0.548 & 0.513 \\
 gpt-5.3-thinking                    & 0.650 & 0.429 & 0.482 & 0.534 & 0.514 \\
@@ -76,6 +76,7 @@ moonshot-v1-8k-vision-preview       & --    & --    & --    & --    & --    \\
 openai-o3                           & --    & --    & --    & --    & --    \\
 google-gemma-4-31b-it (free)        & --    & --    & --    & --    & --    \\
 kimi-k2.6                           & --    & --    & --    & --    & --    \\
+\midrule
 \textit{blank image (baseline)}     & --    & --    & --    & --    & --    \\
 \bottomrule
 \end{tabular}
