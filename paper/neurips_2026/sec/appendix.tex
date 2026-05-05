@@ -41,9 +41,9 @@ Table~\ref{tab:dataset} reports the dataset composition; Table~\ref{tab:capabili
 
 \input{tables/tab_capability}
 
-\input{tables/tab_main_eval_qa_img}
-
 \input{tables/tab_main_eval_qa_code}
+
+\input{tables/tab_codegen_unified}
 
 \input{tables/tab_family_cliff}
 
@@ -176,7 +176,7 @@ Table~\ref{tab:op_coverage} contrasts BenchCAD's 45+ distinct CadQuery operation
 Each ``\cmark'' indicates that the operation is exercised in at least one family/sample of the corresponding dataset, not merely supported by the underlying API.
 
 \section{Per-Family Results}
-\label{app:full_results}
+\label{app:per_family}
 
 \paragraph{Hard-tier families and their dependency graphs.} The hard tier concentrates families with dense parameter dependencies: involute gears (module $\times$ tooth count $=$ pitch diameter; addendum and dedendum derived from module), helical springs (free length determined by turn count $\times$ pitch), roller chains (link count constrains pitch diameter), bevel gears (ISO 23509 cone-angle relations), and twist drills (DIN 338 helix angle and point angle dependencies).
 These families collectively account for 89\% of the multi-step edit failures (\S\ref{sec:exp_edit}).
