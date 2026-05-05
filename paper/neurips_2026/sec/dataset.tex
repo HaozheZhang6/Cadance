@@ -7,11 +7,13 @@
 \emph{(P3) Family-level taxonomy}: records are grouped into 106 named families (\texttt{coil\_spring}, \texttt{helical\_gear}, \texttt{twisted\_drill}, $\ldots$), each implemented by a small Python module exposing a typed parameter schema, sampler, validator, and deterministic builder --- making coverage measurable and per-family analysis trivial.
 \emph{(P4) Operation breadth}: the dataset exercises 45+ distinct CadQuery operations spanning sketch primitives, contour drawing, workplane manipulation, sketch arrays, 3D operations (extrude, twist-extrude, revolve, loft, sweep), Booleans (union, cut), hole variants, and edge finishing (Appendix~\ref{app:ops}).
 
+
+
 \paragraph{CadGen pipeline.} The data construction pipeline, \textbf{CadGen}, processes each family$\times$difficulty bucket through three stages:
 \begin{itemize}
     \item \textbf{Parameter Sampling:} deterministic sampling under standard-table constraints from the JSON schema.
     \item \textbf{Program Emission:} the family's \texttt{make\_program} returns an op sequence consumed by a builder that produces both Python CadQuery source and a CadQuery \texttt{Workplane} object aligned by construction.
-    \item \textbf{Execution \& Verification:} sandboxed re-execution; quarantine on parse error, $>30$\,s timeout, zero/inverted volume, or rotation-invariant voxel IoU $< 0.99$ against the builder's direct output.
+    \item \textbf{Execution \& Verification:} sandboxed re-execution; quarantine on parse error, $>30$\,s timeout to filter out complex geometries, zero/inverted volume, following by expert manual check.
 \end{itemize}
 As of May 2026, 17{,}900 records have passed all verification checks.
 
@@ -22,11 +24,4 @@ Each family supports easy/medium/hard tiers defined by parameter complexity.
 Every release ships a Croissant 1.0 metadata file~\citep{Croissant2024} validated by the public checker, hosted on Hugging Face under \texttt{BenchCAD/cad\_bench} with verification-pipeline source under MIT and data under CC-BY-4.0.
 Full datasheet (Appendix~\ref{app:datasheet}) and per-family schemas accompany the release.
 
-% tab_dataset moved to Appendix~\ref{app:datasheet}
 
-\begin{figure*}[t]
-  \centering
-  \includegraphics[width=\linewidth]{figures/fig_2.png}
-  \caption{\textbf{BenchCAD dataset composition.} \emph{Left:} representative renders across the 106 families, spanning fasteners, transmission components, structural elements, fluid fittings, panels, hardware, and enclosures. \emph{Right:} 7-category functional taxonomy; 52/106 families (49\%) are anchored to a named ISO/DIN/EN/ASME/IEC standard.}
-  \label{fig:dataset_overview}
-\end{figure*}

@@ -12,8 +12,19 @@ For each task, we include a \emph{blind baseline} and evaluate model capabilitie
 \subsection{Main Results}
 \label{sec:exp_main}
 
-Table~\ref{tab:main_eval_qa_img} indicates that Vision QA remains challenging for current frontier MLLMs. Performance is relatively stronger on Holistic Visual Recognition and Spatial / Code Reasoning, but consistently weaker on CAD Operation Understanding and Industrial Parametric Abstraction, suggesting that models can often recognize global shapes while still struggling to infer CAD operations and parametric design intent. 
-Moreover, thinking mode does not consistently improve performance, because extended reasoning can amplify hallucinations about geometric structures, dimensions, or CAD operations. These results suggest that CAD QA requires more than generic reasoning ability; it demands precise visual grounding, CAD-specific knowledge, and robust parametric abstraction.
+\begin{wrapfigure}{r}{0.5\linewidth} % r 表示图片靠右，宽度占行宽的 50%
+  \vspace{-20pt} % 可选：微调与上方文字的间距
+  \centering
+  \includegraphics[width=0.9\linewidth]{figures/fig_5.png}
+  \caption{\textbf{BenchCAD-Edit by task type.} }
+  \label{fig:edit_task}
+  \vspace{-10pt} % 可选：微调与下方文字的间距
+\end{wrapfigure}
+
+Table~\ref{tab:main_eval_qa_img} indicates that Vision QA remains challenging for current frontier MLLMs. Performance is relatively stronger on Holistic Visual Recognition and Spatial / Code Reasoning, but consistently weaker on CAD Operation Understanding and Industrial Parametric Abstraction, suggesting that models can often recognize global shapes while still struggling to infer CAD operations and parametric design intent. Moreover, thinking mode does not consistently improve performance, because extended reasoning can amplify hallucinations about geometric structures, dimensions, or CAD operations. These results suggest that CAD QA requires more than generic reasoning ability; it demands precise visual grounding, CAD-specific knowledge, and robust parametric abstraction.
+
+
+
 
 
 Table~\ref{tab:main_eval_qa_code} shows that direct access to CadQuery code substantially improves QA performance compared with the vision-conditioned setting in Table~\ref{tab:main_eval_qa_img}.
@@ -38,7 +49,7 @@ Second, execution rate decouples from total score: the model with the highest ex
 \begin{figure*}[t]
   \centering
   \includegraphics[width=0.65\linewidth]{figures/fig_3.png}
-  \caption{\textbf{Per-model performance across the four BenchCAD task categories} (frontier proprietary subset; open-source baselines in Table~\ref{tab:main_eval_qa_img}). Bar style encodes task; colour encodes model family; within-family variants distinguish thinking vs.\ non-thinking. Two patterns motivate the diagnostics that follow: (i) QA-img is consistently lower than QA-code (\emph{Holistic Spatial and Detailing Deficit}, \S\ref{sec:exp_failure_analysis}), and (ii) CodeEdit trails CodeGen on every model, reflecting \emph{Industrial Common Sense Gap} (\S\ref{sec:exp_edit}).}
+  \caption{\textbf{Per-model performance across the four BenchCAD task categories} (frontier proprietary subset; open-source baselines in Table~\ref{tab:main_eval_qa_img}). Bar style encodes task; colour encodes model family; within-family variants distinguish thinking vs.\ non-thinking. Two patterns motivate the diagnostics that follow: (i) QA-img is consistently lower than QA-code (\emph{Holistic Spatial and Detailing Deficit}, \S\ref{sec:exp_capability}), and (ii) CodeEdit trails CodeGen on every model, reflecting \emph{Industrial Common Sense Gap} (\S\ref{sec:exp_edit}).}
   \label{fig:main_results}
 \end{figure*}
 
@@ -52,7 +63,7 @@ Building on the layered evaluation introduced in \S\ref{sec:capability}, we exam
 
 \textbf{$L_1$ --- spatial understanding.} On a bearing retainer cap, the 24-axis rotation-invariant IoU is substantially higher than the single-axis IoU --- a diagnostic signature that the generated geometry is approximately correct but oriented on the wrong base workplane. Inspecting the emitted code confirms it: the model defaults to the XY plane that dominates its training distribution and fails to recognise that the part is naturally extruded along XZ. This is a perception failure at the spatial-anchoring layer rather than a geometric or symbolic one, and one that no amount of code-side reasoning can recover.
 
-\textbf{$L_2$ --- operation understanding.} A twisted bracket is generated as a flat plate with mounting holes; the requisite twist-extrusion is absent from the emitted program entirely. The model recognises the part outline at $L_1$ but fails to map the visible torsion to the corresponding CAD operation, exposing an Op Vocabulary Gap (\S\ref{app:op_gap_full}) at the operation-understanding layer.
+\textbf{$L_2$ --- operation understanding.} A twisted bracket is generated as a flat plate with mounting holes; the requisite twist-extrusion is absent from the emitted program entirely. The model recognises the part outline at $L_1$ but fails to map the visible torsion to the corresponding CAD operation, exposing an Op Vocabulary Gap (\S\ref{sec:op_gap}) at the operation-understanding layer.
 
 \textbf{$L_3$ --- parametric abstraction.} A coil spring with non-uniform pitch is reproduced as a uniform helix. The model recognises the spring family at $L_1$ and emits a helical sweep at $L_2$, yet flattens the pitch profile from variable to constant --- losing the parametric structure that an engineer would have written explicitly. This is an $L_3$ failure invisible to either $L_1$ or $L_2$ metrics, and it is precisely the class of failure that motivates anchoring BenchCAD families to ISO/DIN/EN/ASME/IEC standards.
 
@@ -81,13 +92,6 @@ The cliff persists across architectures: closed-source post-training quality dom
 \subsection{The Edit Task: Verified Parametric Editing}
 \label{sec:exp_edit}
 
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=0.95\linewidth]{figures/fig_5.png}
-  \caption{\textbf{BenchCAD-Edit strict pass@1 by task type.} Per-model strict pass rate ($\mathrm{IoU} \geq 0.99$) on T1--T5 (Table~\ref{tab:task_taxonomy}). Pass rate is monotone in task type, with T5 (geometry rebuild) at the floor for every model evaluated.}
-  \label{fig:edit_task}
-\end{figure}
-
 \paragraph{Setup.} BenchCAD-Edit comprises 748 verified $(\text{original}, \text{instruction}, \text{target})$ triples balanced across all 106 families and stratified into five task types: T1 \emph{literal\_replace}, T2 \emph{chain\_transform}, T3 \emph{relative\_compute}, T4 \emph{feature\_edit}, T5 \emph{geometry\_rebuild} (Table~\ref{tab:task_taxonomy}, Appendix~\ref{app:edit_protocol}). Each target STEP is rebuilt with the same rotation-invariant voxel IoU $\geq 0.99$ pipeline used for BenchCAD-Synth (\S\ref{sec:dataset}); a passing edit must reproduce the target solid exactly, not merely \emph{look} similar.
 
 \paragraph{Metrics.} For a model prediction with rendered solid $S_g$, original solid $S_o$, and target solid $S_t$, let $\mathrm{IoU}_{\mathrm{rot}}$ denote the 6-orientation rotation-invariant voxel IoU at $64^3$. Over $n$ records (failed executions count as zero IoU) we report four pass@1 metrics:
@@ -101,10 +105,9 @@ where $\mathcal{N} = \{i : \mathrm{IoU}_{\mathrm{rot}}(S_o^i, S_t^i) \leq 0.99\}
 
 \paragraph{Models.} We score ten code LLMs spanning 2024--2026: \texttt{gpt-4o} (OpenAI, 2024), \texttt{o3} (OpenAI, 2025), \texttt{gpt-oss-120b} (OpenAI open-weights, 2025), \texttt{gpt-5.3-chat-latest} with and without \texttt{reasoning=medium} (OpenAI, 2025--26), \texttt{nemotron-3-super-120b-a12b} (NVIDIA, 2026), \texttt{gemini-3.1-pro-preview} with and without thinking (Google DeepMind, 2026), and \texttt{claude-opus-4-7} with and without \texttt{reasoning=high} (Anthropic, 2026). Closed models are queried through their official APIs; open-weights models via OpenRouter.
 
-\paragraph{Findings.} Table~\ref{tab:main_results} ranks the ten models on the four pass@1 metrics; Figure~\ref{fig:edit_task} disaggregates strict pass rate over the five task types. Three patterns hold across the leaderboard.
-\textbf{Difficulty stratification.} Strict pass rate is monotone in task type: T1 saturates near $1.0$ on every modern model, T2--T4 stratify by reasoning capability, and T5 (geometry rebuild) collapses to the floor for every model evaluated, including the reasoning-tier closed frontier.
-\textbf{Geometric closeness $\neq$ parametric exactness.} \texttt{mean\_iou} stays $0.05$--$0.25$ above \texttt{strict\_rate} on every model, so models routinely produce edits that are \emph{geometrically close} but fail the parametric exactness threshold. \texttt{mean\_norm} confirms this: even the strongest model recovers only $\sim 86\%$ of the original-to-target headroom.
-\textbf{Industrial Common Sense Gap.} Disaggregating strict pass into target success and non-target preservation reveals that \textbf{64\% of nominally successful edits silently corrupt a non-targeted feature} --- enlarging a bore while changing the tooth count, adding a chamfer while shifting a hole's centre. This locality failure is invisible to any prior CAD eval that scores only the rendered output. Multi-step edits requiring parameter-dependency reasoning (\emph{``increase tooth count to 30 while preserving the pitch diameter''}) collapse to under $15\%$ across every model, including \texttt{gpt-5.3-chat-latest} and \texttt{claude-opus-4-7}.
+\paragraph{Findings.} Table~\ref{tab:main_results} ranks the ten models on the four pass@1 metrics; Figure~\ref{fig:edit_task} disaggregates strict pass rate over the five task types. Three patterns hold across the leaderboard. Difficulty stratification. Strict pass rate is monotone in task type: T1 saturates near $1.0$ on every modern model, T2--T4 stratify by reasoning capability, and T5 (geometry rebuild) collapses to the floor for every model evaluated, including the reasoning-tier closed frontier.
+Geometric closeness $\neq$ parametric exactness. mean\_iou stays $0.05$--$0.25$ above \texttt{strict\_rate} on every model, so models routinely produce edits that are \emph{geometrically close} but fail the parametric exactness threshold. \texttt{mean\_norm} confirms this: even the strongest model recovers only $\sim 86\%$ of the original-to-target headroom.
+Industrial Common Sense Gap. Disaggregating strict pass into target success and non-target preservation reveals that \textbf{64\% of nominally successful edits silently corrupt a non-targeted feature} --- enlarging a bore while changing the tooth count, adding a chamfer while shifting a hole's centre. This locality failure is invisible to any prior CAD eval that scores only the rendered output. Multi-step edits requiring parameter-dependency reasoning (\emph{``increase tooth count to 30 while preserving the pitch diameter''}) collapse to under $15\%$ across every model, including \texttt{gpt-5.3-chat-latest} and \texttt{claude-opus-4-7}.
 
 A failure-code breakdown (E001--E004 defined in Table~\ref{tab:error_codes}; per-model distribution in Fig.~\ref{fig:edit_error_pies}) shows the dominant failure shifts with model class: \texttt{gpt-4o} and \texttt{gpt-oss-120b} are bottlenecked by \emph{wrong\_operation} (real API, wrong selector or argument), while reasoning-tier models trade hallucinations for \emph{no\_op} edits in which the agent rewrites the original byte-for-byte.
 

@@ -17,12 +17,12 @@ We organise the QA bank along a four-level capability hierarchy (Figure~\ref{fig
  \emph{(ii) $L_2$ CAD Operations Understanding} --- read CadQuery (or infer from geometry) and map operations to features in the correct execution order; 
  \emph{(iii) $L_3$ Industrial Parametric Abstraction} --- abstract observed geometry into the parametric structure an engineer would write, respecting standard-table relations and engineering conventions; 
  \emph{(iv) $L_4$ Spatial/Code Reasoning} --- compose the lower three levels into syntactically valid, executable parametric code. 
- The matched-pair design isolates the levels: a large \textsc{Vision QA}-\textsc{Code QA} gap on the same questions reveals the cost of replacing direct code access with visual recognition (the \textbf{Holistic Spatial and Detailing Deficit}, \S\ref{sec:exp_failure_analysis}); low absolute \textsc{Code QA} flags a CAD Operational Blindspot at $L_2$.
+ The matched-pair design isolates the levels: a large \textsc{Vision QA}-\textsc{Code QA} gap on the same questions reveals the cost of replacing direct code access with visual recognition (the \textbf{Holistic Spatial and Detailing Deficit}, \S\ref{sec:exp_capability}); low absolute \textsc{Code QA} flags a CAD Operational Blindspot at $L_2$.
 % The same hierarchy further factorises the remaining tasks: \textsc{Vision2Code} primarily exercises $L_1$–$L_2$ (visual recognition $\to$ op identification), while \textsc{Edit Code} primarily exercises $L_3$–$L_4$ (parametric abstraction $\to$ code-level reasoning). The layered design thus turns the benchmark into a diagnostic instrument --- per-task scores localise each model's bottleneck to a specific level, and per-level cross-task contrasts reveal which capability is the next priority to strengthen.
 
 \begin{figure*}[t]
   \centering
-  \includegraphics[width=0.75\linewidth]{figures/fig_6.png}
+  \includegraphics[width=0.9\linewidth]{figures/fig_6.png}
   \caption{\textbf{BenchCAD-QA capability hierarchy.} Four-level capabilities (L1 Holistic Visual Recognition $\to$ L4 Spatial/Code Reasoning) with paired \textsc{Vision QA} / \textsc{Code QA} examples per level (\S\ref{sec:capability}).}
 
   \label{fig:capability_hierarchy}
