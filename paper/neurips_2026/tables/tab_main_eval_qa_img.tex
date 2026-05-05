@@ -5,7 +5,7 @@
 \small
 \setlength{\tabcolsep}{4pt}
 \caption{\textbf{Main evaluation on BenchCAD-Lite (530 stratified samples).} Pass rate (\%) per task; \textbf{Avg} is the 5-task macro-mean. \emph{img2cq}: rotation-invariant IoU $\geq 0.5$. \emph{qa\_*}: numeric answer accuracy under $\pm$5\% tolerance for ratios and exact match for integers. \emph{edit\_*}: Pass@1 = target-success $\wedge$ non-target preservation, both at IoU $\geq 0.99$. Bold marks the best per group. \textcolor{red}{Numbers in this draft are placeholders awaiting full evaluation runs.}}
-\label{tab:main_eval}
+\label{tab:main_eval_qa_img}
 \begin{tabular}{lrrrrrr}
 \toprule
 Model & img2cq & qa\_img & qa\_code & edit\_img & edit\_code & \textbf{Avg} \\
@@ -53,8 +53,8 @@ cadrille-RL~\citep{Kolodiazhnyi2026}  & 22.7 & 28.3 & 45.2 & 11.0 & 25.8 & 26.6 
 \small
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.15}
-\caption{\textbf{Main evaluation on BenchCAD-QA (\texttt{qa\_img} modality), by capability axis.} Per-model accuracy on the visual-conditioned QA bank across the four BenchCAD-QA capability axes: \emph{Holistic Visual Recognition}, \emph{CAD Operation Understanding}, \emph{Industrial Parametric Abstraction}, and \emph{Spatial / Code Reasoning} (\S\ref{sec:capability}). \textbf{Total score} is the weighted mean across axes. Rows with empty entries indicate models not yet evaluated. The matched code-conditioned modality is reported in Table~\ref{tab:main_eval_code}.}
-\label{tab:main_eval}
+\caption{\textbf{Main evaluation on BenchCAD-QA (\texttt{qa\_img} modality), by capability axis.} Per-model accuracy on the visual-conditioned QA bank across the four BenchCAD-QA capability axes: \emph{Holistic Visual Recognition}, \emph{CAD Operation Understanding}, \emph{Industrial Parametric Abstraction}, and \emph{Spatial / Code Reasoning} (\S\ref{sec:capability}). \textbf{Total score} is the weighted mean across axes. Rows with empty entries indicate models not yet evaluated. The matched code-conditioned modality is reported in Table~\ref{tab:main_eval_qa_code}.}
+\label{tab:main_eval_qa_img}
 \begin{tabular}{l c c c c c}
 \toprule
 Model
