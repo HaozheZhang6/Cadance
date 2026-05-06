@@ -5,12 +5,12 @@
 \item {\bf Claims}
     \item[] Question: Do the main claims made in the abstract and introduction accurately reflect the paper's contributions and scope?
     \item[] Answer: \answerYes{}
-    \item[] Justification: The abstract and \S\ref{sec:intro} state three contributions (BenchCAD dataset and CadGen pipeline; capability-decomposed task suite including the first verified parametric edit task; Vision Bottleneck and Edit Leakage diagnostics). Each claim is substantiated in \S\ref{sec:dataset}--\S\ref{sec:experiments} with experimental results on 30+ models.
+    \item[] Justification: The abstract and \S\ref{sec:intro} state three contributions (BenchCAD dataset and CadGen pipeline; capability-decomposed task suite including the first verified parametric edit task; the Holistic Spatial and Detailing Deficit / CAD Operational Blindspot / Industrial Common Sense and Parametric Abstraction Gap diagnostics). Each claim is substantiated in \S\ref{sec:dataset}--\S\ref{sec:results} with experimental results on 10+ models.
 
 \item {\bf Limitations}
     \item[] Question: Does the paper discuss the limitations of the work performed by the authors?
     \item[] Answer: \answerYes{}
-    \item[] Justification: Appendix~\ref{app:limitations} is a dedicated Limitations section discussing procedural-vs-industrial data gap, the standard-anchored-vs-compliant distinction, the intentionally weak reference baseline, and the bounded scope of the Edit Leakage measurement.
+    \item[] Justification: Appendix~\ref{app:limitations} is a dedicated Limitations section discussing the standard-parametric-vs-industrial-CAD gap, the standard-anchored-vs-compliant distinction, and the bounded scope of the Industrial Common Sense Gap measurement.
 
 \item {\bf Theory assumptions and proofs}
     \item[] Question: For each theoretical result, does the paper provide the full set of assumptions and a complete (and correct) proof?
@@ -20,7 +20,7 @@
     \item {\bf Experimental result reproducibility}
     \item[] Question: Does the paper fully disclose all the information needed to reproduce the main experimental results of the paper to the extent that it affects the main claims and/or conclusions of the paper (regardless of whether the code and data are provided or not)?
     \item[] Answer: \answerYes{}
-    \item[] Justification: \S\ref{sec:exp_main} lists the 30+ evaluated models, decoding settings, and per-task scoring; Appendix~\ref{app:reproduce} provides the full reproduction recipe (data fetch command, runner invocation, adapter wrappers, training config). Dataset, code, and baseline checkpoint are released under permissive licences.
+    \item[] Justification: \S\ref{sec:experiments} lists the 10+ evaluated models, decoding settings, and per-task scoring; Appendix~\ref{app:reproduce} provides the reproduction recipe (data fetch command, runner invocation, adapter wrappers, training config). Dataset, code, and baseline checkpoint are released under permissive licences.
 
 
 \item {\bf Open access to data and code}
@@ -32,17 +32,17 @@
 \item {\bf Experimental setting/details}
     \item[] Question: Does the paper specify all the training and test details (e.g., data splits, hyperparameters, how they were chosen, type of optimizer) necessary to understand the results?
     \item[] Answer: \answerYes{}
-    \item[] Justification: \S\ref{sec:exp_main} specifies all evaluation settings (decoding temperature, wall-clock budget, hardware); \S\ref{sec:exp_training} specifies the open BenchCAD-trained baseline's training recipe (Qwen2-VL-2B, 2 epochs, lr $1\times10^{-5}$, 8$\times$A800-80GB, $\sim$9 GPU-hours). Appendix~\ref{app:reproduce} provides the full configs.
+    \item[] Justification: \S\ref{sec:exp_setup} specifies the evaluation settings; \S\ref{sec:exp_training} specifies the open BenchCAD-trained baseline's training recipe (Qwen3-VL-2B; SFT three splits + GRPO). Appendix~\ref{app:reproduce} provides the runner commands and points to the released training config.
 
 \item {\bf Experiment statistical significance}
     \item[] Question: Does the paper report error bars suitably and correctly defined or other appropriate information about the statistical significance of the experiments?
     \item[] Answer: \answerNo{}
-    \item[] Justification: All reported numbers are single-seed evaluations on BenchCAD (530 samples) due to the cost of running 30+ models including proprietary APIs. We discuss this limitation and report per-family stratification (Table~\ref{tab:family_cliff}) so that variance can be assessed across difficulty tiers. Future releases will include multi-seed error bars for the open BenchCAD-trained baseline.
+    \item[] Justification: All reported numbers are single-seed evaluations due to the cost of running 10+ models including proprietary APIs. We report per-family stratification (Table~\ref{tab:family_cliff}) so variance can be assessed across difficulty tiers. Future releases will include multi-seed error bars for the open BenchCAD-trained baseline.
 
 \item {\bf Experiments compute resources}
     \item[] Question: For each experiment, does the paper provide sufficient information on the computer resources (type of compute workers, memory, time of execution) needed to reproduce the experiments?
     \item[] Answer: \answerYes{}
-    \item[] Justification: \S\ref{sec:exp_main} states the inference cluster (8$\times$A800-80GB nodes); \S\ref{sec:exp_training} states baseline training compute ($\approx$9 GPU-hours on the same hardware); Appendix~\ref{app:reproduce} states that BenchCAD evaluation runs in under two hours per model on a single A100.
+    \item[] Justification: \S\ref{sec:exp_setup} describes inference compute; \S\ref{sec:exp_training} describes baseline training; Appendix~\ref{app:reproduce} provides the runner invocation.
 
 \item {\bf Code of ethics}
     \item[] Question: Does the research conducted in the paper conform, in every respect, with the NeurIPS Code of Ethics?
@@ -58,12 +58,12 @@
 \item {\bf Safeguards}
     \item[] Question: Does the paper describe safeguards that have been put in place for responsible release of data or models that have a high risk for misuse?
     \item[] Answer: \answerNA{}
-    \item[] Justification: BenchCAD contains procedurally generated parametric CAD parts referencing public engineering standards. The released BenchCAD-trained baseline is a Qwen2-VL-2B SFT model with intentionally weak performance and poses no high-risk misuse potential beyond what is already available in open-source CAD ecosystems.
+    \item[] Justification: BenchCAD contains expert-authored parametric CAD parts referencing public engineering standards. The released open baseline (Qwen3-VL-2B) poses no high-risk misuse potential beyond what is already available in open-source CAD ecosystems.
 
 \item {\bf Licenses for existing assets}
     \item[] Question: Are the creators or original owners of assets used in the paper properly credited and are the license and terms of use explicitly mentioned and properly respected?
     \item[] Answer: \answerYes{}
-    \item[] Justification: We credit DeepCAD~\citep{Wu2021}, Fusion360 Gallery~\citep{Willis2021fusion}, GenCAD~\citep{GenCAD2025}, Qwen2-VL~\citep{Qwen2VL}, and the cadrille/CADEvolve checkpoints (CC-BY-NC-4.0 and Apache-2.0 respectively) with explicit licence statements. Re-distribution of derived data complies with the source licences.
+    \item[] Justification: We credit DeepCAD~\citep{Wu2021}, Fusion360 Gallery~\citep{Willis2021fusion}, Qwen2-VL~\citep{Qwen2VL}, and the cadrille/CADEvolve checkpoints with explicit licence statements. Re-distribution of derived data complies with the source licences.
 
 \item {\bf New assets}
     \item[] Question: Are new assets introduced in the paper well documented and is the documentation provided alongside the assets?
