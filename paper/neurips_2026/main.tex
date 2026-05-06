@@ -13,6 +13,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{microtype}
+\usepackage[most]{tcolorbox}
 \usepackage{xcolor}
 \usepackage{enumitem}
 \usepackage{graphicx}
@@ -37,15 +38,15 @@
 \maketitle
 
 \begin{abstract}
-Industrial CAD code generation requires the fusion of spatial understanding, parametric reasoning, and program synthesis:
-producing executable code that satisfies industry tolerances, feature detail, and the unwritten engineering conventions
+Industrial CAD code generation requires the fusion of spatial understanding, parametric reasoning, and program synthesis to
+produce executable code that satisfies industry tolerances, feature detail, and the unwritten engineering conventions
 that distinguish a manufacturable part from primitive geometry.
 Frontier multimodal language models exhibit nascent capability along each axis individually,
 yet their joint alignment for industrial CAD remains under-evaluated.
-We present \textbf{BenchCAD}, a unified, capability-decomposed evaluation framework whose four task categories
-correspond to stages of practicing CAD-engineering work:
+We present \textbf{BenchCAD}, a unified, capability-decomposed evaluation framework. BenchCAD contains four task categories
+that correspond to stages of practicing CAD-engineering work:
 image-to-code, image- and code-conditioned QA, and instruction-guided editing pairs.
-The dataset contains 17{,}900 execution-verified CadQuery parts across 106 industrial part families anchored to
+The dataset contains 17{,}900 execution-verified CadQuery parts across 106 industrial part families anchored by
 47 industry standards (e.g. ISO, DIN, EN) specification codes (twist drills, bevel gears, compression springs, propeller, eyebolt),
 exercising 45+ distinct CadQuery operations including helical sweeps, lofts, twist-extrudes,
 and parametric involute-gear construction.

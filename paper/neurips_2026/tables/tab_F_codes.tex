@@ -1,0 +1,25 @@
+\begin{table}[t]
+\centering
+\caption{\textbf{Failure-mode taxonomy (F-codes).} Eight semantic failure modes used in the per-model failure analysis (Fig.~\ref{fig:edit_F_bars}). Each F-code is mapped to one capability layer: L1 \emph{Holistic Visual Understanding}, L2 \emph{CAD Operations Comprehension}, L3 \emph{Industrial Parametric Abstraction}, L4 \emph{Spatial Reasoning $+$ Code Synthesis}. Hand-labelled on the failing predictions of every BenchCAD-Edit run.}
+\label{tab:failure_codes}
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+% allow line breaks at underscores in fixed-width name cells
+\newcommand{\fname}[1]{\seqsplitfallback{#1}}
+\providecommand{\seqsplitfallback}[1]{#1}
+\begin{tabular}{@{}p{0.06\linewidth}p{0.18\linewidth}p{0.28\linewidth}p{0.18\linewidth}p{0.18\linewidth}@{}}
+\toprule
+\textbf{Code} & \textbf{Name} & \textbf{Definition} & \textbf{Detection cue} & \textbf{Representative failure} \\
+\midrule
+F01 \mbox{(L1)} & wrong\_\allowbreak param\_\allowbreak value & Right operation, wrong numerical value: dim, diameter, radius, length, or angle written off-target; geometry shape-correct but a single number misses. & $\mathrm{IoU}_{\text{gen}} \geq 0.9$, output differs from target by a single literal. & Model writes radius $5.6$ when prompt asks for $5.85$; cylinder topology unchanged. \\
+F02 \mbox{(L1)} & wrong\_\allowbreak feature\_\allowbreak instance & Among multiple similar features (front vs.\ back ring, two legs, several circles), the model edits the wrong one or perturbs a neighbour. & $\mathrm{IoU}_{\text{gen}}$ swings markedly above OR below baseline; topology preserved. & Edit asks to enlarge the rear bore; model enlarges the front bore. \\
+F03 \mbox{(L1)} & wrong\_\allowbreak placement & Right operation and value, but feature placed at slightly wrong coordinate, face, or orientation. & $\mathrm{IoU}_{\text{gen}} \geq 0.95$, small rigid offset against target. & Hole drilled $2$\,mm off-centre on a face whose origin the model misread. \\
+F04 \mbox{(L2)} & wrong\_\allowbreak axis\_\allowbreak or\_\allowbreak direction & Rotation, mirror, or extrude direction wrong: rotate axis tuple permuted, mirror plane misidentified, sweep tangent flipped. & \texttt{status==ok}; rotated/mirrored bbox mismatches target axis. & gpt-4o rotate: \texttt{rotate((axis), (origin), deg)} with first two args swapped. \\
+F05 \mbox{(L2)} & wrong\_\allowbreak selector\_\allowbreak or\_\allowbreak face & \texttt{.faces()}/\texttt{.edges()} selector returns wrong subset: \texttt{>Y} chosen on a Z-up part, OR-selector returns multi-face, lofted-face selector silently misses. & \texttt{status==ok}; operation applied to wrong topology vs.\ target. & Chamfer applied to all top edges instead of the single outer rim. \\
+F06 \mbox{(L2)} & near\_\allowbreak no\_\allowbreak op\_\allowbreak under\_\allowbreak edit & Output $\approx$ original: comment-only edit, deleted wrong line, retained the feature meant to be removed, or applied the edit with no observable geometric effect. & $|\mathrm{IoU}_{\text{gen}} - \mathrm{IoU}_{\text{orig}}| < 0.005$. & claude-opus-4-7 (no-think): on $49\%$ of the failed records that rewrites the original byte-for-byte. \\
+F07 \mbox{(L3)} & incomplete\_\allowbreak multi\_\allowbreak update & Edit requires updating multiple symmetric or repeated instances (helical-sweep points, replicated bolts/legs); model updates only a subset. & $\mathrm{IoU}_{\text{gen}}$ plateaus below $1.0$ across attempts; partial symmetry break. & Cross-parameter dim asks to scale all four legs; model scales only two. \\
+F08 \mbox{(L4)} & compositional\_\allowbreak geometry\_\allowbreak mismatch & Composite or structural shape (slope strip, loft, sweep cross-section, multi-feature reorganisation) is partially right but does not match GT topology. & \texttt{status==ok}; $\mathrm{IoU}_{\text{gen}} \in [0.4, 0.95]$ on a T5-style edit. & Slope edit produces a chamfer of correct angle but along the wrong face strip. \\
+\bottomrule
+\end{tabular}
+\end{table}

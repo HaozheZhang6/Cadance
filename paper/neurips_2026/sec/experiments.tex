@@ -10,20 +10,22 @@ We evaluate 10+ models on BenchCAD with non-uniform per-task coverage; the headl
 
 \paragraph{Baselines.} Three model classes are evaluated:
 \emph{(i) Frontier proprietary MLLMs:} \textbf{GPT-4o}, \textbf{GPT-5.3} (thinking / non-thinking), \textbf{Claude Opus 4.7} (thinking / non-thinking), \textbf{Gemini 3.1 Pro} (thinking / non-thinking), \texttt{o3}.
-\emph{(ii) Open-source MLLMs / code LLMs:} Qwen2.5-VL, InternVL3, \texttt{gpt-oss-120b}, \texttt{nemotron-3-super-120b-a12b}.
-\emph{(iii) CAD-specialist lineage:} \texttt{cadrille-RL}~\citep{Kolodiazhnyi2026} and \texttt{CADEvolve v3}~\citep{Elistratov2026}, transferred from their DeepCAD/Fusion360 training distribution. Closed models are queried through their official APIs; open-weights models via OpenRouter.
+\emph{(ii) Open-source MLLMs / code LLMs:} Qwen3-VL, InternVL3, \texttt{gpt-oss-120b}, \texttt{nemotron-3-super-120b-a12b}.
+\emph{(iii) CAD-specialist lineage:} \texttt{cadrille-RL}~\citep{Kolodiazhnyi2026} and \texttt{CADEvolve v3}~\citep{Elistratov2026}. Closed models are queried through their official APIs; open-weights models via OpenRouter.
 
-\paragraph{Evaluation.} For \textsc{Vision QA} and \textsc{Code QA} (BenchCAD-QA, 2{,}400 paired image/code numeric items), accuracy is computed under $\pm 5\%$ tolerance for ratios and exact match for integers, broken out along the four-level capability hierarchy (\S\ref{sec:capability}). For \textsc{Vision2Code} we report \texttt{exec\_pct}, mean voxel \texttt{IoU}, mean Chamfer distance \texttt{CD}, mean Hausdorff distance \texttt{HD}, Feature-F1, essential-op recall \texttt{ess}, and a composite \texttt{total} score (Table~\ref{tab:codegen_unified}). For \textsc{Edit Code}, with rendered solid $S_g$, original solid $S_o$, and target solid $S_t$, let $\mathrm{IoU}(S_a, S_b)$ denote the voxel intersection-over-union at $64^3$. Over $n$ records (failed executions count as zero IoU) we report four pass@1 metrics:
+\paragraph{Evaluation.} For Vision QA and Code QA (BenchCAD-QA, 2{,}400 paired image/code numeric items), accuracy is computed under $\pm 5\%$ tolerance for ratios and exact match for integers, broken out along the four-level capability hierarchy (\S\ref{sec:capability}). For \textsc{Vision2Code} we report \texttt{exec\_pct}, mean voxel \texttt{IoU}, mean Chamfer distance \texttt{CD}, mean Hausdorff distance \texttt{HD}, Feature-F1, essential-op recall \texttt{ess}, and a composite \texttt{total} score (Table~\ref{tab:codegen_unified}). For \textsc{Edit Code}, with rendered solid $S_g$, original solid $S_o$, and target solid $S_t$, let $\mathrm{IoU}(S_a, S_b)$ denote the voxel intersection-over-union. Over $n$ records we report the normalized accuracy eliminate the bias from varying original-target IoU across edit pairs:
 \begin{align}
-\mathrm{exec\_rate} &= \tfrac{1}{n}\textstyle\sum_i \mathbf{1}[\,\text{prediction}_i\ \text{ran}\,], \label{eq:exec}\\
-\mathrm{strict\_rate} &= \tfrac{1}{n}\textstyle\sum_i \mathbf{1}[\mathrm{IoU}(S_g^i, S_t^i) \geq 0.99], \label{eq:strict}\\
-\mathrm{mean\_iou}   &= \tfrac{1}{n}\textstyle\sum_i \mathrm{IoU}(S_g^i, S_t^i), \label{eq:miou}\\
-\mathrm{mean\_norm}  &= \tfrac{1}{|\mathcal{N}|}\textstyle\sum_{i \in \mathcal{N}} \mathrm{clip}\!\left(\tfrac{\mathrm{IoU}(S_g^i, S_t^i) - \mathrm{IoU}(S_o^i, S_t^i)}{1 - \mathrm{IoU}(S_o^i, S_t^i)},\,0,\,1\right), \label{eq:norm}
+\label{eq:edit_acc}
+\mathrm{Acc}_{\mathrm{norm}}
+= \frac{1}{n}\sum_{i=1}^{n}
+\mathrm{clip}\!\left(
+\frac{\mathrm{IoU}(S_g^i, S_t^i) - \mathrm{IoU}(S_o^i, S_t^i)}
+{1 - \mathrm{IoU}(S_o^i, S_t^i)}, 0, 1
+\right).
 \end{align}
-where $\mathcal{N} = \{i : \mathrm{IoU}(S_o^i, S_t^i) \leq 0.99\}$ excludes degenerate records. \texttt{mean\_norm} is a headroom-normalised improvement: $1$ means the model fully traversed the original-to-target gap. A complementary 6-orientation rotation-invariant voxel IoU is computed alongside the standard IoU and used only for failure attribution (\S\ref{sec:exp_failure_analysis}, \emph{wrong-plane} diagnostic).
+Accuracy is a headroom-normalised improvement, where $1$ means the model fully traversed the original-to-target gap. 
 
-\paragraph{Training (open BenchCAD baseline).}
+\paragraph{Training}
 \label{sec:exp_training}
 For reproducibility we train an open Qwen3-VL-2B baseline whose scores appear in the bottom block of Table~\ref{tab:codegen_unified}.
-\textbf{SFT}: two splits --- IID (all 106 families seen at train time) and OOD (10 mech.-transmission families held out, evaluated on those held-out families).
-\textbf{RL}: on-policy GRPO variant from each SFT checkpoint with reward $r{=}0.2\,\mathrm{ess}{+}0.8\,\mathrm{IoU}$ ($r{=}-1$ on parse error / timeout / zero-volume); RL data excludes OOD families; no warm-start. Per-operation recall ablation in Table~\ref{tab:op_gap}; full training configs and curves in Appendix~\ref{app:op_gap_full}.
+\textbf{SFT} Three splits with identical optimizer, schedule, and held-out eval set; only the training pool differs: iid (BenchCAD + extrusion-heavy data), ood (same recipe, 10 mechanical families removed), baseline (no benchcad data) \textbf{RL} on-policy GRPO variant from each SFT checkpoint with reward $r{=}0.2\,\mathrm{ess}{+}0.8\,\mathrm{IoU}$ ($r{=}-1$ on parse error / timeout / zero-volume); RL data with OOD-SFT model also excludes OOD families. Per-operation recall ablation in Table~\ref{tab:op_recall}; full training configs and curves in Appendix~\ref{app:op_gap_full}.

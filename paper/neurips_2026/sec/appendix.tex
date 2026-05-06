@@ -17,8 +17,11 @@ We mitigate this by (i) anchoring 49\% of families to published ISO/DIN/EN/ASME/
 \paragraph{Code generation.}
 DeepCAD~\citep{Wu2021} introduces a 178K-model corpus of Onshape parts encoded as discrete operation tokens; Text2CAD~\citep{Khan2024} extends DeepCAD with 660K natural-language annotations across four abstraction levels. CAD-Coder~\citep{Guan2025} reformulates the same data as CadQuery Python source and applies SFT$+$GRPO with chain-of-thought and Chamfer reward (mean CD $6.54{\times}10^{-3}$ on Text2CAD). The CAD-Recode~\citep{Rukhovich2025}/cadrille~\citep{Kolodiazhnyi2026}/CADEvolve~\citep{Elistratov2026} lineage shares a Qwen2-VL-2B backbone: CAD-Recode fine-tunes on 1M sketch-and-extrude scripts (DeepCAD IoU 92.0); cadrille adds multi-modal inputs and Dr.CPPO online RL with piecewise IoU reward (DeepCAD IoU 92.2, Fusion360 IoU 84.6, 0.0\% invalidity); CADEvolve expands the corpus to 2.7M scripts via an LLM-driven evolutionary loop covering extrude/revolve/loft/sweep/fillet/chamfer/shell/Boolean/patterns (DeepCAD IoU 92.6) --- broadening the operation distribution but still without helical sweeps or parametric involute-gear construction.
 
+\paragraph{CAD editing and refinement.}
+Prior work covers adjacent but distinct edit settings. CADPrompt~\citep{alrashedy2025cadprompt} is primarily an NL-to-CadQuery generation benchmark rather than a code-edit benchmark: it provides 200 natural-language prompts with expert CadQuery annotations, evaluated by point-cloud distance and bounding-box IoU after ICP alignment. CAD-Editor~\citep{yuan2025cadeditor} studies a locate-then-infill editing pipeline trained on synthetic edit data, but does not release a held-out human-verified edit benchmark. CADialogue~\citep{zhou2025cadialogue} supports conversational CAD creation and refinement and evaluates ten edit tasks, but does not release the evaluation set publicly. HistCAD~\citep{dong2026histcad} studies constraint-preserving edits over history-based FreeCAD sketches, measuring preservation of ten geometric-constraint types rather than executable-program edits. To our knowledge, BenchCAD-Edit is the first publicly released CAD benchmark to combine: (i) execution-verified before/after CadQuery code pairs; (ii) a non-target preservation metric distinguishing target-feature success from program-wide locality; and (iii) cross-family balanced coverage with an explicit edit-category taxonomy.
+
 \paragraph{Editing.}
-CADPrompt~\citep{Alrashedy2025} introduces 200 NL$\to$CadQuery prompts scored via point-cloud distance and bounding-box IoU after ICP alignment --- two orders of magnitude smaller than BenchCAD (17{,}900), no family taxonomy or difficulty stratification, leaks scale via absolute mm cues, and uses axis-aligned IoU. CAD-Editor~\citep{CADEditor2025} proposes a locate-then-infill pipeline trained entirely on synthetic edit data without releasing a held-out human-verified edit benchmark. CADialogue~\citep{CADialogue2025} evaluates ten edit tasks within a conversational interface but does not release the eval set publicly. HistCAD~\citep{Dong2026} measures preservation of ten geometric-constraint types under edits via a FreeCAD edit-then-check protocol but operates at the sketch-constraint rather than executable-program level. To our knowledge, BenchCAD-Edit is the first publicly released CAD benchmark to combine: (i) execution-verified before/after CadQuery code pairs; (ii) a non-target preservation metric distinguishing target-feature success from program-wide locality; (iii) cross-family balanced coverage with explicit edit-category taxonomy.
+CADPrompt~\citep{Alrashedy2025} introduces 200 NL$\to$CadQuery prompts scored via point-cloud distance and bounding-box IoU after ICP alignment --- two orders of magnitude smaller than BenchCAD-Edit (17{,}900), without family taxonomy or difficulty stratification, and with potential scale leakage from absolute mm cues and axis-aligned IoU. CAD-Editor~\citep{CADEditor2025} trains a locate-then-infill editor entirely on synthetic edits, but releases no held-out human-verified edit benchmark. CADialogue~\citep{CADialogue2025} evaluates ten edit tasks in a conversational CAD interface, but does not release the eval set. HistCAD~\citep{Dong2026} evaluates constraint preservation under FreeCAD edits, but at the sketch-constraint rather than executable-program level. BenchCAD-Edit is, to our knowledge, the first public CAD editing benchmark with execution-verified before/after CadQuery pairs, preservation-aware metrics, and balanced cross-family edit-category coverage.
 
 \section{Full Comparison Against Prior CAD Code-Generation Work}
 \label{app:cmp_prior}
@@ -29,6 +32,9 @@ Table~\ref{tab:cmp_prior} provides the full per-axis comparison referenced in \S
 
 \section{Standard Codes Covered}
 \label{app:standards}
+Table~\ref{tab:standards} reports the standards grounding of BenchCAD. 
+Nearly half of all families, 52/106 (49\%), are tied to ISO, DIN, EN, ASME, or IEC specification tables, so their dimensions are sampled from real engineering ranges rather than arbitrary shapes. 
+The remaining 54 custom families cover bespoke industrial parts without a formal standard, while still using analogous proportional design rules.
 
 \input{tables/tab_standards}
 
@@ -62,6 +68,12 @@ Table~\ref{tab:dataset} reports the dataset composition; Table~\ref{tab:capabili
 \end{figure*}
 The baseline reaches an aggregate score of 18.4\% on BenchCAD --- comparable to mid-tier proprietary models and substantially below the same-architecture cadrille-RL release.
 Its purpose is to provide a community lower bound and to make the transfer-baseline gaps interpretable: any improvement attributable to procedural data scaling, multi-task pre-training, or RL fine-tuning appears as a contrast against this open baseline rather than against an opaque private model.
+SFT training details:
+(1)~\textbf{iid} -- BenchCAD (all 106 families) + BenchCAD-ex (same to BenchCAD but not following iso standard) + extrusion-heavy data (text2cad, cad-recode);
+(2)~\textbf{ood} -- same recipe, 10 mechanical families removed from BenchCAD and BenchCAD-ex (replaced with zero-overlap atomic op-pattern primitives);
+(3)~\textbf{baseline}: all text2cad and cad-recode data.
+data mixing: 33\% BenchCAD-stack / 67\% HQ for (1) and (2); 100\% HQ for (3). 20\,k steps, effective batch 32 (Qwen3-VL-2B, AdamW,
+$2{\times}10^{-4}$ cosine, 2\,k warm-up). Eval seed-frozen at 50 cases per bucket.
 
 \section{Datasheet for BenchCAD}
 \label{app:datasheet}
@@ -112,6 +124,248 @@ Templates are typed (ratio, integer count, ordinal) and constrained to be scale-
 The final bank contains 2{,}400 unique (question, gold answer) pairs sampled across 17{,}900 records --- each evaluated under both visual (\texttt{qa\_img}) and code (\texttt{qa\_code}) conditioning, yielding 4{,}800 total QA records.
 The composition is approximately 60\% ratio, 35\% integer count, and 5\% ordinal. We release the question-template source code so that the bank can be regenerated under alternative parameter samples.
 
+\section{QA System Prompts}
+\label{app:qa-system-prompts}
+
+To ensure reproducibility, we provide the exact system prompts used in our QA evaluation.
+All models are evaluated with the same prompt template. The model is required to output
+only a JSON array of numbers, which enables automatic numeric grading. For binary
+questions, we encode ``yes'' as 1 and ``no'' as 0.
+
+\subsection{Image-based QA System Prompt}
+\label{app:qa-img-system-prompt}
+
+\begin{tcolorbox}[
+    title=\texttt{QA\_IMG\_SYSTEM\_PROMPT},
+    colback=gray!4,
+    colframe=gray!45,
+    fonttitle=\bfseries,
+    breakable,
+    sharp corners,
+    boxrule=0.5pt,
+]
+\small
+You are an expert CAD engineer. You will be shown a
+\texttt{DIAGONAL\_VIEW\_LAYOUT}. You will be given a list of numeric
+questions about the part. Answer each with a single number.
+
+\vspace{0.5em}
+\textbf{Rules:}
+\begin{itemize}
+    \item Output ONLY a JSON array of numbers, one per question, in the same order.
+    \item No text, no keys, no explanation. Just the array.
+    \item For yes/no questions, use 1 for yes and 0 for no.
+    \item For count questions, use an integer, e.g., 12, not ``twelve''.
+    \item For ratio questions, use a decimal, e.g., 2.5.
+    \item For dimensional questions, answer in whatever consistent unit the code uses;
+    the scale is arbitrary and the grader compares numeric magnitude.
+\end{itemize}
+
+\textbf{Example input:}
+\begin{verbatim}
+["How many teeth?", "What is the module?"]
+\end{verbatim}
+
+\textbf{Example output:}
+\begin{verbatim}
+[20, 2.5]
+\end{verbatim}
+\end{tcolorbox}
+
+\subsection{Code-based QA System Prompt}
+\label{app:qa-code-system-prompt}
+
+\begin{tcolorbox}[
+    title=\texttt{QA\_CODE\_SYSTEM\_PROMPT},
+    colback=gray!4,
+    colframe=gray!45,
+    fonttitle=\bfseries,
+    breakable,
+    sharp corners,
+    boxrule=0.5pt,
+]
+
+\small
+You are an expert CAD engineer. You will be shown CadQuery Python code for a
+mechanical part. You will be given a list of numeric questions about the part
+this code produces.
+
+\vspace{0.5em}
+\textbf{Rules:}
+\begin{itemize}
+    \item Output ONLY a JSON array of numbers, one per question, in the same order.
+    \item No text, no keys, no explanation. Just the array.
+    \item For yes/no questions, use 1 for yes and 0 for no.
+    \item For count questions, use an integer, e.g., 12, not ``twelve''.
+    \item For ratio questions, use a decimal, e.g., 2.5.
+    \item For dimensional questions, answer using the same scale as the numeric
+    literals in the code.
+\end{itemize}
+
+\textbf{Example input code:} The code creates a gear with 20 teeth and module 2.5.
+
+\textbf{Example input questions:}
+\begin{verbatim}
+["How many teeth in the gear?", "What is the module?"]
+\end{verbatim}
+
+\textbf{Example output:}
+\begin{verbatim}
+[20, 2.5]
+\end{verbatim}
+\end{tcolorbox}
+
+\section{Code Generation System Prompts}
+\label{app:codegen-system-prompts}
+
+To ensure reproducibility, we provide the exact prompts used for code generation.
+The model is given a normalized four-view composite render of an industrial part and
+is asked to generate executable CadQuery Python code. All generated code is evaluated
+under the same execution protocol: \texttt{cadquery} is pre-imported as \texttt{cq},
+and the final reconstructed solid must be stored in \texttt{result}.
+
+\subsection{Primary Vision-to-CAD System Prompt}
+\label{app:primary-vision-to-cad-system-prompt}
+
+\begin{tcolorbox}[
+    title=\texttt{SYSTEM\_PROMPT},
+    colback=gray!4,
+    colframe=gray!45,
+    fonttitle=\bfseries,
+    breakable,
+    sharp corners,
+    boxrule=0.5pt
+]
+\small
+Generate CadQuery Python code from a \texttt{DIAGONAL\_VIEW\_LAYOUT}.
+
+\vspace{0.5em}
+Renders are normalized: bbox centered at \texttt{[0.5,0.5,0.5]}, longest side maps to \texttt{[0,1]}.
+Match the orientation exactly---do not rotate or remap axes. World XYZ in your code must match world XYZ in the renders.
+
+\begin{itemize}
+    \item \texttt{cadquery} is pre-imported as \texttt{cq}; no imports, no \texttt{show\_object}.
+    \item Store final solid in \texttt{result}.
+    \item Output ONLY code, no explanation or markdown.
+\end{itemize}
+\end{tcolorbox}
+
+\subsection{Vision-to-CAD User Prompt}
+\label{app:vision-to-cad-user-prompt}
+
+\begin{tcolorbox}[
+    title=\texttt{USER\_PROMPT},
+    colback=gray!4,
+    colframe=gray!45,
+    fonttitle=\bfseries,
+    breakable,
+    sharp corners,
+    boxrule=0.5pt
+]
+\small
+Generate CadQuery code to recreate this industrial part shown in the 4-view composite render.
+\end{tcolorbox}
+
+\subsection{Cadrille Baseline System Prompt}
+\label{app:cadrille-system-prompt}
+
+\begin{tcolorbox}[
+    title=\texttt{CADRILLE\_SYSTEM\_PROMPT},
+    colback=gray!4,
+    colframe=gray!45,
+    fonttitle=\bfseries,
+    breakable,
+    sharp corners,
+    boxrule=0.5pt
+]
+\small
+You are a CadQuery expert. Given a normalized \texttt{DIAGONAL\_VIEW\_LAYOUT}.
+
+\vspace{0.5em}
+Write CadQuery Python code that reproduces the geometry. Output ONLY Python code.
+\end{tcolorbox}
+
+
+% \section{QA System Prompt}
+% \label{app:qa_img_sys_prompt}
+
+% \paragraph{QA\_IMG\_SYSTEM\_PROMPT}
+
+% You are an expert CAD engineer. You will be shown a DIAGONAL\_VIEW\_LAYOUT. You will be given a list of numeric questions about the part. Answer each with a single number.
+
+% Rules:\\
+% - Output ONLY a JSON array of numbers, one per question, in the same order.\\
+% - No text, no keys, no explanation. Just the array.\\
+% - For yes/no questions, use 1 for yes and 0 for no.\\
+% - For count questions, use an integer (e.g. 12, not "twelve").\\
+% - For ratio questions, use a decimal (e.g. 2.5).\\
+% - For dimensional questions, answer in whatever consistent unit the code uses (scale is arbitrary; the grader compares numeric magnitude).
+
+% Example input: ["How many teeth?", "What is the module?"]\\
+% Example output: [20, 2.5]
+
+% \paragraph{QA\_CODE\_SYSTEM\_PROMPT}
+% You are an expert CAD engineer. You will be shown CadQuery Python code for a mechanical part. You will be given a list of numeric questions about the part this code produces.
+
+% Rules:
+% - Output ONLY a JSON array of numbers, one per question, in the same order.\\
+% - No text, no keys, no explanation. Just the array.\\
+% - For yes/no questions, use 1 for yes and 0 for no.\\
+% - For count questions, use an integer (e.g. 12, not "twelve").\\
+% - For ratio questions, use a decimal (e.g. 2.5).\\
+% - For dimensional questions, answer using the same scale as the numeric literals in the code.
+
+% Example input code creates a gear with 20 teeth and module 2.5.
+% Example input questions: ["How many teeth?", "What is the module?"]\\
+% Example output: [20, 2.5]
+
+\subsection{Edit-task System Prompt}
+\label{app:edit-code-system-prompt}
+\begin{tcolorbox}[title=\texttt{EDIT\_CODE\_SYSTEM\_PROMPT}, colback=gray!4, colframe=gray!45,fonttitle=\bfseries, breakable, sharp corners, boxrule=0.5pt,]                                   
+  \small                                                         
+  You are an expert CAD engineer. You will be given:
+  \begin{enumerate}                                                   \item A CadQuery Python script that builds a parametric mechanical part.
+      \item A natural-language edit instruction describing a change to one specific feature.                
+  \end{enumerate}
+    
+  Your task: return the script with the MINIMAL edit that achieves the requested feature change. Only the feature(s) the instruction explicitly mentions should change; every other feature, dimension, and detail must stay exactly as in the original.    
+  \vspace{0.5em}                                                  \textbf{Rules:}
+  \begin{itemize}
+  \item Output ONLY executable Python code, no explanation, no markdown fences.
+  \item Make the smallest set of changes that realize the instruction. Do NOT touch unrelated literals, operations, or structure.
+  \item Do NOT refactor, rename variables, reorder operations, or add/remove imports.
+  \item If the instruction adds a new feature: append the operation in the most natural place; keep the rest of the chain intact.
+  \item If the instruction removes a feature: delete just that operation block; do not rewrite surrounding code.
+  \item If the instruction modifies a dimension/parameter: update only the literal(s) that depend on it (and, if present, the matching parameter comment).
+  \end{itemize}
+  \end{tcolorbox}                                                 
+  
+\label{app:edit-img-gt-system-prompt}                             \begin{tcolorbox}[
+title=\texttt{EDIT\_IMG\_GT\_SYSTEM\_PROMPT},               
+colback=gray!4, colframe=gray!45, fonttitle=\bfseries, breakable, sharp corners, boxrule=0.5pt,]
+  \small
+  You are an expert CAD engineer. You will be given:              
+  \begin{enumerate}
+  \item A CadQuery Python script that builds a parametric mechanical part(CURRENT state).
+  \item A 2$\times$2 composite image of the TARGET geometry from 4 diagonal viewpoints.                                         
+  \end{enumerate}                                                
+  Your task: return the script with the MINIMAL edit that transforms the CURRENT geometry (described by the code) into the TARGET geometry (shown in the image). The image is the only specification of the desired change, there is NO text instruction. Compare the code's geometry against the image and infer which single feature differs.                      
+  Only the feature(s) that differ between code and image should change; every other feature, dimension, and detail must stay exactly as in the original code.
+    
+  \vspace{0.5em}
+  \textbf{Rules:}                                                               
+  \begin{itemize}
+  \item Output ONLY executable Python code, no explanation, no markdown fences.
+  \item Make the smallest set of changes that realize the visual difference. Do NOT touch unrelated literals, operations, or structure.
+  \item Do NOT refactor, rename variables, reorder operations, or add/remove imports.
+  \item If the target image shows a new feature that is absent in the code: append the operation in the most natural place; keep the rest of the chain intact.
+  \item If the target image shows a feature removed: delete just that operation block; do not rewrite surrounding code.
+  \item If a dimension/parameter has changed: update only the literal(s) that control that dimension (and the matching parameter comment if present).  
+  \end{itemize}
+  \end{tcolorbox} 
+
+
+
 \section{Rotation-Invariant IoU}
 \label{app:iou}
 
@@ -128,33 +382,49 @@ Source: \texttt{bench/metrics/rot\_iou.py} in the released harness.
 For each pair, we (i) start from a verified BenchCAD record, (ii) apply a parameter or op-list edit yielding a target part, (iii) verify the target satisfies the same verification pipeline, (iv) write a natural-language instruction by template (\emph{``increase the bore diameter to 12\,mm''}) reviewed for unambiguity by a second author, and (v) cross-validate by running two strong models and inspecting any unexpected failure modes.
 Pairs where models systematically disagree on instruction interpretation are revised or removed.
 
-\paragraph{Scoring.} See \S\ref{sec:exp_edit} for metric definitions (\texttt{exec\_pct}, \texttt{mean\_iou}, \texttt{mean\_cd}, \texttt{ess\_score}, \texttt{total}). The non-target preservation check is computed on the spatial complement of the bounding region of the targeted feature (precomputed bounding-box annotation per pair).
+\paragraph{Scoring.} See Eq.~\ref{eq:edit_acc} for metric definitions (normalised IoU used in edit-task score). The non-target preservation check is computed on the spatial complement of the bounding region of the targeted feature (precomputed bounding-box annotation per pair).
 
-\paragraph{Industrial Common Sense Gap rate.} Defined as the fraction of model edits that achieve target success but fail non-target preservation: $|\{i: \text{Targ}_i \wedge \neg\text{Pres}_i\}| / |\{i: \text{Targ}_i\}|$.
-We additionally report a code-AST diff metric (lines changed, identifiers renamed) as a secondary measure of locality.
 
 \paragraph{Task taxonomy.} The five edit task types (T1--T5) are defined in Table~\ref{tab:task_taxonomy}. Difficulty rises monotonically with the structural complexity of the minimal correct diff, from a single literal swap (T1) to coordinated multi-block restructures (T5). The T1--T5 axis is orthogonal to the dimensional/additive/subtractive/multi-step categorisation used in the main paper: T1 and T3 are predominantly dimensional, T2 and T4 cover additive/subtractive, and T5 spans the multi-step regime.
 
 \input{tables/tab_task_taxonomy}
 
-\paragraph{Failure taxonomy.} Every prediction is bucketed into one of five outcomes (\texttt{ok}, E001--E004) by deterministic rules over execution status, generated--GT IoU, and a small set of fake-API regexes (Table~\ref{tab:error_codes}). The detection rules are author-curated but mechanical: no model output is judged by hand, and the rule set is fixed across all ten models reported.
+\paragraph{Failure taxonomy.} Every failing prediction is bucketed into one of eight semantic failure modes F01--F08 (Table~\ref{tab:failure_codes}), each mapped to one of the four capability layers L1--L4: F01--F03 isolate L1 \emph{Holistic Visual Understanding} (wrong value, wrong instance, wrong placement), F04--F06 isolate L2 \emph{CAD Operations Comprehension} (wrong axis, wrong selector, near no-op), F07 isolates L3 \emph{Industrial Parametric Abstraction} (incomplete multi-instance update), and F08 isolates L4 \emph{Spatial Reasoning $+$ Code Synthesis} (compositional geometry mismatch). Each label combines an automatic detection cue --- execution status, generated-vs-original/target IoU thresholds, and topology checks with a hand audit by the authors against the predicted code and rendered geometry; the rule set and L-mapping are fixed across all ten models reported, and \texttt{ok} (strict pass) and \texttt{exec\_fail} are tracked separately as the non-failure and gross-execution categories.
 
-\input{tables/tab_error_codes}
+\input{tables/tab_F_codes}
 
-\paragraph{Supplementary results.} Figure~\ref{fig:edit_iou_only} reports mean voxel IoU per task type. Figure~\ref{fig:edit_error_pies} disaggregates per-model failures into the E001--E004 buckets defined in Table~\ref{tab:error_codes}.
+                                               
+
+\paragraph{Supplementary results.} Figure~\ref{fig:edit_F_bars} reports failure attributes of all 748 eidt-pairs from 10 LLMs.
+Figure~\ref{fig:edit_L_pies} disaggregates per-model failures into the L1--L4 buckets defined in Figure~\ref{fig:capability_hierarchy}.
+
+\begin{figure}[t]                       
+    \centering
+    \includegraphics[width=0.95\linewidth]{figures/fig_F_bars.png}
+    \caption{\textbf{Per-model failure-mode distribution on BenchCAD-Edit.} Each
+   horizontal bar disaggregates one model's predictions into \texttt{ok},
+  \texttt{exec\_fail}, and the eight semantic failure modes F01--F08 defined in 
+  Table~\ref{tab:failure_codes}; segments are coloured by the underlying
+  capability layer (sand $=$ L1 \emph{Holistic Visual Understanding}, sage $=$  
+  L2 \emph{CAD Operations Comprehension}, purple $=$ L3 \emph{Industrial
+  Parametric Abstraction}, orange $=$ L4 \emph{Spatial Reasoning $+$ Code       
+  Synthesis}), so the L-mass within each bar reads off directly. Models are
+  ordered by \texttt{ok} rate. The mass shifts systematically across model    
+  generations: older or smaller-capacity systems concentrate failures in the L2
+  band (F04--F06) and incur a non-trivial \texttt{exec\_fail} tail; recent large
+   models without explicit reasoning largely close the L2 gap and leave residual
+   mass on L1 (F01--F03); reasoning-tier closed models flatten L1 and L2 alike
+  but expose an L3--L4 ceiling (F07--F08) on multi-instance and T5-style
+  coordinated edits, indicating that thinking lifts capability up the
+  L-hierarchy rather than uniformly reducing all error types.}
+    \label{fig:edit_F_bars}
+  \end{figure}  
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=0.95\linewidth]{figures/fig_edit_iou_only.png}
-  \caption{\textbf{BenchCAD-Edit mean IoU per task type.} Mean voxel IoU(generated, target) on T1--T5.}
-  \label{fig:edit_iou_only}
-\end{figure}
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=0.95\linewidth]{figures/fig_edit_error_pies.png}
-  \caption{\textbf{Per-model failure mode distribution on BenchCAD-Edit.} Each pie disaggregates one model's predictions into \texttt{ok} and the four failure buckets E001--E004 defined in Table~\ref{tab:error_codes}. The dominant failure shifts across model generations: weak / older models fail by \emph{wrong\_operation} (E002); open-weights frontier models tend toward \emph{invalid\_op\_or\_param} (E004); reasoning-tier closed models eliminate hallucinations but introduce \emph{no\_op} edits (E003) in which the agent rewrites the original file byte-for-byte.}
-  \label{fig:edit_error_pies}
+  \includegraphics[width=0.95\linewidth]{figures/fig_L_pies.png}
+  \caption{\textbf{Per-model failure-layer distribution on BenchCAD-Edit.} Each pie shows one model's failures aggregated by capability layer L1--L4 (collapsing the eight F-codes via the mapping in Table~\ref{tab:failure_codes}: F01--F03 $\to$ L1, F04--F06 $\to$ L2, F07 $\to$ L3, F08 $\to$ L4) and re-normalised so L1$+$L2$+$L3$+$L4 $= 100\%$ --- i.e.\ the pies show the \emph{shape} of each model's failure mode mix, independent of how often it fails overall; the title above each pie reports the absolute L-fail rate (\% of all predictions) so that scale is preserved. Models are arranged in order of increasing total L-fail rate (least-broken first). The mass shifts systematically along the L-axis across model generations: older or smaller-capacity systems concentrate failures in L2 (CAD-API misuse) and incur a non-trivial \texttt{exec\_fail} tail (counted separately, not shown); recent large models without explicit reasoning largely close the L2 gap and leave residual mass on L1 (visual/detail mistakes); reasoning-tier closed models flatten L1 and L2 alike but expose an L3--L4 ceiling on multi-instance and T5-style coordinated edits, indicating that thinking lifts capability up the L-hierarchy rather than uniformly reducing all error types.}
+  \label{fig:edit_L_pies}
 \end{figure}
 
 \section{Inference Strategy and Scoring Ablations}

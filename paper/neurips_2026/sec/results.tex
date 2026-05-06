@@ -1,10 +1,8 @@
 \section{Results}
 \label{sec:results}
-
-\subsection{Per-Task Performance}
 \label{sec:exp_main}
 
-\paragraph{\textsc{Vision QA}.} Table~\ref{tab:main_eval_qa_img} indicates that Vision QA remains challenging for current frontier MLLMs. Performance is relatively stronger on Holistic Visual Recognition and Spatial / Code Reasoning, but consistently weaker on CAD Operation Understanding and Industrial Parametric Abstraction --- models often recognize global shapes while still struggling to infer CAD operations and parametric design intent. Thinking mode does not consistently improve performance: extended reasoning can amplify hallucinations about geometric structures, dimensions, or CAD operations. CAD QA requires more than generic reasoning; it demands precise visual grounding, CAD-specific knowledge, and robust parametric abstraction.
+\paragraph{\textsc{Vision QA}.} Table~\ref{tab:main_eval_qa_img} indicates that Vision QA remains challenging for current frontier MLLMs. Performance is relatively stronger on Holistic Visual Recognition and Spatial Reasoning, but consistently weaker on CAD Operation Understanding and Industrial Parametric Abstraction --- models often recognize global shapes while still struggling to infer CAD operations and parametric design intent. Thinking mode does not consistently improve performance: extended reasoning can amplify hallucinations about geometric structures, dimensions, or CAD operations. CAD QA requires more than generic reasoning; it demands precise visual grounding, CAD-specific knowledge, and robust parametric abstraction.
 
 \input{tables/tab_main_eval_qa_img}
 
@@ -13,10 +11,7 @@
 \paragraph{\textsc{Vision2Code}.} The unified leaderboard (Table~\ref{tab:codegen_unified}, Appendix~\ref{app:full_results}) shows three patterns:
 (i) the specialist CAD lineage transferred from DeepCAD scores poorly on BenchCAD (Cadrille-RL total 0.338, CADEvolve v3 0.601);
 (ii) frontier MLLMs cap mid-range (gemini-3.1-pro-thinking total 0.318) and exhibit non-monotonic thinking-mode behaviour;
-(iii) our open Qwen3-VL-2B trained on BenchCAD reaches total 0.628 (iid-sft) and 0.723 (ood-sft$+$RL, best overall) --- the dataset is learnable on a small backbone and RL meaningfully closes the generalisation gap.
 
-\subsection{The Edit Task}
-\label{sec:exp_edit}
 
 \begin{wrapfigure}{r}{0.5\linewidth}
   \vspace{-20pt}
@@ -26,34 +21,64 @@
   \label{fig:edit_task}
   \vspace{-10pt}
 \end{wrapfigure}
-Table~\ref{tab:main_results} ranks the ten code LLMs by \texttt{mean\_norm}; Figure~\ref{fig:edit_task} disaggregates over T1--T5. Three patterns emerge.
 
-\textbf{The metric: \texttt{mean\_norm} is the principled signal, not \texttt{mean\_iou}.} Because every pair is constructed from a verified non-trivial original ($\mathrm{IoU}(S_o, S_t)$ ranges from $0.10$ to $0.95$), a model that emits the original unchanged already collects substantial \texttt{mean\_iou} on easier pairs --- inflating the headline without any actual editing. \texttt{mean\_iou} remains useful as a geometric-closeness signal, but the quantity that asks \emph{``did the model traverse the original-to-target gap''} is Eq.~\eqref{eq:norm}: the per-pair improvement, normalised by the available headroom $(1 - \mathrm{IoU}(S_o, S_t))$ and clipped to $[0, 1]$. \texttt{claude-opus-4-7} (no-thinking) attains the highest \texttt{mean\_iou} ($0.956$) but ranks 4th on \texttt{mean\_norm} ($0.811$) and \texttt{strict\_rate} ($79.2\%$): high mean IoU buys nothing once we control for per-pair starting point.
+\paragraph{\textsc{Code Edit}.}
+\label{sec:exp_edit}
+Table~\ref{tab:edit_leaderboard} ranks ten code MLLMs by \texttt{mean\_norm}; Fig.~\ref{fig:edit_task} disaggregates over T1--T5 (Table~\ref{tab:task_taxonomy}), where T1--T2 probe L2, T3 isolates L3, T4--T5 require L4, and L1 underlies all five. T1--T2 are saturated ($\geq 0.93$) on every modern system; the leaderboard separates only at T3 and below, where aggregate \texttt{mean\_norm} compresses into a $0.56$--$0.87$ band but T5 collapses every model onto a $0.15$--$0.70$ floor. Three model classes separate cleanly: \emph{older or smaller-capacity systems} (2024-era closed, sub-150B open-weights) lose ground from T3 and bottom out at T5, with failures (Fig.~\ref{fig:edit_F_bars}) dominated by L2 errors (F04--F06) that compound under L3/L4 demand; \emph{recent large models without reasoning} hold T1--T2 but plateau at T3--T4, with residual mass on L1 (F01--F03) --- scale closes L2 without conferring L3 parameter reasoning; \emph{recent reasoning models} occupy ranks 1--3, with thinking lifting \texttt{mean\_norm} by $4$--$13$\,pt over the matched no-thinking variant and recovering most of the T3--T4 deficit, but exposing a residual L3--L4 ceiling (F07--F08) on T5 at $\sim 0.6$. Two directions follow: explicit parameter-relation reasoning is the cheapest available lift, while T5 progress likely requires architectural or training changes beyond longer chains of thought.
 
-\textbf{The task taxonomy: T1--T5 makes the benchmark diagnostic.} Aggregate \texttt{mean\_norm} compresses the leaderboard into a $0.56$--$0.87$ band; the per-task curves in Fig.~\ref{fig:edit_task} reveal qualitatively different regimes within. T1 (\emph{literal\_replace}) is saturated at $\geq 0.93$ for every modern model. T3 (\emph{relative\_compute}) opens the first gap: models that solve T1 perfectly drop $0.10$--$0.30$\,pt because reading one literal and computing another is a different capability. T5 (\emph{geometry\_rebuild}) collapses every model onto a $0.15$--$0.70$ floor: even \texttt{gpt-5.3-thinking} and \texttt{claude-opus-4-7-reasoning} bottom out at $\sim 0.6$ on coordinated multi-block restructures. The split aligns with the L1--L4 hierarchy: T1--T2 probe L2 (Op Comprehension); T3 isolates L3 (Parametric Abstraction); T4--T5 require L4 (Spatial $+$ Code Synthesis).
 
-\textbf{Per-model patterns.} (i) \emph{Reasoning is the strongest single intervention}: switching it on lifts \texttt{mean\_norm} by $4$--$13$\,pt across all three vendors with thinking variants; the three thinking variants occupy ranks 1--3. (ii) \emph{Execution rate is uninformative on its own}: \texttt{claude-opus-4-7} (no-think) leads on \texttt{exec\_rate} ($98.4\%$) but trails its thinking sibling by $4.2$\,pt on \texttt{mean\_norm}. (iii) \emph{Open-weights frontier still trails}: \texttt{nemotron-3-super-120b-a12b} and \texttt{gpt-oss-120b} sit at the bottom together with \texttt{gpt-4o}; the gap to the closed reasoning frontier is $\sim 25$\,pt, with most of the deficit accumulated past T3 --- BenchCAD-Edit measures something current open-weights training does not yet target.
 
-\input{tables/tab_main_results}
 
 \subsection{Error Analysis}
+\label{sec:results_failure_analysis}
 \label{sec:exp_failure_analysis}
 
-Building on the layered evaluation introduced in \S\ref{sec:capability}, we examine four representative \textsc{Vision2Code} failures elicited from frontier reasoning models on hard-tier families, each diagnostic of a different level in the capability hierarchy.
+Across tasks, we find that many failures share common causes. Most can be attributed to deficiencies in four core capabilities.
+\begin{wraptable}{r}{0.42\linewidth}
+  \vspace{-\baselineskip}
+  \centering
+  \caption{\textbf{BenchCAD-Edit positioning.} Benchmark overview for MLLM CAD capabilities.}
+  \label{tab:edit_leaderboard}
+  \input{tables/tab_main_edit_leadboard}
+  \vspace{-0.5\baselineskip}
+\end{wraptable}
 
-\textbf{$L_1$ --- holistic feature recognition.} A hex-head bolt is reproduced with the correct overall body but with its threaded shank and DIN-standard head detail omitted. The vision encoder integrates the global silhouette while failing to register the high-information local features that distinguish a manufacturable bolt from a smooth pin --- a deficit at the perception layer rather than at code generation.
+\textbf{Holistic Spatial Recognition}
+Visual recognition failures occur along three axes: detailed feature counting, CAD feature recognition, and spatial grounding. 
+% For instance, 4 out of 8 models fail to identify the keyway adjacent to the central hole in a gear, as the two features are visually blended together in the rendered view.
 
-\textbf{$L_1$ --- spatial understanding.} On a bearing retainer cap, the 24-axis rotation-invariant IoU is substantially higher than the single-axis IoU --- a diagnostic signature that the generated geometry is approximately correct but oriented on the wrong base workplane. Inspecting the emitted code confirms it: the model defaults to the XY plane that dominates its training distribution and fails to recognise that the part is naturally extruded along XZ. This is a perception failure at the spatial-anchoring layer rather than a geometric or symbolic one, and one that no amount of code-side reasoning can recover.
+A hex-head bolt is reproduced by GPT-5.3-chat with the correct overall body, but with its threaded shank and DIN-standard head detail omitted. The vision encoder integrates the global silhouette while failing to register the high-information local features that distinguish a manufacturable bolt from a smooth pin. By reviewing the corresponding level Q\&A entries, we can see that GPT-5.3-chat incorrectly identified the number of chamfer operations as 2 instead of 1. It shows the deficit at the perception layer rather than at code generation. The 
 
-\textbf{$L_2$ --- operation understanding.} A twisted bracket is generated as a flat plate with mounting holes; the requisite twist-extrusion is absent from the emitted program entirely. The model recognises the part outline at $L_1$ but fails to map the visible torsion to the corresponding CAD operation, exposing an Op Vocabulary Gap (\S\ref{app:op_gap_full}) at the operation-understanding layer.
 
-\textbf{$L_3$ --- parametric abstraction.} A coil spring with non-uniform pitch is reproduced as a uniform helix. The model recognises the spring family at $L_1$ and emits a helical sweep at $L_2$, yet flattens the pitch profile from variable to constant --- losing the parametric structure that an engineer would have written explicitly. This is an $L_3$ failure invisible to either $L_1$ or $L_2$ metrics, and it is precisely the class of failure that motivates anchoring BenchCAD families to ISO/DIN/EN/ASME/IEC standards.
+On a bearing retainer cap, the 24-axis rotation-invariant IoU is substantially higher than the single-axis IoU --- a diagnostic signature that the generated geometry is approximately correct but oriented on the wrong base workplane. Inspecting the emitted code confirms it: the model defaults to the XY plane that dominates its training distribution and fails to recognise that the part is naturally extruded along XZ. This is a perception failure at the spatial-anchoring layer rather than a geometric or symbolic one, and one that no amount of code-side reasoning can recover.
+
+\textbf{Operation understanding.} A twisted bracket is generated as a flat plate with mounting holes; the requisite twist-extrusion is absent from the emitted program entirely. The model recognizes the part outline at $L_1$ but fails to map the visible torsion to the corresponding CAD operation, exposing an Op Vocabulary Gap (\S\ref{app:op_gap_full}) at the operation-understanding layer.
+
+\textbf{Parametric abstraction.} A coil spring with non-uniform pitch is reproduced as a uniform helix. The model recognises the spring family at $L_1$ and emits a helical sweep at $L_2$, yet flattens the pitch profile from variable to constant --- losing the parametric structure that an engineer would have written explicitly. This is an $L_3$ failure invisible to either $L_1$ or $L_2$ metrics, and it is precisely the class of failure that motivates anchoring BenchCAD families to ISO/DIN/EN/ASME/IEC standards.
 
 These cases illustrate how the layered framework converts \textsc{Vision2Code} failures from a single opaque ``wrong code'' category into level-attributable diagnostics: a model can succeed at $L_1$ yet fail at $L_2$ (the bracket), or succeed at $L_1$ and $L_2$ yet fail at $L_3$ (the spring). Without per-level attribution these distinctions collapse into a single low IoU score, and the corresponding training signal --- which level to strengthen --- is lost.
 
-\paragraph{Edit failure-mode breakdown.} A failure-code breakdown (E001--E004 defined in Table~\ref{tab:error_codes}; per-model distribution in Fig.~\ref{fig:edit_error_pies}) shows the dominant failure shifts with model class: \texttt{gpt-4o} and \texttt{gpt-oss-120b} are bottlenecked by \emph{wrong\_operation} (real API, wrong selector or argument); reasoning-tier models trade hallucinations for \emph{no\_op} edits in which the agent rewrites the original byte-for-byte.
+% \textbf{Visual and Code
+% Recognition.} Visual recognition failures happen along three axes: detailed feature counting, CAD feature recognition, and spatial grounding. QA asks whether a gear has a keyway, 4/8 models do not find the keyway next to the central cavity.
 
-\paragraph{Family Cliff.} Table~\ref{tab:family_cliff} stratifies \texttt{img2cq} pass rate by family difficulty tier. The strongest model collapses by 48\,pt from easy (68\%) to hard (20\%), exhibiting a \textbf{Family Cliff}: hard-tier families exercise advanced operations (helical sweeps, twist-extrusion, lofted Booleans) scarcely present in any prior CAD training corpus, and enforce parametric constraints (gear module--tooth--pitch consistency, spring free-length--turn-count coupling) no model evaluated reliably preserves.
+
+% We analyze holistic visual recognition failures along three axes: feature counting, CAD feature recognition, and spatial grounding. Models often recognize the presence of repeated structures but fail to count them accurately, especially when they are small, occluded, or densely arranged. They also confuse CAD feature types, such as slots versus holes or protrusions versus cutouts, indicating that coarse silhouette recognition does not imply constructive-geometry understanding. Spatial errors, including misunderstanding the construction plane and rotation axis, as well as incorrect alignment or symmetry judgments, further suggest weak 3D grounding. 
+
+
+
+%\textbf{Industrial Parametric Abstraction.} 
+
+%\textbf{Spatial/Code Reasoning.}
+
+
+%\paragraph{Edit failure-mode breakdown.} A failure-code breakdown (E001--E004 defined in Table~\ref{tab:error_codes}; per-model distribution in Fig.~\ref{fig:edit_error_pies}) shows the dominant failure shifts with model class: \texttt{gpt-4o} and \texttt{gpt-oss-120b} are bottlenecked by \emph{wrong\_operation} (real API, wrong selector or argument); reasoning-tier models trade hallucinations for \emph{no\_op} edits in which the agent rewrites the original byte-for-byte.
+
+%\paragraph{Family Cliff.} Table~\ref{tab:family_cliff} stratifies \texttt{img2cq} pass rate by family difficulty tier. The strongest model collapses by 48\,pt from easy (68\%) to hard (20\%), exhibiting a \textbf{Family Cliff}: hard-tier families exercise advanced operations (helical sweeps, twist-extrusion, lofted Booleans) scarcely present in any prior CAD training corpus, and enforce parametric constraints (gear module--tooth--pitch consistency, spring free-length--turn-count coupling) no model evaluated reliably preserves.
+
+\subsection{Training}
+\label{sec:results_training}
+
+Our Qwen3-VL-2B trained on BenchCAD achieves SOTA on the in-distribution code-generation benchmark (Cadance composite score 0.723). When 10 mechanical families are held out, IID-only SFT + RL still transfers non-trivially to the OOD families, indicating that BenchCAD provides useful inductive signal for unseen mechanical structures. Nonetheless, a substantial IID/OOD gap persists, showing that generalisation to unseen mechanical families remains an open problem.
 
 \begin{figure*}[t]
   \centering

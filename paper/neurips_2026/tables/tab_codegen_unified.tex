@@ -1,29 +1,29 @@
 \begin{table}[t]
 \centering
 \small
-\setlength{\tabcolsep}{4pt}
+\setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{1.05}
-\caption{\textbf{Vision2Code unified leaderboard on cad\_bench\_722} ($n{=}720$). Specialist CAD lineage, frontier MLLMs, and our open Qwen3-VL-2B baseline. Columns: \texttt{exec\_pct} (\%), mean voxel \texttt{IoU}, mean Chamfer distance \texttt{CD}$\downarrow$, mean Hausdorff \texttt{HD}$\downarrow$, Feature-F1, essential-op \texttt{ess}, composite \texttt{total}. Best per block in \textbf{bold}.}
+\caption{\textbf{Vision2Code unified leaderboard on cad\_bench\_722} ($n{=}720$). Specialist CAD lineage, frontier MLLMs, and our open Qwen3-VL-2B baseline. Best per block in \textbf{bold}.}
 \label{tab:codegen_unified}
-\begin{tabular}{@{}lccccccc@{}}
+\begin{tabular}{@{}lccc@{}}
 \toprule
-Model                                  & exec\_pct      & IoU            & CD$\downarrow$ & HD$\downarrow$ & F1             & ess            & total          \\
+Model                                                  & ess\_score      & exec\_pct       & total           \\
 \midrule
-\multicolumn{8}{l}{\emph{Specialist CAD lineage ($\sim$2B)}} \\
-Cadrille-RL~\citep{Kolodiazhnyi2026}   & 91.25          & 0.075          & 0.351          & --             & 0.286          & 0.312          & 0.338          \\
-CADEvolve v3~\citep{Elistratov2026}    & \textbf{92.78} & \textbf{0.808} & \textbf{0.008} & --             & \textbf{0.364} & \textbf{0.372} & \textbf{0.601} \\
+\multicolumn{4}{l}{\emph{Specialist CAD lineage ($\sim$2B)}} \\
+Cadrille-RL~\citep{Kolodiazhnyi2026}                   & 0.312           & 91.25           & 0.338           \\
+CADEvolve v3~\citep{Elistratov2026}                    & \textbf{0.372}  & \textbf{92.78}  & \textbf{0.601}  \\
 \midrule
-\multicolumn{8}{l}{\emph{Frontier MLLMs}} \\
-gpt-4o                                 & --             & --             & --             & --             & --             & --             & --             \\
-gpt-5.3 (thinking)                     & --             & --             & --             & --             & --             & --             & --             \\
-claude-opus-4.7 (thinking)             & --             & --             & --             & --             & --             & --             & --             \\
-gemini-3.1-pro (thinking)              & --             & --             & --             & --             & --             & --             & --             \\
+\multicolumn{4}{l}{\emph{Frontier MLLMs}} \\
+gpt-4o                                                 & 0.468           & 87.0            & 0.255           \\
+gpt-5.3 (thinking)                                     & 0.455           & 67.5            & 0.261           \\
+claude-opus-4.7 (thinking)                             & 0.471           & \textbf{90.4}   & 0.306           \\
+gemini-3.1-pro (thinking)                              & \textbf{0.567}  & 79.8            & \textbf{0.318}  \\
 \midrule
-\multicolumn{8}{l}{\emph{Ours --- Qwen3-VL-2B}} \\
-iid-sft                                & 87.3           & 0.640          & 0.011          & 0.115          & 0.496          & \textbf{0.871} & 0.628          \\
-ood-sft                                & 94.6           & 0.563          & 0.017          & 0.152          & \textbf{0.504} & 0.738          & 0.588          \\
-ood-sft $+$ RL                         & \textbf{99.1}  & \textbf{0.714} & \textbf{0.005} & \textbf{0.103} & 0.482          & 0.810          & \textbf{0.723} \\
-iid-sft $+$ RL                         & --             & --             & --             & --             & --             & --             & --             \\
+\multicolumn{4}{l}{\emph{Ours --- Qwen3-VL-2B}} \\
+iid-sft                                                & \textbf{0.871}  & 87.3            & 0.628           \\
+ood-sft                                                & 0.738           & 94.6            & 0.588           \\
+ood-sft $+$ RL                                         & 0.810           & \textbf{99.1}   & \textbf{0.723}  \\
+iid-sft $+$ RL                                         & --              & --              & --              \\
 \bottomrule
 \end{tabular}
 \end{table}

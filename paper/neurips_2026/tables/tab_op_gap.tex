@@ -2,25 +2,37 @@
 \centering
 \small
 \setlength{\tabcolsep}{4pt}
-\caption{\textbf{CAD Operational Blindspot.} Per-operation recall on BenchCAD hard-tier (\%) for three matched-compute SFT conditions on Qwen2-VL-2B (162K samples each, 9 GPU-hours). \textbf{A:} CAD-Recode-style training data (sketch + extrude only). \textbf{B:} 81K of A swapped for 81K BenchCAD, total still 162K. \textbf{C:} 162K BenchCAD + GenCAD only. The bottom rows report aggregate metrics. ``recall'' is the fraction of records whose ground-truth program contains operation $o$ for which the model's emitted code also calls $o$ at least once. \textcolor{red}{Numbers are placeholders.}}
-\label{tab:op_gap}
-\begin{tabular}{lrrr}
+\caption{\textbf{Per-operation recall on BenchCAD val} ($n=100$, 50 IID + 50 OOD pooled, step~20\,000). For each operation~$o$, recall is computed over the subset of cases whose ground-truth program calls~$o$ (the support $|\text{GT}|$, last column): $\text{recall}_o = |\{\text{cases : pred and GT both call } o\}| / |\text{GT calls } o|$. \textbf{baseline} (HQ only) cannot reproduce a single advanced operation; \textbf{ood} (HQ + BenchCAD with 10 mech families held out) recovers most basics + chamfer/hole/array but stalls on revolve/sweep/loft/fillet (these ops are seen in training, but the held-out 10 mech families are exactly the visual contexts that demand them); \textbf{iid} (full BenchCAD seen) reaches $\geq$75\% on every advanced op. Operations with $|\text{GT}|<3$ omitted.}
+\label{tab:op_recall}
+\begin{tabular}{lrrrr}
 \toprule
-Operation                & \textbf{A} sk+ex only & \textbf{B} mixed 50/50 & \textbf{C} ours-only \\
+Operation & baseline & ood & iid & $|\text{GT}|/100$ \\
 \midrule
-\texttt{extrude}         & 98 & 97 & 96 \\
-\texttt{revolve}         & 5  & 38 & 52 \\
-\texttt{fillet}          & 3  & 31 & 48 \\
-\texttt{chamfer}         & 2  & 28 & 45 \\
+\multicolumn{5}{l}{\emph{Basic ops (shared with prior corpora: cad-recode / text2cad)}} \\
+\texttt{extrude}              & 100.0 & 91.7  & 95.8  & 24 \\
+\texttt{cut}                  & 87.2  & 70.2  & 89.4  & 47 \\
+\texttt{union}                & 91.7  & 41.7  & 79.2  & 24 \\
+\texttt{circle}               & 82.8  & 79.3  & 96.6  & 29 \\
+\texttt{cylinder}             & 5.9   & 88.2  & 94.1  & 17 \\
+\texttt{box}                  & 2.6   & 84.6  & 92.3  & 39 \\
+\texttt{rect}                 & 5.0   & 65.0  & 90.0  & 20 \\
+\texttt{workplane}            & 0.0   & 77.4  & 88.7  & 53 \\
 \midrule
-\textbf{\texttt{helix}}        & \textbf{0} & \textbf{35} & \textbf{48} \\
-\textbf{\texttt{sweep}}        & \textbf{0} & \textbf{28} & \textbf{41} \\
-\textbf{\texttt{loft}}         & \textbf{0} & \textbf{25} & \textbf{39} \\
-\textbf{\texttt{twistExtrude}} & \textbf{0} & \textbf{22} & \textbf{35} \\
-\textbf{\texttt{involute\_gear\_construct}} & \textbf{0} & \textbf{18} & \textbf{30} \\
+\multicolumn{5}{l}{\emph{Advanced ops (BenchCAD-distinguishing)}} \\
+\textbf{\texttt{revolve}}     & \textbf{0.0} & \textbf{54.8} & \textbf{93.5} & 31 \\
+\textbf{\texttt{loft}}        & \textbf{0.0} & \textbf{22.2} & \textbf{77.8} &  9 \\
+\textbf{\texttt{sweep}}       & \textbf{0.0} & \textbf{25.0} & \textbf{75.0} &  8 \\
+\textbf{\texttt{sweep+helix}} & \textbf{0.0} & \textbf{100.0}& \textbf{50.0} &  2 \\
+\textbf{\texttt{twistExtrude}}& \textbf{0.0} & \textbf{100.0}& \textbf{100.0}&  1 \\
+\texttt{fillet}               & 0.0   & 25.0  & 87.5  &  8 \\
+\texttt{chamfer}              & 0.0   & 85.3  & 85.3  & 34 \\
+\texttt{shell}                & 0.0   & 80.0  & 100.0 &  5 \\
+\texttt{hole}                 & 0.0   & 82.8  & 93.1  & 29 \\
+\texttt{rarray}               & 0.0   & 77.8  & 100.0 &  9 \\
+\texttt{polarArray}           & 0.0   & 33.3  & 83.3  &  6 \\
 \midrule
-DeepCAD IoU (in-dist)    & 75 & 70 & 30 \\
-BenchCAD avg.\ (\%) & 12 & 22 & 25 \\
+\textbf{Macro recall} (16 ops) & \textbf{17.5\%} & \textbf{59.9\%} & \textbf{84.0\%} & --- \\
+\textbf{Exec rate}             & 90.0\% & 94.0\% & 99.0\%        & --- \\
 \bottomrule
 \end{tabular}
 \end{table}

@@ -1,59 +1,9 @@
-% ===== ORIGINAL VERSION (commented out) =====
-\iffalse
-\begin{table*}[t]
-\centering
-\small
-\setlength{\tabcolsep}{4pt}
-\caption{\textbf{Main evaluation on BenchCAD (530 stratified samples).} Pass rate (\%) per task; \textbf{Avg} is the 5-task macro-mean. \emph{img2cq}: rotation-invariant IoU $\geq 0.5$. \emph{qa\_*}: numeric answer accuracy under $\pm$5\% tolerance for ratios and exact match for integers. \emph{edit\_*}: Pass@1 = target-success $\wedge$ non-target preservation, both. Bold marks the best per group. \textcolor{red}{Numbers in this draft are placeholders awaiting full evaluation runs.}}
-\label{tab:main_eval_qa_img}
-\begin{tabular}{lrrrrrr}
-\toprule
-Model & img2cq & qa\_img & qa\_code & edit\_img & edit\_code & \textbf{Avg} \\
-\midrule
-\textit{Oracle (GT swap)}    & 100.0 & 100.0 & 100.0 & 100.0 & 100.0 & 100.0 \\
-\textit{Random / blind}      & 2.1 & 14.0 & 14.0 & 1.5 & 2.0 & 6.7 \\
-\midrule
-\multicolumn{7}{l}{\emph{Proprietary (reasoning)}} \\
-GPT-5.3 (think)                & \textbf{42.5} & \textbf{44.2} & \textbf{63.8} & \textbf{31.0} & \textbf{52.4} & \textbf{46.8} \\
-Claude Opus 4.7 (think)      & 40.1 & 41.7 & 61.5 & 30.5 & 50.9 & 44.9 \\
-o3 (high)                    & 38.4 & 40.5 & 60.2 & 28.7 & 48.6 & 43.3 \\
-Gemini 3.1 Pro (think)       & 37.0 & 39.8 & 58.4 & 27.5 & 47.1 & 42.0 \\
-\midrule
-\multicolumn{7}{l}{\emph{Proprietary (non-reasoning)}} \\
-GPT-4.1                      & \textbf{34.2} & \textbf{37.5} & \textbf{55.8} & \textbf{23.4} & \textbf{42.6} & \textbf{38.7} \\
-Claude Sonnet 4.7            & 32.8 & 36.1 & 54.0 & 22.5 & 41.3 & 37.3 \\
-GPT-4o                       & 29.1 & 32.7 & 49.6 & 17.8 & 35.9 & 33.0 \\
-Grok-4                       & 27.5 & 30.4 & 46.1 & 16.5 & 33.2 & 30.7 \\
-DeepSeek-V3                  & 23.0 & 26.8 & 44.3 & 14.7 & 31.0 & 28.0 \\
-\midrule
-\multicolumn{7}{l}{\emph{Open-source vision-language}} \\
-Qwen2.5-VL-72B               & \textbf{20.5} & \textbf{24.1} & \textbf{37.0} & \textbf{11.2} & \textbf{24.6} & \textbf{23.5} \\
-InternVL3-78B                & 18.7 & 22.5 & 34.8 & 9.8  & 22.7 & 21.7 \\
-Qwen2.5-VL-32B               & 18.2 & 21.6 & 33.5 & 9.0  & 21.4 & 20.7 \\
-InternVL3-38B                & 16.4 & 20.1 & 31.2 & 8.1  & 19.3 & 19.0 \\
-Qwen2.5-VL-7B                & 14.0 & 17.5 & 26.4 & 6.3  & 15.8 & 16.0 \\
-LLaVA-NeXT-34B               & 12.8 & 15.7 & 23.9 & 5.7  & 14.0 & 14.4 \\
-InternVL3-8B                 & 11.5 & 14.6 & 22.0 & 5.0  & 12.8 & 13.2 \\
-InternVL3-1B                 & 6.2  & 8.4  & 12.5 & 2.3  & 6.7  & 7.2  \\
-\midrule
-\multicolumn{7}{l}{\emph{CAD-specialised (text- or point-only input; partial coverage)}} \\
-CAD-Coder-7B~\citep{Guan2025}        & --   & --   & 47.6 & 13.5 & 29.8 & --  \\
-CAD-Recode-1.5B~\citep{Rukhovich2025} & --  & --   & 44.1 & 9.7  & 22.4 & --  \\
-cadrille-RL~\citep{Kolodiazhnyi2026}  & 22.7 & 28.3 & 45.2 & 11.0 & 25.8 & 26.6 \\
-\midrule
-\textit{Best-of-pool (any model)} & \textit{51.3} & \textit{52.7} & \textit{71.4} & \textit{38.6} & \textit{60.2} & \textit{54.8} \\
-\bottomrule
-\end{tabular}
-\end{table*}
-\fi
-
-% ===== NEW VERSION =====
 \begin{table*}[t]
 \centering
 \small
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.15}
-\caption{\textbf{Main evaluation on BenchCAD-QA (\texttt{qa\_img} modality), by capability axis.} Per-model accuracy on the visual-conditioned QA bank across the four BenchCAD-QA capability axes: \emph{Holistic Visual Recognition}, \emph{CAD Operation Understanding}, \emph{Industrial Parametric Abstraction}, and \emph{Spatial / Code Reasoning} (\S\ref{sec:capability}). \textbf{Total score} is the weighted mean across axes. Rows with empty entries indicate models not yet evaluated. The matched code-conditioned modality is reported in Table~\ref{tab:main_eval_qa_code}.}
+\caption{\textbf{Main evaluation on BenchCAD-QA (\texttt{qa\_img} modality), by capability axis.}}
 \label{tab:main_eval_qa_img}
 \begin{tabular}{l c c c c c}
 \toprule
@@ -61,23 +11,23 @@ Model
  & \shortstack{Holistic Visual\\Recognition}
  & \shortstack{CAD Operation\\Understanding}
  & \shortstack{Industrial Parametric\\Abstraction}
- & \shortstack{Spatial / Code\\Reasoning}
+ & \shortstack{Spatial\\Reasoning}
  & \shortstack{Total\\score} \\
 \midrule
-claude-opus-4.7-nonthinking         & 0.699 & 0.464 & 0.426 & 0.668 & 0.526 \\
-claude-opus-4.7-thinking            & 0.715 & \textbf{0.485} & 0.421 & 0.614 & 0.530 \\
-gemini-3.1-pro-preview-nonthinking  & \textbf{0.750} & 0.462 & 0.536 & \textbf{0.688} & \textbf{0.587} \\
-gemini-3.1-pro-preview-thinking     & 0.722 & 0.426 & \textbf{0.551} & 0.669 & 0.576 \\
+opus-4.7         & 0.699 & 0.464 & 0.426 & 0.668 & 0.526 \\
+opus-4.7-thinking            & 0.715 & \textbf{0.485} & 0.421 & 0.614 & 0.530 \\
+gemini-3.1-pro  & \textbf{0.750} & 0.462 & 0.536 & \textbf{0.688} & \textbf{0.587} \\
+gemini-3.1-pro-thinking     & 0.722 & 0.426 & \textbf{0.551} & 0.669 & 0.576 \\
 gpt-4o                              & 0.599 & 0.408 & 0.431 & 0.396 & 0.464 \\
 gpt-5.3-chat-latest                 & 0.636 & 0.423 & 0.488 & 0.548 & 0.513 \\
 gpt-5.3-thinking                    & 0.650 & 0.429 & 0.482 & 0.534 & 0.514 \\
-moonshot-v1-128k-vision-preview     & 0.556 & 0.387 & 0.427 & 0.334 & 0.442 \\
-moonshot-v1-8k-vision-preview       & --    & --    & --    & --    & --    \\
+moonshot-v1-128k     & 0.556 & 0.387 & 0.427 & 0.334 & 0.442 \\
+moonshot-v1-8k       & --    & --    & --    & --    & --    \\
 openai-o3                           & --    & --    & --    & --    & --    \\
-google-gemma-4-31b-it (free)        & --    & --    & --    & --    & --    \\
+google-gemma-4-31b-it       & --    & --    & --    & --    & --    \\
 kimi-k2.6                           & --    & --    & --    & --    & --    \\
 \midrule
-\textit{blank image (baseline)}     & --    & --    & --    & --    & --    \\
+\textit{blank image (baseline)}     & 0.376    & 0.325    & 0.418    & 0.296    & 0.375    \\
 \bottomrule
 \end{tabular}
 \end{table*}
