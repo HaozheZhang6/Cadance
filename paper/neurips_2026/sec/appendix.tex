@@ -17,9 +17,6 @@ We mitigate this by (i) anchoring 49\% of families to published ISO/DIN/EN/ASME/
 \paragraph{Code generation.}
 DeepCAD~\citep{Wu2021} introduces a 178K-model corpus of Onshape parts encoded as discrete operation tokens; Text2CAD~\citep{Khan2024} extends DeepCAD with 660K natural-language annotations across four abstraction levels. CAD-Coder~\citep{Guan2025} reformulates the same data as CadQuery Python source and applies SFT$+$GRPO with chain-of-thought and Chamfer reward (mean CD $6.54{\times}10^{-3}$ on Text2CAD). The CAD-Recode~\citep{Rukhovich2025}/cadrille~\citep{Kolodiazhnyi2026}/CADEvolve~\citep{Elistratov2026} lineage shares a Qwen2-VL-2B backbone: CAD-Recode fine-tunes on 1M sketch-and-extrude scripts (DeepCAD IoU 92.0); cadrille adds multi-modal inputs and Dr.CPPO online RL with piecewise IoU reward (DeepCAD IoU 92.2, Fusion360 IoU 84.6, 0.0\% invalidity); CADEvolve expands the corpus to 2.7M scripts via an LLM-driven evolutionary loop covering extrude/revolve/loft/sweep/fillet/chamfer/shell/Boolean/patterns (DeepCAD IoU 92.6) --- broadening the operation distribution but still without helical sweeps or parametric involute-gear construction.
 
-\paragraph{CAD editing and refinement.}
-Prior work covers adjacent but distinct edit settings. CADPrompt~\citep{alrashedy2025cadprompt} is primarily an NL-to-CadQuery generation benchmark rather than a code-edit benchmark: it provides 200 natural-language prompts with expert CadQuery annotations, evaluated by point-cloud distance and bounding-box IoU after ICP alignment. CAD-Editor~\citep{yuan2025cadeditor} studies a locate-then-infill editing pipeline trained on synthetic edit data, but does not release a held-out human-verified edit benchmark. CADialogue~\citep{zhou2025cadialogue} supports conversational CAD creation and refinement and evaluates ten edit tasks, but does not release the evaluation set publicly. HistCAD~\citep{dong2026histcad} studies constraint-preserving edits over history-based FreeCAD sketches, measuring preservation of ten geometric-constraint types rather than executable-program edits. To our knowledge, BenchCAD-Edit is the first publicly released CAD benchmark to combine: (i) execution-verified before/after CadQuery code pairs; (ii) a non-target preservation metric distinguishing target-feature success from program-wide locality; and (iii) cross-family balanced coverage with an explicit edit-category taxonomy.
-
 \paragraph{Editing.}
 CADPrompt~\citep{Alrashedy2025} introduces 200 NL$\to$CadQuery prompts scored via point-cloud distance and bounding-box IoU after ICP alignment --- two orders of magnitude smaller than BenchCAD-Edit (17{,}900), without family taxonomy or difficulty stratification, and with potential scale leakage from absolute mm cues and axis-aligned IoU. CAD-Editor~\citep{CADEditor2025} trains a locate-then-infill editor entirely on synthetic edits, but releases no held-out human-verified edit benchmark. CADialogue~\citep{CADialogue2025} evaluates ten edit tasks in a conversational CAD interface, but does not release the eval set. HistCAD~\citep{Dong2026} evaluates constraint preservation under FreeCAD edits, but at the sketch-constraint rather than executable-program level. BenchCAD-Edit is, to our knowledge, the first public CAD editing benchmark with execution-verified before/after CadQuery pairs, preservation-aware metrics, and balanced cross-family edit-category coverage.
 
@@ -61,19 +58,17 @@ Table~\ref{tab:dataset} reports the dataset composition; Table~\ref{tab:capabili
 \begin{figure*}[t]
   \centering
   \includegraphics[width=0.85\linewidth]{figures/fig_7.png}
-  \caption{\textbf{The generalisation gap on BenchCAD remains substantial after 25k SFT steps.} Qwen2-VL-2B trained on three data mixtures under matched 9 GPU-hour budgets, evaluated on the BenchCAD validation set throughout 0--25k steps.
-    \emph{(a) OOD IoU vs.\ training step.} The IID-trained run (green) climbs to IoU $\sim$0.65; the OOD run (red, trained without the target family slice) plateaus near 0.30 by 10k steps; the HQ-only baseline (grey, no BenchCAD) never exceeds 0.10. \emph{(b) OOD essential-op pass rate.} IID reaches $\sim$0.85, OOD plateaus at $\sim$0.35, HQ-only stays at $\sim$0\% --- the \textbf{CAD Operational Blindspot}.
-    The deficit is not optimisation budget (curves saturate by 15--20k), not backbone capacity (same Qwen2-VL-2B reaches IID IoU 0.65), and not training-corpus operation coverage alone (the OOD run \emph{has} BenchCAD data and still plateaus 35--50\,pt below IID). It is the fundamental difficulty of training large models to construct industry-grade parametric CAD code on \emph{unseen} family distributions.}
+  \caption{\textbf{The generalisation gap on BenchCAD.} Qwen3-VL-2B trained on three data mixtures, evaluated on the BenchCAD validation set throughout training.
+    \emph{(a) OOD IoU vs.\ training step.} The IID-trained run (green) climbs highest; the OOD run (red, trained without the held-out family slice) plateaus mid-range; the baseline (grey, no BenchCAD) stays near the floor.
+    \emph{(b) OOD essential-op pass rate.} IID reaches the highest rate, OOD plateaus mid-range, baseline stays at $\sim$0\% --- the \textbf{CAD Operational Blindspot}.
+    The deficit is not optimisation budget, not backbone capacity, and not training-corpus operation coverage alone --- it is the fundamental difficulty of constructing industry-grade parametric CAD code on \emph{unseen} family distributions.}
   \label{fig:generalisation_gap}
 \end{figure*}
-The baseline reaches an aggregate score of 18.4\% on BenchCAD --- comparable to mid-tier proprietary models and substantially below the same-architecture cadrille-RL release.
-Its purpose is to provide a community lower bound and to make the transfer-baseline gaps interpretable: any improvement attributable to procedural data scaling, multi-task pre-training, or RL fine-tuning appears as a contrast against this open baseline rather than against an opaque private model.
-SFT training details:
-(1)~\textbf{iid} -- BenchCAD (all 106 families) + BenchCAD-ex (same to BenchCAD but not following iso standard) + extrusion-heavy data (text2cad, cad-recode);
-(2)~\textbf{ood} -- same recipe, 10 mechanical families removed from BenchCAD and BenchCAD-ex (replaced with zero-overlap atomic op-pattern primitives);
-(3)~\textbf{baseline}: all text2cad and cad-recode data.
-data mixing: 33\% BenchCAD-stack / 67\% HQ for (1) and (2); 100\% HQ for (3). 20\,k steps, effective batch 32 (Qwen3-VL-2B, AdamW,
-$2{\times}10^{-4}$ cosine, 2\,k warm-up). Eval seed-frozen at 50 cases per bucket.
+\paragraph{SFT training mixture.}
+(1) \textbf{iid}: BenchCAD (all 106 families) + extrusion-heavy data (text2cad, cad-recode);
+(2) \textbf{ood}: same recipe, 10 mechanical families held out;
+(3) \textbf{baseline}: text2cad + cad-recode only (no BenchCAD).
+Mixing 33\% BenchCAD / 67\% HQ for (1)/(2); 100\% HQ for (3). Backbone Qwen3-VL-2B; full hyperparameters in the released training config.
 
 \section{Datasheet for BenchCAD}
 \label{app:datasheet}
@@ -87,7 +82,7 @@ We follow the datasheet template of Gebru et al.\ (2021); responses below are co
 
 \paragraph{Composition.}
 \textbf{What do the instances represent?} Each instance is a parametric CAD part: an executable CadQuery Python program, the resulting STEP file, four canonical-view PNG renders, a parameter JSON, and an op-list JSON.
-\textbf{How many instances are there in total?} 17{,}900 verified procedural parts, 2{,}400 paired QA questions (each evaluated under both visual and code conditioning, yielding 4{,}800 records), 748 curated edit pairs, 530 stratified Lite samples, 726 Fusion360-derived samples, 920 DeepCAD-derived samples, and 162{,}000 GenCAD-derived training pairs.
+\textbf{How many instances are there in total?} 17{,}900 verified parts in BenchCAD, 2{,}400 paired QA questions in BenchCAD-QA (each evaluated under both visual and code conditioning, yielding 4{,}800 records), and 748 curated edit pairs in BenchCAD-Edit.
 \textbf{Does the dataset contain all possible instances?} No --- BenchCAD samples a subset of the parameter space per family; the schema permits unbounded sampling under the documented constraints.
 \textbf{Is there a label/target?} The CadQuery source code, STEP, parameters, and op list jointly serve as ground truth; for QA tasks, gold answers are derived deterministically from parameters; for edit tasks, target code and target STEP are paired with the original.
 
@@ -372,7 +367,6 @@ colback=gray!4, colframe=gray!45, fonttitle=\bfseries, breakable, sharp corners,
 We compute IoU as the maximum over the 6-element face-up cube symmetry group (or the full 24-element rotation group; configurable).
 Voxelisation is at $64^3$ on the cube-normalised STEP $[-1, 1]^3$; cube normalisation centres the part at the origin and scales by the largest semi-axis.
 For each candidate orientation $g \in G$, we apply $g$ to the predicted voxel grid and compute IoU against the reference; the reported score is $\max_{g} \mathrm{IoU}(g \cdot \hat{V}, V)$.
-Implementation runs in $\approx$120\,ms per pair on a single CPU thread; the full 530-sample BenchCAD scoring completes in under one minute per model output.
 Source: \texttt{bench/metrics/rot\_iou.py} in the released harness.
 
 \section{Edit Protocol}
@@ -442,27 +436,16 @@ Best-of-5 sampling and 3-turn refinement with execution feedback offer larger bu
 
 \input{tables/tab_op_coverage}
 
-Table~\ref{tab:op_coverage} contrasts BenchCAD's 45+ distinct CadQuery operations against prior corpora restricted predominantly to sketch+extrude.
+Table~\ref{tab:op_coverage} contrasts BenchCAD's 28 distinct CadQuery operations against prior corpora restricted predominantly to sketch+extrude.
 Each ``\cmark'' indicates that the operation is exercised in at least one family/sample of the corresponding dataset, not merely supported by the underlying API.
-
-\section{Per-Family Results}
-\label{app:per_family}
-
-\paragraph{Hard-tier families and their dependency graphs.} The hard tier concentrates families with dense parameter dependencies: involute gears (module $\times$ tooth count $=$ pitch diameter; addendum and dedendum derived from module), helical springs (free length determined by turn count $\times$ pitch), roller chains (link count constrains pitch diameter), bevel gears (ISO 23509 cone-angle relations), and twist drills (DIN 338 helix angle and point angle dependencies).
-These families collectively account for 89\% of the multi-step edit failures (\S\ref{sec:exp_edit}).
-
-\paragraph{Per-family table.} A full per-family breakdown of \texttt{img2cq} pass rate, mean Chamfer distance, and Industrial Common Sense Gap rate for the top eight models is included with the released harness as \texttt{results/per\_family\_lite.csv}; we omit the table from the appendix for space and to avoid implying single-cell statistical significance on small per-family sample sizes (typically 5 records per family in BenchCAD).
 
 \section{Reproduction Recipe}
 \label{app:reproduce}
 
-The complete BenchCAD evaluation runs on a single A100 GPU in under two hours per model for BenchCAD (530 samples).
-Reproduction uses the released \texttt{bench/fetch\_data.py} (one-line Hugging Face fetch), the \texttt{bench.eval} runner (\texttt{--model maksimko123/cadrille-rl --task img2cq --split BenchCAD --seed 42}), and the released model's documented inference entry-point.
+Reproduction uses the released \texttt{bench/fetch\_data.py} (Hugging Face fetch), the \texttt{bench.eval} runner (\texttt{--model <model> --task <task> --seed 42}), and each released model's documented inference entry-point.
 We provide adapter wrappers under \texttt{bench/models/providers/} for cadrille and CADEvolve so that the existing runner accepts these models without modification.
-Per-task IoU, Chamfer distance, invalidity ratio, and per-family breakdowns are exported to \texttt{results/<task>/<model>/}.
-
-For training the open BenchCAD baseline: \texttt{train/sft\_qwen2vl.py} with the released config, training data manifest \texttt{train/manifest\_synth\_plus\_gencad.jsonl}, and the resulting checkpoint hash.
-Total training time is approximately 9 GPU-hours on 8$\times$A800-80GB.
+Per-task IoU, Chamfer distance, execution rate, and per-family breakdowns are exported to \texttt{results/<task>/<model>/}.
+For training the open BenchCAD baseline: \texttt{train/sft\_qwen3vl.py} with the released training config and data manifest.
 
 \section{Ethical Considerations and Broader Impact}
 \label{app:ethics}
