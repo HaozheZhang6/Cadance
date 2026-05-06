@@ -421,15 +421,12 @@ Figure~\ref{fig:edit_L_pies} disaggregates per-model failures into the L1--L4 bu
   \label{fig:edit_L_pies}
 \end{figure}
 
-\section{Inference Strategy and Scoring Ablations}
+\section{Scoring-Protocol Ablations}
 \label{app:ablation}
 
 \input{tables/tab_ablation}
 
-Table~\ref{tab:ablation} reports four scoring-protocol and inference-strategy ablations on GPT-5.3 (think) on BenchCAD.
-Removing scale invariance (allowing absolute mm hints in prompts) inflates \texttt{qa\_img} by 4.6\,pt --- the systematic optimism baked into prior CAD-eval protocols.
-Doubling view count from 4 to 8 closes only $\leq$1.5\,pt of the Holistic Spatial and Detailing Deficit.
-Best-of-5 sampling and 3-turn refinement with execution feedback offer larger but ultimately bounded gains; neither approach closes more than half of the remaining gap to BenchCAD's verification threshold.
+Table~\ref{tab:ablation} reports two scoring-protocol ablations on the Vision2Code task. (i) The \emph{24-axial vs.\ single-axis IoU} contrast quantifies how much credit is recovered by accounting for wrong-plane outputs (\S\ref{sec:exp_failure_analysis}, $L_1$ spatial-anchoring failure mode): when the gap is large, the model's geometry is approximately correct but emitted on a non-canonical workplane. (ii) The \emph{single-view vs.\ multi-view} contrast quantifies how much of a model's score is driven by the four-view evidence specifically, isolating the cost of removing back-side and depth cues from the perception input.
 
 \section{CadQuery Operation Coverage}
 \label{app:ops}

@@ -1,19 +1,20 @@
 \begin{table}[t]
 \centering
 \small
-\caption{\textbf{Scoring-protocol and inference-strategy ablations.} Reported on GPT-5.3 (think) on BenchCAD. Removing scale invariance (allowing absolute mm hints in prompts) inflates \texttt{qa\_img} by 4.6\,pt --- the systematic optimism baked into prior CAD-eval protocols. Best-of-5 sampling and multi-turn refinement with execution feedback offer diminishing-returns improvements. Doubling view count from 4 to 8 closes only $\leq$1.5\,pt of the Holistic Spatial and Detailing Deficit, far below what a perception bottleneck would predict.}
+\setlength{\tabcolsep}{6pt}
+\caption{\textbf{Scoring-protocol ablations.} (i) \emph{24-axial vs.\ single-axis IoU}: comparing the cube-symmetry-group IoU (max over 24 rotations) to the standard axis-aligned IoU isolates wrong-plane errors --- when 24-axial $>$ single-axis on the same prediction, the geometry is correct but emitted on the wrong base workplane (\S\ref{sec:exp_failure_analysis}). (ii) \emph{Single image vs.\ multi-view input}: collapsing the four canonical orthographic views into a single front view removes the multi-view evidence the model relies on for depth and back-side features. \textcolor{red}{Numbers are placeholders pending the ablation run.}}
 \label{tab:ablation}
 \begin{tabular}{lrr}
 \toprule
-Variant & Avg & $\Delta$ \\
+Variant & total & $\Delta$ \\
 \midrule
-GPT-5.3 full (4-view img + scale-invariant prompts) & 46.8 & -- \\
-$-$ single front view only                        & 38.5 & $-$8.3 \\
-$+$ 8-view grid (vs.\ 4-view)                     & 47.6 & $+$0.8 \\
-$-$ scale-invariant prompts (mm hints leak)       & 51.4 & $+$4.6 (inflated) \\
-$-$ rotation-invariant IoU (axis-aligned only)    & 40.9 & $-$5.9 (under-credited) \\
-$+$ Best-of-5 sampling                            & 52.1 & $+$5.3 \\
-$+$ multi-turn refinement w/ exec feedback (3 turns) & 55.8 & $+$9.0 \\
+\multicolumn{3}{l}{\emph{IoU scoring protocol (Vision2Code, fixed model output)}} \\
+24-axial rotation-invariant IoU (default)         & --   & ref \\
+single-axis IoU (axis-aligned only)               & --   & -- \\
+\midrule
+\multicolumn{3}{l}{\emph{Visual input (Vision2Code, single model)}} \\
+4-view canonical orthographic (default)           & --   & ref \\
+single front view only                            & --   & -- \\
 \bottomrule
 \end{tabular}
 \end{table}
