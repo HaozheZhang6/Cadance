@@ -1,4 +1,4 @@
-\begin{thebibliography}{17}
+\begin{thebibliography}{16}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -8,118 +8,77 @@
 \bibitem[Akhtar et~al.(2024)]{Croissant2024}
 Mubashara Akhtar et~al.
 \newblock Croissant: A metadata format for {ML}-ready datasets.
-\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS)
-  Datasets and Benchmarks Track}, 2024.
-
-\bibitem[Alam and Ahmed(2024)]{GenCAD2025}
-Md~Ferdous Alam and Faez Ahmed.
-\newblock {GenCAD}: Image-conditioned computer-aided design generation with
-  transformer-based contrastive representation and diffusion priors, 2024.
+\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS) Datasets and Benchmarks Track}, 2024.
 
 \bibitem[Alrashedy et~al.(2025)]{Alrashedy2025}
 Khaled Alrashedy et~al.
-\newblock {CAD-CodeVerify}: Self-verification of vision-language models on
-  {CAD} code generation.
-\newblock In \emph{International Conference on Learning Representations
-  (ICLR)}, 2025.
+\newblock {CAD-CodeVerify}: Self-verification of vision-language models on {CAD} code generation.
+\newblock In \emph{International Conference on Learning Representations (ICLR)}, 2025.
 
 \bibitem[{CadQuery Contributors}(2024)]{CadQuerySoftware}
 {CadQuery Contributors}.
-\newblock {CadQuery}: A python parametric {CAD} scripting framework based on
-  {OCCT}.
+\newblock {CadQuery}: A python parametric {CAD} scripting framework based on {OCCT}.
 \newblock \url{https://github.com/CadQuery/cadquery}, 2024.
 
-\bibitem[Chou et~al.(2025)Chou, Liu, Deng, Zeng, Zhang, Zhu, Cai, Mao, Zhang,
-  Tan, Xu, Zhai, Liu, Zhu, Zhou, and Lian]{Chou2026}
-Jason Chou, Ao~Liu, Yuchi Deng, Zhiying Zeng, Tao Zhang, Haotian Zhu, Jianwei
-  Cai, Yue Mao, Chenchen Zhang, Lingyun Tan, Ziyan Xu, Bohui Zhai, Hengyi Liu,
-  Speed Zhu, Wiggin Zhou, and Fengzong Lian.
-\newblock {AutoCodeBench}: Large language models are automatic code benchmark
-  generators, 2025.
+\bibitem[Chou et~al.(2025)Chou, Liu, Deng, Zeng, Zhang, Zhu, Cai, Mao, Zhang, Tan, Xu, Zhai, Liu, Zhu, Zhou, and Lian]{Chou2026}
+Jason Chou, Ao~Liu, Yuchi Deng, Zhiying Zeng, Tao Zhang, Haotian Zhu, Jianwei Cai, Yue Mao, Chenchen Zhang, Lingyun Tan, Ziyan Xu, Bohui Zhai, Hengyi Liu, Speed Zhu, Wiggin Zhou, and Fengzong Lian.
+\newblock {AutoCodeBench}: Large language models are automatic code benchmark generators, 2025.
 
 \bibitem[Dong et~al.(2026)]{Dong2026}
 Xintong Dong et~al.
-\newblock {HistCAD}: Geometrically constrained parametric history-based {CAD}
-  dataset, 2026.
+\newblock {HistCAD}: Geometrically constrained parametric history-based {CAD} dataset, 2026.
 
-\bibitem[Elistratov et~al.(2026)Elistratov, Barannikov, Ivanov, Khrulkov,
-  Konushin, Kuznetsov, and Zhemchuzhnikov]{Elistratov2026}
-Maksim Elistratov, Marina Barannikov, Gregory Ivanov, Valentin Khrulkov, Anton
-  Konushin, Andrey Kuznetsov, and Dmitrii Zhemchuzhnikov.
+\bibitem[Elistratov et~al.(2026)Elistratov, Barannikov, Ivanov, Khrulkov, Konushin, Kuznetsov, and Zhemchuzhnikov]{Elistratov2026}
+Maksim Elistratov, Marina Barannikov, Gregory Ivanov, Valentin Khrulkov, Anton Konushin, Andrey Kuznetsov, and Dmitrii Zhemchuzhnikov.
 \newblock {CADEvolve}: Creating realistic {CAD} via program evolution, 2026.
 
-\bibitem[Guan et~al.(2025)Guan, Ge, Yang, Yang, Wei, Cui, Tang, Zhang, and
-  Zhuang]{Guan2025}
-Yandong Guan, Xilin Ge, Shihao Yang, Wenhao Yang, Zhipeng Wei, Can Cui, Cheng
-  Tang, Liang Zhang, and Yueting Zhuang.
-\newblock {CAD-Coder}: Text-to-{CAD} generation with chain-of-thought and
-  geometric reward.
-\newblock In \emph{Advances in Neural Information Processing Systems
-  (NeurIPS)}, 2025.
+\bibitem[Guan et~al.(2025)Guan, Ge, Yang, Yang, Wei, Cui, Tang, Zhang, and Zhuang]{Guan2025}
+Yandong Guan, Xilin Ge, Shihao Yang, Wenhao Yang, Zhipeng Wei, Can Cui, Cheng Tang, Liang Zhang, and Yueting Zhuang.
+\newblock {CAD-Coder}: Text-to-{CAD} generation with chain-of-thought and geometric reward.
+\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, 2025.
 
-\bibitem[Khan et~al.(2024)Khan, Sinha, Uddin, Stricker, Ali, and
-  Afzal]{Khan2024}
-Mohammad~Sadil Khan, Sankalp Sinha, Talha A.~M. Uddin, Didier Stricker, Sk~Aziz
-  Ali, and Muhammad~Zeshan Afzal.
-\newblock {Text2CAD}: Generating sequential {CAD} models from
-  beginner-to-expert level text prompts.
-\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS)
-  Datasets and Benchmarks Track}, 2024.
+\bibitem[Khan et~al.(2024)Khan, Sinha, Uddin, Stricker, Ali, and Afzal]{Khan2024}
+Mohammad~Sadil Khan, Sankalp Sinha, Talha A.~M. Uddin, Didier Stricker, Sk~Aziz Ali, and Muhammad~Zeshan Afzal.
+\newblock {Text2CAD}: Generating sequential {CAD} models from beginner-to-expert level text prompts.
+\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS) Datasets and Benchmarks Track}, 2024.
 
-\bibitem[Kolodiazhnyi et~al.(2026)Kolodiazhnyi, Rukhovich, and
-  Aouada]{Kolodiazhnyi2026}
+\bibitem[Kolodiazhnyi et~al.(2026)Kolodiazhnyi, Rukhovich, and Aouada]{Kolodiazhnyi2026}
 Kyrylo Kolodiazhnyi, Danila Rukhovich, and Djamila Aouada.
-\newblock {cadrille}: Multi-modal {CAD} reconstruction with online
-  reinforcement learning.
-\newblock In \emph{International Conference on Learning Representations
-  (ICLR)}, 2026.
+\newblock {cadrille}: Multi-modal {CAD} reconstruction with online reinforcement learning.
+\newblock In \emph{International Conference on Learning Representations (ICLR)}, 2026.
 
-\bibitem[Rukhovich et~al.(2025)Rukhovich, Kolodiazhnyi, and
-  Aouada]{Rukhovich2025}
+\bibitem[Rukhovich et~al.(2025)Rukhovich, Kolodiazhnyi, and Aouada]{Rukhovich2025}
 Danila Rukhovich, Kyrylo Kolodiazhnyi, and Djamila Aouada.
 \newblock {CAD-Recode}: Reverse engineering {CAD} code from point clouds.
-\newblock In \emph{IEEE/CVF International Conference on Computer Vision
-  (ICCV)}, 2025.
+\newblock In \emph{IEEE/CVF International Conference on Computer Vision (ICCV)}, 2025.
 
 \bibitem[Team(2024)]{Qwen2VL}
 Qwen Team.
-\newblock {Qwen2-VL}: Enhancing vision-language model's perception of the world
-  at any resolution, 2024.
+\newblock {Qwen2-VL}: Enhancing vision-language model's perception of the world at any resolution, 2024.
 
-\bibitem[Willis et~al.(2021)Willis, Pu, Luo, Chu, Du, Lambourne, Solar-Lezama,
-  and Matusik]{Willis2021fusion}
-Karl D.~D. Willis, Yewen Pu, Jieliang Luo, Hang Chu, Tao Du, Joseph~G.
-  Lambourne, Armando Solar-Lezama, and Wojciech Matusik.
-\newblock {Fusion 360 Gallery}: A dataset and environment for programmatic
-  {CAD} construction from human design sequences.
+\bibitem[Willis et~al.(2021)Willis, Pu, Luo, Chu, Du, Lambourne, Solar-Lezama, and Matusik]{Willis2021fusion}
+Karl D.~D. Willis, Yewen Pu, Jieliang Luo, Hang Chu, Tao Du, Joseph~G. Lambourne, Armando Solar-Lezama, and Wojciech Matusik.
+\newblock {Fusion 360 Gallery}: A dataset and environment for programmatic {CAD} construction from human design sequences.
 \newblock In \emph{ACM Transactions on Graphics (SIGGRAPH)}, 2021.
 
 \bibitem[Wu et~al.(2021)Wu, Xiao, and Zheng]{Wu2021}
 Rundi Wu, Chang Xiao, and Changxi Zheng.
-\newblock {DeepCAD}: A deep generative network for computer-aided design
-  models.
-\newblock \emph{Proceedings of the IEEE/CVF International Conference on
-  Computer Vision (ICCV)}, 2021.
+\newblock {DeepCAD}: A deep generative network for computer-aided design models.
+\newblock \emph{Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)}, 2021.
 
-\bibitem[Yang et~al.(2026)Yang, Xu, Xie, Yang, Li, Lin, Zhu, Chen, Duan, Yue,
-  Lin, Wang, and Pang]{MMSIBench2026}
-Sihan Yang, Runsen Xu, Yiman Xie, Sizhe Yang, Mo~Li, Jingli Lin, Chenming Zhu,
-  Xiaochen Chen, Haodong Duan, Xiangyu Yue, Dahua Lin, Tai Wang, and Jiangmiao
-  Pang.
+\bibitem[Yang et~al.(2026)Yang, Xu, Xie, Yang, Li, Lin, Zhu, Chen, Duan, Yue, Lin, Wang, and Pang]{MMSIBench2026}
+Sihan Yang, Runsen Xu, Yiman Xie, Sizhe Yang, Mo~Li, Jingli Lin, Chenming Zhu, Xiaochen Chen, Haodong Duan, Xiangyu Yue, Dahua Lin, Tai Wang, and Jiangmiao Pang.
 \newblock {MMSI-Bench}: A benchmark for multi-image spatial intelligence.
-\newblock In \emph{International Conference on Learning Representations
-  (ICLR)}, 2026.
+\newblock In \emph{International Conference on Learning Representations (ICLR)}, 2026.
 
 \bibitem[Yuan et~al.(2025)Yuan, Sun, Liu, and Bian]{CADEditor2025}
 Yu~Yuan, Shizhao Sun, Qi~Liu, and Jiang Bian.
-\newblock {CAD-Editor}: A locate-then-infill framework with automated training
-  data synthesis for text-based {CAD} editing.
+\newblock {CAD-Editor}: A locate-then-infill framework with automated training data synthesis for text-based {CAD} editing.
 \newblock In \emph{International Conference on Machine Learning (ICML)}, 2025.
 
 \bibitem[Zhou et~al.(2025)Zhou, Camba, and Company]{CADialogue2025}
 Jiwei Zhou, Jorge~D. Camba, and Pedro Company.
-\newblock {CADialogue}: A multimodal {LLM}-powered conversational assistant for
-  intuitive parametric {CAD} modeling.
+\newblock {CADialogue}: A multimodal {LLM}-powered conversational assistant for intuitive parametric {CAD} modeling.
 \newblock \emph{Computer-Aided Design}, 2025.
 \newblock \doi{10.1016/j.cad.2025.103929}.
 

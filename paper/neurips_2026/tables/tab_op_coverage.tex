@@ -1,20 +1,27 @@
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \small
-\caption{\textbf{CadQuery operation coverage versus prior corpora.} BenchCAD covers 28 distinct operations spanning primitives, 2D sketching, advanced solid ops (helical sweeps, lofts, shells), boolean composition, holes, arrays, and finishing features. Prior CAD datasets are largely restricted to sketch + extrude.}
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.05}
+\caption{\textbf{CadQuery operation coverage: BenchCAD (49) vs.\ CADEvolve ($\sim$25).} Per-category breakdown from a static analysis of the released family code (BenchCAD) and the operation list reported in the CADEvolve paper (CADEvolve count is approximate, derived from the published description rather than the released corpus). Operations \emph{exclusive to BenchCAD} are listed in the rightmost column.}
 \label{tab:op_coverage}
-\begin{tabular}{lccccccc}
+\begin{tabular}{@{}lcc p{0.30\linewidth} c p{0.22\linewidth}@{}}
 \toprule
-Bench & sk+ex & rev. & loft/sw. & bool. & fil/cham & twistEx. & spline/helix \\
+Category & \#BC & \#CE & BenchCAD ops & $\Delta$ & BenchCAD-only ops \\
 \midrule
-DeepCAD              & \cmark & --     & --     & basic  & --     & --     & --     \\
-Text2CAD             & \cmark & --     & --     & --     & --     & --     & --     \\
-CAD-Coder            & \cmark & --     & --     & --     & --     & --     & --     \\
-CAD-Recode (1M)      & \cmark & --     & --     & \cmark & --     & --     & --     \\
-CADPrompt (200)      & \cmark & part.  & part.  & \cmark & --     & --     & --     \\
-CADEvolve            & \cmark & \cmark & --     & \cmark & part.  & --     & --     \\
+Primitives                & 5  & 3 & box, cylinder, sphere, makeTorus, ellipse                       & $+2$ & makeTorus, ellipse \\
+2D sketch profile         & 12 & 5 & circle, rect, polygon, polyline, lineTo, moveTo, spline, threePointArc, radiusArc, slot2D, center, pushPoints & $+7$ & spline, threePointArc, radiusArc, slot2D, center, pushPoints, polyline \\
+Solid-forming             & 6  & 5 & extrude, revolve, sweep, loft, shell, twistExtrude              & $+1$ & twistExtrude \\
+Advanced path             & 1  & 0 & makeHelix                                                       & $+1$ & makeHelix \\
+Boolean                   & 4  & 3 & cut, cutBlind, cutThruAll, union                                & $+1$ & cutBlind, cutThruAll \\
+Hole features             & 3  & 0 & hole, cboreHole, cskHole                                        & $+3$ & all 3 \\
+Finishing                 & 2  & 2 & fillet, chamfer                                                 & $0$  & --- \\
+Arrays / Mirrors          & 3  & 2 & polarArray, rarray, mirrorY                                     & $+1$ & mirrorY \\
+Transforms                & 3  & 3 & transformed, rotate, workplane                                  & $0$  & --- \\
+Sketch builder API        & 3  & 0 & Sketch, cq.Sketch, placeSketch                                  & $+3$ & all 3 \\
+Core types / constructors & 7  & 2 & Workplane, cq.Workplane, cq.Wire, cq.Solid, cq.Vector, Vector, face & $+5$ & cq.Wire, cq.Solid, cq.Vector, Vector, cq.Workplane \\
 \midrule
-\textbf{BenchCAD}    & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark \\
+\textbf{Total}            & \textbf{49} & \textbf{$\sim$25} & & \textbf{$+24$} & 24 ops absent from CADEvolve \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
