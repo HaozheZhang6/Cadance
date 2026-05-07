@@ -1,0 +1,379 @@
+{
+  "@context": {
+    "@language": "en",
+    "@vocab": "https://schema.org/",
+    "citeAs": "cr:citeAs",
+    "column": "cr:column",
+    "conformsTo": "dct:conformsTo",
+    "cr": "http://mlcommons.org/croissant/",
+    "rai": "http://mlcommons.org/croissant/RAI/",
+    "data": {"@id": "cr:data", "@type": "@json"},
+    "dataType": {"@id": "cr:dataType", "@type": "@vocab"},
+    "dct": "http://purl.org/dc/terms/",
+    "examples": {"@id": "cr:examples", "@type": "@json"},
+    "extract": "cr:extract",
+    "field": "cr:field",
+    "fileProperty": "cr:fileProperty",
+    "fileObject": "cr:fileObject",
+    "fileSet": "cr:fileSet",
+    "format": "cr:format",
+    "includes": "cr:includes",
+    "isLiveDataset": "cr:isLiveDataset",
+    "jsonPath": "cr:jsonPath",
+    "key": "cr:key",
+    "md5": "cr:md5",
+    "parentField": "cr:parentField",
+    "path": "cr:path",
+    "recordSet": "cr:recordSet",
+    "references": "cr:references",
+    "regex": "cr:regex",
+    "repeated": "cr:repeated",
+    "replace": "cr:replace",
+    "sc": "https://schema.org/",
+    "separator": "cr:separator",
+    "source": "cr:source",
+    "subField": "cr:subField",
+    "transform": "cr:transform"
+  },
+  "@type": "sc:Dataset",
+  "name": "BenchCAD",
+  "description": "BenchCAD is a unified, capability-decomposed evaluation framework for industrial CAD reasoning. It contains 17,900 execution-verified CadQuery programs across 106 industrial part families, with parameters anchored to 47 ISO/DIN/EN/ASME/IEC specification tables. The benchmark spans four task types (img2cq, edit_code, qa_img, qa_code) covering image-to-code generation, instruction-guided code editing, and design question answering under both visual and code conditioning.",
+  "conformsTo": "http://mlcommons.org/croissant/1.0",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "url": "https://huggingface.co/datasets/BenchCAD/cad_bench",
+  "version": "1.0.0",
+  "datePublished": "2026-05-07",
+  "creator": {
+    "@type": "Organization",
+    "name": "BenchCAD authors (anonymous, NeurIPS 2026 D&B submission)"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Hugging Face",
+    "url": "https://huggingface.co"
+  },
+  "keywords": [
+    "computer-aided design",
+    "CAD",
+    "CadQuery",
+    "parametric modeling",
+    "code generation",
+    "vision-language models",
+    "benchmark",
+    "industrial standards"
+  ],
+  "citeAs": "@inproceedings{benchcad2026, title = {BenchCAD: A Capability-Decomposed Benchmark for Industrial CAD Reasoning}, author = {Anonymous}, booktitle = {Advances in Neural Information Processing Systems (NeurIPS) Datasets and Benchmarks Track}, year = {2026}}",
+
+  "distribution": [
+    {
+      "@type": "cr:FileObject",
+      "@id": "parts-parquet",
+      "name": "parts.parquet",
+      "description": "Verified parametric CAD parts (main split). One row per part with cadquery source, parameters, family/standard metadata, and asset paths.",
+      "contentUrl": "https://huggingface.co/datasets/BenchCAD/cad_bench/resolve/main/parts.parquet",
+      "encodingFormat": "application/vnd.apache.parquet",
+      "sha256": "TBD"
+    },
+    {
+      "@type": "cr:FileObject",
+      "@id": "qa-parquet",
+      "name": "qa.parquet",
+      "description": "Paired image/code QA items, broken out along the four-level capability hierarchy (L1 holistic visual recognition through L4 compositional spatial-code reasoning).",
+      "contentUrl": "https://huggingface.co/datasets/BenchCAD/cad_bench/resolve/main/qa.parquet",
+      "encodingFormat": "application/vnd.apache.parquet",
+      "sha256": "TBD"
+    },
+    {
+      "@type": "cr:FileObject",
+      "@id": "edit-parquet",
+      "name": "edit.parquet",
+      "description": "Curated edit pairs across dimensional, additive, subtractive, and multi-step categories (task types T1--T5).",
+      "contentUrl": "https://huggingface.co/datasets/BenchCAD/cad_bench/resolve/main/edit.parquet",
+      "encodingFormat": "application/vnd.apache.parquet",
+      "sha256": "TBD"
+    },
+    {
+      "@type": "cr:FileSet",
+      "@id": "views",
+      "name": "views",
+      "description": "Multi-view renders for every part. Per-part directory views/<stem>/ contains four canonical orthographic projections: front.png, right.png, top.png, iso.png.",
+      "containedIn": {"@id": "parts-parquet"},
+      "encodingFormat": "image/png",
+      "includes": "views/*/*.png"
+    },
+    {
+      "@type": "cr:FileSet",
+      "@id": "steps",
+      "name": "steps",
+      "description": "Per-part STEP exports computed from the verified CadQuery program.",
+      "containedIn": {"@id": "parts-parquet"},
+      "encodingFormat": "application/step",
+      "includes": "steps/*.step"
+    },
+    {
+      "@type": "cr:FileSet",
+      "@id": "cadquery-source",
+      "name": "cadquery-source",
+      "description": "Per-part CadQuery .py source files (executable parametric programs).",
+      "containedIn": {"@id": "parts-parquet"},
+      "encodingFormat": "text/x-python",
+      "includes": "cadquery/*.py"
+    }
+  ],
+
+  "recordSet": [
+    {
+      "@type": "cr:RecordSet",
+      "@id": "benchcad-parts",
+      "name": "benchcad-parts",
+      "description": "Main split: 17,900 verified CadQuery parts across 106 industrial families. Each record carries the executable parametric program, sampled parameter values, family/subfamily/difficulty/standard metadata, ground-truth STEP, and four canonical-view renders.",
+      "key": {"@id": "benchcad-parts/stem"},
+      "field": [
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-parts/stem",
+          "name": "stem",
+          "description": "Unique part identifier (string, e.g., coil_spring_0001_easy).",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "parts-parquet"}, "extract": {"column": "stem"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-parts/family",
+          "name": "family",
+          "description": "Industrial part family (one of 106 named families, e.g., coil_spring, helical_gear).",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "parts-parquet"}, "extract": {"column": "family"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-parts/subfamily",
+          "name": "subfamily",
+          "description": "Optional subfamily label capturing mating/assembly/construction variants of the same part type (e.g., male/female fastener, internal/external retaining ring, single-/multi-start thread).",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "parts-parquet"}, "extract": {"column": "subfamily"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-parts/difficulty",
+          "name": "difficulty",
+          "description": "Difficulty tier: easy / medium / hard, defined by parameter complexity within the family.",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "parts-parquet"}, "extract": {"column": "difficulty"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-parts/standard",
+          "name": "standard",
+          "description": "ISO/DIN/EN/ASME/IEC specification code anchoring the part's parameters (47 distinct codes; null for the 54 custom families without a formal standard).",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "parts-parquet"}, "extract": {"column": "standard"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-parts/cadquery_code",
+          "name": "cadquery_code",
+          "description": "The executable parametric CadQuery program (Python source) that produces the part.",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "parts-parquet"}, "extract": {"column": "cadquery_code"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-parts/params",
+          "name": "params",
+          "description": "Sampled parameter values (JSON) instantiating the family's typed parameter schema.",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "parts-parquet"}, "extract": {"column": "params_json"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-parts/ops_list",
+          "name": "ops_list",
+          "description": "Distinct CadQuery API methods invoked by the program (subset of the 46 ops covered by BenchCAD).",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "parts-parquet"}, "extract": {"column": "ops_list"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-parts/step_path",
+          "name": "step_path",
+          "description": "Relative path to the ground-truth STEP export.",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "parts-parquet"}, "extract": {"column": "step_path"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-parts/views_dir",
+          "name": "views_dir",
+          "description": "Relative path to the per-part view directory (joins to FileSet 'views', containing front.png, right.png, top.png, iso.png).",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "parts-parquet"}, "extract": {"column": "views_dir"}}
+        }
+      ]
+    },
+
+    {
+      "@type": "cr:RecordSet",
+      "@id": "benchcad-qa",
+      "name": "benchcad-qa",
+      "description": "BenchCAD-QA: 2,400 paired image/code numeric-QA items. Each question is asked under two conditioning modalities (Vision QA from rendered views, Code QA from the CadQuery source) on the same underlying part.",
+      "key": {"@id": "benchcad-qa/question_id"},
+      "field": [
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-qa/question_id",
+          "name": "question_id",
+          "description": "Unique question identifier.",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "qa-parquet"}, "extract": {"column": "question_id"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-qa/stem",
+          "name": "stem",
+          "description": "Identifier of the underlying part (foreign key to benchcad-parts.stem).",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "qa-parquet"}, "extract": {"column": "stem"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-qa/level",
+          "name": "level",
+          "description": "Capability hierarchy level: L1 (holistic visual recognition), L2 (CAD operations understanding), L3 (industrial parametric abstraction), L4 (compositional spatial-code reasoning).",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "qa-parquet"}, "extract": {"column": "level"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-qa/modality",
+          "name": "modality",
+          "description": "Conditioning modality: image (Vision QA, four-view render) or code (Code QA, CadQuery source).",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "qa-parquet"}, "extract": {"column": "modality"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-qa/question_type",
+          "name": "question_type",
+          "description": "Answer type: ratio (continuous, scored under +/-5% tolerance), integer (exact match), or ordinal.",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "qa-parquet"}, "extract": {"column": "question_type"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-qa/question",
+          "name": "question",
+          "description": "Natural-language question text.",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "qa-parquet"}, "extract": {"column": "question"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-qa/answer",
+          "name": "answer",
+          "description": "Ground-truth answer (numeric or short text).",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "qa-parquet"}, "extract": {"column": "answer"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-qa/tolerance",
+          "name": "tolerance",
+          "description": "Scoring tolerance (e.g., 0.05 = +/-5% for ratio questions).",
+          "dataType": "sc:Float",
+          "source": {"fileObject": {"@id": "qa-parquet"}, "extract": {"column": "tolerance"}}
+        }
+      ]
+    },
+
+    {
+      "@type": "cr:RecordSet",
+      "@id": "benchcad-edit",
+      "name": "benchcad-edit",
+      "description": "BenchCAD-Edit: 748 curated edit pairs spanning dimensional, additive, subtractive, and multi-step categories, organised along five edit task types T1 (literal replace) through T5 (geometry rebuild). Each pair carries an original program, a target program, a target STEP and views, and a natural-language instruction.",
+      "key": {"@id": "benchcad-edit/pair_id"},
+      "field": [
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-edit/pair_id",
+          "name": "pair_id",
+          "description": "Unique edit-pair identifier.",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "edit-parquet"}, "extract": {"column": "pair_id"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-edit/stem",
+          "name": "stem",
+          "description": "Identifier of the original part (foreign key to benchcad-parts.stem).",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "edit-parquet"}, "extract": {"column": "stem"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-edit/target_stem",
+          "name": "target_stem",
+          "description": "Identifier of the post-edit target part.",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "edit-parquet"}, "extract": {"column": "target_stem"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-edit/task_type",
+          "name": "task_type",
+          "description": "Edit task type T1--T5: T1 literal swap, T2 chain transform, T3 relative compute, T4 feature edit, T5 geometry rebuild. Difficulty rises monotonically with the structural complexity of the minimal correct diff.",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "edit-parquet"}, "extract": {"column": "task_type"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-edit/edit_category",
+          "name": "edit_category",
+          "description": "Edit category: dimensional / additive / subtractive / multi-step. Orthogonal to T1--T5.",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "edit-parquet"}, "extract": {"column": "edit_category"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-edit/instruction",
+          "name": "instruction",
+          "description": "Natural-language edit instruction (templated, reviewed for unambiguity by a second author).",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "edit-parquet"}, "extract": {"column": "instruction"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-edit/original_code",
+          "name": "original_code",
+          "description": "Pre-edit CadQuery program.",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "edit-parquet"}, "extract": {"column": "original_code"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-edit/target_code",
+          "name": "target_code",
+          "description": "Post-edit CadQuery program (reference solution).",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "edit-parquet"}, "extract": {"column": "target_code"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-edit/target_step_path",
+          "name": "target_step_path",
+          "description": "Relative path to the target STEP export.",
+          "dataType": "sc:Text",
+          "source": {"fileObject": {"@id": "edit-parquet"}, "extract": {"column": "target_step_path"}}
+        },
+        {
+          "@type": "cr:Field",
+          "@id": "benchcad-edit/iou_orig_target",
+          "name": "iou_orig_target",
+          "description": "Voxel IoU between original and target solids (used to normalise edit accuracy).",
+          "dataType": "sc:Float",
+          "source": {"fileObject": {"@id": "edit-parquet"}, "extract": {"column": "iou_orig_target"}}
+        }
+      ]
+    }
+  ]
+}
