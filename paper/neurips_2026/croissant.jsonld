@@ -40,7 +40,7 @@
   "description": "BenchCAD is a unified, capability-decomposed evaluation framework for industrial CAD reasoning. It contains 17,900 execution-verified CadQuery programs across 106 industrial part families, with parameters anchored to 47 ISO/DIN/EN/ASME/IEC specification tables. The benchmark spans four task types (img2cq, edit_code, qa_img, qa_code) covering image-to-code generation, instruction-guided code editing, and design question answering under both visual and code conditioning.",
   "conformsTo": "http://mlcommons.org/croissant/1.0",
   "license": "https://creativecommons.org/licenses/by/4.0/",
-  "url": "https://huggingface.co/datasets/BenchCAD/cad_bench",
+  "url": "https://huggingface.co/datasets/BenchCAD/BenchCAD",
   "version": "1.0.0",
   "datePublished": "2026-05-07",
   "creator": {
@@ -102,7 +102,7 @@
       "@id": "parts-parquet",
       "name": "parts.parquet",
       "description": "Verified parametric CAD parts (main split). One row per part with cadquery source, parameters, family/standard metadata, and asset paths.",
-      "contentUrl": "https://huggingface.co/datasets/BenchCAD/cad_bench/resolve/main/parts.parquet",
+      "contentUrl": "https://huggingface.co/datasets/BenchCAD/BenchCAD/resolve/main/parts.parquet",
       "encodingFormat": "application/vnd.apache.parquet",
       "sha256": "TBD"
     },
@@ -111,7 +111,7 @@
       "@id": "qa-parquet",
       "name": "qa.parquet",
       "description": "Paired image/code QA items, broken out along the four-level capability hierarchy (L1 holistic visual recognition through L4 compositional spatial-code reasoning).",
-      "contentUrl": "https://huggingface.co/datasets/BenchCAD/cad_bench/resolve/main/qa.parquet",
+      "contentUrl": "https://huggingface.co/datasets/BenchCAD/BenchCAD/resolve/main/qa.parquet",
       "encodingFormat": "application/vnd.apache.parquet",
       "sha256": "TBD"
     },
@@ -120,7 +120,7 @@
       "@id": "edit-parquet",
       "name": "edit.parquet",
       "description": "Curated edit pairs across dimensional, additive, subtractive, and multi-step categories (task types T1--T5).",
-      "contentUrl": "https://huggingface.co/datasets/BenchCAD/cad_bench/resolve/main/edit.parquet",
+      "contentUrl": "https://huggingface.co/datasets/BenchCAD/BenchCAD/resolve/main/edit.parquet",
       "encodingFormat": "application/vnd.apache.parquet",
       "sha256": "TBD"
     },
