@@ -41,6 +41,7 @@
   "conformsTo": "http://mlcommons.org/croissant/1.0",
   "license": "https://creativecommons.org/licenses/by/4.0/",
   "url": "https://huggingface.co/datasets/BenchCAD/BenchCAD",
+  "codeRepository": "https://github.com/BenchCAD/BenchCAD-main",
   "version": "1.0.0",
   "datePublished": "2026-05-07",
   "creator": {
