@@ -1,0 +1,30 @@
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.08}
+\caption{\textbf{IID--OOD generalization under SFT and RL.}
+We report geometric fidelity, execution rate, essential-operation score, and the final score.}
+\label{tab:iid_ood}
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+Checkpoint & Split & IoU$\uparrow$ & Exec.$\uparrow$ & Ess.$\uparrow$ & Score$\uparrow$ \\
+\midrule
+\multirow{2}{*}{ood-sft (A)}
+& IID  & 0.577 & 94.6\% & 0.789 & 0.6064 \\
+& OOD  & 0.397 & 89.8\% & 0.305 & 0.3776 \\
+\midrule
+\multirow{2}{*}{ood-rl (B)}
+& IID & 0.757 & 99.1\%  & 0.865 & 0.7467 \\
+& OOD  & 0.464 & \textbf{100.0\%} & 0.339 & 0.4604 \\
+\midrule
+\multirow{2}{*}{iid-sft (C)}
+& IID & 0.640 & 87.3\% & 0.857 &  0.6225 \\
+& OOD  & \ 0.635 & 96.6\% & 0.983 & 0.6920 \\
+\midrule
+\multirow{2}{*}{iid-rl (D)}
+& IID & 0.753 & 98.9\% & 0.883 & 0.7635 \\
+& OOD & \textbf{0.761} & 99.6\% & \textbf{0.989} & \textbf{0.8214} $\star$ \\
+\bottomrule
+\end{tabular}
+\end{table}

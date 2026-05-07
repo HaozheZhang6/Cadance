@@ -1,0 +1,40 @@
+\begin{table}[t]
+    \centering
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \caption{\textbf{Per-operation recall on Vision2Code after sft training}}
+    \label{tab:op_recall_sft} 
+\begin{tabular}{lrrrr}
+\toprule
+Operation & baseline & ood & iid & $|\text{GT}|/100$ \\
+\midrule
+\multicolumn{5}{l}{\emph{Basic ops (shared with prior corpora: cad-recode / text2cad)}} \\
+\texttt{extrude}              & 100.0 & 91.7  & 95.8  & 24 \\
+\texttt{cut}                  & 87.2  & 70.2  & 89.4  & 47 \\
+\texttt{union}                & 91.7  & 41.7  & 79.2  & 24 \\
+\texttt{circle}               & 82.8  & 79.3  & 96.6  & 29 \\
+\texttt{cylinder}             & 5.9   & 88.2  & 94.1  & 17 \\
+\texttt{box}                  & 2.6   & 84.6  & 92.3  & 39 \\
+\texttt{rect}                 & 5.0   & 65.0  & 90.0  & 20 \\
+\texttt{workplane}            & 0.0   & 77.4  & 88.7  & 53 \\
+\midrule
+\multicolumn{5}{l}{\emph{Advanced ops (BenchCAD-distinguishing)}} \\
+\textbf{\texttt{revolve}}     & \textbf{0.0} & \textbf{54.8} & \textbf{93.5} & 31 \\
+\textbf{\texttt{loft}}        & \textbf{0.0} & \textbf{22.2} & \textbf{77.8} &  9 \\
+\textbf{\texttt{sweep}}       & \textbf{0.0} & \textbf{25.0} & \textbf{75.0} &  8 \\
+\textbf{\texttt{sweep+helix}} & \textbf{0.0} & \textbf{100.0}& \textbf{50.0} &  2 \\
+\textbf{\texttt{twistExtrude}}& \textbf{0.0} & \textbf{100.0}& \textbf{100.0}&  1 \\
+\texttt{fillet}               & 0.0   & 25.0  & 87.5  &  8 \\
+\texttt{chamfer}              & 0.0   & 85.3  & 85.3  & 34 \\
+\texttt{shell}                & 0.0   & 80.0  & 100.0 &  5 \\
+\texttt{hole}                 & 0.0   & 82.8  & 93.1  & 29 \\
+\texttt{rarray}               & 0.0   & 77.8  & 100.0 &  9 \\
+\texttt{polarArray}           & 0.0   & 33.3  & 83.3  &  6 \\
+\midrule
+\textbf{Macro recall} (16 ops) & \textbf{17.5\%} & \textbf{59.9\%} & \textbf{84.0\%} & --- \\
+\textbf{Exec rate}             & 90.0\% & 94.0\% & 99.0\%        & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+    

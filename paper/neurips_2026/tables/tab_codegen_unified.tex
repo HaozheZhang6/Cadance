@@ -1,29 +1,40 @@
 \begin{table}[t]
 \centering
-\small
-\setlength{\tabcolsep}{6pt}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.05}
-\caption{\textbf{Vision2Code unified leaderboard on cad\_bench\_722} ($n{=}720$). Specialist CAD lineage, frontier MLLMs, and our open Qwen3-VL-2B baseline. Best per block in \textbf{bold}.}
+\caption{\textbf{Vision2Code unified leaderboard on cad\_bench}. Specialist CAD lineage, frontier MLLMs, and our open Qwen3-VL-2B baseline. Best per block in \textbf{bold}.}
 \label{tab:codegen_unified}
-\begin{tabular}{@{}lccc@{}}
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-Model                                                  & ess\_score      & exec\_pct       & total           \\
+Model & IoU $\uparrow$ & CD $\downarrow$ & ess\_score $\uparrow$ & exec\_pct $\uparrow$ & total $\uparrow$ \\
 \midrule
-\multicolumn{4}{l}{\emph{Specialist CAD lineage ($\sim$2B)}} \\
-Cadrille-RL~\citep{Kolodiazhnyi2026}                   & 0.312           & 91.25           & 0.338           \\
-CADEvolve v3~\citep{Elistratov2026}                    & \textbf{0.372}  & \textbf{92.78}  & \textbf{0.601}  \\
+\multicolumn{6}{l}{\emph{Specialist CAD lineage ($\sim$2B)}} \\
+Cadrille-RL~\citep{Kolodiazhnyi2026}                   & 0.0683          & 0.3507          & 0.3118          & 91.2            & 0.3382          \\
+CADEvolve v3~\citep{Elistratov2026}                    & \textbf{0.7497} & \textbf{0.0080} & \textbf{0.3715} & \textbf{92.7}   & \textbf{0.6014} \\
 \midrule
-\multicolumn{4}{l}{\emph{Frontier MLLMs}} \\
-gpt-4o                                                 & 0.468           & 87.0            & 0.255           \\
-gpt-5.3 (thinking)                                     & 0.455           & 67.5            & 0.261           \\
-claude-opus-4.7 (thinking)                             & 0.471           & \textbf{90.4}   & 0.306           \\
-gemini-3.1-pro (thinking)                              & \textbf{0.567}  & 79.8            & \textbf{0.318}  \\
+\multicolumn{6}{l}{\emph{Frontier MLLMs}} \\
+gpt-4o                                                 & 0.1884          & 0.0623          & 0.4680          & 87.0            & 0.2274              \\
+gpt-5.3 (no thinking)                                  & 0.1952          & 0.0594          & 0.4940          & 69.5            & 0.2160              \\
+gpt-5.3 (thinking)                                     & 0.2072          & 0.0566          & 0.4550          & 67.5            & 0.2120              \\
+claude-sonnet-4.6 (no thinking)                        & 0.2380          & 0.0320          & 0.5060          & 85.4            & 0.3510          \\
+claude-sonnet-4.6 (thinking-high)                      & 0.2420          & 0.0220          & --              & 90.0            & 0.3850          \\
+claude-opus-4.7 (no thinking)                          & 0.2740          & 0.0210          & 0.4770          & \textbf{94.0}   & 0.3830          \\
+claude-opus-4.7 (thinking)                             & 0.2670          & 0.0240          & 0.4710          & 90.4            & 0.3780          \\
+gemini-3.1-pro (no thinking)                           & 0.2560          & 0.0400          & 0.3780          & 74.0            & 0.3290          \\
+gemini-3.1-pro (thinking)                              & \textbf{0.2790} & 0.0250          & \textbf{0.5670} & 79.8            & \textbf{0.3970} \\
+openai/o3                                       & 0.5004          & 0.0143          & 0.444          & 5.6              & -          \\
+moonshot-v1-128k                                   & 0.1530          & 0.0572          & 0.192          & 10.5             & -          \\
+moonshot-v1-8k                                       & 0.2421          & 0.0577          & 0.179          & 9.0              & -          \\
 \midrule
-\multicolumn{4}{l}{\emph{Ours --- Qwen3-VL-2B}} \\
-iid-sft                                                & \textbf{0.871}  & 87.3            & 0.628           \\
-ood-sft                                                & 0.738           & 94.6            & 0.588           \\
-ood-sft $+$ RL                                         & 0.810           & \textbf{99.1}   & \textbf{0.723}  \\
-iid-sft $+$ RL                                         & --              & --              & --              \\
+\multicolumn{6}{l}{\emph{Ours --- Qwen3-VL-2B}} \\
+qwen3-2b-sft-ood                                       & 0.5630          & 0.0174          & 0.7380          & 94.2              & 0.5877          \\
+qwen3-2b-sft-iid                                       & 0.6400          & 0.0108          & 0.8710         & 88.1            & 0.6282          \\
+qwen3-2b-rl-ood                                        & 0.7140          & 0.0047           & 0.8100          & \textbf{99.1}              & 0.7231 \\
+qwen3-2b-rl-iid                                        & \textbf{0.752}              & \textbf{0.0041}          & \textbf{0.8920}         & 98.9              & \textbf{0.7682}          \\
+qwen3-2b(baseline)                                            & 0.0032          & 0.3652          & 0.0042          & 14.6            & 0.0084          \\
+\midrule
+gpt-4o (black img)                              & 0.0802 &      0.1011   & 0.2244 & 87.0            & \textbf{0.1102} \\
 \bottomrule
 \end{tabular}
 \end{table}

@@ -2,19 +2,21 @@
 \centering
 \small
 \setlength{\tabcolsep}{6pt}
-\caption{\textbf{Scoring-protocol ablations.} (i) \emph{24-axial vs.\ single-axis IoU}: comparing the cube-symmetry-group IoU (max over 24 rotations) to the standard axis-aligned IoU isolates wrong-plane errors --- when 24-axial $>$ single-axis on the same prediction, the geometry is correct but emitted on the wrong base workplane (\S\ref{sec:exp_failure_analysis}). (ii) \emph{Single image vs.\ multi-view input}: collapsing the four canonical orthographic views into a single front view removes the multi-view evidence the model relies on for depth and back-side features. \textcolor{red}{Numbers are placeholders pending the ablation run.}}
+\caption{\textbf{Scoring-protocol ablations.} (i) \emph{24-axial vs.\ single-axis IoU}: comparing the cube-symmetry-group IoU (max over 24 rotations) to the standard axis-aligned IoU isolates wrong-plane errors --- when 24-axial $>$ single-axis on the same prediction, the geometry is correct but emitted on the wrong base workplane (\S\ref{sec:exp_failure_analysis}). (ii) \emph{Single image vs.\ multi-view input}: collapsing the four canonical orthographic views into a single front view removes the multi-view evidence the model relies on for depth and back-side features. 
+% \textcolor{red}{Numbers are placeholders pending the ablation run.}
+}
 \label{tab:ablation}
 \begin{tabular}{lrr}
 \toprule
 Variant & total & $\Delta$ \\
 \midrule
 \multicolumn{3}{l}{\emph{IoU scoring protocol (Vision2Code, fixed model output)}} \\
-24-axial rotation-invariant IoU (default)         & --   & ref \\
-single-axis IoU (axis-aligned only)               & --   & -- \\
+24-axial rotation-invariant IoU        & 0.308   & 0.068 \\
+single-axis IoU (axis-aligned only, default)               & 0.240   & ref \\
 \midrule
 \multicolumn{3}{l}{\emph{Visual input (Vision2Code, single model)}} \\
-4-view canonical orthographic (default)           & --   & ref \\
-single front view only                            & --   & -- \\
+4-view canonical orthographic (default)           & 0.240   & ref \\
+single front view only                            & 0.215   & -0.025 \\
 \bottomrule
 \end{tabular}
 \end{table}

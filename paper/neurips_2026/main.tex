@@ -6,6 +6,7 @@
 % --- packages ---
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+\usepackage{caption}
 \usepackage{hyperref}
 \usepackage{url}
 \usepackage{booktabs}
@@ -13,13 +14,15 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{microtype}
-\usepackage[most]{tcolorbox}
+\usepackage{tcolorbox}
 \usepackage{xcolor}
 \usepackage{enumitem}
 \usepackage{graphicx}
 \usepackage{wrapfig}
 
 \newcommand{\hc}[1]{{\color{teal} [{\bf HC}: #1]}}
+\newcommand{\lei}[1]{{\color{cyan} [{\bf LEI}: #1]}}
+
 % --- shortcuts ---
 \usepackage{pifont}
 \usepackage{multirow}
@@ -39,32 +42,12 @@
 \maketitle
 
 \begin{abstract}
-Industrial CAD code generation requires the fusion of spatial understanding, parametric reasoning, and program synthesis to
-produce executable code that satisfies industry tolerances, feature detail, and the unwritten engineering conventions
-that distinguish a manufacturable part from primitive geometry.
-Frontier multimodal language models exhibit nascent capability along each axis individually,
-yet their joint alignment for industrial CAD remains under-evaluated.
-We present \textbf{BenchCAD}, a unified, capability-decomposed evaluation framework. BenchCAD contains four task categories
-that correspond to stages of practicing CAD-engineering work:
-image-to-code, image- and code-conditioned QA, and instruction-guided editing pairs.
-The dataset contains 17{,}900 execution-verified CadQuery parts across 106 industrial part families anchored by
-47 industry standards (e.g. ISO, DIN, EN) specification codes (twist drills, bevel gears, compression springs, propeller, eyebolt),
-exercising 45+ distinct CadQuery operations including helical sweeps, lofts, twist-extrudes,
-and parametric involute-gear construction.
-Score differences between paired image/code tasks isolate which sub-capability
-(visual perception, geometric-to-parametric abstraction, or code synthesis) drives a model's remaining gap.
-Across 10+ frontier models, we identify three diagnostic phenomena that currently preclude reliable, harnessed CAD design in industry: 
-(1) a \emph{Holistic Spatial and Detailing Deficit}, where models fail to reconstruct overall 3D structures and consistently omit fine geometric details; 
-(2) an \emph{Industrial Common Sense and Parametric Abstraction Gap}, where the model struggles with accurate parametric reconstruction and fails to incorporate implicit engineering conventions into the structural generation; 
-and (3) a \emph{CAD Operational Blindspot}, where models overfit to rudimentary sketch-and-extrude data, lacking the reconstruction knowledge to emit essential operations such as helical sweeps.
-Today's frontier models recover the outer envelope of an industrial part but not the parametric structure underlying it.
-Supervised fine-tuning and reinforcement learning on BenchCAD raises in-distribution scores, and show some generalization capability on unseen-family parts,
-yet the gap to generalization remains substantial ---
-confirming that industrial CAD code generation is a difficult open challenge.
-Released under CC-BY-4.0 at \url{huggingface.co/BenchCAD}.
+Industrial Computer-Aided Design (CAD) code generation asks models to produce executable parametric programs from visual or textual intent. 
+Beyond recognizing the outer shape of a part, this requires understanding its 3D structure, inferring engineering parameters, and choosing CAD operations that reflect how the part would be designed and manufactured. However, current multimodal language models are rarely evaluated on whether these abilities work together in realistic industrial CAD settings. We present BenchCAD, a unified benchmark for industrial CAD reasoning. BenchCAD contains 17,900 execution-verified CadQuery programs across 106 industrial part families and 47 ISO/DIN/EN standards, e.g. bevel gears, compression springs, and twisted drill. It evaluates models through visual question answering, code question answering, image-to-code generation, and instruction-guided code editing, enabling us to distinguish failures in perception, parametric abstraction, and executable program synthesis. Across 10+ frontier models, BenchCAD shows that current systems often recover coarse outer geometry but fail to produce faithful parametric CAD programs. Common failures include missing fine 3D structure, misinterpreting industrial design parameters, and replacing essential operations such as sweeps, lofts, and twist-extrudes with simpler sketch-and-extrude patterns. Fine-tuning and reinforcement learning improve in-distribution performance, but generalization to unseen part families remains limited. These results position BenchCAD as a benchmark for measuring and improving the industrial readiness of multimodal CAD automation.
+\lei{Abstract is a bit long (taking four sentences before reaching BenchCAD; three coupled capabilities, four tasks, three failure modes - a bit overwhelming in abstract), and should try to fit into one paragraph.}
 \end{abstract}
 
-\input{sec/intro}
+\input{sec/intro_v1}
 \input{sec/related}
 \input{sec/dataset}
 \input{sec/experiments}

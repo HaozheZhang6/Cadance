@@ -7,9 +7,9 @@
     \toprule
     \textbf{Code} & \textbf{Name} & \textbf{Definition} & \textbf{Diff signature} & \textbf{Example instruction} \\
     \midrule
-    T1 \mbox{(n=184)} & literal\_\allowbreak replace & Replace a single numeric literal that the instruction names explicitly (\emph{from X to Y}). & one literal swap; equal lines added/removed & \emph{``Increase the cylinder radius from 4.5 to 5.85.''} \\
+    T1 \mbox{(n=180)} & literal\_\allowbreak replace & Replace a single numeric literal that the instruction names explicitly (\emph{from X to Y}). & one literal swap; equal lines added/removed & \emph{``Increase the cylinder radius from 4.5 to 5.85.''} \\
     T2 \mbox{(n=104)} & chain\_\allowbreak transform & Append a single chainable whole-part transform (rotate / mirror / array). & one \texttt{result = result.<op>(...)} line appended & \emph{``Rotate the entire part by 90 degrees about the X axis.''} \\
-    T3 \mbox{(n=107)} & relative\_\allowbreak compute & Read an existing literal and derive another value (ratio, percentage, $2\times$, $1/4$). & one literal swap, value derived from another literal & \emph{``Set the central bore diameter equal to twice the hub-cylinder height.''} \\
+    T3 \mbox{(n=111)} & relative\_\allowbreak compute & Read an existing literal and derive another value (ratio, percentage, $2\times$, $1/4$). & one literal swap, value derived from another literal & \emph{``Set the central bore diameter equal to twice the hub-cylinder height.''} \\
     T4 \mbox{(n=199)} & feature\_\allowbreak edit & Add or delete a single CSG sub-block (hole, slot, recess, chamfer, fillet, boss). & one 3--7 line CSG block inserted or removed & \emph{``Drill a 6 diameter through-hole along the Z axis.''} \\
     T5 \mbox{(n=154)} & geometry\_\allowbreak rebuild & Non-trivial restructure: trig-derived slopes/chamfers/lofts, or paragraph-style rebuilds where two or more sub-features change in concert. & multi-block rewrite, trig in code, paragraph instruction & \emph{``Replace the ramped arms and raised center with a single flat cross-shaped solid of uniform thickness.''} \\
     \bottomrule

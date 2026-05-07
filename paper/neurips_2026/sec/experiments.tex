@@ -3,17 +3,19 @@
 
 \subsection{Setup}
 \label{sec:exp_setup}
-We evaluate 10+ models on BenchCAD with non-uniform per-task coverage; the headline figure (Fig.~\ref{fig:main_results}) reports seven frontier proprietary systems with full four-task coverage. For each task, we include a \emph{blind baseline} and quantify each model's gain over it across all relevant metrics.
+We evaluate 10+ models on BenchCAD with non-uniform per-task coverage; the headline figure (Fig.~\ref{fig:overall_perform}) reports seven frontier proprietary systems with full four-task coverage. For each task, we include a \emph{blind baseline}\hc{provide more details} and quantify each model's gain over it across all relevant metrics.
 
 \subsection{Models}
 \label{sec:exp_models}
 
-\paragraph{Baselines.} Three model classes are evaluated:
-\emph{(i) Frontier proprietary MLLMs:} \textbf{GPT-4o}, \textbf{GPT-5.3} (thinking / non-thinking), \textbf{Claude Opus 4.7} (thinking / non-thinking), \textbf{Gemini 3.1 Pro} (thinking / non-thinking), \texttt{o3}.
-\emph{(ii) Open-source MLLMs / code LLMs:} Qwen3-VL, InternVL3, \texttt{gpt-oss-120b}, \texttt{nemotron-3-super-120b-a12b}.
-\emph{(iii) CAD-specialist lineage:} \texttt{cadrille-RL}~\citep{Kolodiazhnyi2026} and \texttt{CADEvolve v3}~\citep{Elistratov2026}. Closed models are queried through their official APIs; open-weights models via OpenRouter.
+Three model classes are evaluated:
+\emph{(i) Frontier proprietary MLLMs:} GPT-4o, GPT-5.3 (thinking / non-thinking), Claude Opus 4.7 (thinking / non-thinking), Gemini 3.1 Pro (thinking / non-thinking), GPT-o3\hc{citations for each of these models}.
+\emph{(ii) Open-source MLLMs / code LLMs:} Qwen3-VL, InternVL3, gpt-oss-120b, nemotron-3-super-120b-a12b\hc{citations for each of these models}.
+\emph{(iii) CAD-specialist lineage:} cadrille-RL~\citep{Kolodiazhnyi2026} and CADEvolve v3~\citep{Elistratov2026}. Closed models are queried through their official APIs; open-weights models via OpenRouter\hc{citation} or official repo.
 
-\paragraph{Evaluation.} For Vision QA and Code QA (BenchCAD-QA, 2{,}400 paired image/code numeric items), accuracy is computed under $\pm 5\%$ tolerance for ratios and exact match for integers, broken out along the four-level capability hierarchy (\S\ref{sec:capability}). For \textsc{Vision2Code} we report \texttt{exec\_pct}, mean voxel \texttt{IoU}, mean Chamfer distance \texttt{CD}, mean Hausdorff distance \texttt{HD}, Feature-F1, essential-op recall \texttt{ess}, and a composite \texttt{total} score (Table~\ref{tab:codegen_unified}). For \textsc{Edit Code}, with rendered solid $S_g$, original solid $S_o$, and target solid $S_t$, let $\mathrm{IoU}(S_a, S_b)$ denote the voxel intersection-over-union. Over $n$ records we report the normalized accuracy eliminate the bias from varying original-target IoU across edit pairs:
+\subsection{Evaluation}
+\label{sec:exp_eval}
+For Vision QA and Code QA (BenchCAD-QA, 2{,}400 paired image/code numeric items), accuracy is computed under $\pm 5\%$ tolerance for ratios and exact match for integers, broken out along the four-level capability hierarchy (\S\ref{sec:capability}). For \textsc{Vision2Code} we report \texttt{exec\_pct}, mean voxel \texttt{IoU}, mean Chamfer distance \texttt{CD}, mean Hausdorff distance \texttt{HD}, Feature-F1, essential-op recall \texttt{ess}, and a composite \texttt{total} score (Table~\ref{tab:codegen_unified}). For \textsc{Edit Code}, with rendered solid $S_g$, original solid $S_o$, and target solid $S_t$, let $\mathrm{IoU}(S_a, S_b)$ denote the voxel intersection-over-union. Over $n$ records we report the normalized accuracy eliminate the bias from varying original-target IoU across edit pairs:
 \begin{align}
 \label{eq:edit_acc}
 \mathrm{Acc}_{\mathrm{norm}}
@@ -25,7 +27,7 @@ We evaluate 10+ models on BenchCAD with non-uniform per-task coverage; the headl
 \end{align}
 Accuracy is a headroom-normalised improvement, where $1$ means the model fully traversed the original-to-target gap. 
 
-\paragraph{Training}
+\subsection{Training}
 \label{sec:exp_training}
 For reproducibility we train an open Qwen3-VL-2B baseline whose scores appear in the bottom block of Table~\ref{tab:codegen_unified}.
-\textbf{SFT} Three splits with identical optimizer, schedule, and held-out eval set; only the training pool differs: iid (BenchCAD + extrusion-heavy data), ood (same recipe, 10 mechanical families removed), baseline (no benchcad data) \textbf{RL} on-policy GRPO variant from each SFT checkpoint with reward $r{=}0.2\,\mathrm{ess}{+}0.8\,\mathrm{IoU}$ ($r{=}-1$ on parse error / timeout / zero-volume); RL data with OOD-SFT model also excludes OOD families. Per-operation recall ablation in Table~\ref{tab:op_recall}; full training configs and curves in Appendix~\ref{app:op_gap_full}.
+\hc{Need to polish this paragraph, clearly describing the training methods}\textbf{SFT} Three splits with identical optimizer, schedule, and held-out eval set; only the training pool differs: iid (BenchCAD + extrusion-heavy data), ood (same recipe, 10 mechanical families removed), baseline (no benchcad data) \textbf{RL} on-policy GRPO variant from each SFT checkpoint with reward $r{=}0.2\,\mathrm{ess}{+}0.8\,\mathrm{IoU}$ ($r{=}-1$ on parse error / timeout / zero-volume); RL data with OOD-SFT model also excludes OOD families. Per-operation recall ablation in Table~\ref{tab:op_recall}; full training configs and curves in Appendix~\ref{app:op_gap_full}.

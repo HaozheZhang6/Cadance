@@ -1,17 +1,17 @@
 \begin{table}[t]
 \centering
 \small
-\caption{\textbf{Capability decomposition.} BenchCAD's five tasks exercise known subsets of the four-level capability hierarchy: $L_1$ Holistic Visual Recognition (recognise + integrate multi-view), $L_2$ CAD Operations Understanding (read code, map ops to features), $L_3$ Industrial Parametric Abstraction (parameter structure, standard conventions), and $L_4$ Spatial/Code Reasoning (compose all into executable program). Score differences across paired tasks (e.g.\ \texttt{qa\_img}$-$\texttt{qa\_code}) directly diagnose which level is the bottleneck. ``part.'' indicates partial coverage.}
+\caption{\textbf{Capability decomposition.} BenchCAD's five tasks exercise known subsets of the four-level capability hierarchy: $L_1$ Holistic Visual and Cadquery Code Recognition (recognise + integrate multi-view), $L_2$ CAD Operations Understanding (understanding code, map ops to features), $L_3$ Industrial Parametric Abstraction (parameter structure, standard conventions from industry domain knowledge), and $L_4$ Spatial/Code Reasoning (compose all into executable program). Score differences across paired tasks (e.g.\ \texttt{qa\_img}$-$\texttt{qa\_code}) directly diagnose which level is the bottleneck. ``part.'' indicates partial coverage.}
 \label{tab:capability}
-\begin{tabular}{llcccc}
+\begin{tabular}{llccccc}
 \toprule
-Task & Input $\to$ Output & $L_1$ Vis & $L_2$ Op & $L_3$ Param & $L_4$ Synth \\
+Task & Input $\to$ Output & $L_1$ Vis & $L_1$ Code & $L_2$ Op & $L_3$ Param & $L_4$ Synth \\
 \midrule
-\texttt{img2cq}    & 4 views $\to$ code              & \cmark & --     & \cmark & \cmark \\
-\texttt{qa\_img}   & 4 views $+$ Q $\to$ number      & \cmark & --     & \cmark & --     \\
-\texttt{qa\_code}  & code $+$ Q $\to$ number         & --     & \cmark & \cmark & --     \\
-\texttt{edit\_img} & views $+$ code $+$ instr $\to$ code  & \cmark & \cmark & \cmark & \cmark \\
-\texttt{edit\_code}& code $+$ instr $\to$ code       & --     & \cmark & \cmark & \cmark \\
+\texttt{img2cq}     & 4 views $\to$ code                  & \cmark & - & \cmark & \cmark & part. \\
+\texttt{qa\_img}    & 4 views $+$ Q $\to$ text          & \cmark & - & \cmark & \cmark & \cmark \\
+\texttt{qa\_code}   & code $+$ Q $\to$ text             &  -     & \cmark & \cmark & \cmark & \cmark \\
+\texttt{edit\_img}  & views $+$ code $\to$ code  & \cmark & \cmark & \cmark & \cmark & \cmark \\
+\texttt{edit\_code} & code $+$ instr $\to$ code            &   -   & \cmark & \cmark & \cmark & part. \\
 \bottomrule
 \end{tabular}
 \end{table}

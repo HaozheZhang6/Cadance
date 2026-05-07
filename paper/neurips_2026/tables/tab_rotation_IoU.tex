@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.08}
+\caption{\textbf{Effect of rotation-invariant IoU by GT base plane.}
+For GPT-4o, we report $\Delta=\mathrm{IoU}_{\mathrm{rot24}}-\mathrm{IoU}_{\mathrm{single\text{-}axis}}$ over 164 valid 24-IoU samples with extrusion. Larger $\Delta$ indicates cases where the generated shape is geometrically similar but expressed in a mismatched coordinate frame.}
+\label{tab:rot24_base_plane}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+GT base plane & $n$ & Mean $\Delta$ & Max $\Delta$ \\
+\midrule
+XY  & 70  & 0.0463 & 0.5907 \\
+XZ  & 40  & 0.2305 & 0.8031 \\
+YZ  & 54  & 0.2140 & 0.7053 \\
+\bottomrule
+\end{tabular}
+\end{table}

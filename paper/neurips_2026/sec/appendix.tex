@@ -4,7 +4,7 @@
 \label{app:limitations}
 
 \paragraph{Standard-parametric coverage is not full industrial CAD.} BenchCAD parts are generated from expert-authored standard-parametric families, not extracted from real engineering repositories.
-We mitigate this by (i) anchoring 49\% of families to published ISO/DIN/EN/ASME/IEC specification tables and (ii) including verified Fusion360 Gallery and DeepCAD subsets for OOD comparison, but our parts do not capture the full diversity of proprietary industrial design (e.g.\ hand-drawn manufacturing tolerances, undocumented design intent).
+We mitigate this by (i) anchoring 49\% of families to published ISO/DIN/EN/ASME/IEC specification tables and (ii) including verified Fusion360 Gallery and DeepCAD subsets for OOD comparison, but our parts do not capture the full diversity of proprietary industrial design (e.g.\ hand-drawn manufacturing tolerances, undocumented design intent, assembly information).
 
 \paragraph{Standard-anchored does not mean standard-compliant.} A family declared as \texttt{standard = "ISO 23509"} samples within ISO parameter ranges and enforces inter-parameter relations from the standard, but does not validate against the full set of manufacturing tolerances or material specifications mandated by that standard.
 
@@ -50,10 +50,34 @@ Table~\ref{tab:dataset} reports the dataset composition; Table~\ref{tab:capabili
 
 \input{tables/tab_family_cliff}
 
-\section{CAD Operational Blindspot: Per-Operation Recall and Training Curves}
+\section{CAD Operational Blindspot: Per-Operation Recall}
 \label{app:op_gap_full}
+Table~\ref{tab:op_recall} reports the recall of operations.
 
 \input{tables/tab_op_gap}
+
+\section{Model Training}
+\paragraph{SFT training mixture.}
+(1) \textbf{iid}: BenchCAD (all 106 families) + extrusion-heavy data (text2cad, cad-recode);
+(2) \textbf{ood}: same recipe, 10 mechanical families held out;
+(3) \textbf{baseline}: text2cad + cad-recode only (no BenchCAD).
+Mixing 33\% BenchCAD / 67\% HQ for (1)/(2); 100\% HQ for (3). Backbone Qwen3-VL-2B.
+
+\paragraph{OOD holdout selection.}
+We hold out 10 CAD families sampled uniformly at random from BenchCAD families that are sufficiently represented and the operations are covered in the iid but not in the baseline.
+
+\paragraph{SFT training setup.}
+We fine-tune Qwen3-VL-2B-Instruct under a standard supervised code-generation setup. Inputs consist of one rendered view and a textual instruction, and targets are CadQuery programs.We use AdamW with
+learning rate $2{\times}10^{-4}$, cosine decay, $2$k warmup steps, weight decay $0.01$ with bf16 precision.
+
+\paragraph{RL training setup.}
+We initialize RL from the matching SFT checkpoint: IID-SFT uses the full BenchCAD training set, whereas OOD-SFT excludes the held-out OOD families. RL is trained with a top-$N$ GRPO-style objective without advantage normalization on a mixed prompt pool from BenchCAD, DeepCAD, and Fusion360; in the OOD setting, the held-out families remain excluded. Rewards combine geometric fidelity with an essential-operation term when available. We use learning rate $2{\times}10^{-5}$, 16 rollouts per prompt, and batch size 128.
+
+\input{tables/tab_ood_iid}
+\paragraph{Model Generalization.}
+Table~\ref{tab:iid_ood} separates IID performance from held-out OOD-family generalization. 
+RL substantially improves the OOD-SFT checkpoint on both IID and OOD splits, indicating that geometry-based optimization improves execution and fidelity beyond supervised imitation. 
+However, the IID-trained SFT model still achieves the strongest OOD score, suggesting that broad family coverage during training remains the dominant factor for generalizing to unseen mechanical designs.
 
 \begin{figure*}[t]
   \centering
@@ -64,12 +88,6 @@ Table~\ref{tab:dataset} reports the dataset composition; Table~\ref{tab:capabili
     The deficit is not optimisation budget, not backbone capacity, and not training-corpus operation coverage alone --- it is the fundamental difficulty of constructing industry-grade parametric CAD code on \emph{unseen} family distributions.}
   \label{fig:generalisation_gap}
 \end{figure*}
-\paragraph{SFT training mixture.}
-(1) \textbf{iid}: BenchCAD (all 106 families) + extrusion-heavy data (text2cad, cad-recode);
-(2) \textbf{ood}: same recipe, 10 mechanical families held out;
-(3) \textbf{baseline}: text2cad + cad-recode only (no BenchCAD).
-Mixing 33\% BenchCAD / 67\% HQ for (1)/(2); 100\% HQ for (3). Backbone Qwen3-VL-2B; full hyperparameters in the released training config.
-
 \section{Datasheet for BenchCAD}
 \label{app:datasheet}
 
@@ -78,12 +96,12 @@ We follow the datasheet template of Gebru et al.\ (2021); responses below are co
 \paragraph{Motivation.}
 \textbf{For what purpose was the dataset created?} BenchCAD was created to evaluate the parametric-CAD capabilities of large vision-language and code-language models along three sub-capabilities (visual perception, parametric abstraction, code synthesis) on industrially representative part families with execution-verified ground truth.
 \textbf{Who created the dataset and on behalf of which entity?} The authors. (Anonymised for double-blind submission.)
-\textbf{Who funded the dataset?} The authors' affiliated institutions. (Anonymised.)
+\textbf{Who funded the dataset?} The authors' individual funds. (Anonymised.)
 
 \paragraph{Composition.}
 \textbf{What do the instances represent?} Each instance is a parametric CAD part: an executable CadQuery Python program, the resulting STEP file, four canonical-view PNG renders, a parameter JSON, and an op-list JSON.
 \textbf{How many instances are there in total?} 17{,}900 verified parts in BenchCAD, 2{,}400 paired QA questions in BenchCAD-QA (each evaluated under both visual and code conditioning, yielding 4{,}800 records), and 748 curated edit pairs in BenchCAD-Edit.
-\textbf{Does the dataset contain all possible instances?} No --- BenchCAD samples a subset of the parameter space per family; the schema permits unbounded sampling under the documented constraints.
+\textbf{Does the dataset contain all possible instances?} No --- BenchCAD samples a subset of all the industry CAD generation part familys, and sampled a subset of parameter space per family; the schema permits unbounded sampling under the documented constraints.
 \textbf{Is there a label/target?} The CadQuery source code, STEP, parameters, and op list jointly serve as ground truth; for QA tasks, gold answers are derived deterministically from parameters; for edit tasks, target code and target STEP are paired with the original.
 
 \paragraph{Collection process.}
@@ -361,13 +379,54 @@ colback=gray!4, colframe=gray!45, fonttitle=\bfseries, breakable, sharp corners,
 
 
 
+\label{app:edit-img-system-prompt}
+
+\begin{tcolorbox}[
+    title=\texttt{EDIT\_CODE\_IMG\_SYSTEM\_PROMPT (Ablation)},
+    colback=gray!4,
+    colframe=gray!45,
+    fonttitle=\bfseries,
+    breakable,
+    sharp corners,
+    boxrule=0.5pt,
+]
+\small
+You are an expert CAD engineer. You will be given:
+\begin{enumerate}
+    \item A CadQuery Python script that builds a parametric mechanical part.
+    \item A natural-language edit instruction describing a change to one specific feature.
+    \item A 2$\times$2 composite image of the part from 4 diagonal viewpoints (CURRENT state) as an additional visual reference for the script.
+\end{enumerate}
+
+Your task: return the script with the MINIMAL edit that achieves the
+requested feature change. Only the feature(s) the instruction explicitly
+mentions should change; every other feature, dimension, and detail must
+stay exactly as in the original.
+
+\vspace{0.5em}
+\textbf{Rules:}
+\begin{itemize}
+    \item Output ONLY executable Python code, no explanation, no markdown fences.
+    \item Make the smallest set of changes that realize the instruction. Do NOT touch unrelated literals, operations, or structure.
+    \item Do NOT refactor, rename variables, reorder operations, or add/remove imports.
+    \item If the instruction adds a new feature: append the operation in the most natural place; keep the rest of the chain intact.
+    \item If the instruction removes a feature: delete just that operation block; do not rewrite surrounding code.
+    \item If the instruction modifies a dimension/parameter: update only the literal(s) that depend on it (and, if present, the matching parameter comment).
+\end{itemize}
+\end{tcolorbox}
+
+
+
+
 \section{Rotation-Invariant IoU}
 \label{app:iou}
 
-We compute IoU as the maximum over the 6-element face-up cube symmetry group (or the full 24-element rotation group; configurable).
-Voxelisation is at $64^3$ on the cube-normalised STEP $[-1, 1]^3$; cube normalisation centres the part at the origin and scales by the largest semi-axis.
-For each candidate orientation $g \in G$, we apply $g$ to the predicted voxel grid and compute IoU against the reference; the reported score is $\max_{g} \mathrm{IoU}(g \cdot \hat{V}, V)$.
-Source: \texttt{bench/metrics/rot\_iou.py} in the released harness.
+We compute IoU under a configurable rotation-invariant protocol, taking the maximum over either the 6-element face-up cube symmetry group or the full 24-element cube rotation group. Before voxelization, each part is normalized by centering it at the origin and scaling it by the largest semi-axis of its bounding box. For each candidate rotation $g \in G$, we rotate the predicted voxel grid $\hat{V}$ and compute its overlap with the reference voxel grid $V$; the reported score is
+\[
+\max_{g \in G} \mathrm{IoU}(g \cdot \hat{V}, V).
+\]
+This metric is used diagnostically rather than as the primary score: a large gain from standard IoU to 24-rotation IoU indicates that the model may have generated the right geometry on the wrong construction plane. This failure is partly induced by a workplane prior: in online database, and manufacturing-oriented modeling workflows, parts are commonly initialized on the \texttt{XY} plane as the default sketching or setup plane. As a result, models may over-prefer \texttt{XY}-based constructions even when the target geometry is defined on \texttt{XZ} or \texttt{YZ}. Consistent with this interpretation, Table~\ref{tab:rot24_base_plane} shows substantially larger rotation-IoU gains for \texttt{XZ}/\texttt{YZ} ground-truth parts than for \texttt{XY} parts.
+\input{neurips_2026/tables/tab_rotation_IoU}
 
 \section{Edit Protocol}
 \label{app:edit_protocol}
@@ -383,14 +442,18 @@ Pairs where models systematically disagree on instruction interpretation are rev
 
 \input{tables/tab_task_taxonomy}
 
+
 \paragraph{Failure taxonomy.} Every failing prediction is bucketed into one of eight semantic failure modes F01--F08 (Table~\ref{tab:failure_codes}), each mapped to one of the four capability layers L1--L4: F01--F03 isolate L1 \emph{Holistic Visual Understanding} (wrong value, wrong instance, wrong placement), F04--F06 isolate L2 \emph{CAD Operations Comprehension} (wrong axis, wrong selector, near no-op), F07 isolates L3 \emph{Industrial Parametric Abstraction} (incomplete multi-instance update), and F08 isolates L4 \emph{Spatial Reasoning $+$ Code Synthesis} (compositional geometry mismatch). Each label combines an automatic detection cue --- execution status, generated-vs-original/target IoU thresholds, and topology checks with a hand audit by the authors against the predicted code and rendered geometry; the rule set and L-mapping are fixed across all ten models reported, and \texttt{ok} (strict pass) and \texttt{exec\_fail} are tracked separately as the non-failure and gross-execution categories.
 
 \input{tables/tab_F_codes}
 
+
+\paragraph{Image-conditioned variant.} To probe whether the textual instruction itself is a confound --- i.e.\ whether models succeed because the instruction states the change explicitly rather than because they reason about the geometry --- we additionally evaluate an image-conditioned setting in which the natural-language instruction is replaced by a four-view render of the target solid (\texttt{EDIT\_IMG\_GT\_SYSTEM\_PROMPT}, Appendix~\ref{app:edit-img-gt-system-prompt}); the model receives the original code and must infer the edit visually. Across the four OpenAI models we tested, \texttt{mean\_norm} drops by $0.40$--$0.85$\,pt at every task type (Fig.~\ref{fig:edit_image_type}). The dominant failure mode is that a render specifies geometry but not numbers: the model can usually tell whether a feature is added or removed (T2/T4 retain weak signal), but cannot recover the exact dimension a textual ``from $X$ to $Y$'' would have stated, so dimensional edits (T1, T3) collapse to near-zero and trig-driven rebuilds (T5) floor uniformly at $0$. Image-only conditioning is therefore a strict lower bound on the text protocol and, in its current form, primarily isolates feature-presence reasoning rather than parametric exactness.
+
                                                
 
 \paragraph{Supplementary results.} Figure~\ref{fig:edit_F_bars} reports failure attributes of all 748 eidt-pairs from 10 LLMs.
-Figure~\ref{fig:edit_L_pies} disaggregates per-model failures into the L1--L4 buckets defined in Figure~\ref{fig:capability_hierarchy}.
+Figure~\ref{fig:edit_L_pies} disaggregates per-model failures into the L1--L4 buckets defined in Figure~\ref{fig:capability_hierarchy}. Figure~\ref{fig:edit_image_type} reports the parallel image-based setting (target render in lieu of an NL instruction) broken down by T1--T5.
 
 \begin{figure}[t]                       
     \centering
@@ -421,6 +484,14 @@ Figure~\ref{fig:edit_L_pies} disaggregates per-model failures into the L1--L4 bu
   \label{fig:edit_L_pies}
 \end{figure}
 
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.95\linewidth]{neurips_2026/figures/fig_edit_image_type.png}
+  \caption{\textbf{Text vs.\ image conditioning.} Same $100$-pair subset, four OpenAI models, two protocols: \emph{text} sees the original code plus a natural-language instruction, \emph{image} replaces the instruction with a four-view render of the target solid (\texttt{EDIT\_IMG\_GT\_SYSTEM\_PROMPT}, App.~\ref{app:edit-img-gt-system-prompt}). Bars are \texttt{mean\_norm} (Eq.~\eqref{eq:edit_acc}) per task type. Text dominates uniformly, with the largest gaps at T1 and T3: a render shows what the part should look like but never tells the model that a radius is $5.85$, so dimensional edits collapse. T2 and T4 retain weak image signal because adding or removing a feature is something a render can communicate. T5 floors at zero either way. Reasoning helps the text side substantially but barely moves the image side, so current chain-of-thought mostly strengthens code-side reasoning rather than visual diff inference. Image-only conditioning is a strict lower bound on the text protocol; in its current form it primarily probes feature-presence reasoning, not parametric exactness.}
+  \label{fig:edit_image_type}
+\end{figure}
+
+
 \section{Scoring-Protocol Ablations}
 \label{app:ablation}
 
@@ -444,6 +515,7 @@ We provide adapter wrappers under \texttt{bench/models/providers/} for cadrille 
 Per-task IoU, Chamfer distance, execution rate, and per-family breakdowns are exported to \texttt{results/<task>/<model>/}.
 For training the open BenchCAD baseline: \texttt{train/sft\_qwen3vl.py} with the released training config and data manifest.
 
+\clearpage
 \section{Ethical Considerations and Broader Impact}
 \label{app:ethics}
 
