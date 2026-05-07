@@ -15,7 +15,7 @@ We mitigate this by (i) anchoring 49\% of families to published ISO/DIN/EN/ASME/
 \label{app:related_extended}
 
 \paragraph{Code generation.}
-DeepCAD~\citep{Wu2021} introduces a 178K-model corpus of Onshape parts encoded as discrete operation tokens; Text2CAD~\citep{Khan2024} extends DeepCAD with 660K natural-language annotations across four abstraction levels. CAD-Coder~\citep{Guan2025} reformulates the same data as CadQuery Python source and applies SFT$+$GRPO with chain-of-thought and Chamfer reward (mean CD $6.54{\times}10^{-3}$ on Text2CAD). The CAD-Recode~\citep{Rukhovich2025}/cadrille~\citep{Kolodiazhnyi2026}/CADEvolve~\citep{Elistratov2026} lineage shares a Qwen2-VL-2B backbone: CAD-Recode fine-tunes on 1M sketch-and-extrude scripts; cadrille adds multi-modal inputs and Dr.CPPO online RL with piecewise IoU reward (DeepCAD IoU 92.2, Fusion360 IoU 84.6, 0.0\% invalidity); CADEvolve expands the corpus to $\sim$1.3M scripts via an LLM-driven evolutionary loop covering extrude/revolve/loft/sweep/fillet/chamfer/shell/Boolean/patterns --- broadening the operation distribution but still without helical sweeps or parametric involute-gear construction. The CADEvolve Hugging Face release contains only sentence embeddings (\texttt{.npy}), not the source code, so its full operation surface is not directly auditable; the public GitHub repo ships only $46$ hand-written seed programs.
+DeepCAD~\citep{Wu2021} introduces a 178K-model corpus of Onshape parts encoded as discrete operation tokens; Text2CAD~\citep{Khan2024} extends DeepCAD with 660K natural-language annotations across four abstraction levels. CAD-Coder~\citep{Guan2025} reformulates the same data as CadQuery Python source and applies SFT$+$GRPO with chain-of-thought and Chamfer reward (mean CD $6.54{\times}10^{-3}$ on Text2CAD). The CAD-Recode~\citep{Rukhovich2025}/cadrille~\citep{Kolodiazhnyi2026}/CADEvolve~\citep{Elistratov2026} lineage shares a Qwen2-VL-2B~\citep{Qwen2VL} backbone: CAD-Recode fine-tunes on 1M sketch-and-extrude scripts; cadrille adds multi-modal inputs and Dr.CPPO online RL with piecewise IoU reward (DeepCAD IoU 92.2, Fusion360 IoU 84.6, 0.0\% invalidity); CADEvolve expands the corpus to $\sim$1.3M scripts via an LLM-driven evolutionary loop covering extrude/revolve/loft/sweep/fillet/chamfer/shell/Boolean/patterns --- broadening the operation distribution but still without helical sweeps or parametric involute-gear construction. The CADEvolve Hugging Face release contains only sentence embeddings (\texttt{.npy}), not the source code, so its full operation surface is not directly auditable; the public GitHub repo ships only $46$ hand-written seed programs.
 
 
 \paragraph{Editing.}
@@ -59,7 +59,7 @@ Mixing 33\% BenchCAD / 67\% HQ for (1)/(2); 100\% HQ for (3). Backbone Qwen3-VL-
 We hold out 10 CAD families sampled uniformly at random from BenchCAD families that are sufficiently represented and the operations are covered in the iid but not in the baseline.
 
 \paragraph{SFT training setup.}
-We fine-tune Qwen3-VL-2B-Instruct under a standard supervised code-generation setup. Inputs consist of one rendered view and a textual instruction, and targets are CadQuery programs.We use AdamW with
+We fine-tune Qwen3-VL-2B-Instruct~\citep{Bai2026Qwen3VL} under a standard supervised code-generation setup. Inputs consist of one rendered view and a textual instruction, and targets are CadQuery programs.We use AdamW with
 learning rate $2{\times}10^{-4}$, cosine decay, $2$k warmup steps, weight decay $0.01$ with bf16 precision. The training evaluation curve (n=30) shows significant gap between model with OOD holdouts and model trained on all family (Fig~\ref{fig:generalisation_gap}).
 
 \paragraph{RL training setup.}
@@ -94,7 +94,6 @@ Table~\ref{tab:dataset} reports the dataset composition; Table~\ref{tab:capabili
 \input{tables/tab_main_eval_qa_code}
 
 \input{tables/tab_codegen_unified}
-\label{tab:codegen_unified}
 
 Table~\ref{tab:op_recall_train} reports the recall of operations for training models.
 \input{tables/tab_op_gap_train}
@@ -452,7 +451,7 @@ We compute IoU under a configurable rotation-invariant protocol, taking the maxi
 \max_{g \in G} \mathrm{IoU}(g \cdot \hat{V}, V).
 \]
 This metric is used diagnostically rather than as the primary score: a large gain from standard IoU to 24-rotation IoU indicates that the model may have generated the right geometry on the wrong construction plane. This failure is partly induced by a workplane prior: in online database, and manufacturing-oriented modeling workflows, parts are commonly initialized on the \texttt{XY} plane as the default sketching or setup plane. As a result, models may over-prefer \texttt{XY}-based constructions even when the target geometry is defined on \texttt{XZ} or \texttt{YZ}. Consistent with this interpretation, Table~\ref{tab:rot24_base_plane} shows substantially larger rotation-IoU gains for \texttt{XZ}/\texttt{YZ} ground-truth parts than for \texttt{XY} parts.
-\input{neurips_2026/tables/tab_rotation_IoU}
+\input{tables/tab_rotation_IoU}
 
 \section{Edit Protocol}
 \label{app:edit_protocol}
@@ -516,7 +515,7 @@ Figure~\ref{fig:edit_L_pies} disaggregates per-model failures into the L1--L4 bu
 \end{figure}
 \begin{figure}[t]
   \centering
-  \includegraphics[width=0.95\linewidth]{neurips_2026/figures/fig_text_vs_image_by_type_mean_norm.png}
+  \includegraphics[width=0.95\linewidth]{figures/fig_text_vs_image_by_type_mean_norm.png}
   \caption{\textbf{BenchCAD-Edit under three input protocols, by
   task type.} Three protocols on the same $100$-pair subset, four OpenAI models. \emph{text}: original code $+$ NL instruction (main bench, \texttt{EDIT\_CODE\_SYSTEM\_PROMPT}). \emph{ablation}: original code $+$ NL instruction $+$ a four-view render of the original part (\texttt{EDIT\_IMG\_SYSTEM\_PROMPT}, App.~\ref{app:edit-img-system-prompt}). \emph{image-only}: original code $+$ four-view render of the target solid, no NL instruction (\texttt{EDIT\_IMG\_GT\_SYSTEM\_PROMPT}, App.~\ref{app:edit-img-gt-system-prompt}). Bars are \texttt{mean\_norm} (Eq.~\eqref{eq:edit_acc}) per task type. Four findings. (1) \emph{Adding the original image to a text instruction barely helps and sometimes hurts}: three of four models stay within $\pm 2$\,pt of text-only on the aggregate, indicating the NL instruction already supplies most of the signal and the visual reference adds little new information. (2) \emph{The one consistent winner is \texttt{o3}} ($+7$\,pt over text-only on aggregate, with the largest lift on T5), suggesting that for an instruction-following reasoning model the image disambiguates ambiguous referents that text alone leaves vague. (3) \emph{\texttt{gpt-5.3-thinking} is hurt by the image} ($-8$\,pt on T1 and $-20$\,pt on T5 vs.\ text-only); the thinking process appears to over-interpret the redundant visual signal, which is consistent with the same model being the worst image-only performer. (4) \emph{Text-only is the ceiling; image-only is the floor}: removing the NL instruction collapses every model to $0.04$--$0.34$ \texttt{mean\_norm} because a render shows what the part should look like but never tells the model that a radius is $5.85$, so dimensional edits (T1, T3) drop to near-zero, T5 floors at $0$, and only T2/T4 (add/remove a feature) retain weak signal. Net: the textual instruction does the heavy lifting and sets the upper bound; the original image is at best a clarifier (\texttt{o3}) and at worst a distractor for thinking models; image-only is a strict lower bound that primarily probes feature-presence reasoning rather than parametric exactness.}
   \label{fig:edit_image_type}
@@ -532,7 +531,7 @@ Table~\ref{tab:ablation} reports two scoring-protocol ablations on the Vision2Co
 
 \section{CadQuery Operation Coverage}
 \label{app:ops}
-\input{neurips_2026/tables/tab_op_coverage}
+\input{tables/tab_op_coverage}
 Table~\ref{tab:op_coverage} reports the per-category breakdown.
 
 \paragraph{Static analysis protocol.}

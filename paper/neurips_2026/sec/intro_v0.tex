@@ -5,7 +5,7 @@
   \centering
   \includegraphics[width=\linewidth]{figures/fig_1.png}
   \caption{\textbf{BenchCAD overview.}
-    Industry-standard designs are converted into executable CadQuery programs and evaluated across four tasks: \texttt{img2cq}, \texttt{code\_edit}, \texttt{qa\_img}, and \texttt{qa\_code}. \lei{Would also explain more about the figure and the four tasks in the caption}}
+    Industry-standard designs are converted into executable CadQuery programs and evaluated across four tasks: \texttt{img2cq}, \texttt{edit\_code}, \texttt{qa\_img}, and \texttt{qa\_code}. \lei{Would also explain more about the figure and the four tasks in the caption}}
   \label{fig:teaser}
   \vspace{-1.8em}
 \end{figure*}
@@ -20,14 +20,14 @@ What separates an \emph{industrial} part from a primitive shape is rarely its si
 Several recent works have begun to deliver pieces of this promise\hc{this is a bit abstract}~\citep{Khan2024,Guan2025,Rukhovich2025,Alrashedy2025,Kolodiazhnyi2026}, yet no public benchmark currently measures, in a systematic and capability-decomposed way, whether today's frontier models clear the stringent bar this domain demands. 
 
 \hc{Maybe merge this paragraph into the previous one as the research problem?}
-Recent benchmarks reveal a concerning pattern: even though models that exhibit the highest performance on metrics like IoU\hc{citation} and Chamfer distance\hc{citation} often generate parts that \emph{appear} close in general geometry but fail to capture critical engineering details—arguably the most valuable aspect of industrial tasks when evaluated against the ground truth. 
+Recent benchmarks reveal a concerning pattern: even though models that exhibit the highest performance on metrics like IoU~\citep{Wu2021,Khan2024} and Chamfer distance~\citep{Guan2025,Rukhovich2025} often generate parts that \emph{appear} close in general geometry but fail to capture critical engineering details—arguably the most valuable aspect of industrial tasks when evaluated against the ground truth. 
 \textbf{The geometry passes the eye; it fails the caliper.} This underlying failure mode is structural. 
 A model can successfully approximate the outer envelope of an industrial part without ever inferring the underlying parametric logic or corresponding CAD operations, thereby neglecting essential engineering features. 
 Consequently, a single metric cannot comprehensively measure or distinguish true model capabilities among various industry examples.
 
 To make this distinction measurable, we propose decomposing the image-to-code pipeline into a four-rung \emph{parametric pyramid} for benchmarking purposes: 
 visual and 3D feature recognition at the base, followed sequentially by CAD code and operation understanding, industrial parametric abstraction, and spatial reasoning and code synthesis at the apex. 
-While prior CAD code-generation benchmarks\hc{citations} focus predominantly on the base, the higher rungs—the critical steps that distinguish an apparent shape match from an industrially viable parametric program—remain largely absent from current public evaluations.
+While prior CAD code-generation benchmarks~\citep{Wu2021,Khan2024,Guan2025,Rukhovich2025,Kolodiazhnyi2026,Elistratov2026} focus predominantly on the base, the higher rungs—the critical steps that distinguish an apparent shape match from an industrially viable parametric program—remain largely absent from current public evaluations.
 
 To address this measurement gap, we introduce BenchCAD, a unified, capability-decomposed evaluation framework for large-model CAD capability. BenchCAD contains 17{,}900 verified CadQuery parts across 106 industrial families.
 Crucially, the parts are hand-crafted by domain experts from commonly used industrial designs, with geometry and parameter relations following 47 industrial standards (e.g., ISO/ASME). The dataset exercises 35+ distinct CAD operations (e.g., helical sweeps, lofts) that are largely absent from prior corpora.
