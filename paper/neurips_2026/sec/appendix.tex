@@ -9,13 +9,14 @@ We mitigate this by (i) anchoring 49\% of families to published ISO/DIN/EN/ASME/
 \paragraph{Standard-anchored does not mean standard-compliant.} A family declared as \texttt{standard = "ISO 23509"} samples within ISO parameter ranges and enforces inter-parameter relations from the standard, but does not validate against the full set of manufacturing tolerances or material specifications mandated by that standard.
 
 \paragraph{Industrial Common Sense Gap measurement.} Our non-target preservation metric uses voxel IoU on the spatial complement of the targeted feature; this captures most leakage modes but can miss small parametric shifts whose voxel footprint is subthreshold.
-\S\ref{app:edit_protocol} discusses the protocol, including a complementary code-AST diff metric we report alongside.
+\S\ref{app:edit_protocol} discusses the protocol, including a complementary -AST diff metric we report alongside.
 
 \section{Extended Related Work: CAD Code-Generation and Editing Benchmarks}
 \label{app:related_extended}
 
 \paragraph{Code generation.}
-DeepCAD~\citep{Wu2021} introduces a 178K-model corpus of Onshape parts encoded as discrete operation tokens; Text2CAD~\citep{Khan2024} extends DeepCAD with 660K natural-language annotations across four abstraction levels. CAD-Coder~\citep{Guan2025} reformulates the same data as CadQuery Python source and applies SFT$+$GRPO with chain-of-thought and Chamfer reward (mean CD $6.54{\times}10^{-3}$ on Text2CAD). The CAD-Recode~\citep{Rukhovich2025}/cadrille~\citep{Kolodiazhnyi2026}/CADEvolve~\citep{Elistratov2026} lineage shares a Qwen2-VL-2B backbone: CAD-Recode fine-tunes on 1M sketch-and-extrude scripts (DeepCAD IoU 92.0); cadrille adds multi-modal inputs and Dr.CPPO online RL with piecewise IoU reward (DeepCAD IoU 92.2, Fusion360 IoU 84.6, 0.0\% invalidity); CADEvolve expands the corpus to $\sim$1.3M scripts via an LLM-driven evolutionary loop covering extrude/revolve/loft/sweep/fillet/chamfer/shell/Boolean/patterns (DeepCAD IoU 92.6) --- broadening the operation distribution but still without helical sweeps or parametric involute-gear construction. The CADEvolve Hugging Face release contains only sentence embeddings (\texttt{.npy}), not the source code, so its full operation surface is not directly auditable; the public GitHub repo ships only $46$ hand-written seed programs.
+DeepCAD~\citep{Wu2021} introduces a 178K-model corpus of Onshape parts encoded as discrete operation tokens; Text2CAD~\citep{Khan2024} extends DeepCAD with 660K natural-language annotations across four abstraction levels. CAD-Coder~\citep{Guan2025} reformulates the same data as CadQuery Python source and applies SFT$+$GRPO with chain-of-thought and Chamfer reward (mean CD $6.54{\times}10^{-3}$ on Text2CAD). The CAD-Recode~\citep{Rukhovich2025}/cadrille~\citep{Kolodiazhnyi2026}/CADEvolve~\citep{Elistratov2026} lineage shares a Qwen2-VL-2B backbone: CAD-Recode fine-tunes on 1M sketch-and-extrude scripts; cadrille adds multi-modal inputs and Dr.CPPO online RL with piecewise IoU reward (DeepCAD IoU 92.2, Fusion360 IoU 84.6, 0.0\% invalidity); CADEvolve expands the corpus to $\sim$1.3M scripts via an LLM-driven evolutionary loop covering extrude/revolve/loft/sweep/fillet/chamfer/shell/Boolean/patterns --- broadening the operation distribution but still without helical sweeps or parametric involute-gear construction. The CADEvolve Hugging Face release contains only sentence embeddings (\texttt{.npy}), not the source code, so its full operation surface is not directly auditable; the public GitHub repo ships only $46$ hand-written seed programs.
+
 
 \paragraph{Editing.}
 CADPrompt~\citep{Alrashedy2025} introduces 200 NL$\to$CadQuery prompts scored via point-cloud distance and bounding-box IoU after ICP alignment --- two orders of magnitude smaller than BenchCAD-Edit (17{,}900), without family taxonomy or difficulty stratification, and with potential scale leakage from absolute mm cues and axis-aligned IoU. CAD-Editor~\citep{CADEditor2025} trains a locate-then-infill editor entirely on synthetic edits, but releases no held-out human-verified edit benchmark. CADialogue~\citep{CADialogue2025} evaluates ten edit tasks in a conversational CAD interface, but does not release the eval set. HistCAD~\citep{Dong2026} evaluates constraint preservation under FreeCAD edits, but at the sketch-constraint rather than executable-program level. BenchCAD-Edit is, to our knowledge, the first public CAD editing benchmark with execution-verified before/after CadQuery pairs, preservation-aware metrics, and balanced cross-family edit-category coverage.
@@ -35,6 +36,7 @@ The remaining 54 custom families cover bespoke industrial parts without a formal
 
 \input{tables/tab_standards}
 
+
 \section{Dataset Generation Details}
 \label{app:datagen}
 
@@ -43,6 +45,42 @@ The remaining 54 custom families cover bespoke industrial parts without a formal
 \paragraph{Difficulty tiers.} Each (sub)family exposes three tiers --- \emph{easy} / \emph{medium} / \emph{hard} --- defined by parameter complexity. Easy uses default parameter ranges with optional features disabled (e.g., a coil spring with constant pitch and no end treatment). Medium expands parameter ranges and enables a subset of optional features. Hard activates all optional features and uses extreme but still standard-compliant parameter ranges (e.g., variable pitch with closed-and-ground spring ends), exercising the more advanced construction operations of the family. Sampling is balanced approximately uniformly across tiers within each (sub)family.
 
 \paragraph{Sandbox failure-mode taxonomy.} Each generated CadQuery program is executed in a sandbox subprocess; records hitting any of the following are quarantined and excluded from the release: (i) \emph{parse / import error} --- the program fails Python parsing or CadQuery API resolution; (ii) \emph{runtime exception} --- a CadQuery call raises (e.g., on a non-positive radius or an empty selector); (iii) \emph{timeout} --- execution exceeds a 30\,s wall-clock budget, typically caused by pathological boolean or sweep construction; (iv) \emph{degenerate volume} --- the resulting solid has $\leq 10^{-6}$\,mm$^3$ volume or an inverted (negative-determinant) transformation chain. Programs surviving all four checks are rendered into multi-view images and routed past a domain expert for visual sign-off; only records passing every stage enter the release.
+
+
+\section{Model Training}
+\label{app:training}
+\paragraph{SFT training mixture.}
+(1) \textbf{iid}: BenchCAD (all 106 families) + extrusion-heavy data (text2cad, cad-recode);
+(2) \textbf{ood}: same recipe, 10 mechanical families held out;
+(3) \textbf{baseline}: text2cad + cad-recode only (no BenchCAD).
+Mixing 33\% BenchCAD / 67\% HQ for (1)/(2); 100\% HQ for (3). Backbone Qwen3-VL-2B.
+
+\paragraph{OOD holdout selection.}
+We hold out 10 CAD families sampled uniformly at random from BenchCAD families that are sufficiently represented and the operations are covered in the iid but not in the baseline.
+
+\paragraph{SFT training setup.}
+We fine-tune Qwen3-VL-2B-Instruct under a standard supervised code-generation setup. Inputs consist of one rendered view and a textual instruction, and targets are CadQuery programs.We use AdamW with
+learning rate $2{\times}10^{-4}$, cosine decay, $2$k warmup steps, weight decay $0.01$ with bf16 precision. The training evaluation curve (n=30) shows significant gap between model with OOD holdouts and model trained on all family (Fig~\ref{fig:generalisation_gap}).
+
+\paragraph{RL training setup.}
+We initialize RL from the matching SFT checkpoint: IID-SFT uses the full BenchCAD training set, whereas OOD-SFT excludes the held-out OOD families. RL is trained with a top-$N$ GRPO-style objective without advantage normalization on a mixed prompt pool from BenchCAD, DeepCAD, and Fusion360; in the OOD setting, the held-out families remain excluded. Rewards combine geometric fidelity with an essential-operation term when available. We use learning rate $2{\times}10^{-5}$, 16 rollouts per prompt, and batch size 128.
+
+\input{tables/tab_ood_iid}
+\paragraph{Model Generalization.}
+We report the full training results in Table~\ref{tab:iid_ood} and the corresponding operation-level recall in Table~\ref{tab:op_recall_train}. 
+Compared with the pretrained baseline, both IID- and OOD-family SFT substantially improve the use of advanced CadQuery operations, indicating that BenchCAD provides effective supervision for operation-level CAD synthesis. 
+Applying RL on top of the OOD-SFT checkpoint further improves both IID and held-out OOD performance, suggesting that geometry-based optimization improves executable fidelity beyond supervised imitation. 
+However, the IID-trained SFT model obtains the strongest OOD score overall, indicating that broad family coverage during supervised training remains a key driver of generalization to unseen mechanical designs.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.85\linewidth]{figures/fig_7.png}
+  \caption{\textbf{The generalisation gap on BenchCAD.} Qwen3-VL-2B trained on three data mixtures, evaluated on the BenchCAD validation set throughout training.
+    \emph{(a) OOD IoU vs.\ training step.} The IID-trained run (green) climbs highest; the OOD run (red, trained without the held-out family slice) plateaus mid-range; the baseline (grey, no BenchCAD) stays near the floor.
+    \emph{(b) OOD essential-op pass rate.} IID reaches the highest rate, OOD plateaus mid-range, baseline stays at $\sim$0\% --- the \textbf{CAD Operational Blindspot}.
+    The deficit is not optimisation budget, not backbone capacity, and not training-corpus operation coverage alone --- it is the fundamental difficulty of constructing industry-grade parametric CAD code on \emph{unseen} family distributions.}
+  \label{fig:generalisation_gap}
+\end{figure*}
 
 \section{Full Per-Model Per-Task Results}
 \label{app:full_results}
@@ -56,47 +94,24 @@ Table~\ref{tab:dataset} reports the dataset composition; Table~\ref{tab:capabili
 \input{tables/tab_main_eval_qa_code}
 
 \input{tables/tab_codegen_unified}
+\label{tab:codegen_unified}
+
+Table~\ref{tab:op_recall_train} reports the recall of operations for training models.
+\input{tables/tab_op_gap_train}
 
 \input{tables/tab_family_cliff}
 
 \section{CAD Operational Blindspot: Per-Operation Recall}
 \label{app:op_gap_full}
-Table~\ref{tab:op_recall} reports the recall of operations.
+
+Table~\ref{tab:op_recall} reports operation-level recall on Vision2Code.
+While both models recover common sketch-and-extrude patterns such as \texttt{extrude}, \texttt{circle}, \texttt{rect}, and \texttt{workplane}, recall remains much lower for industrially important operations such as \texttt{chamfer}, \texttt{revolve}, \texttt{threePointArc}, \texttt{shell}, and counterbored holes.
+This gap suggests that models often approximate the final geometry with simpler primitives instead of recovering the intended parametric construction.
+Thinking mode improves several planning-heavy operations, including \texttt{loft}, \texttt{polygon}, \texttt{fillet}, and \texttt{rarray}, but degrades common boolean and scaffolding operations such as \texttt{cut}, \texttt{cutBlind}, \texttt{workplane}, \texttt{sweep}, \texttt{box}, and \texttt{union}.
+The resulting drop in macro recall and execution rate indicates that inference-time reasoning introduces a synthesis--execution trade-off rather than a uniform improvement.
 
 \input{tables/tab_op_gap}
 
-\section{Model Training}
-\paragraph{SFT training mixture.}
-(1) \textbf{iid}: BenchCAD (all 106 families) + extrusion-heavy data (text2cad, cad-recode);
-(2) \textbf{ood}: same recipe, 10 mechanical families held out;
-(3) \textbf{baseline}: text2cad + cad-recode only (no BenchCAD).
-Mixing 33\% BenchCAD / 67\% HQ for (1)/(2); 100\% HQ for (3). Backbone Qwen3-VL-2B.
-
-\paragraph{OOD holdout selection.}
-We hold out 10 CAD families sampled uniformly at random from BenchCAD families that are sufficiently represented and the operations are covered in the iid but not in the baseline.
-
-\paragraph{SFT training setup.}
-We fine-tune Qwen3-VL-2B-Instruct under a standard supervised code-generation setup. Inputs consist of one rendered view and a textual instruction, and targets are CadQuery programs.We use AdamW with
-learning rate $2{\times}10^{-4}$, cosine decay, $2$k warmup steps, weight decay $0.01$ with bf16 precision.
-
-\paragraph{RL training setup.}
-We initialize RL from the matching SFT checkpoint: IID-SFT uses the full BenchCAD training set, whereas OOD-SFT excludes the held-out OOD families. RL is trained with a top-$N$ GRPO-style objective without advantage normalization on a mixed prompt pool from BenchCAD, DeepCAD, and Fusion360; in the OOD setting, the held-out families remain excluded. Rewards combine geometric fidelity with an essential-operation term when available. We use learning rate $2{\times}10^{-5}$, 16 rollouts per prompt, and batch size 128.
-
-\input{tables/tab_ood_iid}
-\paragraph{Model Generalization.}
-Table~\ref{tab:iid_ood} separates IID performance from held-out OOD-family generalization. 
-RL substantially improves the OOD-SFT checkpoint on both IID and OOD splits, indicating that geometry-based optimization improves execution and fidelity beyond supervised imitation. 
-However, the IID-trained SFT model still achieves the strongest OOD score, suggesting that broad family coverage during training remains the dominant factor for generalizing to unseen mechanical designs.
-
-\begin{figure*}[t]
-  \centering
-  \includegraphics[width=0.85\linewidth]{figures/fig_7.png}
-  \caption{\textbf{The generalisation gap on BenchCAD.} Qwen3-VL-2B trained on three data mixtures, evaluated on the BenchCAD validation set throughout training.
-    \emph{(a) OOD IoU vs.\ training step.} The IID-trained run (green) climbs highest; the OOD run (red, trained without the held-out family slice) plateaus mid-range; the baseline (grey, no BenchCAD) stays near the floor.
-    \emph{(b) OOD essential-op pass rate.} IID reaches the highest rate, OOD plateaus mid-range, baseline stays at $\sim$0\% --- the \textbf{CAD Operational Blindspot}.
-    The deficit is not optimisation budget, not backbone capacity, and not training-corpus operation coverage alone --- it is the fundamental difficulty of constructing industry-grade parametric CAD code on \emph{unseen} family distributions.}
-  \label{fig:generalisation_gap}
-\end{figure*}
 \section{Datasheet for BenchCAD}
 \label{app:datasheet}
 
@@ -115,6 +130,8 @@ We follow the datasheet template of Gebru et al.\ (2021); responses below are co
 
 \paragraph{Collection process.}
 \textbf{How was the data acquired?} Procedurally generated by the BenchCAD generation pipeline (\S\ref{sec:dataset}); the only human-in-the-loop component is edit-pair curation by the authors.
+
+
 \textbf{Who was involved in data collection?} The authors.
 \textbf{Were any ethical review processes conducted?} Not applicable; no human-subjects data.
 
@@ -131,7 +148,7 @@ The standard-anchored families reference public ISO/DIN/EN/ASME/IEC standard cod
 \paragraph{Distribution.}
 \textbf{Will the dataset be distributed?} Yes, on Hugging Face under \texttt{BenchCAD/cad\_bench} and \texttt{BenchCAD/cad\_bench\_edit}.
 \textbf{When?} On submission acceptance (or on arXiv release if earlier).
-\textbf{Under what licence?} CC-BY-4.0 for data; MIT for code (generation pipeline, evaluation harness, baseline checkpoint).
+\textbf{Under what licence?} CC-BY-4.0 for data; MIT for code (evaluation harness).
 \textbf{Are there restrictions?} Standard CC-BY-4.0 attribution.
 
 \paragraph{Maintenance.}
@@ -452,12 +469,15 @@ Pairs where models systematically disagree on instruction interpretation are rev
 \input{tables/tab_task_taxonomy}
 
 
-\paragraph{Failure taxonomy.} Every failing prediction is bucketed into one of eight semantic failure modes F01--F08 (Table~\ref{tab:failure_codes}), each mapped to one of the four capability layers L1--L4: F01--F03 isolate L1 \emph{Holistic Visual Understanding} (wrong value, wrong instance, wrong placement), F04--F06 isolate L2 \emph{CAD Operations Comprehension} (wrong axis, wrong selector, near no-op), F07 isolates L3 \emph{Industrial Parametric Abstraction} (incomplete multi-instance update), and F08 isolates L4 \emph{Spatial Reasoning $+$ Code Synthesis} (compositional geometry mismatch). Each label combines an automatic detection cue --- execution status, generated-vs-original/target IoU thresholds, and topology checks with a hand audit by the authors against the predicted code and rendered geometry; the rule set and L-mapping are fixed across all ten models reported, and \texttt{ok} (strict pass) and \texttt{exec\_fail} are tracked separately as the non-failure and gross-execution categories.
+\paragraph{Failure taxonomy.} Every failing prediction is bucketed into one of eight semantic failure modes F01--F08 (Table~\ref{tab:failure_codes}, Fig~\ref{fig:edit_F_bars}), each mapped to one of the four capability layers L1--L4: F01--F03 isolate L1 \emph{Holistic Visual Understanding} (wrong value, wrong instance, wrong placement), F04--F06 isolate L2 \emph{CAD Operations Comprehension} (wrong axis, wrong selector, near no-op), F07 isolates L3 \emph{Industrial Parametric Abstraction} (incomplete multi-instance update), and F08 isolates L4 \emph{Spatial Reasoning $+$ Code Synthesis} (compositional geometry mismatch). Each label combines an automatic detection cue --- execution status, generated-vs-original/target IoU thresholds, and topology checks with a hand audit by the authors against the predicted code and rendered geometry; the rule set and L-mapping are fixed across all ten models reported, and \texttt{ok} (strict pass) and \texttt{exec\_fail} are tracked separately as the non-failure and gross-execution categories.
 
 \input{tables/tab_F_codes}
 
 
-\paragraph{Image-conditioned variant.} To probe whether the textual instruction itself is a confound --- i.e.\ whether models succeed because the instruction states the change explicitly rather than because they reason about the geometry --- we additionally evaluate an image-conditioned setting in which the natural-language instruction is replaced by a four-view render of the target solid (\texttt{EDIT\_IMG\_GT\_SYSTEM\_PROMPT}, Appendix~\ref{app:edit-img-gt-system-prompt}); the model receives the original code and must infer the edit visually. Across the four OpenAI models we tested, \texttt{mean\_norm} drops by $0.40$--$0.85$\,pt at every task type (Fig.~\ref{fig:edit_image_type}). The dominant failure mode is that a render specifies geometry but not numbers: the model can usually tell whether a feature is added or removed (T2/T4 retain weak signal), but cannot recover the exact dimension a textual ``from $X$ to $Y$'' would have stated, so dimensional edits (T1, T3) collapse to near-zero and trig-driven rebuilds (T5) floor uniformly at $0$. Image-only conditioning is therefore a strict lower bound on the text protocol and, in its current form, primarily isolates feature-presence reasoning rather than parametric exactness.
+\paragraph{Image-conditioned variant.} To probe whether the textual instruction itself is a confound, i.e.\ whether models succeed because the instruction states the change explicitly rather than because they reason about the geometry, we additionally evaluate an image-conditioned setting in which the natural-language instruction is replaced by a four-view render of the target solid (\texttt{EDIT\_IMG\_GT\_SYSTEM\_PROMPT}, App.~\ref{app:edit-img-gt-system-prompt}); the model receives the original code and must infer the edit visually. Across the four OpenAI models we tested, \texttt{mean\_norm} drops by $0.40$--$0.85$\,pt at every task type (Fig.~\ref{fig:edit_image_type}). The dominant failure mode is that a render specifies geometry but not numbers: the model can usually tell whether a feature is added or removed (T2/T4 retain weak signal), but cannot recover the exact dimension a textual ``from $X$ to $Y$'' would have stated, so dimensional edits (T1, T3) collapse to near-zero and trig-driven rebuilds (T5) floor uniformly at $0$. Image-only conditioning is therefore a strict lower bound on the text protocol and, in its current form, primarily isolates feature-presence reasoning rather than parametric exactness.
+
+\paragraph{Does adding the image really help?} If image-only is a lower bound, the more interesting question is whether \emph{augmenting} the text instruction with the same four-view render of the original part (\texttt{EDIT\_IMG\_SYSTEM\_PROMPT}, App.~\ref{app:edit-img-system-prompt}) gives the model usable extra signal. We rerun the same four models in this third protocol and find the answer is mostly no. Three of the four models stay within $\pm 2$\,pt of text-only on the aggregate (Fig.~\ref{fig:edit_image_type}, ablation bars), so the NL instruction already supplies most of the signal and the visual reference adds little new information. The two exceptions are diagnostic: \texttt{o3} gains $\sim 7$\,pt on aggregate, with the largest lift on T5, suggesting that for an instruction-following reasoning model the image disambiguates ambiguous referents (\emph{the longer end}, \emph{the central pillar}) that text alone leaves vague; \texttt{gpt-5.3-thinking} \emph{loses} $7$\,pt on T1 and $20$\,pt on T5, mirroring its weak image-only performance and consistent with the thinking process over-interpreting a redundant visual signal. Net: the textual instruction does the heavy lifting and sets the upper bound; the original image is at best a clarifier and at worst a distractor for thinking models.
+
 
                                                
 
@@ -491,12 +511,14 @@ Figure~\ref{fig:edit_L_pies} disaggregates per-model failures into the L1--L4 bu
   \includegraphics[width=0.95\linewidth]{figures/fig_L_pies.png}
   \caption{\textbf{Per-model failure-layer distribution on BenchCAD-Edit.} Each pie shows one model's failures aggregated by capability layer L1--L4 (collapsing the eight F-codes via the mapping in Table~\ref{tab:failure_codes}: F01--F03 $\to$ L1, F04--F06 $\to$ L2, F07 $\to$ L3, F08 $\to$ L4) and re-normalised so L1$+$L2$+$L3$+$L4 $= 100\%$ --- i.e.\ the pies show the \emph{shape} of each model's failure mode mix, independent of how often it fails overall; the title above each pie reports the absolute L-fail rate (\% of all predictions) so that scale is preserved. Models are arranged in order of increasing total L-fail rate (least-broken first). The mass shifts systematically along the L-axis across model generations: older or smaller-capacity systems concentrate failures in L2 (CAD-API misuse) and incur a non-trivial \texttt{exec\_fail} tail (counted separately, not shown); recent large models without explicit reasoning largely close the L2 gap and leave residual mass on L1 (visual/detail mistakes); reasoning-tier closed models flatten L1 and L2 alike but expose an L3--L4 ceiling on multi-instance and T5-style coordinated edits, indicating that thinking lifts capability up the L-hierarchy rather than uniformly reducing all error types.}
   \label{fig:edit_L_pies}
-\end{figure}
 
+  
+\end{figure}
 \begin{figure}[t]
   \centering
-  \includegraphics[width=0.95\linewidth]{neurips_2026/figures/fig_edit_image_type.png}
-  \caption{\textbf{Text vs.\ image conditioning.} Same $100$-pair subset, four OpenAI models, two protocols: \emph{text} sees the original code plus a natural-language instruction, \emph{image} replaces the instruction with a four-view render of the target solid (\texttt{EDIT\_IMG\_GT\_SYSTEM\_PROMPT}, App.~\ref{app:edit-img-gt-system-prompt}). Bars are \texttt{mean\_norm} (Eq.~\eqref{eq:edit_acc}) per task type. Text dominates uniformly, with the largest gaps at T1 and T3: a render shows what the part should look like but never tells the model that a radius is $5.85$, so dimensional edits collapse. T2 and T4 retain weak image signal because adding or removing a feature is something a render can communicate. T5 floors at zero either way. Reasoning helps the text side substantially but barely moves the image side, so current chain-of-thought mostly strengthens code-side reasoning rather than visual diff inference. Image-only conditioning is a strict lower bound on the text protocol; in its current form it primarily probes feature-presence reasoning, not parametric exactness.}
+  \includegraphics[width=0.95\linewidth]{neurips_2026/figures/fig_text_vs_image_by_type_mean_norm.png}
+  \caption{\textbf{BenchCAD-Edit under three input protocols, by
+  task type.} Three protocols on the same $100$-pair subset, four OpenAI models. \emph{text}: original code $+$ NL instruction (main bench, \texttt{EDIT\_CODE\_SYSTEM\_PROMPT}). \emph{ablation}: original code $+$ NL instruction $+$ a four-view render of the original part (\texttt{EDIT\_IMG\_SYSTEM\_PROMPT}, App.~\ref{app:edit-img-system-prompt}). \emph{image-only}: original code $+$ four-view render of the target solid, no NL instruction (\texttt{EDIT\_IMG\_GT\_SYSTEM\_PROMPT}, App.~\ref{app:edit-img-gt-system-prompt}). Bars are \texttt{mean\_norm} (Eq.~\eqref{eq:edit_acc}) per task type. Four findings. (1) \emph{Adding the original image to a text instruction barely helps and sometimes hurts}: three of four models stay within $\pm 2$\,pt of text-only on the aggregate, indicating the NL instruction already supplies most of the signal and the visual reference adds little new information. (2) \emph{The one consistent winner is \texttt{o3}} ($+7$\,pt over text-only on aggregate, with the largest lift on T5), suggesting that for an instruction-following reasoning model the image disambiguates ambiguous referents that text alone leaves vague. (3) \emph{\texttt{gpt-5.3-thinking} is hurt by the image} ($-8$\,pt on T1 and $-20$\,pt on T5 vs.\ text-only); the thinking process appears to over-interpret the redundant visual signal, which is consistent with the same model being the worst image-only performer. (4) \emph{Text-only is the ceiling; image-only is the floor}: removing the NL instruction collapses every model to $0.04$--$0.34$ \texttt{mean\_norm} because a render shows what the part should look like but never tells the model that a radius is $5.85$, so dimensional edits (T1, T3) drop to near-zero, T5 floors at $0$, and only T2/T4 (add/remove a feature) retain weak signal. Net: the textual instruction does the heavy lifting and sets the upper bound; the original image is at best a clarifier (\texttt{o3}) and at worst a distractor for thinking models; image-only is a strict lower bound that primarily probes feature-presence reasoning rather than parametric exactness.}
   \label{fig:edit_image_type}
 \end{figure}
 
@@ -510,9 +532,7 @@ Table~\ref{tab:ablation} reports two scoring-protocol ablations on the Vision2Co
 
 \section{CadQuery Operation Coverage}
 \label{app:ops}
-
-\input{tables/tab_op_coverage}
-
+\input{neurips_2026/tables/tab_op_coverage}
 Table~\ref{tab:op_coverage} reports the per-category breakdown.
 
 \paragraph{Static analysis protocol.}
@@ -523,6 +543,7 @@ DeepCAD, Fusion360 Gallery, and Text2CAD release a tokenized intermediate repres
 
 \paragraph{CADEvolve caveat.}
 CADEvolve's Hugging Face release (\texttt{kulibinai/cadevolve}, $\sim$$2$M rows, $4.7$\,GB) contains only \texttt{.npy} sentence embeddings keyed by component name, not Python source. The full $\sim$$1.3$M expanded scripts are referenced in the paper but are not part of the public release. We therefore report CADEvolve's operation count from the $46$ hand-written seed programs in \texttt{evolution/cadquery\_examples.txt} of the GitHub repo \texttt{zhemdi/CADEvolve}, yielding $30$ distinct ops --- a strict lower bound on the full evolved corpus.
+
 
 \section{Reproduction Recipe}
 \label{app:reproduce}

@@ -3,19 +3,22 @@
 
 \subsection{Setup}
 \label{sec:exp_setup}
-We evaluate 10+ models on BenchCAD with non-uniform per-task coverage; the headline figure (Fig.~\ref{fig:overall_perform}) reports seven frontier proprietary systems with full four-task coverage. For each task, we include a \emph{blind baseline}\hc{provide more details} and quantify each model's gain over it across all relevant metrics.
+For each task, we include a \emph{blind baseline} that preserves the output format but removes the informative input: black views for \textsc{Image-to-Code}/\textsc{Image QA}, no code for \textsc{Code QA}, and unchanged original programs for \textsc{Code Edit}. These baselines measure gains beyond dataset priors and metric floors.
+% \hc{provide more details}
+and quantify each model's gain over it across all relevant metrics.
 
 \subsection{Models}
 \label{sec:exp_models}
 
 Three model classes are evaluated:
-\emph{(i) Frontier proprietary MLLMs:} GPT-4o, GPT-5.3 (thinking / non-thinking), Claude Opus 4.7 (thinking / non-thinking), Gemini 3.1 Pro (thinking / non-thinking), GPT-o3\hc{citations for each of these models}.
-\emph{(ii) Open-source MLLMs / code LLMs:} Qwen3-VL, InternVL3, gpt-oss-120b, nemotron-3-super-120b-a12b\hc{citations for each of these models}.
-\emph{(iii) CAD-specialist lineage:} cadrille-RL~\citep{Kolodiazhnyi2026} and CADEvolve v3~\citep{Elistratov2026}. Closed models are queried through their official APIs; open-weights models via OpenRouter\hc{citation} or official repo.
+\emph{(i) Frontier proprietary MLLMs:} GPT-4o~\citep{OpenAI2024GPT4o}, GPT-5.3 thinking / non-thinking~\citep{OpenAI2026GPT53}, Claude Opus 4.7 thinking / non-thinking~\citep{Anthropic2026Claude47}, Gemini 3.1 Pro thinking / non-thinking~\citep{Google2026Gemini31}, OpenAI o3~\citep{OpenAI2025o3}.
+\emph{(ii) Open-source MLLMs / code LLMs:} Qwen3-VL~\citep{Bai2026Qwen3VL}, InternVL3~\citep{Chen2025InternVL3}, gpt-oss-120b~\citep{OpenAI2025GPTOSS}, nemotron-3-super-120b-a12b~\citep{NVIDIA2026Nemotron}.
+\emph{(iii) CAD-specialist lineage:} cadrille-RL~\citep{Kolodiazhnyi2026} and CADEvolve v3~\citep{Elistratov2026}. Closed models are queried through their official APIs; open-weights models via OpenRouter~\citep{OpenRouter2024} or the official repository.
+
 
 \subsection{Evaluation}
 \label{sec:exp_eval}
-For Vision QA and Code QA (BenchCAD-QA, 2{,}400 paired image/code numeric items), accuracy is computed under $\pm 5\%$ tolerance for ratios and exact match for integers, broken out along the four-level capability hierarchy (\S\ref{sec:capability}). For \textsc{Vision2Code} we report \texttt{exec\_pct}, mean voxel \texttt{IoU}, mean Chamfer distance \texttt{CD}, mean Hausdorff distance \texttt{HD}, Feature-F1, essential-op recall \texttt{ess}, and a composite \texttt{total} score (Table~\ref{tab:codegen_unified}). For \textsc{Edit Code}, with rendered solid $S_g$, original solid $S_o$, and target solid $S_t$, let $\mathrm{IoU}(S_a, S_b)$ denote the voxel intersection-over-union. Over $n$ records we report a normalized accuracy that eliminates the bias from varying original-target IoU across edit pairs:
+For Vision QA and Code QA (BenchCAD-QA, 2{,}400 paired image/code numeric items), accuracy is computed under $\pm 5\%$ tolerance for ratios and exact match for integers, broken out along the four-level capability hierarchy (\S\ref{sec:capability}). For \textsc{Vision2Code} we report \texttt{exec\_pct}, mean voxel \texttt{IoU}, mean Chamfer distance \texttt{CD}, mean Hausdorff distance \texttt{HD}, Feature-F1, essential-op recall \texttt{ess}, and a composite \texttt{total} score (Table~\ref{tab:codegen_unified}). For \textsc{Edit Code}, with rendered solid $S_g$, original solid $S_o$, and target solid $S_t$, let $\mathrm{IoU}(S_a, S_b)$ denote the voxel intersection-over-union. Over $n$ records we report the normalized accuracy eliminate the bias from varying original-target IoU across edit pairs:
 \begin{align}
 \label{eq:edit_acc}
 \mathrm{Acc}_{\mathrm{norm}}
@@ -29,5 +32,8 @@ Accuracy is a headroom-normalised improvement, where $1$ means the model fully t
 
 \subsection{Training}
 \label{sec:exp_training}
-Beyond evaluation, we use BenchCAD as a training resource to test whether its operation breadth and standard-anchored families translate into measurable capability gains, and whether such gains generalize beyond the trained families. To this end we train an open Qwen3-VL-2B baseline whose scores appear in the bottom block of Table~\ref{tab:codegen_unified}, comparing matched-compute SFT and RL recipes that differ only in their training pool.
-\hc{Need to polish this paragraph, clearly describing the training methods}\textbf{SFT} Three splits with identical optimizer, schedule, and held-out eval set; only the training pool differs: iid (BenchCAD + extrusion-heavy data), ood (same recipe, 10 mechanical families removed), baseline (no benchcad data). \textbf{RL} on-policy GRPO variant from each SFT checkpoint with reward $r{=}0.2\,\mathrm{ess}{+}0.8\,\mathrm{IoU}$ ($r{=}-1$ on parse error / timeout / zero-volume); RL data with OOD-SFT model also excludes OOD families. Per-operation recall ablation in Table~\ref{tab:op_recall}; full training configs and curves in Appendix~\ref{app:op_gap_full}.
+Beyond evaluation, we use BenchCAD as a training resource to test whether its operation breadth and standard-anchored families yield measurable capability gains, and whether these gains transfer beyond the trained families. We train an open Qwen3-VL-2B baseline reported in the bottom block of Table~\ref{tab:codegen_unified}, comparing matched-compute SFT and RL settings that differ only in training data composition. 
+% \hc{Need to polish this paragraph, clearly describing the training methods}
+\textbf{SFT.} We train three variants with the same optimizer, schedule, and held-out evaluation set: \emph{iid} uses BenchCAD plus extrusion-heavy auxiliary data, \emph{ood} follows the same recipe but removes 10 mechanical families, and \emph{baseline} uses no BenchCAD data.
+\textbf{RL.} Starting from each SFT checkpoint, we apply an on-policy GRPO-style objective with reward $r{=}0.2\,\mathrm{ess}{+}0.8\,\mathrm{IoU}$ and $r{=}-1$ for parse errors outputs; the OOD-RL run also excludes the held-out OOD families. We report per-operation recall ablations in Table~\ref{tab:op_recall_train}, with full training details and curves in Appendix~\ref{app:training}.
+

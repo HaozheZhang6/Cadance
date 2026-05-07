@@ -5,15 +5,33 @@
 Our experiments provide a comprehensive and decoupled analysis of BenchCAD across four tasks. 
 By separating results by modality, task type, and capability axis, and by tracing failures to shared reasoning bottlenecks, we show that BenchCAD is both a challenging evaluation benchmark and a structured training resource for improving CAD reasoning.
 
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.75\linewidth]{figures/fig_3.png}
+  \caption{\textbf{Per-model performance across the four BenchCAD task categories}
+  (frontier proprietary subset; open-source baselines are reported in Table~\ref{tab:main_eval_qa_img}). 
+  Bar style encodes task, color encodes model family, and within-family variants distinguish thinking from non-thinking models. 
+  Two patterns motivate our subsequent diagnostics: (i) QA-img consistently underperforms QA-code, highlighting the difficulty of holistic spatial recognition from visual evidence; and (ii) CodeEdit trails CodeGen across all models, indicating that instruction-guided modification of existing CAD programs remains harder than greenfield generation. 
+  % \lei{The figure seems not in an aesthetic aspect ratio.}\hc{Agree; maybe use .pdf for higher resolution.}\hz{updated}
+  } 
+  \label{fig:overall_perform}
+\end{figure*}
+
+% \lei{Fig.~\ref{fig:overall_perform} is not discussed here. Also move the figure here}
+
 \subsection{Overall Performance of 4 Tasks}
 \label{sec:results_overall}
 
-\paragraph{\textsc{Vision QA}.} Table~\ref{tab:main_eval_qa_img} indicates that Vision QA remains challenging for current frontier MLLMs. Performance is relatively stronger on Holistic Visual Recognition and Spatial Reasoning, but consistently weaker on CAD Operation Understanding and Industrial Parametric Abstraction --- models often recognize global shapes while still struggling to infer CAD operations and parametric design intent. Thinking mode does not consistently improve performance: extended reasoning can amplify hallucinations about geometric structures, dimensions, or CAD operations. CAD QA requires more than generic reasoning; it demands precise visual grounding, CAD-specific knowledge, and robust parametric abstraction.
-
 \input{tables/tab_main_eval_qa_img}
 
-\paragraph{\textsc{Code QA}.} Table~\ref{tab:main_eval_qa_code} (Appendix~\ref{app:full_results}) shows that direct access to CadQuery code substantially improves QA performance compared with the vision-conditioned setting in Table~\ref{tab:main_eval_qa_img}. The best models achieve total scores around 0.84, far above the best visual-conditioned score of 0.587. This large modality gap suggests current MLLMs are considerably better at extracting geometric and parametric information from explicit CAD programs than from rendered images. However, performance on Spatial / Code Reasoning remains comparatively lower, indicating code access alone does not fully resolve the need for precise spatial and operational reasoning.
+\paragraph{\textsc{Vision QA} and \textsc{Code QA}.}
+Table~\ref{tab:main_eval_qa_img} shows that Vision QA remains challenging for current frontier MLLMs: models can often recognize global part shapes, but struggle to infer the underlying CAD operations and parametric design intent. Direct access to CadQuery code substantially improves performance, with the best Code QA models reaching total scores around 0.838 compared with 0.587 for Vision QA. This modality gap indicates that explicit programs make geometric and parametric information easier to extract than rendered images. However, Spatial / Code Reasoning remains weaker even with code access, showing that the benchmark still requires precise spatial and operational reasoning beyond surface-level parsing. Full Code QA results are reported in Appendix~\ref{app:full_results}.
 
+% \paragraph{\textsc{Vision QA}.} Table~\ref{tab:main_eval_qa_img} indicates that Vision QA remains challenging for current frontier MLLMs. Performance is relatively stronger on Holistic Visual Recognition and Spatial Reasoning, but consistently weaker on CAD Operation Understanding and Industrial Parametric Abstraction --- models often recognize global shapes while still struggling to infer CAD operations and parametric design intent. Thinking mode does not consistently improve performance: extended reasoning can amplify hallucinations about geometric structures, dimensions, or CAD operations. CAD QA requires more than generic reasoning; it demands precise visual grounding, CAD-specific knowledge, and robust parametric abstraction.
+
+
+% \paragraph{\textsc{Code QA}.} Direct access to CadQuery code substantially improves QA performance relative to the vision-conditioned setting in Table~\ref{tab:main_eval_qa_img}: the best Code QA models reach total scores around 0.838, compared with 0.587 for Vision QA. This modality gap indicates that current MLLMs extract geometric and parametric information more reliably from explicit CAD programs than from rendered images. However, Spatial / Code Reasoning remains comparatively weaker, showing that code access alone does not eliminate the need for precise spatial and operational reasoning. Full Code QA results are reported in Appendix~\ref{app:full_results}.
+% \lei{Understand the space constraints here, but several of these mentioned tables are in the appendix, which is a bit unusual.}
 
 
 \paragraph{\textsc{Vision2Code}.} The unified leaderboard (Table~\ref{tab:codegen_unified}, Appendix~\ref{app:full_results}) shows two patterns:
@@ -37,15 +55,36 @@ By separating results by modality, task type, and capability axis, and by tracin
   \end{minipage}
 \end{figure}
 
-\paragraph{\textsc{Code Edit}.}
-Table~\ref{tab:edit_leaderboard} reports the BenchCAD-Edit leaderboard using mean-normalized improvement as the headline metric, which discounts the varying difficulty of each edit pair. Overall scores show a clear gap between model families, but the per-type breakdown in Fig.~\ref{fig:edit_task} reveals a more diagnostic pattern: simple API-level edits are nearly solved by modern models, while compositional edits remain difficult. The error analysis below ties each regime to specific failure modes; per-model F-code distributions, the full L1--L4 attribution, and the image-conditioned variant are deferred to Appendix~\ref{app:edit_protocol}.
+
+
+\paragraph{\textsc{Code Edit}.} 
+%\paragraph{Code editing.}
+Table~\ref{tab:edit_leaderboard} reports the BenchCAD-Edit leaderboard using mean-normalized improvement as the headline metric, which discounts the varying difficulty of each edit pair. Overall scores show a clear gap between model families, but the per-type breakdown in Fig.~\ref{fig:edit_task} reveals a more diagnostic pattern: simple API-level edits are nearly solved by modern models, while compositional edits remain difficult. Replacing the textual instruction with a target render collapses every model to near-zero, since a render specifies geometry but not numbers; augmenting the text instruction with the original four-view image barely moves the aggregate and even hurts the strongest thinking model (Fig.\ref{fig:edit_image_type}), indicating that the textual instruction does the heavy lifting and the visual signal is at best a clarifier. The error analysis below ties each regime to specific failure modes; per-model F-code distributions, the full L1--L4 attribution, and the image-conditioned variant are deferred to Appendix~\ref{app:edit_protocol}.
 
 
 \subsection{Error Analysis}
 \label{sec:results_failure_analysis}
 \label{sec:exp_failure_analysis}
 
-\begin{wrapfigure}{r}{0.38\linewidth}
+
+Across tasks, we find that many failures share common causes. Most can be attributed to deficiencies in three core capabilities.
+
+
+\textbf{Holistic Spatial Recognition.}
+Visual recognition failures occur along two axes: detailed feature counting and spatial grounding.
+%
+% For instance, 4 out of 8 models fail to identify the keyway adjacent to the central hole in a gear, as the two features are visually blended together in the rendered view.
+
+A hex-head bolt (Figure~\ref{fig:err_analysis_codegen}A) illustrates a fine-detail failure. 
+GPT-5.3 recovers the overall bolt body, but omits the threaded shank and chamfered head details. 
+The generated part is therefore visually similar at a coarse level but misses small, human-obvious CAD features. 
+Consistently, GPT-5.3-chat fails to identify the number of chamfer operations in the corresponding vision QA ($L_1$) on chamfer number. Interestingly, though GPT-5.3-thinking answers the chamfer-count question correctly, yet still fails to realize the detail in executable code, suggesting a gap between recognizing a local feature and synthesizing it constructively.
+
+
+A bearing retainer cap (Figure~\ref{fig:err_analysis_codegen}B) exposes a global spatial-frame failure. 
+The model captures several detailed features, but fails to infer the correct extrusion direction: its emitted code extrudes from the XY plane rather than the natural XZ plane. This failure is partially diagnosed by the substantially higher 24-axis rotation-invariant IoU compared with the single-axis IoU, indicating that the geometry is partly correct but placed in the wrong spatial frame (Appendix~\ref{app:iou}). 
+The same example also reveals parametric-abstraction failures across multiple features.
+\begin{wrapfigure}{r}{0.35\linewidth}
   \vspace{-\baselineskip}
   \centering
   \includegraphics[width=\linewidth]{figures/fig_err_analysis_code_gen.png}
@@ -54,26 +93,8 @@ Table~\ref{tab:edit_leaderboard} reports the BenchCAD-Edit leaderboard using mea
   \vspace{-0.5\baselineskip}
 \end{wrapfigure}
 
-Across tasks, we find that many failures share common causes. Most can be attributed to deficiencies in three core capabilities.
-
-
-\textbf{Holistic Spatial Recognition.}
-Visual recognition failures occur along two axes: detailed feature counting and spatial grounding.
-% For instance, 4 out of 8 models fail to identify the keyway adjacent to the central hole in a gear, as the two features are visually blended together in the rendered view.
-
-A hex-head bolt (Figure~\ref{fig:err_analysis_codegen}A) illustrates a fine-detail failure. 
-GPT-5.3 recovers the overall bolt body, but omits the threaded shank and chamfered head details. 
-The generated part is therefore visually similar at a coarse level but misses small, human-obvious CAD features. 
-Consistently, GPT-5.3-chat fails to identify the number of chamfer operations in the corresponding vision QA ($L_1$) on chamfer number. 
-Interestingly, though GPT-5.3-thinking answers the chamfer-count question correctly, yet still fails to realize the detail in executable code, suggesting a gap between recognizing a local feature and synthesizing it constructively.
-
-A bearing retainer cap (Figure~\ref{fig:err_analysis_codegen}B) exposes a global spatial-frame failure. 
-The model captures several detailed features, but fails to infer the correct extrusion direction: its emitted code extrudes from the XY plane rather than the natural XZ plane. 
-This failure is partially diagnosed by the substantially higher 24-axis rotation-invariant IoU compared with the single-axis IoU, indicating that the geometry is partly correct but placed in the wrong spatial frame (\S\ref{app:iou}). 
-The same example also reveals parametric-abstraction failures across multiple features.
-
 \textbf{Operation understanding.} A twisted bracket (Figure~\ref{fig:err_analysis_codegen}C) is generated as two mutually perpendicular brackets without twisted connection; the requisite twist-extrusion is absent from the emitted program entirely. 
-The model recognizes the holistic spatial (L1) but fails to map the visible torsion to the corresponding CAD operation, exposing an Op Vocabulary Gap (\S\ref{app:op_gap_full}) at the operation-understanding layer.
+The model recognizes the holistic spatial (L1) but fails to map the visible torsion to the corresponding CAD operation, exposing an Op Vocabulary Gap (Appendix~\ref{app:op_gap_full}) at the operation-understanding layer.
 
 \textbf{Industrial Parametric abstraction.}
 A standardized DIN~2095 coil spring (Figure~\ref{fig:err_analysis_codegen}D) exposes a parametric-abstraction failure. 
@@ -101,17 +122,9 @@ These cases illustrate how the layered framework converts \textsc{Vision2Code} f
 
 %\paragraph{Family Cliff.} Table~\ref{tab:family_cliff} stratifies \texttt{img2cq} pass rate by family difficulty tier. The strongest model collapses by 48\,pt from easy (68\%) to hard (20\%), exhibiting a \textbf{Family Cliff}: hard-tier families exercise advanced operations (helical sweeps, twist-extrusion, lofted Booleans) scarcely present in any prior CAD training corpus, and enforce parametric constraints (gear module--tooth--pitch consistency, spring free-length--turn-count coupling) no model evaluated reliably preserves.
 
-\subsection{Training Findings}
+\subsection{BenchCAD as a Training Resource for Improving Model Capabilities}
 \label{sec:results_training}
-\hc{it's a bit unclear why this paragraph is here.}
-Our Qwen3-VL-2B trained on BenchCAD achieves SOTA on the in-distribution code-generation benchmark (CodeGen 0.723). When 10 mechanical families are held out, IID-only SFT + RL still transfers non-trivially to the OOD families, indicating that BenchCAD provides useful inductive signal for unseen mechanical structures. Nonetheless, a substantial IID/OOD gap persists, showing that generalization to unseen mechanical families remains an open problem.
 
-\begin{figure*}[t]
-  \centering
-  \includegraphics[width=0.65\linewidth]{figures/fig_3.png}
-  \caption{\textbf{Per-model performance across the four BenchCAD task categories}
-  (frontier proprietary subset; open-source baselines are reported in Table~\ref{tab:main_eval_qa_img}). 
-  Bar style encodes task, color encodes model family, and within-family variants distinguish thinking from non-thinking models. 
-  Two patterns motivate our subsequent diagnostics: (i) QA-img consistently underperforms QA-code, highlighting the difficulty of holistic spatial recognition from visual evidence; and (ii) CodeEdit trails CodeGen across all models, indicating that instruction-guided modification of existing CAD programs remains harder than greenfield generation.} 
-  \label{fig:overall_perform}
-\end{figure*}
+BenchCAD is not only an evaluation benchmark but also a useful training resource. Our Qwen3-VL-2B trained on BenchCAD achieves the best in-distribution code-generation result, with a CodeGen score of 0.7631 in Table~\ref{tab:codegen_unified}. Even when 10 mechanical families are held out, IID-SFT+RL transfers non-trivially to unseen OOD families, suggesting reusable CAD priors beyond family-level memorization. BenchCAD training also broadens the generated operation vocabulary, improving use of advanced operations such as \texttt{revolve}, \texttt{sweep}, \texttt{loft}, and \texttt{fillet} (Table~\ref{tab:op_recall_train}). However, the substantial IID/OOD gap shows that generalization to novel mechanical families remains an open challenge (Appendix~\ref{app:training}).
+% \hc{This paragraph reads a bit rushed; maybe add more detail.}
+

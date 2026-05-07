@@ -30,7 +30,7 @@ visual and 3D feature recognition at the base, followed sequentially by CAD code
 While prior CAD code-generation benchmarks\hc{citations} focus predominantly on the base, the higher rungs—the critical steps that distinguish an apparent shape match from an industrially viable parametric program—remain largely absent from current public evaluations.
 
 To address this measurement gap, we introduce BenchCAD, a unified, capability-decomposed evaluation framework for large-model CAD capability. BenchCAD contains 17{,}900 verified CadQuery parts across 106 industrial families.
-Crucially, the parts are hand-crafted by domain experts from commonly used industrial designs, with geometry and parameter relations following 47 industrial standards (e.g., ISO/ASME). The dataset exercises a substantially richer CAD operation surface than prior corpora, including helical sweeps and twist-extrudes that are absent from every prior released corpus.
+Crucially, the parts are hand-crafted by domain experts from commonly used industrial designs, with geometry and parameter relations following 47 industrial standards (e.g., ISO/ASME). The dataset exercises 35+ distinct CAD operations (e.g., helical sweeps, lofts) that are largely absent from prior corpora.
 
 BenchCAD targets three practical CAD-agent workflows: generation, editing, and design QA. We evaluate these through four task families: \texttt{img2cq}, \texttt{edit\_code}, \texttt{qa\_img}, and \texttt{qa\_code}\hc{this is a bit informal. Maybe briefly introduce these four tasks?}, with expert-annotated QA pairs and edit instructions.
 

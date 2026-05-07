@@ -1,0 +1,40 @@
+\begin{table*}[t]
+  \centering
+  \small
+  \setlength{\tabcolsep}{5pt}
+  \renewcommand{\arraystretch}{1.15}
+  \caption{\textbf{Per-operation recall after BenchCAD training.}
+  We compare the pretrained baseline, OOD-family SFT, and IID SFT on Vision2Code operation recall. BenchCAD training substantially improves recall on BenchCAD-distinguishing operations, especially \texttt{revolve}, \texttt{fillet}, \texttt{loft}, \texttt{sweep}, and array-based operations.}
+  \label{tab:op_recall_train}
+  \begin{tabular}{l c c c c}
+  \toprule
+  Operation & baseline & ood-sft & iid-sft & $|\text{GT}|$ \\
+  \midrule
+  \multicolumn{5}{l}{\emph{Basic ops (shared with prior corpora: cad-recode / text2cad)}} \\
+  \texttt{extrude}   & \textbf{100.0} & 91.7           & 95.8           & 48  \\
+  \texttt{cut}       & 87.2           & 70.2           & \textbf{89.4}  & 94  \\
+  \texttt{union}     & \textbf{91.7}  & 41.7           & 79.2           & 48  \\
+  \texttt{circle}    & 82.8           & 79.3           & \textbf{96.6}  & 58  \\
+  \texttt{cylinder}  & 5.9            & 88.2           & \textbf{94.1}  & 34  \\
+  \texttt{box}       & 2.6            & 84.6           & \textbf{92.3}  & 78  \\
+  \texttt{rect}      & 5.0            & 65.0           & \textbf{90.0}  & 40  \\
+  \texttt{workplane} & 0.0            & 77.4           & \textbf{88.7}  & 106 \\
+  \midrule
+  \multicolumn{5}{l}{\emph{Advanced ops (BenchCAD-distinguishing)}} \\
+  \texttt{hole}         & 0.0            & 82.8           & \textbf{93.1}  & 58 \\
+  \texttt{chamfer}      & 0.0            & \textbf{85.3}  & \textbf{85.3}  & 68 \\
+  \texttt{revolve}      & 0.0            & 54.8           & \textbf{93.5}  & 62 \\
+  \texttt{fillet}       & 0.0            & 25.0           & \textbf{87.5}  & 16 \\
+  \texttt{loft}         & 0.0            & 22.2           & \textbf{77.8}  & 18 \\
+  \texttt{rarray}       & 0.0            & 77.8           & \textbf{100.0} & 18 \\
+  \texttt{sweep}        & 0.0            & 25.0           & \textbf{75.0}  & 16 \\
+  \texttt{polarArray}   & 0.0            & 33.3           & \textbf{83.3}  & 12 \\
+  \texttt{shell}        & 0.0            & 80.0           & \textbf{100.0} & 10 \\
+  \texttt{sweep+helix}  & 0.0            & \textbf{100.0} & 50.0           & 4  \\
+  \texttt{twistExtrude} & 0.0            & \textbf{100.0} & \textbf{100.0} & 2  \\
+  \midrule
+  \textbf{Macro recall} (16 ops) & 17.5\% & 59.9\% & \textbf{84.0\%} & --- \\
+  \textbf{Exec rate}             & 90.0\% & 94.0\% & \textbf{99.0\%} & --- \\
+  \bottomrule
+  \end{tabular}
+\end{table*}

@@ -3,7 +3,8 @@
 \small
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.15}
-\caption{\textbf{Main evaluation on BenchCAD-QA (\texttt{qa\_img} modality), by capability axis.}}
+\caption{\textbf{Main evaluation on BenchCAD-QA (\texttt{qa\_img} modality), by capability axis.} Given multi-view renders, models answer visual CAD questions; closed-source MLLMs outperform the open-source MLLMs but remain weak on operation understanding and parametric abstraction.}
+% \lei{Briefly explain the task and summarize the results here in the caption. Would be good to have up arrows for the header.}}
 \label{tab:main_eval_qa_img}
 \begin{tabular}{l c c c c c}
 \toprule
@@ -22,10 +23,11 @@ gpt-4o                              & 0.599 & 0.408 & 0.431 & 0.396 & 0.464 \\
 gpt-5.3-chat-latest                 & 0.636 & 0.423 & 0.488 & 0.548 & 0.513 \\
 gpt-5.3-thinking                    & 0.650 & 0.429 & 0.482 & 0.534 & 0.514 \\
 moonshot-v1-128k     & 0.556 & 0.387 & 0.427 & 0.334 & 0.442 \\
-moonshot-v1-8k       & --    & --    & --    & --    & --    \\
-openai-o3                           & --    & --    & --    & --    & --    \\
-google-gemma-4-31b-it       & --    & --    & --    & --    & --    \\
-kimi-k2.6                           & --    & --    & --    & --    & --    \\
+
+  moonshot-v1-8k-vision         & 0.600 & 0.246 & 0.465 & 0.181 & 0.447 \\                                                                    
+  openai-o3                             & 0.328 & 0.188 & 0.398 & 0.560 & 0.327 \\  
+% google-gemma-4-31b-it       & --    & --    & --    & --    & --    \\
+% kimi-k2.6                           & --    & --    & --    & --    & --    \\
 \midrule
 \textit{blank image (baseline)}     & 0.376    & 0.325    & 0.418    & 0.296    & 0.375    \\
 \bottomrule

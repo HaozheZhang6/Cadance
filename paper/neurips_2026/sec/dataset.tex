@@ -14,8 +14,8 @@
 \emph{(P1) Expert-generated geometry}: every family is hand-crafted by domain experts directly from industrial standards, who solve the standard-mandated geometric equations to produce parameterised CAD models that strictly respect engineering conventions and inter-parameter constraints.
 \emph{(P2) Standard-table anchoring}: where a part has an industrial counterpart, parameters sample from real specification tables (e.g., ISO 22 V-belt cross-sections, DIN 338 twist-drill diameters, ISO 23509 bevel-gear pitch--module relations; full list in Appendix~\ref{app:standards}); 49\% of BenchCAD families (52/106) are standard-anchored, drawing from 47 unique ISO/DIN/EN/ASME/IEC codes.
 % \lei{Are these exhaustive or just a few examples?}
-\emph{(P3) Family-level taxonomy}: records are grouped into 106 named families (\texttt{coil\_spring}, \texttt{helical\_gear}, \texttt{twisted\_drill}, $\ldots$); a family may further branch into \emph{subfamilies} that capture mating or construction variants of the same part type (e.g., male/female fasteners, internal/external retaining rings, single-/multi-start threads). Each (sub)family is implemented by a small Python module exposing a typed parameter schema, sampler, validator, and deterministic builder --- making coverage measurable and per-family analysis trivial (subfamily definition in Appendix~\ref{app:datagen}).
-\emph{(P4) Operation breadth}: BenchCAD exercises a substantially broader CadQuery operation surface than prior released corpora --- spanning primitives, 2D sketching, advanced solid ops (helical sweeps, lofts, shells), boolean composition, holes, arrays, and finishing features, including operations (\texttt{makeHelix}, \texttt{twistExtrude}, \texttt{polarArray}) rare or absent in DeepCAD/Fusion360-derived corpora (per-corpus breakdown in App.~\ref{app:ops}).
+\emph{(P3) Family-level taxonomy}: records are grouped into 106 named families (\texttt{coil\_spring}, \texttt{helical\_gear}, $\ldots$); a family may further branch into \emph{subfamilies} that capture mating or construction variants of the same part type (e.g., male/female fasteners). Each (sub)family is implemented by a small Python module exposing a typed parameter schema, sampler, validator, and deterministic builder --- making coverage measurable and per-family analysis trivial (subfamily definition in Appendix~\ref{app:datagen}).
+\emph{(P4) Operation breadth}: BenchCAD exercises a substantially broader CadQuery operation surface than prior released corpora --- spanning primitives, 2D sketching, advanced solid ops (helical sweeps, lofts, shells), boolean composition, holes, arrays, and finishing features, including operations (\texttt{makeHelix}, \texttt{twistExtrude}, \texttt{polarArray}) rare or absent in DeepCAD/Fusion360-derived corpora (per-corpus breakdown in Appendix~\ref{app:ops}).
 
 \paragraph{Generation pipeline.} Each family supports three difficulty tiers --- easy / medium / hard --- defined by parameter complexity, where higher tiers expand parameter ranges and activate optional features (full tier definition in Appendix~\ref{app:datagen}).
 % \lei{How is difficulty defined? Seems not mentioned above.}
@@ -39,8 +39,8 @@ We organise the QA bank along a four-level capability hierarchy (Figure~\ref{fig
 \emph{(ii) CAD Operations Understanding, $L_2$} --- read CadQuery (or infer from geometry) and map operations to features in the correct execution order;
 \emph{(iii) Industrial Parametric Abstraction, $L_3$} --- abstract observed geometry into the parametric structure an engineer would write, respecting standard-table relations and engineering conventions;
 \emph{(iv) Compositional Spatial-Code Reasoning, $L_4$} --- synthesize the preceding capabilities by planning spatially consistent CAD operations, maintaining dependencies across parameters and coordinate frames, and producing syntactically valid, executable parametric code.
-\lei{Find the following sentence hard to decipher}
-The matched-pair design isolates the levels: a large \textsc{Vision QA}--\textsc{Code QA} gap on the same questions reveals the cost of replacing direct code access with visual recognition (the Holistic Spatial and Detailing Deficit, \S\ref{sec:exp_failure_analysis}); low absolute Code QA flags a CAD Operational Blindspot at $L_2$.
+% \lei{Find the following sentence hard to decipher}
+The matched-pair design isolates the source of failure: a large gap between Vision QA and Code QA on identical questions indicates that errors arise primarily from visual recognition rather than reasoning over the queried attribute (the Holistic Spatial and Detailing Deficit, \S5.2), whereas low Code QA performance indicates a CAD-operation understanding bottleneck at $L_2$.
 
 \begin{figure*}[t]
   \centering
@@ -50,10 +50,17 @@ The matched-pair design isolates the levels: a large \textsc{Vision QA}--\textsc
 \end{figure*}
 
 
-\paragraph{\textsc{Code Edit}.} Given an original CadQuery program, a natural-language edit instruction, and a target STEP, the model must return a minimally-edited program whose rendered solid matches the target. Items span five task types T1--T5 (literal replace / chain transform / relative compute / feature edit / geometry rebuild; Table~\ref{tab:task_taxonomy}). We report \texttt{mean\_norm} (headroom-normalised improvement over the original-to-target gap, Eq.~\eqref{eq:edit_acc}) as the headline
-\lei{Same here, hard to understand without much context}
-since it controls for varying per-pair difficulty, while the others disambiguate ties and attribute failures to parametric exactness, geometric closeness, or syntactic execution. Edit-pair construction protocol and the F01--F08 failure taxonomy used in the per-model analysis are in Appendix~\ref{app:edit_protocol} (Table~\ref{tab:failure_codes}).
+\paragraph{\textsc{Code Edit}.} Given an original CadQuery program and a natural-language edit instruction, the model must produce a minimally modified program whose rendered solid matches the target. Items cover five edit types T1--T5: literal replacement, chained transformation, relative computation, feature editing, and geometry rebuilding (Table~\ref{tab:task_taxonomy}). We use \texttt{mean\_norm} as the headline metric, which measures headroom-normalised improvement over the original-to-target gap (Eq.~\eqref{eq:edit_acc}) and controls for varying per-pair difficulty.
+% \lei{Same here, hard to understand without much context}
+The remaining metrics help disambiguate ties and attribute failures to parametric exactness, geometric closeness, or syntactic execution.
 
 
 
-\paragraph{\textsc{Vision2Code}.} \lei{Complete the sentence} Generates executable CadQuery code from four canonical orthographic views. We report IoU (primary; rendered prediction vs.\ GT occupancy grid), Chamfer distance, Feature score (fillets, chamfers, etc.), essential-op recall (whether the model can apply key CAD operations), and execution rate. IoU is the headline; the other four disambiguate ties and attribute failures to geometric, structural, vocabulary-level, or syntactic causes. Question-bank construction, edit-pair protocol, rotation-invariant IoU (used for failure analysis only), and a scale-invariance ablation appear in Appendices~\ref{app:qbank}, \ref{app:edit_protocol}, \ref{app:iou}, \ref{app:ablation}.
+
+\paragraph{\textsc{Vision2Code}.} 
+% \lei{Complete the sentence} 
+Models generate executable CadQuery code from four canonical orthographic views. We use IoU between the rendered prediction and the ground-truth occupancy grid as the primary metric. We also report Chamfer distance for geometric error, feature score for fine CAD details, 
+% \lei{hard to understand}
+essential-op recall for key operation use, and execution rate for code validity. 
+
+Question-bank construction, edit-pair protocol, rotation-invariant IoU, and scale-invariance ablation appear in Appendices~\ref{app:qbank}, \ref{app:edit_protocol}, \ref{app:iou}, and~\ref{app:ablation}.

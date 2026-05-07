@@ -8,11 +8,11 @@
 \begin{tabular}{l c c c c c}
 \toprule
 Model
- & \shortstack{Cadquery Code\\Recognition}
- & \shortstack{CAD Operation\\Understanding}
- & \shortstack{Industrial Parametric\\Abstraction}
- & \shortstack{Spatial\\Reasoning}
- & \shortstack{Total\\score} \\
+ & \shortstack{Cadquery Code\\Recognition $\uparrow$ }
+ & \shortstack{CAD Operation\\Understanding $\uparrow$ }
+ & \shortstack{Industrial Parametric\\Abstraction $\uparrow$ }
+ & \shortstack{Spatial\\Reasoning $\uparrow$ }
+ & \shortstack{Total\\score $\uparrow$ } \\
 \midrule
 opus-4.7         & 0.868 & 0.800 & 0.793 & 0.595 & 0.801 \\
 opus-4.7-thinking            & 0.891 & 0.781 & 0.851 & 0.632 & 0.829 \\
@@ -21,11 +21,12 @@ gemini-3.1-pro-thinking     & 0.907 & 0.783 & \textbf{0.876} & 0.537 & \textbf{0
 gpt-4o                              & 0.865 & 0.593 & 0.732 & 0.688 & 0.726 \\
 gpt-5.3-chat-latest                 & 0.879 & \textbf{0.805} & 0.815 & 0.731 & 0.823 \\
 gpt-5.3-thinking                    & 0.885 & 0.802 & 0.811 & 0.730 & 0.821 \\
-moonshot-v1-128k-v     & 0.842 & 0.551 & 0.692 & \textbf{0.792} & 0.700 \\
-moonshot-v1-8k-v       & 0.8419    & 0.5570    & 0.6836    & 0.7947    & 0.6983    \\
- % openai-o3                           & --    & --    & --    & --    & --    \\
- % google-gemma-4-31b-it       & --    & --    & --    & --    & --    \\
- % kimi-k2.6                           & --    & --    & --    & --    & --    \\
+moonshot-v1-128k-v     & 0.842    & 0.551    & 0.692    & \textbf{0.792}    & 0.700 \\                                                                       
+  moonshot-v1-8k-v       & 0.772    & 0.603    & 0.555    & 0.536    & 0.620 \\               
+openai-o3                & 0.804    & 0.701    & 0.689    & 0.492    & 0.708 \\                                                                
+  google-gemma-4-31b-it    & 0.791    & 0.674    & 0.606    & 0.528    & 0.664 \\                                                                
+  openai-gpt-oss-120b      & 0.790    & 0.732    & 0.656    & 0.379    & 0.689 \\
+  nvidia-nemotron-3-120b   & 0.771    & 0.660    & 0.661    & 0.293    & 0.671 \\       
 \midrule
 \textit{blank code (baseline)}     & 0.040    & 0.257    & 0.290    & 0.420    & 0.223    \\
 \bottomrule
