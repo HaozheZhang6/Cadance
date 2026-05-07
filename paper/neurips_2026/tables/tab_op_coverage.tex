@@ -1,27 +1,26 @@
-\begin{table*}[t]
+\begin{table}[t]
 \centering
 \small
-\setlength{\tabcolsep}{4pt}
+\setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.05}
-\caption{\textbf{CadQuery operation coverage: BenchCAD (49) vs.\ CADEvolve ($\sim$25).} Per-category breakdown from a static analysis of the released family code (BenchCAD) and the operation list reported in the CADEvolve paper (CADEvolve count is approximate, derived from the published description rather than the released corpus). Operations \emph{exclusive to BenchCAD} are listed in the rightmost column.}
+\caption{\textbf{Per-category CadQuery operation coverage.} Distinct CadQuery method invocations per category in BenchCAD vs.\ the closest prior CadQuery corpus (CADEvolve), measured by the unified static-analysis rule (App.~\ref{app:ops}). CADEvolve releases only $46$ hand-written seed programs as source code (the expanded $\sim$$1.3$M corpus is shipped only as embeddings); its column is therefore a lower bound. Saturation curves and full op lists for all corpora (CAD-Recode, cadrille, GenCAD-Code, CADPrompt) are in App.~\ref{app:ops}.}
 \label{tab:op_coverage}
-\begin{tabular}{@{}lcc p{0.30\linewidth} c p{0.22\linewidth}@{}}
+\begin{tabular}{@{}lcc@{\hskip 1.4em}l@{}}
 \toprule
-Category & \#BC & \#CE & BenchCAD ops & $\Delta$ & BenchCAD-only ops \\
+Category & BenchCAD & CADEvolve & Examples (BenchCAD) \\
 \midrule
-Primitives                & 5  & 3 & box, cylinder, sphere, makeTorus, ellipse                       & $+2$ & makeTorus, ellipse \\
-2D sketch profile         & 12 & 5 & circle, rect, polygon, polyline, lineTo, moveTo, spline, threePointArc, radiusArc, slot2D, center, pushPoints & $+7$ & spline, threePointArc, radiusArc, slot2D, center, pushPoints, polyline \\
-Solid-forming             & 6  & 5 & extrude, revolve, sweep, loft, shell, twistExtrude              & $+1$ & twistExtrude \\
-Advanced path             & 1  & 0 & makeHelix                                                       & $+1$ & makeHelix \\
-Boolean                   & 4  & 3 & cut, cutBlind, cutThruAll, union                                & $+1$ & cutBlind, cutThruAll \\
-Hole features             & 3  & 0 & hole, cboreHole, cskHole                                        & $+3$ & all 3 \\
-Finishing                 & 2  & 2 & fillet, chamfer                                                 & $0$  & --- \\
-Arrays / Mirrors          & 3  & 2 & polarArray, rarray, mirrorY                                     & $+1$ & mirrorY \\
-Transforms                & 3  & 3 & transformed, rotate, workplane                                  & $0$  & --- \\
-Sketch builder API        & 3  & 0 & Sketch, cq.Sketch, placeSketch                                  & $+3$ & all 3 \\
-Constructors & 7  & 2 & Workplane, cq.Workplane, cq.Wire, cq.Solid, cq.Vector, Vector, face & $+5$ & cq.Wire, cq.Solid, cq.Vector, Vector, cq.Workplane \\
+Primitives           & 4   & 1   & box, cylinder, sphere, makeTorus \\
+2D sketch profile    & 15  & 13  & circle, ellipse, spline, slot2D, threePointArc \\
+Solid-forming        & 6   & 3   & extrude, revolve, sweep, loft, twistExtrude \\
+Advanced path        & 3   & 0   & makeHelix, makeLine, assembleEdges \\
+Boolean              & 5   & 3   & cut, cutBlind, cutThruAll, union, intersect \\
+Hole features        & 3   & 3   & hole, cboreHole, cskHole \\
+Finishing            & 2   & 1   & fillet, chamfer \\
+Arrays / Mirrors     & 4   & 3   & polarArray, rarray, mirrorX, mirrorY \\
+Transforms           & 3   & 3   & transformed, rotate, workplane \\
+Sketch builder API   & 1   & 0   & placeSketch \\
 \midrule
-\textbf{Total}            & \textbf{49} & \textbf{$\sim$25} & & \textbf{$+24$} & 24 ops absent from CADEvolve \\
+\textbf{Total}       & \textbf{46} & \textbf{30} & \\
 \bottomrule
 \end{tabular}
-\end{table*}
+\end{table}

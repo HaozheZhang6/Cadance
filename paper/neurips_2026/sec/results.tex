@@ -17,21 +17,27 @@ By separating results by modality, task type, and capability axis, and by tracin
 
 
 \paragraph{\textsc{Vision2Code}.} The unified leaderboard (Table~\ref{tab:codegen_unified}, Appendix~\ref{app:full_results}) shows two patterns:
-(i) the specialist CAD lineage transferred from DeepCAD scores shows good on IoU but not perform well on using the correct on non-extrude operations;
-(ii) frontier MLLMs cap mid-range (gemini-3.1-pro-thinking total 0.318) and exhibit non-monotonic thinking-mode behaviour;
+(i) the specialist CAD lineage transferred from DeepCAD scores well on IoU but underperforms on non-extrude operations;
+(ii) frontier MLLMs cap mid-range (gemini-3.1-pro-thinking total 0.318) and exhibit non-monotonic thinking-mode behaviour.
 
 
-\begin{figure}[t]                                               
-  \centering                                                  \begin{minipage}{0.6\linewidth}                                 \centering
-    \includegraphics[width=\linewidth]{figures/fig_5.png}   \captionof{figure}{\textbf{BenchCAD-Edit by task type.}}
+\begin{figure}[t]
+  \centering
+  \begin{minipage}{0.6\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/fig_5.png}
+    \captionof{figure}{\textbf{BenchCAD-Edit by task type.}}
     \label{fig:edit_task}
-  \end{minipage}\hfill                                        \begin{minipage}{0.4\linewidth}                                 \centering                                                    \captionof{table}{\textbf{BenchCAD-Edit Accuracy.}}
-    \label{tab:edit_leaderboard}                                \input{tables/tab_main_edit_leadboard}
+  \end{minipage}\hfill
+  \begin{minipage}{0.4\linewidth}
+    \centering
+    \captionof{table}{\textbf{BenchCAD-Edit Accuracy.}}
+    \label{tab:edit_leaderboard}
+    \input{tables/tab_main_edit_leadboard}
   \end{minipage}
-\end{figure} 
+\end{figure}
 
-\paragraph{\textsc{Code Edit}.} 
-\paragraph{Code editing.}
+\paragraph{\textsc{Code Edit}.}
 Table~\ref{tab:edit_leaderboard} reports the BenchCAD-Edit leaderboard using mean-normalized improvement as the headline metric, which discounts the varying difficulty of each edit pair. Overall scores show a clear gap between model families, but the per-type breakdown in Fig.~\ref{fig:edit_task} reveals a more diagnostic pattern: simple API-level edits are nearly solved by modern models, while compositional edits remain difficult. The error analysis below ties each regime to specific failure modes; per-model F-code distributions, the full L1--L4 attribution, and the image-conditioned variant are deferred to Appendix~\ref{app:edit_protocol}.
 
 
@@ -48,11 +54,11 @@ Table~\ref{tab:edit_leaderboard} reports the BenchCAD-Edit leaderboard using mea
   \vspace{-0.5\baselineskip}
 \end{wrapfigure}
 
-Across tasks, we find that many failures share common causes. Most can be attributed to deficiencies in four core capabilities.
+Across tasks, we find that many failures share common causes. Most can be attributed to deficiencies in three core capabilities.
 
 
-\textbf{Holistic Spatial Recognition}
-Visual recognition failures occurs: detailed feature counting and spatial grounding. 
+\textbf{Holistic Spatial Recognition.}
+Visual recognition failures occur along two axes: detailed feature counting and spatial grounding.
 % For instance, 4 out of 8 models fail to identify the keyway adjacent to the central hole in a gear, as the two features are visually blended together in the rendered view.
 
 A hex-head bolt (Figure~\ref{fig:err_analysis_codegen}A) illustrates a fine-detail failure. 

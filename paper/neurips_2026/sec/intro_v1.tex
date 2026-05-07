@@ -3,62 +3,49 @@
 
 \begin{figure*}[t]
   \centering
-  \includegraphics[width=\linewidth]{figures/fig_1.png}
-  \caption{\textbf{BenchCAD overview.}
-    BenchCAD evaluates multimodal models on executable and editable CAD reasoning across four tasks:
-    image-to-CadQuery generation, code editing, image-based design QA, and code-based design QA.}
+  \includegraphics[width=\linewidth]{figures/fig_2.png}
+  \caption{\textbf{BenchCAD overview.} BenchCAD is a unified, capability-decomposed evaluation framework for industrial CAD reasoning, consisting of 17{,}900 expert-verified parametric CadQuery parts (\emph{left}) drawn from 106 industrial families spanning fasteners, transmission components, structural elements, fluid fittings, panels, hardware, and enclosures. The 7-category functional taxonomy (\emph{right}) covers 49\% of families anchored to ISO/DIN/EN/ASME/IEC standards, with each part realised as an executable parametric program testable for geometry, parameters, and edits.\lei{Make the caption self-contained, i.e., a small paragraph. Could be something like BenchCAD is a unified evaluation framework for large-model CAD capability, consisting of XXX expert-verified parts (Left) across 7-category... (Right)}}
   \label{fig:teaser}
   \vspace{-1.8em}
 \end{figure*}
 
-Recent multimodal large language models (MLLMs) have begun to combine visual perception, code generation, and multi-step reasoning in a single interface.
-This progress raises a natural question: can such models move beyond recognizing visual content to producing executable programs that define and modify physical objects?
-Computer-aided design (CAD) provides a canonical setting for this question.
-Unlike a mesh, point cloud, or rendered image, a CAD model is typically an editable parametric program: geometric operations such as extrusion, cutting, sweeping, filleting, and patterning construct a solid object through variables and constraints.
-A capable CAD agent therefore requires more than visual recognition or code completion alone; it must connect visual evidence, 3D structure, symbolic operations, and executable program synthesis.
+% P1: MLLMs general capability
+Multimodal large language models (MLLMs)~\citep{GPT5,Claude46,Gemini25} now combine visual perception, code generation, and multi-step reasoning in a single interface, performing tasks that previously required dedicated systems.
+A natural next question is whether such models can move beyond recognising visual content to producing executable programs that define and modify physical objects.
 
-This makes CAD a promising application domain for MLLMs.
-A useful CAD assistant should be able to read multi-view images or engineering sketches, infer the underlying 3D structure, answer design questions, generate executable CAD code, and edit existing programs while preserving unrelated geometry.
-At the same time, CAD is also a challenging testbed for general AI capabilities.
-Real designs are rarely arbitrary shapes.
-They often belong to reusable families such as gears, springs, brackets, fasteners, pipes, and bearings, where small local details and parameter relations determine whether a part is merely visually similar or actually useful as an editable design.
-For example, a spring is not fully specified by its helical silhouette; its end coils, pitch profile, and cross-section encode important design intent.
-Similarly, a gear-like outline is insufficient without the correct tooth construction and parameterization.
-In this sense, a model may produce geometry that passes the eye but fails the caliper.
+% P2: What makes CAD promising
+Computer-aided design (CAD) provides a canonical testbed for this question.
+Unlike a mesh, point cloud, or rendered image, a CAD model is typically an editable parametric program: geometric operations such as extrusion, cutting, sweeping, filleting, and patterning construct a solid object through variables and constraints~\citep{CadQuerySoftware}.
+Real industrial designs are rarely arbitrary shapes; they belong to reusable families such as gears, springs, brackets, fasteners, pipes, and bearings (Fig.~\ref{fig:teaser}), where small local features and parameter relations decide whether a part is merely visually similar or actually useful as an editable design.
+A spring is not fully specified by its helical silhouette --- its end coils, pitch profile, and cross-section encode design intent --- and a gear-like outline is insufficient without the correct tooth construction and parameterization.
+\textbf{The geometry passes the eye but fails the caliper.}
 
+% P3: How prior assesses these capabilities
 Existing evaluations capture only parts of this problem.
-3D and spatial reasoning benchmarks test whether models understand objects and viewpoints from images or code.
-CAD code-generation benchmarks evaluate whether models can synthesize programs whose rendered outputs match a target shape, often using geometric metrics such as IoU or Chamfer distance.
-Other datasets study program editing or design question answering in isolation.
-However, these evaluations do not fully reveal whether a model has recovered the underlying parametric design logic: the part family, the construction operations, the dimensions and constraints, and the features that should remain invariant under edits.
-A single end-to-end geometry score can therefore overestimate capability, because two programs may produce roughly similar outer envelopes while differing substantially in editability, operation choice, and engineering detail.
+Prior CAD code-generation benchmarks~\citep{Wu2021,Khan2024,Guan2025,Rukhovich2025,Kolodiazhnyi2026,Elistratov2026} score whether a model's rendered output matches a target shape, typically through a single end-to-end geometric metric such as IoU or Chamfer distance, while program editing~\citep{Alrashedy2025,CADEditor2025} and design question answering are studied in isolation.
+However, two programs may produce roughly similar outer envelopes while differing substantially in editability, operation choice, and engineering detail, so a single shape-matching score can overestimate capability and obscure which sub-ability --- visual perception, parametric abstraction, or code synthesis --- drives the remaining gap.
 
-We ask: how should we evaluate whether MLLMs have the capabilities needed for practical CAD agents?
-Such an evaluation should not only measure final shape similarity.
-It should decompose the full CAD reasoning process into interpretable capabilities: recognizing the part and its 3D structure, understanding CAD operations, abstracting parameters and design constraints, synthesizing executable code, answering design questions, and applying localized edits without damaging non-target geometry.
-This decomposition is important because failures in CAD are often compositional.
-A model may identify the object family but choose the wrong operation, infer the rough scale but miss a standard relation, or edit the requested feature while unintentionally changing the rest of the part.
+% P4: Research problem
+We therefore ask: how should we evaluate whether MLLMs have the capabilities needed for practical CAD agents?
 
-To address this gap, we introduce \textbf{BenchCAD}, a capability-decomposed benchmark for executable, editable, and constraint-aware CAD reasoning.
-BenchCAD contains 17{,}900 execution-verified CadQuery programs across 106 industrial part families and 47 ISO/DIN/EN/ASME/IEC standards.
-The dataset covers common reusable designs such as twist drills, bevel gears, compression springs, propellers, brackets, flanges, eye bolts, and fasteners.
-Rather than sampling unconstrained primitive shapes, BenchCAD instantiates structured part families with meaningful parameter relations, standard-derived dimensions, and diverse CAD operations.
-This allows the benchmark to test whether models can recover not only what a part looks like, but also how it should be constructed as an editable parametric program.
+% P5: Motivation
+A useful evaluation should not collapse the CAD reasoning chain into a single shape-matching score.
+It should decompose the chain into interpretable capabilities --- recognizing the part and its 3D structure, understanding CAD operations, abstracting parameters and design constraints, and synthesizing executable code (a four-level capability hierarchy $L_1$--$L_4$, Fig.~\ref{fig:capability_hierarchy}) --- because failures in CAD are usually compositional: a model may identify the family but pick the wrong operation, infer the rough scale but miss a standard relation, or edit the requested feature while changing unrelated parts.
 
-BenchCAD evaluates three practical CAD-agent workflows through four task families.
-First, \texttt{img2cq} tests image-to-code generation: models must synthesize executable CadQuery programs from multi-view renders.
-Second, \texttt{qa\_img} and \texttt{qa\_code} test design question answering from visual and program inputs, respectively, allowing us to diagnose whether failures arise from visual recognition, code understanding, operation reasoning, or parameter abstraction.
-Third, \texttt{edit\_code} tests instruction-guided program editing, where the model must implement a requested local change while preserving unrelated geometry.
-Together, these tasks turn CAD evaluation from a single shape-matching problem into a structured assessment of visual grounding, program synthesis, parametric reasoning, and edit preservation.
+% P6: Introduce BenchCAD
+We introduce BenchCAD, a capability-decomposed benchmark for executable, editable, and constraint-aware CAD reasoning.
+BenchCAD contains 17{,}900 execution-verified CadQuery programs across 106 industrial part families covering twist drills, bevel gears, compression springs, propellers, brackets, flanges, eye bolts, fasteners, and other reusable industrial designs (Fig.~\ref{fig:teaser}).
+It exercises a substantially broader CadQuery operation surface than prior released corpora, including helical sweeps, lofts, twist-extrudes, and parametric involute-gear construction.
+Rather than sampling unconstrained primitive shapes, BenchCAD instantiates structured part families with meaningful parameter relations and standard-derived dimensions (Fig.~\ref{fig:dataset_overview}).
+It evaluates three practical CAD-agent workflows through four task families: \textsc{Vision2Code} (\texttt{img2cq}, image-to-code generation from multi-view renders), \textsc{Vision QA} and \textsc{Code QA} (\texttt{qa\_img}, \texttt{qa\_code}, design question answering from visual or program inputs), and \textsc{Code Edit} (\texttt{edit\_code}, instruction-guided program editing).
 
-Across 10+ frontier MLLMs and open CAD-specialized baselines, BenchCAD reveals a consistent gap between apparent geometric similarity and true parametric understanding.
-Current models often recognize the global part family but miss local engineering details, choose simplified or incorrect CAD operations, or fail to preserve non-target geometry during edits.
-The comparison between image-based and code-based QA further shows that visual recognition alone does not imply reliable parametric abstraction.
-Finally, our supervised fine-tuning (SFT) and reinforcement learning (RL) experiments show that training on BenchCAD improves operation coverage and executable generation, but substantial out-of-distribution gaps remain, especially for held-out industrial families requiring advanced operations and precise design constraints.
+% P7: Key insights
+Across 10+ frontier MLLMs and open CAD-specialized baselines~\citep{Kolodiazhnyi2026,Elistratov2026}, BenchCAD reveals a consistent gap between apparent geometric similarity and true parametric understanding: current models often recognize the global part family but miss local engineering details, choose simplified or incorrect CAD operations, or fail to apply localized edits faithfully.
+The matched comparison between image- and code-based QA further shows that visual recognition alone does not imply reliable parametric abstraction.
+Supervised fine-tuning (SFT) and reinforcement learning (RL) on BenchCAD improve operation coverage and executable generation, but substantial out-of-distribution gaps remain, especially for held-out industrial families requiring advanced operations and precise design constraints.
 
 \paragraph{Contributions.}
-Our contributions are threefold.
-(i) We introduce \textbf{BenchCAD}, a domain-expert-verified dataset and generation pipeline containing 17{,}900 executable CadQuery programs across 106 industrial part families and 47 standards, together with multi-view renders, design QA pairs, and curated edit examples.
-(ii) We propose a \textbf{unified CAD-agent evaluation framework} covering image-to-code generation, image/code-based QA, and instruction-guided code editing, with metrics that assess both target-task success and preservation of non-target geometry.
-(iii) We provide a \textbf{capability-decomposed evaluation} of frontier MLLMs and open CAD-specialized models, showing that current systems remain limited by local detail recognition, CAD operation reasoning, parametric abstraction, and preservation-aware editing.
+(i) We release BenchCAD, a domain-expert-verified benchmark of 17{,}900 executable CadQuery programs across 106 industrial part families with multi-view renders, design QA pairs, and curated edit examples.
+(ii) We propose a unified CAD-agent evaluation framework covering image-to-code generation, image- and code-based QA, and instruction-guided code editing.
+(iii) We provide a capability-decomposed evaluation of frontier MLLMs and open CAD-specialized models, showing that current systems remain limited by local detail recognition, CAD operation reasoning, parametric abstraction, and edit fidelity.
 All data and code are anonymously released under \texttt{BenchCAD/cad\_bench} on Hugging Face under CC-BY-4.0.

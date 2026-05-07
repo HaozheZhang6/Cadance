@@ -2,22 +2,22 @@
 \centering
 \small
 \setlength{\tabcolsep}{5pt}
-\caption{\textbf{BenchCAD versus prior CAD code-generation work.} BenchCAD is a \emph{unified, capability-decomposed evaluation framework} for large-model CAD reasoning, distinct in purpose from the CadQuery-VLM lineage (CAD-Recode, cadrille, CADEvolve) which releases training corpora alongside small fine-tuned models (Qwen 1.5B--2B) saturating $\sim$92\% IoU on legacy sketch+extrude splits. \textbf{Type:} \emph{C+M} = corpus+model, \emph{D} = dataset, \emph{B} = benchmark. \textbf{\#Fam.} = named industrial part families with explicit functional identity. \textbf{\#Std} = distinct ISO/DIN/EN/ASME/IEC specification codes. \textbf{\#Ops} = distinct CadQuery API methods exercised in the released corpus (static analysis of every released \texttt{.py}; see Appendix~\ref{app:ops}). \textbf{Adv} = all four advanced operation families (helix, loft/sweep, twist-extrude, parametric involute-gear) exercised. $\checkmark$ = supported, p.\ = partial, -- = absent.}
+\caption{\textbf{BenchCAD versus prior CAD code-generation work.} BenchCAD is a \emph{unified, capability-decomposed evaluation framework} for large-model CAD reasoning, distinct in purpose from the CadQuery-VLM lineage (CAD-Recode, cadrille, CADEvolve), which releases training corpora alongside small fine-tuned models (Qwen 1.5B--2B) saturating $\sim$92\% IoU on legacy sketch+extrude splits. \textbf{Type:} \emph{C+M} = corpus+model, \emph{D} = dataset, \emph{B} = benchmark. \textbf{\#Fam.} = named industrial part families. \textbf{\#Std} = distinct ISO/DIN/EN/ASME/IEC specification codes. \textbf{Op surface}: \emph{narrow} = sketch+extrude IR or a small CadQuery subset; \emph{broad} = wide CadQuery API including advanced solid ops (precise per-corpus counts and protocol in App.~\ref{app:ops}). \textbf{Adv} = all four advanced operation families (helix, loft/sweep, twist-extrude, parametric involute-gear) exercised. $\checkmark$ = supported, p.\ = partial, -- = absent.}
 \label{tab:cmp_prior}
-\begin{tabular}{lccrrrrccc}
+\begin{tabular}{lccrrrlccc}
 \toprule
-Benchmark & Yr & Type & \#Sam. & \#Fam. & \#Std & \#Ops & Adv & Edit & QA \\
+Benchmark & Yr & Type & \#Sam. & \#Fam. & \#Std & Op surface & Adv & Edit & QA \\
 \midrule
-DeepCAD~\citep{Wu2021}                   & '21 & C+M & 178K  & -- & 0  & 4   & --   & --   & --   \\
-Fusion360 G.~\citep{Willis2021fusion}    & '21 & D   & 8K    & -- & 0  & 6   & --   & --   & --   \\
-Text2CAD~\citep{Khan2024}                & '24 & C+M & 170K  & -- & 0  & 17  & --   & --   & --   \\
-CADPrompt~\citep{Alrashedy2025}          & '25 & B   & 200   & -- & 0  & --  & p.\  & --   & --   \\
-CAD-Coder~\citep{Guan2025}               & '25 & C+M & 110K  & -- & 0  & 4   & --   & p.\  & --   \\
-CAD-Recode~\citep{Rukhovich2025}         & '25 & C+M & 1M+7K & -- & 0  & 18  & --   & p.\  & seq.\\
-cadrille~\citep{Kolodiazhnyi2026}        & '26 & C+M & 1M+7K & -- & 0  & 18  & --   & --   & --   \\
-CADEvolve~\citep{Elistratov2026}         & '26 & C+M & 2.7M  & -- & 0  & 25  & p.\  & --   & --   \\
+DeepCAD~\citep{Wu2021}                   & '21 & C+M & 178K   & -- & 0  & narrow & --  & --   & --   \\
+Fusion360 G.~\citep{Willis2021fusion}    & '21 & D   & 8K     & -- & 0  & narrow & --  & --   & --   \\
+Text2CAD~\citep{Khan2024}                & '24 & C+M & 170K   & -- & 0  & narrow & --  & --   & --   \\
+CADPrompt~\citep{Alrashedy2025}          & '25 & B   & 200    & -- & 0  & broad  & p.\ & --   & --   \\
+CAD-Coder~\citep{Guan2025}               & '25 & C+M & 163K   & -- & 0  & narrow & --  & p.\  & --   \\
+CAD-Recode~\citep{Rukhovich2025}         & '25 & C+M & 1M+7K  & -- & 0  & narrow & --  & p.\  & seq.\\
+cadrille~\citep{Kolodiazhnyi2026}        & '26 & C+M & 1M+7K  & -- & 0  & narrow & --  & --   & --   \\
+CADEvolve~\citep{Elistratov2026}         & '26 & C+M & 1.3M   & -- & 0  & broad  & p.\ & --   & --   \\
 \midrule
-\textbf{BenchCAD (ours)} & \textbf{'26} & \textbf{D+B} & \textbf{17{,}900} & \textbf{106} & \textbf{43} & \textbf{49} & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
+\textbf{BenchCAD (ours)} & \textbf{'26} & \textbf{D+B} & \textbf{17{,}900} & \textbf{106} & \textbf{43} & \textbf{broad}+ & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
 \bottomrule
 \end{tabular}
 \end{table*}
