@@ -59,7 +59,7 @@ Mixing 33\% BenchCAD / 67\% HQ for (1)/(2); 100\% HQ for (3). Backbone Qwen3-VL-
 We hold out 10 CAD families sampled uniformly at random from BenchCAD families that are sufficiently represented and the operations are covered in the iid but not in the baseline.
 
 \paragraph{SFT training setup.}
-We fine-tune Qwen3-VL-2B-Instruct~\citep{Bai2026Qwen3VL} under a standard supervised code-generation setup. Inputs consist of one rendered view and a textual instruction, and targets are CadQuery programs.We use AdamW with
+We fine-tune Qwen3-VL-2B-Instruct~\citep{Bai2025Qwen3VL} under a standard supervised code-generation setup. Inputs consist of one rendered view and a textual instruction, and targets are CadQuery programs.We use AdamW with
 learning rate $2{\times}10^{-4}$, cosine decay, $2$k warmup steps, weight decay $0.01$ with bf16 precision. The training evaluation curve (n=30) shows significant gap between model with OOD holdouts and model trained on all family (Fig~\ref{fig:generalisation_gap}).
 
 \paragraph{RL training setup.}

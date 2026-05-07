@@ -8,131 +8,156 @@
 \bibitem[Akhtar et~al.(2024)]{Croissant2024}
 Mubashara Akhtar et~al.
 \newblock Croissant: A metadata format for {ML}-ready datasets.
-\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS) Datasets and Benchmarks Track}, 2024.
+\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS)
+  Datasets and Benchmarks Track}, 2024.
 
 \bibitem[Alrashedy et~al.(2025)]{Alrashedy2025}
 Khaled Alrashedy et~al.
-\newblock {CAD-CodeVerify}: Self-verification of vision-language models on {CAD} code generation.
-\newblock In \emph{International Conference on Learning Representations (ICLR)}, 2025.
+\newblock {CAD-CodeVerify}: Self-verification of vision-language models on
+  {CAD} code generation.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2025.
 
 \bibitem[{Anthropic}(2026)]{Anthropic2026Claude47}
 {Anthropic}.
-\newblock {Claude Opus 4.7 Model Card}, 2026.
-\newblock URL \url{https://www.anthropic.com/news/claude-opus-4-7}.
+\newblock {Claude Opus 4.7 System Card}, 2026.
+\newblock URL \url{https://www.anthropic.com/system-cards}.
 \newblock Accessed 2026-05-07.
+
+\bibitem[Bai et~al.(2025)]{Bai2025Qwen3VL}
+Shuai Bai et~al.
+\newblock {Qwen3-VL Technical Report}, 2025.
 
 \bibitem[{CadQuery Contributors}(2024)]{CadQuerySoftware}
 {CadQuery Contributors}.
-\newblock {CadQuery}: A python parametric {CAD} scripting framework based on {OCCT}.
+\newblock {CadQuery}: A python parametric {CAD} scripting framework based on
+  {OCCT}.
 \newblock \url{https://github.com/CadQuery/cadquery}, 2024.
+
+\bibitem[Chandiramani et~al.(2026)]{NVIDIA2026Nemotron}
+Abhishek Chandiramani et~al.
+\newblock {Nemotron 3 Super: Open, Efficient Mixture-of-Experts Hybrid
+  Mamba-Attention Model}, 2026.
 
 \bibitem[Chen et~al.(2025)]{Chen2025InternVL3}
 Zhe Chen et~al.
-\newblock {InternVL3}: Exploring advanced training and test-time recipes for open-source multimodal models, 2025.
+\newblock {InternVL3: Exploring Advanced Training and Test-Time Recipes for
+  Open-Source Multimodal Models}, 2025.
 
 \bibitem[Dong et~al.(2026)]{Dong2026}
 Xintong Dong et~al.
-\newblock {HistCAD}: Geometrically constrained parametric history-based {CAD} dataset, 2026.
+\newblock {HistCAD}: Geometrically constrained parametric history-based {CAD}
+  dataset, 2026.
 
-\bibitem[Elistratov et~al.(2026)Elistratov, Barannikov, Ivanov, Khrulkov, Konushin, Kuznetsov, and Zhemchuzhnikov]{Elistratov2026}
-Maksim Elistratov, Marina Barannikov, Gregory Ivanov, Valentin Khrulkov, Anton Konushin, Andrey Kuznetsov, and Dmitrii Zhemchuzhnikov.
+\bibitem[Elistratov et~al.(2026)Elistratov, Barannikov, Ivanov, Khrulkov,
+  Konushin, Kuznetsov, and Zhemchuzhnikov]{Elistratov2026}
+Maksim Elistratov, Marina Barannikov, Gregory Ivanov, Valentin Khrulkov, Anton
+  Konushin, Andrey Kuznetsov, and Dmitrii Zhemchuzhnikov.
 \newblock {CADEvolve}: Creating realistic {CAD} via program evolution, 2026.
 
 \bibitem[{Google DeepMind}(2026)]{Google2026Gemini31}
 {Google DeepMind}.
-\newblock {Gemini 3.1 Pro Technical Report}, 2026.
-\newblock URL \url{https://blog.google/technology/google-deepmind/gemini-3-1/}.
+\newblock {Gemini 3.1 Pro Model Card}, 2026.
+\newblock URL \url{https://deepmind.google/models/model-cards/gemini-3-1-pro/}.
 \newblock Accessed 2026-05-07.
 
-\bibitem[Guan et~al.(2025)Guan, Ge, Yang, Yang, Wei, Cui, Tang, Zhang, and Zhuang]{Guan2025}
-Yandong Guan, Xilin Ge, Shihao Yang, Wenhao Yang, Zhipeng Wei, Can Cui, Cheng Tang, Liang Zhang, and Yueting Zhuang.
-\newblock {CAD-Coder}: Text-to-{CAD} generation with chain-of-thought and geometric reward.
-\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, 2025.
+\bibitem[Guan et~al.(2025)Guan, Ge, Yang, Yang, Wei, Cui, Tang, Zhang, and
+  Zhuang]{Guan2025}
+Yandong Guan, Xilin Ge, Shihao Yang, Wenhao Yang, Zhipeng Wei, Can Cui, Cheng
+  Tang, Liang Zhang, and Yueting Zhuang.
+\newblock {CAD-Coder}: Text-to-{CAD} generation with chain-of-thought and
+  geometric reward.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2025.
 
-\bibitem[Khan et~al.(2024)Khan, Sinha, Uddin, Stricker, Ali, and Afzal]{Khan2024}
-Mohammad~Sadil Khan, Sankalp Sinha, Talha A.~M. Uddin, Didier Stricker, Sk~Aziz Ali, and Muhammad~Zeshan Afzal.
-\newblock {Text2CAD}: Generating sequential {CAD} models from beginner-to-expert level text prompts.
-\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS) Datasets and Benchmarks Track}, 2024.
+\bibitem[Khan et~al.(2024)Khan, Sinha, Uddin, Stricker, Ali, and
+  Afzal]{Khan2024}
+Mohammad~Sadil Khan, Sankalp Sinha, Talha A.~M. Uddin, Didier Stricker, Sk~Aziz
+  Ali, and Muhammad~Zeshan Afzal.
+\newblock {Text2CAD}: Generating sequential {CAD} models from
+  beginner-to-expert level text prompts.
+\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS)
+  Datasets and Benchmarks Track}, 2024.
 
-\bibitem[Kolodiazhnyi et~al.(2026)Kolodiazhnyi, Rukhovich, and Aouada]{Kolodiazhnyi2026}
+\bibitem[Kolodiazhnyi et~al.(2026)Kolodiazhnyi, Rukhovich, and
+  Aouada]{Kolodiazhnyi2026}
 Kyrylo Kolodiazhnyi, Danila Rukhovich, and Djamila Aouada.
-\newblock {cadrille}: Multi-modal {CAD} reconstruction with online reinforcement learning.
-\newblock In \emph{International Conference on Learning Representations (ICLR)}, 2026.
+\newblock {cadrille}: Multi-modal {CAD} reconstruction with online
+  reinforcement learning.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2026.
 
 \bibitem[{Moonshot AI}(2025)]{MoonshotAI2025Kimi}
 {Moonshot AI}.
 \newblock {Kimi K2} and {Kimi-Latest} vision-language models, 2025.
 \newblock URL \url{https://platform.moonshot.ai/docs/intro}.
-\newblock API endpoints \texttt{kimi-latest} and \texttt{moonshot-v1-*-vision-preview}; accessed 2026-05-07.
-
-\bibitem[{NVIDIA}(2026)]{NVIDIA2026Nemotron}
-{NVIDIA}.
-\newblock {Llama Nemotron Super 120B} technical report, 2026.
-\newblock URL \url{https://huggingface.co/nvidia/Nemotron-3-Super-120B-a12B}.
-\newblock Open-weights release, accessed 2026-05-07.
+\newblock API endpoints \texttt{kimi-latest} and
+  \texttt{moonshot-v1-*-vision-preview}; accessed 2026-05-07.
 
 \bibitem[{OpenAI}(2024)]{OpenAI2024GPT4o}
 {OpenAI}.
 \newblock {GPT-4o System Card}, 2024.
-\newblock URL \url{https://openai.com/index/gpt-4o-system-card/}.
-\newblock Accessed 2026-05-07.
 
 \bibitem[{OpenAI}(2025{\natexlab{a}})]{OpenAI2025GPTOSS}
 {OpenAI}.
-\newblock {Introducing gpt-oss}, 2025{\natexlab{a}}.
-\newblock URL \url{https://openai.com/index/introducing-gpt-oss/}.
-\newblock Open-weights release, accessed 2026-05-07.
+\newblock {gpt-oss-120b \& gpt-oss-20b Model Card}, 2025{\natexlab{a}}.
 
-\bibitem[{OpenAI}(2025{\natexlab{b}})]{OpenAI2025o3}
+\bibitem[{OpenAI}(2025{\natexlab{b}})]{OpenAI2025O3O4Mini}
 {OpenAI}.
-\newblock {OpenAI o3 and o3-mini System Card}, 2025{\natexlab{b}}.
-\newblock URL \url{https://openai.com/index/openai-o3-system-card/}.
+\newblock {OpenAI o3 and o4-mini System Card}, 2025{\natexlab{b}}.
+\newblock URL
+  \url{https://cdn.openai.com/pdf/2221c875-02dc-4789-800b-e7758f3722c1/o3-and-o4-mini-system-card.pdf}.
 \newblock Accessed 2026-05-07.
 
-\bibitem[{OpenAI}(2026)]{OpenAI2026GPT53}
+\bibitem[{OpenAI}(2026)]{OpenAI2026GPT53Instant}
 {OpenAI}.
-\newblock {GPT-5.3 System Card}, 2026.
-\newblock URL \url{https://openai.com/index/gpt-5-3-system-card/}.
+\newblock {GPT-5.3 Instant System Card}, 2026.
+\newblock URL \url{https://openai.com/index/gpt-5-3-instant-system-card/}.
 \newblock Accessed 2026-05-07.
 
 \bibitem[{OpenRouter}(2024)]{OpenRouter2024}
 {OpenRouter}.
-\newblock {OpenRouter}: A unified interface for {LLMs}, 2024.
+\newblock {OpenRouter: A Unified Interface for LLMs}, 2024.
 \newblock URL \url{https://openrouter.ai}.
+\newblock Accessed 2026-05-07.
 
 \bibitem[{Qwen Team}(2024)]{Qwen2VL}
 {Qwen Team}.
-\newblock {Qwen2-VL}: Enhancing vision-language model's perception of the world at any resolution, 2024.
+\newblock {Qwen2-VL}: Enhancing vision-language model's perception of the world
+  at any resolution, 2024.
 
-\bibitem[{Qwen Team}(2025)]{Bai2026Qwen3VL}
-{Qwen Team}.
-\newblock {Qwen3-VL} technical report, 2025.
-\newblock URL \url{https://qwenlm.github.io/blog/qwen3-vl/}.
-\newblock Accessed 2026-05-07.
-
-\bibitem[Rukhovich et~al.(2025)Rukhovich, Kolodiazhnyi, and Aouada]{Rukhovich2025}
+\bibitem[Rukhovich et~al.(2025)Rukhovich, Kolodiazhnyi, and
+  Aouada]{Rukhovich2025}
 Danila Rukhovich, Kyrylo Kolodiazhnyi, and Djamila Aouada.
 \newblock {CAD-Recode}: Reverse engineering {CAD} code from point clouds.
-\newblock In \emph{IEEE/CVF International Conference on Computer Vision (ICCV)}, 2025.
+\newblock In \emph{IEEE/CVF International Conference on Computer Vision
+  (ICCV)}, 2025.
 
-\bibitem[Willis et~al.(2021)Willis, Pu, Luo, Chu, Du, Lambourne, Solar-Lezama, and Matusik]{Willis2021fusion}
-Karl D.~D. Willis, Yewen Pu, Jieliang Luo, Hang Chu, Tao Du, Joseph~G. Lambourne, Armando Solar-Lezama, and Wojciech Matusik.
-\newblock {Fusion 360 Gallery}: A dataset and environment for programmatic {CAD} construction from human design sequences.
+\bibitem[Willis et~al.(2021)Willis, Pu, Luo, Chu, Du, Lambourne, Solar-Lezama,
+  and Matusik]{Willis2021fusion}
+Karl D.~D. Willis, Yewen Pu, Jieliang Luo, Hang Chu, Tao Du, Joseph~G.
+  Lambourne, Armando Solar-Lezama, and Wojciech Matusik.
+\newblock {Fusion 360 Gallery}: A dataset and environment for programmatic
+  {CAD} construction from human design sequences.
 \newblock In \emph{ACM Transactions on Graphics (SIGGRAPH)}, 2021.
 
 \bibitem[Wu et~al.(2021)Wu, Xiao, and Zheng]{Wu2021}
 Rundi Wu, Chang Xiao, and Changxi Zheng.
-\newblock {DeepCAD}: A deep generative network for computer-aided design models.
-\newblock \emph{Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)}, 2021.
+\newblock {DeepCAD}: A deep generative network for computer-aided design
+  models.
+\newblock \emph{Proceedings of the IEEE/CVF International Conference on
+  Computer Vision (ICCV)}, 2021.
 
 \bibitem[Yuan et~al.(2025)Yuan, Sun, Liu, and Bian]{CADEditor2025}
 Yu~Yuan, Shizhao Sun, Qi~Liu, and Jiang Bian.
-\newblock {CAD-Editor}: A locate-then-infill framework with automated training data synthesis for text-based {CAD} editing.
+\newblock {CAD-Editor}: A locate-then-infill framework with automated training
+  data synthesis for text-based {CAD} editing.
 \newblock In \emph{International Conference on Machine Learning (ICML)}, 2025.
 
 \bibitem[Zhou et~al.(2025)Zhou, Camba, and Company]{CADialogue2025}
 Jiwei Zhou, Jorge~D. Camba, and Pedro Company.
-\newblock {CADialogue}: A multimodal {LLM}-powered conversational assistant for intuitive parametric {CAD} modeling.
+\newblock {CADialogue}: A multimodal {LLM}-powered conversational assistant for
+  intuitive parametric {CAD} modeling.
 \newblock \emph{Computer-Aided Design}, 2025.
 \newblock \doi{10.1016/j.cad.2025.103929}.
 
