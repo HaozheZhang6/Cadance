@@ -160,7 +160,7 @@ The standard-anchored families reference public ISO/DIN/EN/ASME/IEC standard cod
 The numeric-QA tasks (\texttt{qa\_img}, \texttt{qa\_code}) draw from a per-family question bank constructed in three steps. (1) For each family, a domain-knowledge author writes 6--12 question \emph{templates} parameterised by the family's exposed parameters --- e.g.\ for \texttt{involute\_gear}: \emph{``what is the ratio of root-to-tip diameter?''}, \emph{``how many teeth does the visible gear have?''}.
 Templates are typed (ratio, integer count, ordinal) and constrained to be scale-invariant. (2) Templates are instantiated per-record by deterministic substitution of the verified parameter values, yielding a gold answer alongside each question. (3) A second author reviews each instantiation for ambiguity and visibility (a question must be answerable from the four canonical views with no occluded features).
 The final bank contains 2{,}400 unique (question, gold answer) pairs sampled across 17{,}900 records --- each evaluated under both visual (\texttt{qa\_img}) and code (\texttt{qa\_code}) conditioning, yielding 4{,}800 total QA records.
-The composition is approximately 60\% ratio, 35\% integer count, and 5\% ordinal. We release the question-template source code so that the bank can be regenerated under alternative parameter samples.
+The composition is approximately 60\% ratio, 35\% integer count, and 5\% ordinal.
 
 \section{QA System Prompts}
 \label{app:qa-system-prompts}
@@ -547,10 +547,7 @@ CADEvolve's Hugging Face release (\texttt{kulibinai/cadevolve}, $\sim$$2$M rows,
 \section{Reproduction Recipe}
 \label{app:reproduce}
 
-Reproduction uses the released \texttt{bench/fetch\_data.py} (Hugging Face fetch), the \texttt{bench.eval} runner (\texttt{--model <model> --task <task> --seed 42}), and each released model's documented inference entry-point.
-We provide adapter wrappers under \texttt{bench/models/providers/} for cadrille and CADEvolve so that the existing runner accepts these models without modification.
-Per-task IoU, Chamfer distance, execution rate, and per-family breakdowns are exported to \texttt{results/<task>/<model>/}.
-For training the open BenchCAD baseline: \texttt{train/sft\_qwen3vl.py} with the released training config and data manifest.
+Reproduction uses the BenchCAD splits hosted on Hugging Face (\texttt{img2cq}, \texttt{edit\_code}, \texttt{qa\_img}, \texttt{qa\_code}). All evaluations use seed 42, the metric definitions in \S\ref{sec:exp_eval}, and each model's documented inference entry-point. Per-task IoU, Chamfer distance, execution rate, and per-family breakdowns follow the formats in Tables~\ref{tab:codegen_unified}, \ref{tab:main_eval_qa_img}, and~\ref{tab:main_eval_qa_code}.
 
 \clearpage
 \section{Ethical Considerations and Broader Impact}
